@@ -318,3 +318,9 @@ $$;
 -- Adiciona campo de poupança actual ao perfil
 alter table profiles
   add column if not exists fin_current_savings numeric(12,2) default 0;
+
+-- Coluna onboarded (se não existir ainda)
+alter table profiles add column if not exists onboarded boolean default false;
+
+-- Marcar utilizadores existentes como já onboarded
+update profiles set onboarded = true where onboarded is false or onboarded is null;

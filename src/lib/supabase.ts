@@ -182,3 +182,66 @@ export async function getCalendarData(userId: string, year: number, month: numbe
   ])
   return { logs: logs ?? [], checkins: checkins ?? [] }
 }
+
+// ── Desafio semanal dinâmico ───────────────────────────────
+// Calcula a área com menos consistência nos últimos 14 dias
+export async function getDynamicWeeklyChallenge(userId: string) {
+  const since = new Date()
+  since.setDate(since.getDate() - 13)
+  const sinceStr = since.toISOString().split('T')[0]
+
+  const [{ data: habits }, { data: logs }] = await Promise.all([
+    supabase.from('habits').select('id, area, name').eq('user_id', userId).eq('active', true),
+    supabase.from('habit_logs').select('habit_id, completed, date')
+      .eq('user_id', userId).gte('date', sinceStr),
+  ])
+
+  if (!habits || habits.length === 0) {
+    return { title: 'Semana da Consistência', area: 'corpo', done: 0, total: 7 }
+  }
+
+  // Agrupar por área
+  const areaMap: Record<string, { ids: string[]; done: number; total: number }> = {}
+  for (const h of habits as { id: string; area: string }[]) {
+    if (!areaMap[h.area]) areaMap[h.area] = { ids: [], done: 0, total: 0 }
+    areaMap[h.area].ids.push(h.id)
+  }
+
+  for (const log of logs as { habit_id: string; completed: boolean }[]) {
+    for (const [area, data] of Object.entries(areaMap)) {
+      if (data.ids.includes(log.habit_id)) {
+        data.total++
+        if (log.completed) data.done++
+      }
+    }
+  }
+
+  // Área com pior consistência
+  let worstArea = 'corpo'
+  let worstPct  = 100
+  for (const [area, data] of Object.entries(areaMap)) {
+    const pct = data.total > 0 ? data.done / data.total : 0
+    if (pct < worstPct) { worstPct = pct; worstArea = area }
+  }
+
+  const AREA_NAMES: Record<string, string> = {
+    corpo: 'Saúde & Corpo', produtividade: 'Foco Total',
+    carreira: 'Desenvolvimento', financas: 'Finanças',
+    idiomas: 'Idiomas', emocoes: 'Equilíbrio', relacionamentos: 'Relações',
+  }
+
+  // Dias completos esta semana na área
+  const thisWeek = new Date()
+  thisWeek.setDate(thisWeek.getDate() - thisWeek.getDay())
+  const weekStr  = thisWeek.toISOString().split('T')[0]
+  const weekLogs = (logs as { habit_id: string; completed: boolean; date: string }[])
+    .filter(l => l.date >= weekStr && areaMap[worstArea]?.ids.includes(l.habit_id) && l.completed)
+  const doneDays = new Set(weekLogs.map(l => l.date)).size
+
+  return {
+    title: `Semana de ${AREA_NAMES[worstArea] ?? worstArea}`,
+    area: worstArea,
+    done: doneDays,
+    total: 7,
+  }
+}

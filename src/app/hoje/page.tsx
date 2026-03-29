@@ -9,15 +9,19 @@ import MissionCard from '@/components/MissionCard'
 import MentorCard from '@/components/MentorCard'
 import HabitItem from '@/components/HabitItem'
 import XPToast, { triggerXP } from '@/components/XPToast'
-import { supabase, getProfile, getHabitsWithLogs, addXP, updateStreak } from '@/lib/supabase'
+import { supabase, getProfile, getHabitsWithLogs, addXP, updateStreak, getDynamicWeeklyChallenge } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
 import type { Profile, Habit, HabitLog } from '@/types'
+import StreakRecovery from '@/components/StreakRecovery'
+import EmptyState from '@/components/EmptyState'
 
 export default function HojePage() {
-  const [profile, setProfile]       = useState<Profile | null>(null)
-  const [habits, setHabits]         = useState<(Habit & { habit_logs: HabitLog[] })[]>([])
-  const [missionPct, setMissionPct] = useState(0)
-  const [loading, setLoading]       = useState(true)
+  const [profile, setProfile]         = useState<Profile | null>(null)
+  const [habits, setHabits]           = useState<(Habit & { habit_logs: HabitLog[] })[]>([])
+  const [missionPct, setMissionPct]   = useState(0)
+  const [loading, setLoading]         = useState(true)
+  const [showRecovery, setShowRecovery] = useState(false)
+  const [weekChallenge, setWeekChallenge] = useState({ title: 'Semana da Consistência', done: 0, total: 7 })
   const today = format(new Date(), 'yyyy-MM-dd')
   const hour  = new Date().getHours()
 
@@ -32,8 +36,23 @@ export default function HojePage() {
         getProfile(user.id),
         getHabitsWithLogs(user.id, today),
       ])
+
+      // Redirecionar para onboarding se ainda não fez
+      if (prof && !prof.onboarded) {
+        window.location.href = '/onboarding'
+        return
+      }
+
       setProfile(prof)
       setHabits(hab as (Habit & { habit_logs: HabitLog[] })[])
+
+      // Mostrar card de recuperação se streak = 0 mas tem histórico
+      if (prof && prof.streak_current === 0 && prof.streak_best > 0) {
+        setShowRecovery(true)
+      }
+
+      const challenge = await getDynamicWeeklyChallenge(user.id)
+      setWeekChallenge(challenge)
       await updateStreak(user.id)
       setLoading(false)
     }
@@ -61,14 +80,32 @@ export default function HojePage() {
   }) : { body: '…', action: '…' }
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="font-syne text-lg text-text-3">a carregar…</div>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <div style={{ fontFamily: "Syne, sans-serif", fontSize: 18, color: "var(--text3)" }}>a carregar…</div>
     </div>
   )
 
   return (
-    <main className="animate-in pb-28">
+    <main style={{ paddingBottom: 100, minHeight: "100vh", animation: "fadeUp .3s ease" }}>
       <XPToast />
+
+      {/* ── ESTADO VAZIO ── */}
+      {habits.length === 0 && profile && (
+        <EmptyState
+          hasHabits={habits.length > 0}
+          hasMission={!!profile.mission_today}
+          username={profile.username ?? 'Guerreiro'}
+        />
+      )}
+
+      {/* ── RECUPERAÇÃO DE STREAK ── */}
+      {showRecovery && profile && (
+        <StreakRecovery
+          prevBest={profile.streak_best}
+          onDismiss={() => setShowRecovery(false)}
+          onCheckin={() => { window.location.href = '/checkin' }}
+        />
+      )}
 
       {/* ── HEADER ── */}
       <div style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
@@ -145,7 +182,7 @@ export default function HojePage() {
         </div>
       </div>
 
-      {/* ── DESAFIO SEMANAL ── */}
+      {/* ── DESAFIO SEMANAL DINÂMICO ── */}
       <div style={{
         margin: '12px 20px 0', padding: '14px 16px', borderRadius: 16,
         background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.2)',
@@ -158,14 +195,14 @@ export default function HojePage() {
             </span>
           </div>
           <span style={{ fontSize: 12, color: 'var(--text2)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
-            4 / 7 dias
+            {weekChallenge.done} / {weekChallenge.total} dias
           </span>
         </div>
         <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 14, color: 'var(--text1)', marginBottom: 10 }}>
-          Semana do Foco Total
+          {weekChallenge.title}
         </div>
         <div style={{ background: 'var(--bg3)', borderRadius: 100, height: 5 }}>
-          <div style={{ height: '100%', borderRadius: 100, background: 'var(--teal)', width: '57%', transition: 'width .5s' }} />
+          <div style={{ height: '100%', borderRadius: 100, background: 'var(--teal)', width: `${Math.round(weekChallenge.done / weekChallenge.total * 100)}%`, transition: 'width .5s' }} />
         </div>
       </div>
 
