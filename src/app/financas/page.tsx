@@ -87,10 +87,11 @@ export default function FinancasPage() {
       .sort((a, b) => b.value - a.value).slice(0, 6)
   }, [txs])
 
-  // Meta de poupança
-  const savingsGoal   = (profile as Record<string, unknown>)?.fin_monthly_save as number ?? 0
-  const currentSavings = (profile as Record<string, unknown>)?.fin_current_savings as number ?? 0
-  const reserveGoal   = (profile as Record<string, unknown>)?.fin_reserve_goal as number ?? 0
+  // Meta de poupança — cast via unknown para evitar erro de tipo
+  const p = profile as unknown as Record<string, number>
+  const savingsGoal    = p?.fin_monthly_save    ?? 0
+  const currentSavings = p?.fin_current_savings ?? 0
+  const reserveGoal    = p?.fin_reserve_goal    ?? 0
 
   const fmt = (v: number) => v.toLocaleString('pt-PT', { style: 'currency', currency: 'EUR' })
 
