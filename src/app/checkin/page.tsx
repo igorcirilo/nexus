@@ -131,7 +131,7 @@ export default function CheckinPage() {
   async function reset(phase: Phase) {
     if (!profile) return
     // Remove do set de concluídas para permitir re-fazer
-    setDonePhases(p => { const n = new Set(p); n.delete(phase); return n })
+    setDonePhases(p => { const n = new Set(Array.from(p)); n.delete(phase); return n })
     setStep(0)
   }
 
@@ -160,7 +160,7 @@ export default function CheckinPage() {
     await addXP(profile.id, xp)
     if (phase === 'noite') await updateStreak(profile.id)
     triggerXP(xp, `Check-in ${LABELS[phase].toLowerCase()} — +${xp} XP`)
-    setDonePhases(p => new Set([...p, phase]))
+    setDonePhases(p => new Set(Array.from(p).concat(phase)))
     setSubmitting(false)
   }
 
