@@ -91,7 +91,11 @@ export default function CheckinPage() {
     await addXP(profile.id, xp)
     if (phase === 'noite') await updateStreak(profile.id)
     triggerXP(xp, `Check-in ${PHASE_LABELS[phase].toLowerCase()} completo!`)
-    setDonePhases(p => new Set([...p, phase]))
+    setDonePhases(p => {
+  const next = new Set(p)
+  next.add(phase)
+  return next
+})
     // Avança automaticamente para a próxima fase
     if (phase === 'manha') setActivePhase('tarde')
     else if (phase === 'tarde') setActivePhase('noite')
