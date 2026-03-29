@@ -70,46 +70,102 @@ export default function HojePage() {
     <main className="animate-in pb-28">
       <XPToast />
 
-      {/* Header */}
-      <div className="px-5 pt-7">
-        <p className="text-[13px] text-text-2">{greeting}, {profile?.username ?? 'Guerreiro'}</p>
-        <h1 className="font-syne font-bold text-[22px] mt-0.5">
-          Missão de <span style={{ color: 'var(--gold)' }}>Hoje</span>
-        </h1>
+      {/* ── HEADER ── */}
+      <div style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+        <div>
+          <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 3 }}>
+            {greeting}, {profile?.username ?? 'Guerreiro'}
+          </p>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, lineHeight: 1.1 }}>
+            Missão de <span style={{ color: 'var(--gold)' }}>Hoje</span>
+          </h1>
+        </div>
+        {/* Streak badge no canto */}
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'rgba(232,168,56,.1)', border: '0.5px solid rgba(232,168,56,.25)',
+          borderRadius: 12, padding: '8px 12px',
+        }}>
+          <span style={{ fontSize: 18, animation: 'flame 1.8s ease-in-out infinite', display: 'inline-block', transformOrigin: 'bottom center' }}>🔥</span>
+          <div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--gold)', lineHeight: 1 }}>
+              {profile?.streak_current ?? 0}
+            </div>
+            <div style={{ fontSize: 9, color: 'var(--text3)', marginTop: 1 }}>dias</div>
+          </div>
+        </div>
       </div>
 
-      {/* XP Bar */}
+      {/* ── XP BAR ── */}
       {profile && <XPBar xp={profile.xp_total} level={profile.level} title={profile.title} />}
 
-      {/* Stats row */}
-      <div className="flex gap-2 px-5 mt-3">
-        {[
-          { label: 'Streak', value: `${profile?.streak_current ?? 0}`,   color: 'var(--gold)',   icon: '🔥', flame: true },
-          { label: 'Energia', value: `${profile?.energy_today ?? 5}/10`, color: 'var(--teal)',   icon: '⚡' },
-          { label: 'Hábitos', value: `${doneCnt}/${totalHabits}`,        color: 'var(--accent)', icon: '🎯' },
-        ].map(({ label, value, color, icon, flame }) => (
-          <div key={label} className="flex-1 card px-3 py-3 flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl flex items-center justify-center text-[13px] flex-shrink-0"
-                 style={{ background: `${color}18` }}>
-              <span className={flame ? 'animate-flame' : ''}>{icon}</span>
-            </div>
-            <div>
-              <div className="text-[10px] text-text-3">{label}</div>
-              <div className="font-syne font-bold text-[17px] leading-none" style={{ color }}>{value}</div>
+      {/* ── STATS PILLS ── */}
+      <div style={{ display: 'flex', gap: 8, padding: '12px 20px 0' }}>
+        {/* Energia */}
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', gap: 10,
+          background: 'var(--bg2)', border: '0.5px solid var(--border)',
+          borderRadius: 14, padding: '11px 14px',
+        }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(30,203,180,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>⚡</div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 2 }}>Energia</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--teal)', lineHeight: 1 }}>
+              {profile?.energy_today ?? 5}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text3)' }}>/10</span>
             </div>
           </div>
-        ))}
+        </div>
+        {/* Hábitos */}
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', gap: 10,
+          background: 'var(--bg2)', border: '0.5px solid var(--border)',
+          borderRadius: 14, padding: '11px 14px',
+        }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(127,119,221,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>🎯</div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 2 }}>Hábitos</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--accent)', lineHeight: 1 }}>
+              {doneCnt}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text3)' }}>/{totalHabits}</span>
+            </div>
+          </div>
+        </div>
+        {/* Check-ins */}
+        <div style={{
+          flex: 1, display: 'flex', alignItems: 'center', gap: 10,
+          background: 'var(--bg2)', border: '0.5px solid var(--border)',
+          borderRadius: 14, padding: '11px 14px',
+        }}>
+          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(232,168,56,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>📋</div>
+          <div>
+            <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 2 }}>Check-in</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--gold)', lineHeight: 1 }}>
+              {hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite'}
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Desafio semanal */}
-      <div className="mx-5 mt-3 p-4 rounded-2xl" style={{ background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.2)' }}>
-        <div className="flex justify-between items-center mb-2">
-          <span className="chip-teal">Desafio da Semana</span>
-          <span className="text-[11px] text-text-2">4 / 7 dias</span>
+      {/* ── DESAFIO SEMANAL ── */}
+      <div style={{
+        margin: '12px 20px 0', padding: '14px 16px', borderRadius: 16,
+        background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.2)',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--teal)' }} />
+            <span style={{ fontSize: 11, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 600 }}>
+              Desafio da Semana
+            </span>
+          </div>
+          <span style={{ fontSize: 12, color: 'var(--text2)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
+            4 / 7 dias
+          </span>
         </div>
-        <div className="font-syne font-semibold text-[14px] mb-2">Semana do Foco Total</div>
-        <div className="bg-bg-3 rounded-full h-1.5">
-          <div className="h-full rounded-full" style={{ width: '57%', background: 'var(--teal)' }} />
+        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 14, color: 'var(--text1)', marginBottom: 10 }}>
+          Semana do Foco Total
+        </div>
+        <div style={{ background: 'var(--bg3)', borderRadius: 100, height: 5 }}>
+          <div style={{ height: '100%', borderRadius: 100, background: 'var(--teal)', width: '57%', transition: 'width .5s' }} />
         </div>
       </div>
 
