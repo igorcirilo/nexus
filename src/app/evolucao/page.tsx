@@ -54,13 +54,12 @@ export default function EvolucaoPage() {
 
   // Progresso de streak para badges
   function badgeProgress(key: string): string {
-    const s = profile.streak_current
-    if (key === 'streak_7')  return `${Math.min(s,7)}/7 dias`
-    if (key === 'streak_14') return `${Math.min(s,14)}/14 dias`
-    if (key === 'streak_30') return `${Math.min(s,30)}/30 dias`
-    if (key === 'streak_90') return `${Math.min(s,90)}/90 dias`
-    return 'Em progresso'
-  }
+  const s = profile?.streak_current ?? 0
+  if (key === 'streak_7')  return `${Math.min(s, 7)}/7 dias`
+  if (key === 'streak_14') return `${Math.min(s, 14)}/14 dias`
+  if (key === 'streak_30') return `${Math.min(s, 30)}/30 dias`
+  return ''
+}
 
   return (
     <main className="animate-in pb-28">
