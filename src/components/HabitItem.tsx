@@ -15,48 +15,60 @@ interface Props {
 
 export default function HabitItem({ habit, log, userId, date, onXP }: Props) {
   const [done, setDone] = useState(log?.completed ?? false)
+  const area = AREA_META[habit.area]
 
   async function toggle() {
     const newDone = !done
     setDone(newDone)
     await toggleHabitLog(userId, habit.id, date, newDone)
-    if (newDone) {
-      const area = AREA_META[habit.area]
-      onXP(habit.xp_reward, `+${habit.xp_reward} XP — ${habit.name}`)
-    }
+    if (newDone) onXP(habit.xp_reward, `${habit.name} feito!`)
   }
 
-  const area = AREA_META[habit.area]
-
   return (
-    <button
-      onClick={toggle}
-      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition-all text-left"
+    <button onClick={toggle}
       style={{
-        background: done ? 'rgba(30,203,180,.04)' : 'var(--bg2)',
-        borderColor: done ? 'rgba(30,203,180,.22)' : 'var(--border)',
+        width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+        padding: '13px 16px', borderRadius: 16, border: 'none', cursor: 'pointer',
+        background: done ? 'rgba(30,203,180,.08)' : 'var(--bg2)',
+        outline: done ? '0.5px solid rgba(30,203,180,.25)' : '0.5px solid var(--border)',
+        textAlign: 'left', transition: 'all .2s',
       }}>
+
       {/* Checkbox */}
-      <div className="w-6 h-6 rounded-lg border-[1.5px] flex items-center justify-center flex-shrink-0 transition-all"
-           style={{
-             background: done ? 'var(--teal)' : 'transparent',
-             borderColor: done ? 'var(--teal)' : 'var(--text3)',
-           }}>
+      <div style={{
+        width: 26, height: 26, borderRadius: 9, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: done ? 'var(--teal)' : 'transparent',
+        border: done ? 'none' : '1.5px solid var(--text3)',
+        transition: 'all .2s',
+      }}>
         {done && (
-          <svg width="12" height="9" viewBox="0 0 12 9" fill="none"
-               stroke="var(--bg0)" strokeWidth="2.5">
-            <polyline points="1,4.5 4.5,8 11,1"/>
+          <svg width="13" height="10" viewBox="0 0 13 10" fill="none"
+               stroke="var(--bg0)" strokeWidth="2.5" strokeLinecap="round">
+            <polyline points="1.5,5 5,8.5 11.5,1.5"/>
           </svg>
         )}
       </div>
 
       {/* Info */}
-      <div className="flex-1 min-w-0">
-        <div className="text-sm font-medium text-text-1 truncate">{habit.name}</div>
-        <div className="flex items-center gap-1.5 mt-0.5">
-          <span className="text-[11px] text-text-3">{area?.label}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{
+          fontSize: 14, fontWeight: 500,
+          color: done ? 'var(--text2)' : 'var(--text1)',   /* ← texto claro sempre */
+          marginBottom: 4,
+          textDecoration: done ? 'line-through' : 'none',
+        }}>
+          {habit.name}
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, color: 'var(--text3)' }}>{area?.label}</span>
           {habit.time_window && (
-            <span className="text-[10px] text-text-3 bg-bg-3 px-1.5 py-0.5 rounded-md">
+            <span style={{              /* ← separado com gap, nunca encostado */
+              fontSize: 10,
+              color: done ? 'var(--text3)' : 'var(--text2)',
+              background: 'var(--bg3)',
+              padding: '2px 8px', borderRadius: 6,
+            }}>
               {habit.time_window}
             </span>
           )}
@@ -64,8 +76,12 @@ export default function HabitItem({ habit, log, userId, date, onXP }: Props) {
       </div>
 
       {/* XP */}
-      <span className="text-[11px] font-medium flex-shrink-0" style={{ color: 'var(--gold)' }}>
-        +{habit.xp_reward} XP
+      <span style={{
+        fontSize: 11, fontWeight: 600, flexShrink: 0,
+        color: done ? 'var(--text3)' : 'var(--gold)',
+        fontFamily: 'Syne, sans-serif',
+      }}>
+        {done ? '✓' : `+${habit.xp_reward}`}
       </span>
     </button>
   )

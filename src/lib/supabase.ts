@@ -80,7 +80,7 @@ export async function saveFocusSession(
   userId: string, duration: number, task?: string,
 ) {
   return supabase.from('focus_sessions').insert({
-    user_id: userId, duration, task, xp_earned: 30,
+    user_id: userId, duration, task, xp_earned: 10,
     date: new Date().toISOString().split('T')[0],
   })
 }

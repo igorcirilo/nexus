@@ -63,6 +63,7 @@ export default function PerfilPage() {
         workouts_per_week:  prof?.workouts_per_week ?? 3,
         sleep_goal_h:       prof?.sleep_goal_h ?? 8,
         read_pages_day:     prof?.read_pages_day ?? 10,
+        fin_current_savings: prof?.fin_current_savings ?? '',
         fin_monthly_save:   prof?.fin_monthly_save ?? '',
         fin_debt_goal:      prof?.fin_debt_goal ?? '',
         fin_reserve_goal:   prof?.fin_reserve_goal ?? '',
@@ -217,7 +218,17 @@ export default function PerfilPage() {
         {/* ── FINANÇAS ── */}
         {section === 'financas' && (
           <>
-            <Field label="Poupar por mês (€)" hint="Quanto queres guardar mensalmente">
+            {/* Saldo actual */}
+            <div style={{ background:'var(--bg2)', border:'0.5px solid rgba(30,203,180,.22)', borderRadius:14, padding:16, marginBottom:20 }}>
+              <div style={{ fontSize:11, color:'var(--text3)', marginBottom:6, textTransform:'uppercase', letterSpacing:'.5px' }}>Saldo actual em poupança</div>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontFamily:'Syne,sans-serif', fontSize:22, color:'var(--teal)' }}>€</span>
+                <input type="number" value={String(form.fin_current_savings)} onChange={e => set('fin_current_savings', +e.target.value)} placeholder="0"
+                  style={{ flex:1, fontFamily:'Syne,sans-serif', fontWeight:700, fontSize:24, padding:'8px 0', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border)', borderRadius:0, color:'var(--text1)', outline:'none' }} />
+              </div>
+              <div style={{ fontSize:11, color:'var(--text3)', marginTop:6 }}>Valor actual disponível em conta/poupança</div>
+            </div>
+            <Field label="Meta de poupança mensal (€)" hint="Quanto queres guardar por mês">
               <input style={inputStyle} type="number" value={String(form.fin_monthly_save)}
                 onChange={e => set('fin_monthly_save', +e.target.value)} placeholder="500" />
             </Field>
@@ -229,6 +240,21 @@ export default function PerfilPage() {
               <input style={inputStyle} type="number" value={String(form.fin_debt_goal)}
                 onChange={e => set('fin_debt_goal', +e.target.value)} placeholder="5000" />
             </Field>
+            {+form.fin_reserve_goal > 0 && (
+              <div style={{ background:'var(--bg2)', border:'0.5px solid var(--border)', borderRadius:14, padding:14 }}>
+                <div style={{ fontSize:11, color:'var(--text3)', marginBottom:8 }}>Progresso para reserva de emergência</div>
+                <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, marginBottom:6 }}>
+                  <span style={{ color:'var(--text2)' }}>€{Number(form.fin_current_savings||0).toLocaleString('pt-PT')}</span>
+                  <span style={{ color:'var(--text3)' }}>€{Number(form.fin_reserve_goal).toLocaleString('pt-PT')}</span>
+                </div>
+                <div style={{ background:'var(--bg3)', borderRadius:100, height:6 }}>
+                  <div style={{ height:'100%', borderRadius:100, background:'var(--teal)', width:`${Math.min(100,Math.round(+form.fin_current_savings / +form.fin_reserve_goal * 100))}%`, transition:'width .5s' }} />
+                </div>
+                <div style={{ fontSize:11, color:'var(--teal)', marginTop:6 }}>
+                  {Math.min(100,Math.round(+form.fin_current_savings / +form.fin_reserve_goal * 100))}% da meta atingida
+                </div>
+              </div>
+            )}
           </>
         )}
 

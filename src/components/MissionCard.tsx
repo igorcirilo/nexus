@@ -45,7 +45,7 @@ export default function MissionCard({ mission, progress, userId, onXP, onProgres
     const newPct = Math.min(100, localPct + 15)
     setLocalPct(newPct)
     onProgressUpdate(newPct)
-    onXP(30, 'Bloco de foco concluído! +15% na missão')
+    onXP(10, 'Bloco de foco concluído! +15% na missão')
     await saveFocusSession(userId, 25, mission)
   }
 

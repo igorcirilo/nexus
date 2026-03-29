@@ -314,3 +314,7 @@ begin
   on conflict do nothing;
 end;
 $$;
+
+-- Adiciona campo de poupança actual ao perfil
+alter table profiles
+  add column if not exists fin_current_savings numeric(12,2) default 0;

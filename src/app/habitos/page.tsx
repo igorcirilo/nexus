@@ -9,12 +9,12 @@ import type { Habit, HabitArea } from '@/types'
 const AREAS = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
 
 const DEFAULT_HABITS: Omit<Habit, 'id' | 'user_id' | 'created_at'>[] = [
-  { name: 'Treino físico',    area: 'corpo',         xp_reward: 50, time_window: '07:00–09:00', active: true },
-  { name: 'Água · 2L',       area: 'corpo',         xp_reward: 25, time_window: 'Todo o dia',  active: true },
-  { name: 'Idioma · 20 min', area: 'idiomas',       xp_reward: 30, time_window: '18:00–19:00', active: true },
-  { name: 'Leitura · 15 min',area: 'carreira',      xp_reward: 20, time_window: '21:00–22:00', active: true },
-  { name: 'Meditação',       area: 'emocoes',       xp_reward: 20, time_window: '07:30–08:00', active: true },
-  { name: 'Bloco de foco',   area: 'produtividade', xp_reward: 40, time_window: '09:00–11:00', active: true },
+  { name: 'Treino físico',    area: 'corpo',         xp_reward: 20, time_window: '07:00–09:00', active: true },
+  { name: 'Água · 2L',       area: 'corpo',         xp_reward: 10, time_window: 'Todo o dia',  active: true },
+  { name: 'Idioma · 20 min', area: 'idiomas',       xp_reward: 10, time_window: '18:00–19:00', active: true },
+  { name: 'Leitura · 15 min',area: 'carreira',      xp_reward: 8, time_window: '21:00–22:00', active: true },
+  { name: 'Meditação',       area: 'emocoes',       xp_reward: 8, time_window: '07:30–08:00', active: true },
+  { name: 'Bloco de foco',   area: 'produtividade', xp_reward: 15, time_window: '09:00–11:00', active: true },
 ]
 
 type FormState = {
@@ -282,7 +282,7 @@ export default function HabitosPage() {
             <label className="text-[12px] text-text-3 mb-1.5 block">
               XP por conclusão: <strong className="font-syne text-[15px]" style={{ color: 'var(--gold)' }}>{form.xp_reward}</strong>
             </label>
-            <input type="range" min={10} max={100} step={5} value={form.xp_reward}
+            <input type="range" min={5} max={20} step={1} value={form.xp_reward}
               onChange={e => setForm(f => ({ ...f, xp_reward: +e.target.value }))}
               style={{ width: '100%', accentColor: 'var(--gold)', marginBottom: '20px' }} />
 
