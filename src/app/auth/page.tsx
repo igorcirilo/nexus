@@ -1,20 +1,50 @@
 'use client'
 // src/app/auth/page.tsx
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 
 export default function AuthPage() {
+  const router = useRouter()
+
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
   const [isNew, setIsNew] = useState(false)
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
 
+  useEffect(() => {
+    let mounted = true
+
+    async function checkSession() {
+      const { data } = await supabase.auth.getSession()
+      if (mounted && data.session) {
+        router.replace('/hoje')
+      }
+    }
+
+    checkSession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        router.replace('/hoje')
+      }
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [router])
+
   async function submit() {
     if (!email) return
+
     setLoading(true)
 
-    const emailRedirectTo = `${window.location.origin}/hoje`
+    const emailRedirectTo = `${window.location.origin}/auth`
 
     if (isNew) {
       await supabase.auth.signUp({
