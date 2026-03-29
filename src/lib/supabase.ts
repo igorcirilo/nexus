@@ -245,3 +245,61 @@ export async function getDynamicWeeklyChallenge(userId: string) {
     total: 7,
   }
 }
+
+// ── Objectivos 90 dias ─────────────────────────────────────
+export async function saveGoal90(payload: Record<string, unknown>) {
+  if (payload.id) {
+    const { id, ...rest } = payload
+    return supabase.from('goals_90').update(rest).eq('id', id)
+  }
+  return supabase.from('goals_90').insert(payload)
+}
+
+export async function deleteGoal90(id: string) {
+  return supabase.from('goals_90').delete().eq('id', id)
+}
+
+export async function getMilestones(goalId: string) {
+  const { data } = await supabase
+    .from('goal_milestones')
+    .select('*')
+    .eq('goal_id', goalId)
+    .order('due_date')
+  return data ?? []
+}
+
+export async function saveMilestone(payload: Record<string, unknown>) {
+  if (payload.id) {
+    const { id, ...rest } = payload
+    return supabase.from('goal_milestones').update(rest).eq('id', id)
+  }
+  return supabase.from('goal_milestones').insert(payload)
+}
+
+export async function toggleMilestone(id: string, done: boolean) {
+  return supabase.from('goal_milestones').update({ done }).eq('id', id)
+}
+
+// ── Finanças ───────────────────────────────────────────────
+export async function getTransactions(userId: string, months = 1) {
+  const since = new Date()
+  since.setMonth(since.getMonth() - months + 1)
+  since.setDate(1)
+  const sinceStr = since.toISOString().split('T')[0]
+
+  const { data } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', sinceStr)
+    .order('date', { ascending: false })
+  return data ?? []
+}
+
+export async function saveTransaction(payload: Record<string, unknown>) {
+  return supabase.from('transactions').insert(payload)
+}
+
+export async function deleteTransaction(id: string) {
+  return supabase.from('transactions').delete().eq('id', id)
+}

@@ -1,6 +1,7 @@
 'use client'
 // src/app/evolucao/page.tsx
 import { useEffect, useState } from 'react'
+import { Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer } from 'recharts'
 import Nav from '@/components/Nav'
 import { supabase, getProfile, getUserBadges } from '@/lib/supabase'
 import { xpForLevel, AREA_META, TITLES } from '@/types'
@@ -202,6 +203,33 @@ export default function EvolucaoPage() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── RADAR CHART ── */}
+      <div style={{ padding: '20px 20px 0' }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+          Equilíbrio de vida — visão global
+        </div>
+        <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 16, padding: '16px 8px' }}>
+          <div style={{ height: 240, position: 'relative', overflow: 'hidden' }}>
+            <ResponsiveContainer width="100%" height={240}>
+              <RadarChart data={areas.map(a => ({ subject: a.label.split(' ')[0], value: a.pct, fullMark: 100 }))}>
+                <PolarGrid stroke="rgba(255,255,255,.08)" />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: '#9BA0B0', fontSize: 11 }} />
+                <Radar name="Progresso" dataKey="value" stroke="#7F77DD" fill="#7F77DD" fillOpacity={0.25} strokeWidth={2} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 4, flexWrap: 'wrap' }}>
+            {areas.filter(a => a.pct > 0).sort((a,b) => b.pct - a.pct).slice(0,3).map(a => (
+              <div key={a.key} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--text3)' }}>
+                <span style={{ fontSize: 13 }}>{a.icon}</span>
+                <span style={{ color: a.color, fontWeight: 600 }}>{a.pct}%</span>
+                <span>{a.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 

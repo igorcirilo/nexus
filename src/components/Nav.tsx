@@ -77,6 +77,12 @@ function GridIcon({ active }: { active: boolean }) {
 function BellIcon({ active }: { active: boolean }) {
   return <Ico active={active}><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></Ico>
 }
+function TargetIcon({ active }: { active: boolean }) {
+  return <Ico active={active}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></Ico>
+}
+function EuroIcon({ active }: { active: boolean }) {
+  return <Ico active={active}><path d="M4 10h12M4 14h12M15.5 4.5a9 9 0 1 1 0 15"/></Ico>
+}
 function UserIcon({ active }: { active: boolean }) {
   return <Ico active={active}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Ico>
 }
