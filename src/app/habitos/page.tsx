@@ -2,7 +2,7 @@
 // src/app/habitos/page.tsx
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
-import { supabase, getProfile } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { AREA_META } from '@/types'
 import type { Habit, HabitArea } from '@/types'
 
@@ -10,75 +10,74 @@ const AREAS = Object.entries(AREA_META) as [HabitArea, { label: string; icon: st
 
 const DEFAULT_HABITS: Omit<Habit, 'id' | 'user_id' | 'created_at'>[] = [
   { name: 'Treino físico',    area: 'corpo',         xp_reward: 20, time_window: '07:00–09:00', active: true },
-  { name: 'Água · 2L',       area: 'corpo',         xp_reward: 10, time_window: 'Todo o dia',  active: true },
-  { name: 'Idioma · 20 min', area: 'idiomas',       xp_reward: 10, time_window: '18:00–19:00', active: true },
-  { name: 'Leitura · 15 min',area: 'carreira',      xp_reward: 8, time_window: '21:00–22:00', active: true },
-  { name: 'Meditação',       area: 'emocoes',       xp_reward: 8, time_window: '07:30–08:00', active: true },
+  { name: 'Água · 2L',       area: 'corpo',         xp_reward: 8,  time_window: 'Todo o dia',  active: true },
+  { name: 'Idioma · 20 min', area: 'idiomas',       xp_reward: 15, time_window: '18:00–19:00', active: true },
+  { name: 'Leitura · 15 min',area: 'carreira',      xp_reward: 10, time_window: '21:00–22:00', active: true },
+  { name: 'Meditação',       area: 'emocoes',       xp_reward: 8,  time_window: '07:30–08:00', active: true },
   { name: 'Bloco de foco',   area: 'produtividade', xp_reward: 15, time_window: '09:00–11:00', active: true },
 ]
 
-type FormState = {
-  name: string
-  area: HabitArea
-  xp_reward: number
-  time_window: string
+type FormState = { name: string; area: HabitArea; xp_reward: number; time_window: string }
+const EMPTY: FormState = { name: '', area: 'corpo', xp_reward: 10, time_window: '' }
+
+const S: React.CSSProperties = {
+  width: '100%', background: 'var(--bg2)', border: '0.5px solid var(--border)',
+  borderRadius: 12, padding: '12px 14px', color: 'var(--text1)',
+  fontFamily: 'DM Sans, sans-serif', fontSize: 14, outline: 'none',
 }
 
-const EMPTY_FORM: FormState = { name: '', area: 'corpo', xp_reward: 20, time_window: '' }
-
 export default function HabitosPage() {
-  const [habits, setHabits]     = useState<Habit[]>([])
-  const [userId, setUserId]     = useState<string | null>(null)
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm]         = useState<FormState>(EMPTY_FORM)
-  const [saving, setSaving]     = useState(false)
-  const [toast, setToast]       = useState('')
+  const [habits,     setHabits]     = useState<Habit[]>([])
+  const [userId,     setUserId]     = useState<string | null>(null)
+  const [showForm,   setShowForm]   = useState(false)
+  const [editHabit,  setEditHabit]  = useState<Habit | null>(null)
+  const [form,       setForm]       = useState<FormState>(EMPTY)
+  const [saving,     setSaving]     = useState(false)
+  const [toast,      setToast]      = useState('')
   const [filterArea, setFilterArea] = useState<HabitArea | 'all'>('all')
+  const [view,       setView]       = useState<'list' | 'grid'>('list')
 
   useEffect(() => {
-    async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { window.location.href = '/auth'; return }
       setUserId(user.id)
-      const { data } = await supabase
-        .from('habits')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at')
+      const { data } = await supabase.from('habits').select('*').eq('user_id', user.id).order('area').order('name')
       setHabits(data ?? [])
-    }
-    load()
+    })
   }, [])
 
-  function showToast(msg: string) {
-    setToast(msg)
-    setTimeout(() => setToast(''), 2500)
+  function showToast(msg: string) { setToast(msg); setTimeout(() => setToast(''), 2400) }
+
+  function openNew()       { setEditHabit(null); setForm(EMPTY); setShowForm(true) }
+  function openEdit(h: Habit) {
+    setEditHabit(h)
+    setForm({ name: h.name, area: h.area, xp_reward: h.xp_reward, time_window: h.time_window ?? '' })
+    setShowForm(true)
   }
 
-  async function saveHabit() {
+  async function save() {
     if (!userId || !form.name.trim()) return
     setSaving(true)
-    const { data, error } = await supabase
-      .from('habits')
-      .insert({ ...form, user_id: userId })
-      .select()
-      .single()
-    if (!error && data) {
-      setHabits(h => [...h, data as Habit])
-      setForm(EMPTY_FORM)
-      setShowForm(false)
+    if (editHabit) {
+      const { data } = await supabase.from('habits').update(form).eq('id', editHabit.id).select().single()
+      if (data) setHabits(h => h.map(x => x.id === editHabit.id ? data as Habit : x))
+      showToast('Hábito actualizado!')
+    } else {
+      const { data } = await supabase.from('habits').insert({ ...form, user_id: userId }).select().single()
+      if (data) setHabits(h => [...h, data as Habit])
       showToast('Hábito criado!')
     }
+    setShowForm(false)
     setSaving(false)
   }
 
-  async function toggleActive(habit: Habit) {
-    const newVal = !habit.active
-    await supabase.from('habits').update({ active: newVal }).eq('id', habit.id)
-    setHabits(h => h.map(x => x.id === habit.id ? { ...x, active: newVal } : x))
+  async function toggleActive(h: Habit) {
+    const v = !h.active
+    await supabase.from('habits').update({ active: v }).eq('id', h.id)
+    setHabits(hs => hs.map(x => x.id === h.id ? { ...x, active: v } : x))
   }
 
-  async function deleteHabit(id: string) {
+  async function remove(id: string) {
     await supabase.from('habits').delete().eq('id', id)
     setHabits(h => h.filter(x => x.id !== id))
     showToast('Hábito removido.')
@@ -87,210 +86,292 @@ export default function HabitosPage() {
   async function addDefaults() {
     if (!userId) return
     setSaving(true)
-    const rows = DEFAULT_HABITS.map(h => ({ ...h, user_id: userId }))
-    const { data } = await supabase.from('habits').insert(rows).select()
+    const { data } = await supabase.from('habits').insert(DEFAULT_HABITS.map(h => ({ ...h, user_id: userId }))).select()
     if (data) setHabits(h => [...h, ...(data as Habit[])])
     showToast('Hábitos de exemplo adicionados!')
     setSaving(false)
   }
 
-  const filtered = filterArea === 'all'
-    ? habits
-    : habits.filter(h => h.area === filterArea)
+  const filtered  = filterArea === 'all' ? habits : habits.filter(h => h.area === filterArea)
+  const activeCount = habits.filter(h => h.active).length
+  const totalXP   = habits.filter(h => h.active).reduce((a, h) => a + h.xp_reward, 0)
+
+  // Agrupar por área para view em grid
+  const byArea = AREAS.map(([key, meta]) => ({
+    key, meta,
+    items: filtered.filter(h => h.area === key),
+  })).filter(g => g.items.length > 0)
 
   return (
-    <main className="animate-in pb-28">
+    <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
+
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-24 left-1/2 z-50 pointer-events-none -translate-x-1/2
-                        px-4 py-2.5 rounded-xl text-[13px] flex items-center gap-2"
-             style={{ background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.38)', color: 'var(--teal)' }}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-          {toast}
-        </div>
+        <div style={{
+          position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)',
+          background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.38)',
+          borderRadius: 12, padding: '10px 18px', fontSize: 13, color: 'var(--teal)',
+          display: 'flex', alignItems: 'center', gap: 8, zIndex: 200, whiteSpace: 'nowrap',
+        }}>✓ {toast}</div>
       )}
 
       {/* Header */}
-      <div className="px-5 pt-7 flex items-center justify-between mb-4">
+      <div style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 className="font-syne font-bold text-[22px]">Hábitos</h1>
-          <p className="text-[12px] text-text-3 mt-0.5">{habits.filter(h => h.active).length} activos · {habits.length} total</p>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 3 }}>Hábitos</h1>
+          <div style={{ display: 'flex', gap: 12, fontSize: 12, color: 'var(--text3)' }}>
+            <span>{activeCount} activos</span>
+            <span style={{ color: 'var(--border)' }}>·</span>
+            <span style={{ color: 'var(--gold)' }}>+{totalXP} XP/dia possível</span>
+          </div>
         </div>
-        <button onClick={() => { setShowForm(true); setForm(EMPTY_FORM) }}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl font-syne font-semibold text-[13px] transition-all"
-          style={{ background: 'var(--gold)', color: 'var(--bg0)' }}>
-          + Novo
-        </button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {/* Toggle view */}
+          <button onClick={() => setView(v => v === 'list' ? 'grid' : 'list')}
+            style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg2)', border: '0.5px solid var(--border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            {view === 'list'
+              ? <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+              : <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            }
+          </button>
+          <button onClick={openNew} style={{
+            background: 'var(--gold)', color: 'var(--bg0)', border: 'none',
+            borderRadius: 12, padding: '9px 16px', fontFamily: 'Syne, sans-serif',
+            fontWeight: 700, fontSize: 13, cursor: 'pointer',
+          }}>+ Novo</button>
+        </div>
       </div>
 
       {/* Estado vazio */}
       {habits.length === 0 && (
-        <div className="mx-5 card p-6 text-center">
-          <div className="text-4xl mb-3">🌱</div>
-          <div className="font-syne font-semibold text-[16px] mb-2">Sem hábitos ainda</div>
-          <p className="text-[13px] text-text-2 mb-5 leading-relaxed">
-            Começa com exemplos prontos ou cria os teus próprios hábitos.
+        <div style={{ margin: '20px 20px 0', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 18, padding: 28, textAlign: 'center' }}>
+          <div style={{ fontSize: 44, marginBottom: 12 }}>🌱</div>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Sem hábitos ainda</div>
+          <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 24, lineHeight: 1.6 }}>
+            Começa com exemplos prontos ou cria os teus próprios.
           </p>
-          <button onClick={addDefaults} disabled={saving}
-            className="btn-primary mb-3">
-            {saving ? 'A adicionar…' : 'Adicionar hábitos de exemplo'}
-          </button>
-          <button onClick={() => setShowForm(true)}
-            className="btn-ghost">
-            Criar hábito personalizado
-          </button>
+          <button onClick={addDefaults} disabled={saving} style={{
+            width: '100%', background: 'var(--gold)', color: 'var(--bg0)', border: 'none',
+            borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14,
+            cursor: 'pointer', marginBottom: 10,
+          }}>{saving ? 'A adicionar…' : 'Adicionar hábitos de exemplo'}</button>
+          <button onClick={openNew} style={{
+            width: '100%', background: 'transparent', color: 'var(--accent)',
+            border: '0.5px solid rgba(127,119,221,.3)', borderRadius: 14, padding: 14,
+            fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+          }}>Criar personalizado</button>
         </div>
       )}
 
-      {/* Filtro por área */}
-      {habits.length > 0 && (
-        <div className="px-5 mb-4 flex gap-2 overflow-x-auto pb-1"
-             style={{ scrollbarWidth: 'none' }}>
-          <button onClick={() => setFilterArea('all')}
-            className="flex-shrink-0 px-3 py-1.5 rounded-full text-[12px] transition-all"
-            style={{
-              background: filterArea === 'all' ? 'var(--gold)' : 'var(--bg2)',
-              color: filterArea === 'all' ? 'var(--bg0)' : 'var(--text3)',
-              border: '0.5px solid var(--border)',
-            }}>
-            Todos
-          </button>
-          {AREAS.map(([key, meta]) => (
-            <button key={key} onClick={() => setFilterArea(key)}
-              className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] transition-all"
-              style={{
-                background: filterArea === key ? meta.color : 'var(--bg2)',
-                color: filterArea === key ? '#0D0F14' : 'var(--text3)',
-                border: '0.5px solid var(--border)',
-              }}>
-              {meta.icon} {meta.label}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Lista de hábitos */}
-      {filtered.length > 0 && (
-        <div className="px-5 flex flex-col gap-2">
-          {filtered.map(h => {
-            const area = AREA_META[h.area]
+      {habits.length > 0 && (<>
+        {/* Filtro por área */}
+        <div style={{ display: 'flex', gap: 8, padding: '16px 20px 0', overflowX: 'auto', scrollbarWidth: 'none' }}>
+          {[['all', 'Todos', '', 'var(--gold)'], ...AREAS.map(([k, m]) => [k, m.label, m.icon, m.color])].map(([key, label, icon, color]) => {
+            const active = filterArea === key
             return (
-              <div key={h.id} className="card p-4 flex items-start gap-3"
-                   style={{ opacity: h.active ? 1 : 0.5 }}>
-                {/* Área icon */}
-                <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg flex-shrink-0"
-                     style={{ background: `${area.color}18` }}>
-                  {area.icon}
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-[14px] text-text-1 truncate">{h.name}</div>
-                  <div className="flex items-center gap-2 mt-1 flex-wrap">
-                    <span className="text-[11px] text-text-3">{area.label}</span>
-                    {h.time_window && (
-                      <span className="text-[10px] bg-bg-3 px-1.5 py-0.5 rounded-md text-text-3">
-                        {h.time_window}
-                      </span>
-                    )}
-                    <span className="text-[11px]" style={{ color: 'var(--gold)' }}>+{h.xp_reward} XP</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {/* Toggle active */}
-                  <button onClick={() => toggleActive(h)}
-                    className="w-11 h-6 rounded-full transition-all relative"
-                    style={{ background: h.active ? 'var(--teal)' : 'var(--bg3)' }}>
-                    <div className="absolute top-1 w-4 h-4 rounded-full bg-white transition-all"
-                         style={{ left: h.active ? 'calc(100% - 20px)' : '4px' }} />
-                  </button>
-                  {/* Delete */}
-                  <button onClick={() => deleteHabit(h.id)}
-                    className="w-8 h-8 rounded-xl flex items-center justify-center transition-all"
-                    style={{ background: 'var(--bg3)' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                         stroke="var(--text3)" strokeWidth="2">
-                      <polyline points="3 6 5 6 21 6"/>
-                      <path d="M19 6l-1 14H6L5 6"/>
-                      <path d="M10 11v6M14 11v6"/>
-                    </svg>
-                  </button>
-                </div>
-              </div>
+              <button key={key} onClick={() => setFilterArea(key as HabitArea | 'all')}
+                style={{
+                  flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5,
+                  padding: '7px 14px', borderRadius: 100, border: 'none', cursor: 'pointer',
+                  fontSize: 12, fontFamily: 'DM Sans, sans-serif', transition: 'all .15s',
+                  background: active ? color : 'var(--bg2)',
+                  color: active ? (key === 'all' ? 'var(--bg0)' : '#0D0F14') : 'var(--text3)',
+                  outline: active ? 'none' : '0.5px solid var(--border)',
+                }}>
+                {icon && <span style={{ fontSize: 13 }}>{icon}</span>}{label}
+              </button>
             )
           })}
         </div>
-      )}
 
-      {/* Formulário de novo hábito */}
+        {/* Contagem filtrada */}
+        <div style={{ padding: '10px 20px 14px', fontSize: 11, color: 'var(--text3)' }}>
+          {filtered.length} hábito{filtered.length !== 1 ? 's' : ''}
+          {filterArea !== 'all' && ` em ${AREA_META[filterArea]?.label}`}
+        </div>
+
+        {/* ── VISTA LISTA ── */}
+        {view === 'list' && (
+          <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {filtered.map(h => {
+              const area = AREA_META[h.area]
+              return (
+                <div key={h.id} style={{
+                  background: 'var(--bg2)', border: '0.5px solid var(--border)',
+                  borderRadius: 16, padding: '14px 16px',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  opacity: h.active ? 1 : 0.45, transition: 'opacity .2s',
+                }}>
+                  {/* Icon área */}
+                  <div style={{
+                    width: 44, height: 44, borderRadius: 13, flexShrink: 0,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+                    background: `${area.color}18`,
+                  }}>{area.icon}</div>
+
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 0 }} onClick={() => openEdit(h)} >
+                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--text1)', marginBottom: 5, cursor: 'pointer' }}>{h.name}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, color: 'var(--text3)' }}>{area.label}</span>
+                      {h.time_window && (
+                        <span style={{ fontSize: 10, color: 'var(--text2)', background: 'var(--bg3)', padding: '2px 8px', borderRadius: 6 }}>
+                          {h.time_window}
+                        </span>
+                      )}
+                      <span style={{ fontSize: 11, color: 'var(--gold)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
+                        +{h.xp_reward} XP
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Acções */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                    {/* Switch */}
+                    <button onClick={() => toggleActive(h)} style={{
+                      width: 44, height: 24, borderRadius: 100, border: 'none', cursor: 'pointer',
+                      background: h.active ? 'var(--teal)' : 'var(--bg3)', position: 'relative', transition: 'background .2s',
+                    }}>
+                      <div style={{
+                        position: 'absolute', top: 4, width: 16, height: 16, borderRadius: '50%',
+                        background: 'white', transition: 'left .2s',
+                        left: h.active ? 'calc(100% - 20px)' : '4px',
+                      }} />
+                    </button>
+                    {/* Editar */}
+                    <button onClick={() => openEdit(h)} style={{
+                      width: 32, height: 32, borderRadius: 10, background: 'var(--bg3)',
+                      border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                      </svg>
+                    </button>
+                    {/* Apagar */}
+                    <button onClick={() => remove(h.id)} style={{
+                      width: 32, height: 32, borderRadius: 10, background: 'var(--bg3)',
+                      border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    }}>
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2">
+                        <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* ── VISTA GRID (por área) ── */}
+        {view === 'grid' && (
+          <div style={{ padding: '0 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {byArea.map(({ key, meta, items }) => (
+              <div key={key}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                  <span style={{ fontSize: 16 }}>{meta.icon}</span>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 13, color: meta.color }}>{meta.label}</span>
+                  <span style={{ fontSize: 11, color: 'var(--text3)' }}>· {items.length}</span>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  {items.map(h => (
+                    <div key={h.id} onClick={() => openEdit(h)} style={{
+                      background: 'var(--bg2)', border: `0.5px solid ${h.active ? `${meta.color}30` : 'var(--border)'}`,
+                      borderRadius: 14, padding: '14px 14px 12px',
+                      opacity: h.active ? 1 : 0.45, cursor: 'pointer', transition: 'all .15s',
+                    }}>
+                      <div style={{ fontSize: 20, marginBottom: 8 }}>{meta.icon}</div>
+                      <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text1)', marginBottom: 4, lineHeight: 1.3 }}>{h.name}</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        {h.time_window
+                          ? <span style={{ fontSize: 10, color: 'var(--text3)' }}>{h.time_window}</span>
+                          : <span />}
+                        <span style={{ fontSize: 11, color: 'var(--gold)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>+{h.xp_reward}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </>)}
+
+      {/* ── FORMULÁRIO MODAL ── */}
       {showForm && (
-        <div className="fixed inset-0 z-40 flex items-end"
-             style={{ background: 'rgba(0,0,0,.6)' }}
-             onClick={e => e.target === e.currentTarget && setShowForm(false)}>
-          <div className="w-full max-w-md mx-auto rounded-t-3xl p-6 animate-in"
-               style={{ background: 'var(--bg1)', borderTop: '0.5px solid var(--border)' }}>
-
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-syne font-bold text-[18px]">Novo hábito</h2>
-              <button onClick={() => setShowForm(false)}
-                className="w-8 h-8 rounded-xl flex items-center justify-center"
-                style={{ background: 'var(--bg3)' }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-                     stroke="var(--text2)" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"/>
-                  <line x1="6" y1="6" x2="18" y2="18"/>
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 40, display: 'flex', alignItems: 'flex-end',
+          background: 'rgba(0,0,0,.65)',
+        }} onClick={e => e.target === e.currentTarget && setShowForm(false)}>
+          <div style={{
+            width: '100%', maxWidth: 448, margin: '0 auto',
+            background: 'var(--bg1)', borderRadius: '20px 20px 0 0',
+            borderTop: '0.5px solid var(--border)', padding: 24,
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>
+                {editHabit ? 'Editar hábito' : 'Novo hábito'}
+              </h2>
+              <button onClick={() => setShowForm(false)} style={{
+                width: 32, height: 32, borderRadius: 10, background: 'var(--bg3)',
+                border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--text2)" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
                 </svg>
               </button>
             </div>
 
-            {/* Nome */}
-            <label className="text-[12px] text-text-3 mb-1.5 block">Nome do hábito</label>
+            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>Nome</label>
             <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-              placeholder="Ex: Treino, Leitura, Idioma…"
-              className="w-full rounded-xl p-3.5 text-[14px] mb-4"
-              style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', color: 'var(--text1)', fontFamily: 'inherit', outline: 'none' }} />
+              placeholder="Ex: Treino, Leitura, Idioma…" style={{ ...S, marginBottom: 16 }} />
 
-            {/* Área */}
-            <label className="text-[12px] text-text-3 mb-1.5 block">Área da vida</label>
-            <div className="grid grid-cols-2 gap-2 mb-4">
+            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 8 }}>Área da vida</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
               {AREAS.map(([key, meta]) => (
-                <button key={key} onClick={() => setForm(f => ({ ...f, area: key }))}
-                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-[13px] transition-all text-left"
-                  style={{
-                    border: form.area === key ? `0.5px solid ${meta.color}` : '0.5px solid var(--border)',
-                    background: form.area === key ? `${meta.color}14` : 'var(--bg2)',
-                    color: form.area === key ? meta.color : 'var(--text2)',
-                  }}>
-                  <span>{meta.icon}</span> {meta.label}
+                <button key={key} onClick={() => setForm(f => ({ ...f, area: key }))} style={{
+                  display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
+                  borderRadius: 12, border: 'none', cursor: 'pointer', fontSize: 13,
+                  fontFamily: 'DM Sans, sans-serif', textAlign: 'left', transition: 'all .15s',
+                  background: form.area === key ? `${meta.color}18` : 'var(--bg2)',
+                  color: form.area === key ? meta.color : 'var(--text2)',
+                  outline: form.area === key ? `0.5px solid ${meta.color}` : '0.5px solid var(--border)',
+                }}>
+                  <span>{meta.icon}</span>{meta.label}
                 </button>
               ))}
             </div>
 
-            {/* Janela de tempo */}
-            <label className="text-[12px] text-text-3 mb-1.5 block">Melhor hora (opcional)</label>
-            <input value={form.time_window}
-              onChange={e => setForm(f => ({ ...f, time_window: e.target.value }))}
-              placeholder="Ex: 07:00–08:00 ou Manhã"
-              className="w-full rounded-xl p-3.5 text-[14px] mb-4"
-              style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', color: 'var(--text1)', fontFamily: 'inherit', outline: 'none' }} />
+            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>Melhor hora (opcional)</label>
+            <input value={form.time_window} onChange={e => setForm(f => ({ ...f, time_window: e.target.value }))}
+              placeholder="Ex: 07:00–08:00 ou Manhã" style={{ ...S, marginBottom: 16 }} />
 
-            {/* XP */}
-            <label className="text-[12px] text-text-3 mb-1.5 block">
-              XP por conclusão: <strong className="font-syne text-[15px]" style={{ color: 'var(--gold)' }}>{form.xp_reward}</strong>
-            </label>
-            <input type="range" min={5} max={20} step={1} value={form.xp_reward}
-              onChange={e => setForm(f => ({ ...f, xp_reward: +e.target.value }))}
-              style={{ width: '100%', accentColor: 'var(--gold)', marginBottom: '20px' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <label style={{ fontSize: 12, color: 'var(--text3)' }}>XP por conclusão</label>
+              <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--gold)' }}>
+                {form.xp_reward} XP
+              </span>
+            </div>
+            {/* Pills de XP fixos 5/8/10/15/20 */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+              {[5, 8, 10, 15, 20].map(v => (
+                <button key={v} onClick={() => setForm(f => ({ ...f, xp_reward: v }))} style={{
+                  flex: 1, padding: '9px 0', borderRadius: 10, border: 'none', cursor: 'pointer',
+                  fontSize: 13, fontFamily: 'Syne, sans-serif', fontWeight: 600, transition: 'all .15s',
+                  background: form.xp_reward === v ? 'var(--gold)' : 'var(--bg2)',
+                  color: form.xp_reward === v ? 'var(--bg0)' : 'var(--text3)',
+                  outline: form.xp_reward === v ? 'none' : '0.5px solid var(--border)',
+                }}>{v}</button>
+              ))}
+            </div>
 
-            <button onClick={saveHabit} disabled={saving || !form.name.trim()}
-              className="btn-primary"
-              style={{ opacity: form.name.trim() ? 1 : 0.5 }}>
-              {saving ? 'A guardar…' : 'Guardar hábito'}
-            </button>
+            <button onClick={save} disabled={saving || !form.name.trim()} style={{
+              width: '100%', background: form.name.trim() ? 'var(--gold)' : 'var(--bg3)',
+              color: form.name.trim() ? 'var(--bg0)' : 'var(--text3)', border: 'none',
+              borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700,
+              fontSize: 14, cursor: form.name.trim() ? 'pointer' : 'not-allowed', transition: 'all .2s',
+            }}>{saving ? 'A guardar…' : editHabit ? 'Guardar alterações' : 'Criar hábito'}</button>
           </div>
         </div>
       )}

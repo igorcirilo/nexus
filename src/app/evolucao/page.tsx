@@ -5,150 +5,295 @@ import Nav from '@/components/Nav'
 import { supabase, getProfile, getUserBadges } from '@/lib/supabase'
 import { xpForLevel, AREA_META, TITLES } from '@/types'
 import type { Profile, UserBadge } from '@/types'
+import { format, subDays } from 'date-fns'
 
 const ALL_BADGES = [
-  { key: 'streak_7',    icon: '🔥', name: '7 Dias',          goal: 'streak_current >= 7' },
-  { key: 'streak_14',   icon: '🔥', name: '14 Dias',         goal: 'streak_current >= 14' },
-  { key: 'streak_30',   icon: '🏆', name: '30 Dias',         goal: 'streak_current >= 30' },
-  { key: 'streak_90',   icon: '💎', name: '90 Dias',         goal: 'streak_current >= 90' },
-  { key: 'energy_max',  icon: '⚡', name: 'Energia Máxima',  goal: 'energy 10/10' },
-  { key: 'mission_done',icon: '🎯', name: 'Missão Cumprida', goal: 'missão 100%' },
-  { key: 'focus_10',    icon: '🧠', name: 'Foco x10',        goal: '10 sessões Pomodoro' },
-  { key: 'all_habits',  icon: '✨', name: 'Dia Perfeito',    goal: 'todos os hábitos num dia' },
+  { key: 'streak_7',    icon: '🔥', name: '7 dias',        xp: 100, desc: '7 dias consecutivos'       },
+  { key: 'streak_14',   icon: '🔥', name: '14 dias',       xp: 150, desc: 'Duas semanas sem parar'    },
+  { key: 'streak_30',   icon: '🏆', name: '30 dias',       xp: 500, desc: 'Um mês de consistência'    },
+  { key: 'streak_90',   icon: '💎', name: '90 dias',       xp: 2000,desc: 'Antifrágil — 3 meses'      },
+  { key: 'energy_max',  icon: '⚡', name: 'Energia máx',  xp: 50,  desc: 'Energia 10/10 num check-in' },
+  { key: 'mission_done',icon: '🎯', name: 'Missão feita', xp: 75,  desc: 'Missão principal concluída' },
+  { key: 'focus_10',    icon: '🧠', name: 'Foco x10',     xp: 200, desc: '10 sessões de 25 min'       },
+  { key: 'all_habits',  icon: '✨', name: 'Dia perfeito', xp: 150, desc: 'Todos os hábitos num dia'   },
 ]
 
-const AREAS = Object.entries(AREA_META).map(([key, meta]) => ({
-  key, ...meta,
-  progress: Math.floor(Math.random() * 60 + 30), // substituir por dados reais
-}))
+type AreaProgress = { key: string; label: string; icon: string; color: string; pct: number; done: number; total: number }
 
 export default function EvolucaoPage() {
-  const [profile, setProfile]   = useState<Profile | null>(null)
-  const [badges, setBadges]     = useState<UserBadge[]>([])
-  const [activeBadge, setActiveBadge] = useState<string | null>(null)
+  const [profile,      setProfile]      = useState<Profile | null>(null)
+  const [badges,       setBadges]       = useState<UserBadge[]>([])
+  const [areas,        setAreas]        = useState<AreaProgress[]>([])
+  const [activeBadge,  setActiveBadge]  = useState<string | null>(null)
+  const [loading,      setLoading]      = useState(true)
 
   useEffect(() => {
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { window.location.href = '/auth'; return }
-      const [prof, ub] = await Promise.all([getProfile(user.id), getUserBadges(user.id)])
+
+      const since = format(subDays(new Date(), 29), 'yyyy-MM-dd')
+
+      const [prof, ub, { data: habits }, { data: logs }] = await Promise.all([
+        getProfile(user.id),
+        getUserBadges(user.id),
+        supabase.from('habits').select('id, area, active').eq('user_id', user.id).eq('active', true),
+        supabase.from('habit_logs').select('habit_id, completed, date')
+          .eq('user_id', user.id).gte('date', since),
+      ])
+
       setProfile(prof)
       setBadges(ub as UserBadge[])
+
+      // Calcular progresso real por área (% de conclusão nos últimos 30 dias)
+      const habitsByArea = (habits ?? []).reduce((acc: Record<string, string[]>, h: { id: string; area: string }) => {
+        if (!acc[h.area]) acc[h.area] = []
+        acc[h.area].push(h.id)
+        return acc
+      }, {})
+
+      const areaList: AreaProgress[] = Object.entries(AREA_META).map(([key, meta]) => {
+        const ids   = habitsByArea[key] ?? []
+        const total = ids.length * 30 // 30 dias × hábitos dessa área
+        const done  = (logs ?? []).filter((l: { habit_id: string; completed: boolean }) =>
+          ids.includes(l.habit_id) && l.completed
+        ).length
+        const pct = total > 0 ? Math.round(done / total * 100) : 0
+        return { key, label: meta.label, icon: meta.icon, color: meta.color, pct, done, total }
+      })
+      setAreas(areaList)
+      setLoading(false)
     }
     load()
   }, [])
 
   const earned = new Set(badges.map(b => b.badge_key))
 
-  if (!profile) return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="font-syne text-lg text-text-3">a carregar…</div>
+  if (loading || !profile) return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
+      <div style={{ fontFamily: 'Syne, sans-serif', color: 'var(--text3)' }}>a carregar…</div>
     </div>
   )
 
-  const level   = profile.level
-  const xp      = profile.xp_total
-  const prev    = xpForLevel(level - 1)
-  const next    = xpForLevel(level)
-  const pct     = Math.min(100, Math.round(((xp - prev) / (next - prev)) * 100))
+  const level = profile.level
+  const xp    = profile.xp_total
+  const prev  = xpForLevel(level - 1)
+  const next  = xpForLevel(level)
+  const pct   = Math.min(100, Math.round(((xp - prev) / (next - prev)) * 100))
 
-  // Progresso de streak para badges
-  function badgeProgress(key: string): string {
-  const s = profile?.streak_current ?? 0
-  if (key === 'streak_7')  return `${Math.min(s, 7)}/7 dias`
-  if (key === 'streak_14') return `${Math.min(s, 14)}/14 dias`
-  if (key === 'streak_30') return `${Math.min(s, 30)}/30 dias`
-  return ''
-}
+  function streakProgress(key: string) {
+    const s = profile!.streak_current
+    if (key === 'streak_7')  return { cur: Math.min(s, 7),  max: 7  }
+    if (key === 'streak_14') return { cur: Math.min(s, 14), max: 14 }
+    if (key === 'streak_30') return { cur: Math.min(s, 30), max: 30 }
+    if (key === 'streak_90') return { cur: Math.min(s, 90), max: 90 }
+    return null
+  }
+
+  const earnedCount = earned.size
+  const totalBadges = ALL_BADGES.length
+  const topArea = [...areas].sort((a, b) => b.pct - a.pct)[0]
 
   return (
-    <main className="animate-in pb-28">
-      <div className="px-5 pt-7">
-        <h1 className="font-syne font-bold text-[22px]">Evolução</h1>
+    <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
+
+      {/* Header */}
+      <div style={{ padding: '28px 20px 0' }}>
+        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 3 }}>Evolução</h1>
+        <p style={{ fontSize: 12, color: 'var(--text3)' }}>
+          {earnedCount}/{totalBadges} conquistas · {topArea?.pct > 0 ? `melhor área: ${topArea.label}` : 'começa hoje'}
+        </p>
       </div>
 
-      {/* Level card */}
-      <div className="card-gold mx-5 mt-4 p-5 text-center">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-3"
-             style={{ background: 'rgba(232,168,56,.08)', border: '0.5px solid rgba(232,168,56,.22)' }}>
-          <span className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--gold)' }}>Nível</span>
-          <span className="font-syne font-extrabold text-[26px]" style={{ color: 'var(--gold)' }}>{level}</span>
-        </div>
-        <div className="font-syne font-semibold text-[17px] mb-0.5">{profile.title}</div>
-        <div className="text-[12px] text-text-3 mb-3">{TITLES[profile.title] ?? ''}</div>
-        <div className="font-syne font-extrabold text-[32px]">{xp.toLocaleString('pt-PT')}</div>
-        <div className="text-[12px] text-text-3 mb-4">XP total · {(next - xp).toLocaleString('pt-PT')} para Nível {level + 1}</div>
-        <div className="xp-bar"><div className="xp-fill" style={{ width: `${pct}%` }} /></div>
-      </div>
+      {/* ── CARD DE NÍVEL ── */}
+      <div style={{
+        margin: '16px 20px 0', padding: '24px 20px', borderRadius: 20,
+        background: 'var(--bg2)', border: '0.5px solid rgba(232,168,56,.25)',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Background glow */}
+        <div style={{ position: 'absolute', top: -40, right: -40, width: 180, height: 180, borderRadius: '50%', background: 'rgba(232,168,56,.06)', pointerEvents: 'none' }} />
 
-      {/* Streak */}
-      <div className="flex gap-2 px-5 mt-3">
-        <div className="card flex-1 p-3 flex items-center gap-3">
-          <span className="animate-flame text-2xl">🔥</span>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+          {/* Nível + título */}
           <div>
-            <div className="text-[10px] text-text-3">Streak actual</div>
-            <div className="font-syne font-bold text-[22px]" style={{ color: 'var(--gold)' }}>
-              {profile.streak_current} dias
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+              <div style={{
+                background: 'rgba(232,168,56,.12)', border: '0.5px solid rgba(232,168,56,.3)',
+                borderRadius: 10, padding: '4px 12px',
+                fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 13, color: 'var(--gold)',
+                letterSpacing: '.5px',
+              }}>NÍV. {level}</div>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--text1)' }}>
+                {profile.title}
+              </div>
             </div>
+            <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.4 }}>{TITLES[profile.title] ?? ''}</div>
+          </div>
+          {/* XP total */}
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 30, color: 'var(--text1)', lineHeight: 1 }}>
+              {xp.toLocaleString('pt-PT')}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 3 }}>XP total</div>
           </div>
         </div>
-        <div className="card flex-1 p-3 flex items-center gap-3">
-          <span className="text-2xl">🏅</span>
-          <div>
-            <div className="text-[10px] text-text-3">Streak máximo</div>
-            <div className="font-syne font-bold text-[22px]" style={{ color: 'var(--accent)' }}>
-              {profile.streak_best} dias
-            </div>
-          </div>
+
+        {/* Barra XP */}
+        <div style={{ background: 'var(--bg3)', borderRadius: 100, height: 8, marginBottom: 8 }}>
+          <div style={{
+            height: '100%', borderRadius: 100,
+            background: 'linear-gradient(90deg, var(--gold), #F0C060)',
+            width: `${pct}%`, transition: 'width .8s ease',
+          }} />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text3)' }}>
+          <span>{pct}% para Nível {level + 1}</span>
+          <span>{(next - xp).toLocaleString('pt-PT')} XP em falta</span>
         </div>
       </div>
 
-      {/* Áreas */}
-      <p className="section-title px-5">Progresso por Área</p>
-      <div className="grid grid-cols-2 gap-2.5 px-5">
-        {AREAS.map(a => (
-          <div key={a.key} className="card p-3.5">
-            <div className="text-lg mb-2">{a.icon}</div>
-            <div className="text-[12px] text-text-2 mb-1.5">{a.label}</div>
-            <div className="bg-bg-3 rounded-full h-1.5 mb-1.5">
-              <div className="h-full rounded-full transition-all duration-700"
-                   style={{ width: `${a.progress}%`, background: a.color }} />
+      {/* ── STREAK + STATS ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, padding: '12px 20px 0' }}>
+        {[
+          { label: 'Streak',    value: `${profile.streak_current}`, unit: 'dias', color: 'var(--gold)',   icon: '🔥', flame: true },
+          { label: 'Recorde',   value: `${profile.streak_best}`,    unit: 'dias', color: 'var(--accent)', icon: '🏅' },
+          { label: 'Conquistas',value: `${earnedCount}/${totalBadges}`, unit: '',  color: 'var(--teal)',   icon: '✨' },
+        ].map(({ label, value, unit, color, icon, flame }) => (
+          <div key={label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 14, padding: '14px 12px', textAlign: 'center' }}>
+            <div style={{ fontSize: 20, marginBottom: 6, display: 'inline-block', ...(flame ? { animation: 'flame 1.8s ease-in-out infinite', transformOrigin: 'bottom center' } : {}) }}>
+              {icon}
             </div>
-            <div className="text-[11px] text-text-3">{a.progress}%</div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color, lineHeight: 1 }}>
+              {value}
+            </div>
+            {unit && <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>{unit}</div>}
+            <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 4 }}>{label}</div>
           </div>
         ))}
       </div>
 
-      {/* Conquistas */}
-      <p className="section-title px-5">Conquistas — toca para ver progresso</p>
-      <div className="flex flex-wrap gap-3 px-5 pb-2">
-        {ALL_BADGES.map(b => {
-          const isEarned = earned.has(b.key)
-          const isActive = activeBadge === b.key
-          return (
-            <button key={b.key}
-              onClick={() => setActiveBadge(isActive ? null : b.key)}
-              className="flex flex-col items-center gap-1.5 w-16">
-              <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl transition-all"
-                   style={{
-                     background: isEarned ? 'rgba(232,168,56,.1)' : 'var(--bg2)',
-                     border: isEarned ? '1px solid rgba(232,168,56,.28)' : '0.5px solid var(--border)',
-                     filter: isEarned ? 'none' : 'grayscale(1)',
-                     opacity: isEarned ? 1 : 0.4,
-                     transform: isActive ? 'scale(1.08)' : 'scale(1)',
-                   }}>
-                {b.icon}
-              </div>
-              <div className="text-[10px] text-text-3 text-center leading-tight">{b.name}</div>
-              {isActive && (
-                <div className="text-[10px] text-center leading-tight"
-                     style={{ color: isEarned ? 'var(--teal)' : 'var(--gold)' }}>
-                  {isEarned ? 'Conquistado!' : badgeProgress(b.key)}
+      {/* ── PROGRESSO POR ÁREA ── */}
+      <div style={{ padding: '20px 20px 0' }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+          Progresso por Área — últimos 30 dias
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {areas.map(a => (
+            <div key={a.key} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 14, padding: '13px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ fontSize: 18 }}>{a.icon}</span>
+                  <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--text1)' }}>{a.label}</span>
                 </div>
-              )}
-            </button>
-          )
-        })}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 11, color: 'var(--text3)' }}>{a.done}/{a.total > 0 ? a.total : '—'}</span>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: a.pct >= 70 ? 'var(--teal)' : a.pct >= 40 ? 'var(--gold)' : 'var(--text3)', minWidth: 36, textAlign: 'right' }}>
+                    {a.total > 0 ? `${a.pct}%` : '—'}
+                  </span>
+                </div>
+              </div>
+              <div style={{ background: 'var(--bg3)', borderRadius: 100, height: 5 }}>
+                <div style={{
+                  height: '100%', borderRadius: 100, transition: 'width .8s ease',
+                  width: `${a.pct}%`,
+                  background: a.pct >= 70 ? 'var(--teal)' : a.pct >= 40 ? 'var(--gold)' : a.color,
+                }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── CONQUISTAS ── */}
+      <div style={{ padding: '20px 20px 0' }}>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 600, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+          Conquistas
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+          {ALL_BADGES.map(b => {
+            const isEarned = earned.has(b.key)
+            const isActive = activeBadge === b.key
+            const sp = streakProgress(b.key)
+
+            return (
+              <button key={b.key}
+                onClick={() => setActiveBadge(isActive ? null : b.key)}
+                style={{
+                  background: isActive ? (isEarned ? 'rgba(232,168,56,.08)' : 'var(--bg3)') : 'var(--bg2)',
+                  border: isActive
+                    ? (isEarned ? '1px solid rgba(232,168,56,.3)' : '0.5px solid var(--accent)')
+                    : '0.5px solid var(--border)',
+                  borderRadius: 14, padding: '14px 8px', cursor: 'pointer',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                  transition: 'all .15s',
+                  filter: isEarned ? 'none' : 'grayscale(.8)',
+                  opacity: isEarned ? 1 : 0.55,
+                  transform: isActive ? 'scale(1.03)' : 'scale(1)',
+                }}>
+                <span style={{ fontSize: 24 }}>{b.icon}</span>
+                <span style={{ fontSize: 10, color: isEarned ? 'var(--text1)' : 'var(--text3)', textAlign: 'center', lineHeight: 1.3 }}>
+                  {b.name}
+                </span>
+                {isEarned && (
+                  <span style={{ fontSize: 9, color: 'var(--teal)' }}>+{b.xp} XP</span>
+                )}
+                {/* Progresso de streak */}
+                {isActive && !isEarned && sp && (
+                  <div style={{ width: '100%', marginTop: 2 }}>
+                    <div style={{ background: 'var(--bg3)', borderRadius: 100, height: 3 }}>
+                      <div style={{
+                        height: '100%', borderRadius: 100, background: 'var(--gold)',
+                        width: `${Math.round(sp.cur / sp.max * 100)}%`,
+                      }} />
+                    </div>
+                    <div style={{ fontSize: 9, color: 'var(--gold)', textAlign: 'center', marginTop: 3 }}>
+                      {sp.cur}/{sp.max}
+                    </div>
+                  </div>
+                )}
+                {isActive && isEarned && (
+                  <div style={{ fontSize: 9, color: 'var(--teal)', textAlign: 'center' }}>Conquistado ✓</div>
+                )}
+                {isActive && !isEarned && !sp && (
+                  <div style={{ fontSize: 9, color: 'var(--text3)', textAlign: 'center', lineHeight: 1.3 }}>{b.desc}</div>
+                )}
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── PRÓXIMO NÍVEL ── */}
+      <div style={{ margin: '20px 20px 0', padding: '16px', borderRadius: 14, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
+        <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 10 }}>Percurso de Títulos</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[
+            { title: 'Recruta',     min: 1,  max: 2  },
+            { title: 'Consistente', min: 3,  max: 4  },
+            { title: 'Focado',      min: 5,  max: 7  },
+            { title: 'Estrategista',min: 8,  max: 10 },
+            { title: 'Imparável',   min: 11, max: 14 },
+            { title: 'Antifrágil',  min: 15, max: 20 },
+          ].map(t => {
+            const isCurrent = level >= t.min && level <= t.max
+            const isPast    = level > t.max
+            return (
+              <div key={t.title} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+                  background: isPast ? 'var(--teal)' : isCurrent ? 'var(--gold)' : 'var(--bg3)',
+                }} />
+                <div style={{ flex: 1, fontSize: 13, color: isCurrent ? 'var(--text1)' : isPast ? 'var(--text3)' : 'var(--text3)', fontWeight: isCurrent ? 600 : 400 }}>
+                  {t.title}
+                </div>
+                <div style={{ fontSize: 11, color: 'var(--text3)' }}>Nív. {t.min}–{t.max}</div>
+                {isCurrent && <div style={{ fontSize: 10, color: 'var(--gold)', fontFamily: 'Syne, sans-serif' }}>← aqui</div>}
+                {isPast && <div style={{ fontSize: 10, color: 'var(--teal)' }}>✓</div>}
+              </div>
+            )
+          })}
+        </div>
       </div>
 
       <Nav />
