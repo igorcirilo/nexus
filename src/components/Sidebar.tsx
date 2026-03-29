@@ -1,54 +1,45 @@
 'use client'
-// src/components/Sidebar.tsx — desktop only
+// src/components/Sidebar.tsx — desktop only, renderizado via layout.tsx
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const NAV_ITEMS = [
-  { href: '/hoje',        label: 'Hoje',       icon: HomeIcon   },
-  { href: '/checkin',     label: 'Check-in',   icon: ClockIcon  },
-  { href: '/calendario',  label: 'Calendário', icon: CalIcon    },
-  { href: '/habitos',     label: 'Hábitos',    icon: CheckIcon  },
-  { href: '/evolucao',    label: 'Evolução',   icon: ActivityIcon },
-  { href: '/dashboard',   label: 'Stats',      icon: GridIcon   },
-  { href: '/lembretes',   label: 'Lembretes',  icon: BellIcon   },
-  { href: '/perfil',      label: 'Perfil',     icon: UserIcon   },
+const ITEMS = [
+  { href: '/hoje',       label: 'Hoje',       icon: HomeIcon     },
+  { href: '/checkin',    label: 'Check-in',   icon: ClockIcon    },
+  { href: '/calendario', label: 'Calendário', icon: CalIcon      },
+  { href: '/habitos',    label: 'Hábitos',    icon: CheckIcon    },
+  { href: '/evolucao',   label: 'Evolução',   icon: ActivityIcon },
+  { href: '/dashboard',  label: 'Stats',      icon: GridIcon     },
+  { href: '/lembretes',  label: 'Lembretes',  icon: BellIcon     },
+  { href: '/perfil',     label: 'Perfil',     icon: UserIcon     },
 ]
 
 export default function Sidebar() {
   const path = usePathname()
   return (
-    <aside style={{
-      width: 220,
-      flexShrink: 0,
-      background: 'var(--bg1)',
-      borderRight: '0.5px solid var(--border)',
-      display: 'flex',
-      flexDirection: 'column',
-      padding: '28px 16px 24px',
-      position: 'sticky',
-      top: 0,
-      height: '100vh',
-      overflowY: 'auto',
-    }}>
+    <div style={{ padding: '28px 14px 24px' }}>
+      {/* Logo */}
       <div style={{
         fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 22,
-        color: 'var(--gold)', letterSpacing: '-0.5px', marginBottom: 32,
-        paddingLeft: 4,
+        color: 'var(--gold)', letterSpacing: '-0.5px',
+        marginBottom: 32, paddingLeft: 6,
       }}>
         NEXUS
       </div>
-      <nav style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+
+      {/* Itens de navegação */}
+      <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = path === href
           return (
             <Link key={href} href={href} style={{
-              display: 'flex', alignItems: 'center', gap: 12,
-              padding: '11px 14px', borderRadius: 12, textDecoration: 'none',
-              background: active ? 'rgba(232,168,56,.10)' : 'transparent',
-              color: active ? 'var(--gold)' : 'var(--text2)',
-              border: active ? '0.5px solid rgba(232,168,56,.20)' : '0.5px solid transparent',
-              fontSize: 14, fontFamily: 'var(--font-dm)',
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 12px', borderRadius: 12, textDecoration: 'none',
+              fontSize: 14, fontFamily: 'DM Sans, sans-serif',
               transition: 'all .15s',
+              background: active ? 'rgba(232,168,56,.10)' : 'transparent',
+              color:      active ? 'var(--gold)' : 'var(--text2)',
+              border:     active ? '0.5px solid rgba(232,168,56,.20)' : '0.5px solid transparent',
             }}>
               <Icon active={active} />
               {label}
@@ -56,14 +47,15 @@ export default function Sidebar() {
           )
         })}
       </nav>
-    </aside>
+    </div>
   )
 }
 
 function Ico({ active, children }: { active: boolean; children: React.ReactNode }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-         stroke={active ? 'var(--gold)' : 'var(--text3)'} strokeWidth="1.8" style={{ flexShrink: 0 }}>
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+         stroke={active ? 'var(--gold)' : 'var(--text3)'} strokeWidth="1.8"
+         style={{ flexShrink: 0 }}>
       {children}
     </svg>
   )

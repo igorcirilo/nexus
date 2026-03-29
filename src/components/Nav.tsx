@@ -1,23 +1,24 @@
 'use client'
-// src/components/Nav.tsx — mobile bottom nav only
+// src/components/Nav.tsx
+// Classe .mobile-nav → escondida em desktop via globals.css
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const NAV_ITEMS = [
-  { href: '/hoje',        label: 'Hoje',     icon: HomeIcon     },
-  { href: '/checkin',     label: 'Check-in', icon: ClockIcon    },
-  { href: '/calendario',  label: 'Cal',      icon: CalIcon      },
-  { href: '/habitos',     label: 'Hábitos',  icon: CheckIcon    },
-  { href: '/evolucao',    label: 'Evolução', icon: ActivityIcon },
-  { href: '/dashboard',   label: 'Stats',    icon: GridIcon     },
-  { href: '/lembretes',   label: 'Alert',    icon: BellIcon     },
-  { href: '/perfil',      label: 'Perfil',   icon: UserIcon     },
+const ITEMS = [
+  { href: '/hoje',       label: 'Hoje',     icon: HomeIcon     },
+  { href: '/checkin',    label: 'Check-in', icon: ClockIcon    },
+  { href: '/calendario', label: 'Cal',      icon: CalIcon      },
+  { href: '/habitos',    label: 'Hábitos',  icon: CheckIcon    },
+  { href: '/evolucao',   label: 'Evolução', icon: ActivityIcon },
+  { href: '/dashboard',  label: 'Stats',    icon: GridIcon     },
+  { href: '/lembretes',  label: 'Alertas',  icon: BellIcon     },
+  { href: '/perfil',     label: 'Perfil',   icon: UserIcon     },
 ]
 
 export default function Nav() {
   const path = usePathname()
   return (
-    <nav style={{
+    <nav className="mobile-nav" style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
       background: 'var(--bg1)',
       borderTop: '0.5px solid var(--border)',
@@ -26,18 +27,16 @@ export default function Nav() {
     }}>
       <div style={{
         display: 'flex', alignItems: 'center',
-        padding: '6px 4px',
-        minWidth: 'max-content',
-        margin: '0 auto',
+        padding: '6px 4px', minWidth: 'max-content', margin: '0 auto',
       }}>
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+        {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = path === href
           return (
             <Link key={href} href={href} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
               padding: '4px 10px', borderRadius: 10, textDecoration: 'none',
               color: active ? 'var(--gold)' : 'var(--text3)',
-              minWidth: 52, flexShrink: 0,
+              minWidth: 48, flexShrink: 0,
             }}>
               <Icon active={active} />
               <span style={{ fontSize: 8, fontFamily: 'var(--font-dm)', whiteSpace: 'nowrap' }}>{label}</span>

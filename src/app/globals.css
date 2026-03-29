@@ -5,113 +5,101 @@
 
 /* ── Design tokens ─────────────────────────────────────── */
 :root {
-  --gold:      #E8A838;
-  --teal:      #1ECBB4;
-  --accent:    #7F77DD;
-  --bg0:       #0D0F14;
-  --bg1:       #141720;
-  --bg2:       #1C2030;
-  --bg3:       #252A3A;
-  --text1:     #F0EDE8;
-  --text2:     #9BA0B0;
-  --text3:     #5A6070;
-  --border:    rgba(255,255,255,0.07);
+  --gold:   #E8A838;
+  --teal:   #1ECBB4;
+  --accent: #7F77DD;
+  --bg0:    #0D0F14;
+  --bg1:    #141720;
+  --bg2:    #1C2030;
+  --bg3:    #252A3A;
+  --text1:  #F0EDE8;
+  --text2:  #9BA0B0;
+  --text3:  #5A6070;
+  --border: rgba(255,255,255,0.07);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 ::-webkit-scrollbar { display: none; }
 * { -ms-overflow-style: none; scrollbar-width: none; }
+html, body { background: var(--bg0); color: var(--text1); min-height: 100vh; }
+body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; }
 
-html { background: var(--bg0); }
+/* ═══════════════════════════════════════════════════════
+   LAYOUT — flex row no desktop, coluna no mobile
+═══════════════════════════════════════════════════════ */
 
-body {
-  background: var(--bg0);
-  color: var(--text1);
-  font-family: 'DM Sans', sans-serif;
-  -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
-}
-
-/* ─────────────────────────────────────────────────────────
-   LAYOUT PRINCIPAL
-   Mobile:  coluna simples, sidebar escondida
-   Desktop: flex row — sidebar fixa à esq + conteúdo à dir
-───────────────────────────────────────────────────────── */
-
-/* Wrapper raiz */
+/* Wrapper raiz — sempre flex row */
 .nexus-layout {
   display: flex;
   min-height: 100vh;
+  align-items: flex-start;
 }
 
-/* Sidebar — escondida no mobile */
+/* Sidebar — ESCONDIDA no mobile, flex item normal no desktop */
 .nexus-sidebar {
-  display: none;
+  display: none;           /* mobile: escondida */
   flex-shrink: 0;
 }
 
-/* Área de conteúdo — ocupa todo o espaço no mobile */
+@media (min-width: 768px) {
+  .nexus-sidebar {
+    display: block;
+    width: 220px;
+    min-height: 100vh;
+    position: sticky;
+    top: 0;
+    background: var(--bg1);
+    border-right: 0.5px solid var(--border);
+    overflow-y: auto;
+  }
+}
+
+/* Área de conteúdo — ocupa o espaço restante */
 .nexus-content {
   flex: 1;
-  min-width: 0;          /* evita overflow em flex */
+  min-width: 0;
   display: flex;
   flex-direction: column;
 }
 
-/* Cada página (main) dentro do content */
+/* <main> dentro do content */
 .nexus-content main {
   width: 100%;
   max-width: 480px;
   margin: 0 auto;
-  padding-bottom: 80px;  /* espaço para nav inferior */
-  flex: 1;
+  padding-bottom: 80px;   /* espaço para nav móvel */
 }
 
-/* ── Desktop ≥ 768px ──────────────────────────────────── */
 @media (min-width: 768px) {
-
-  /* Mostra a sidebar */
-  .nexus-sidebar {
-    display: block;
-    width: 220px;
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow-y: auto;
+  .nexus-content main {
+    max-width: 680px;
+    padding: 0 40px 60px;
   }
+}
 
-  /* Esconde a nav inferior */
-  nav[style*="position: fixed"][style*="bottom: 0"] {
+/* Nav móvel — escondida no desktop */
+.mobile-nav {
+  display: block;
+}
+@media (min-width: 768px) {
+  .mobile-nav {
     display: none !important;
   }
-
-  /* Conteúdo tem mais espaço e padding correcto */
-  .nexus-content main {
-    max-width: 640px;
-    padding: 0 32px 48px;
-  }
 }
 
-@media (min-width: 1280px) {
-  .nexus-content main {
-    max-width: 720px;
-  }
-}
-
-/* ─────────────────────────────────────────────────────────
+/* ═══════════════════════════════════════════════════════
    COMPONENTES
-───────────────────────────────────────────────────────── */
-.card        { background: var(--bg2); border: 0.5px solid var(--border);                  border-radius: 16px; }
-.card-gold   { background: var(--bg2); border: 0.5px solid rgba(232,168,56,.22);            border-radius: 16px; }
-.card-teal   { background: var(--bg2); border: 0.5px solid rgba(30,203,180,.22);            border-radius: 16px; }
-.card-accent { background: var(--bg2); border: 0.5px solid rgba(127,119,221,.22);           border-radius: 16px; }
+═══════════════════════════════════════════════════════ */
+.card        { background: var(--bg2); border: 0.5px solid var(--border);               border-radius: 16px; }
+.card-gold   { background: var(--bg2); border: 0.5px solid rgba(232,168,56,.22);         border-radius: 16px; }
+.card-teal   { background: var(--bg2); border: 0.5px solid rgba(30,203,180,.22);         border-radius: 16px; }
+.card-accent { background: var(--bg2); border: 0.5px solid rgba(127,119,221,.22);        border-radius: 16px; }
 
 .btn-primary {
   width: 100%; background: var(--gold); color: var(--bg0);
   border: none; border-radius: 16px; padding: 15px;
   font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
-  cursor: pointer; transition: all .15s; letter-spacing: .3px;
-  display: block;
+  cursor: pointer; transition: all .15s; letter-spacing: .3px; display: block;
 }
 .btn-primary:hover  { filter: brightness(1.08); transform: translateY(-1px); }
 .btn-primary:active { transform: scale(.98); }
@@ -129,8 +117,8 @@ body {
 .xp-fill { height: 100%; border-radius: 100px; background: linear-gradient(90deg, var(--gold), #F0C060); transition: width .7s ease; }
 
 .chip        { display: inline-block; font-size: 10px; padding: 3px 10px; border-radius: 100px; text-transform: uppercase; letter-spacing: .5px; }
-.chip-gold   { background: rgba(232,168,56,.12);  color: var(--gold);   }
-.chip-teal   { background: rgba(30,203,180,.12);  color: var(--teal);   }
+.chip-gold   { background: rgba(232,168,56,.12); color: var(--gold);   }
+.chip-teal   { background: rgba(30,203,180,.12); color: var(--teal);   }
 .chip-accent { background: rgba(127,119,221,.12); color: var(--accent); }
 
 .section-title {
