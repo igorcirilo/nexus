@@ -9,9 +9,11 @@ export default function AuthPage() {
 
   const [email, setEmail] = useState('')
   const [name, setName] = useState('')
+  const [password, setPassword] = useState('')
   const [isNew, setIsNew] = useState(false)
-  const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [success, setSuccess] = useState('')
 
   useEffect(() => {
     let mounted = true
@@ -40,32 +42,45 @@ export default function AuthPage() {
   }, [router])
 
   async function submit() {
-    if (!email) return
-
-    setLoading(true)
-
-    const emailRedirectTo = `${window.location.origin}/auth`
-
-    if (isNew) {
-      await supabase.auth.signUp({
-        email,
-        password: crypto.randomUUID(), // magic link — sem password
-        options: {
-          data: { full_name: name },
-          emailRedirectTo,
-        },
-      })
-    } else {
-      await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo,
-        },
-      })
+    if (!email || !password || (isNew && !name.trim())) {
+      setError(isNew ? 'Preenche nome, email e senha.' : 'Preenche email e senha.')
+      return
     }
 
-    setSent(true)
-    setLoading(false)
+    setLoading(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      if (isNew) {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: { full_name: name.trim() },
+          },
+        })
+
+        if (error) throw error
+
+        setSuccess('Conta criada com sucesso. Agora entra com o teu email e senha.')
+        setIsNew(false)
+        setPassword('')
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
+
+        if (error) throw error
+
+        router.replace('/hoje')
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Ocorreu um erro ao autenticar.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -80,66 +95,47 @@ export default function AuthPage() {
         <div className="text-[14px] text-text-3">O teu sistema de evolução pessoal</div>
       </div>
 
-      {sent ? (
-        <div className="card-gold p-6 w-full max-w-sm">
-          <div className="text-3xl mb-3">📬</div>
-          <div className="font-syne font-semibold text-[17px] mb-2">Verifica o teu email</div>
-          <div className="text-[13px] text-text-2 leading-relaxed">
-            Enviámos um link mágico para <strong>{email}</strong>.
-            <br />
-            Clica no link para entrar — sem password.
-          </div>
-        </div>
-      ) : (
-        <div className="card p-6 w-full max-w-sm">
-          <div
-            className="flex rounded-xl overflow-hidden mb-5"
-            style={{ border: '0.5px solid var(--border)' }}
+      <div className="card p-6 w-full max-w-sm">
+        <div
+          className="flex rounded-xl overflow-hidden mb-5"
+          style={{ border: '0.5px solid var(--border)' }}
+        >
+          <button
+            onClick={() => {
+              setIsNew(false)
+              setError('')
+              setSuccess('')
+            }}
+            className="flex-1 py-2.5 text-[13px] font-dm transition-all"
+            style={{
+              background: !isNew ? 'var(--bg3)' : 'transparent',
+              color: !isNew ? 'var(--text1)' : 'var(--text3)',
+            }}
           >
-            <button
-              onClick={() => setIsNew(false)}
-              className="flex-1 py-2.5 text-[13px] font-dm transition-all"
-              style={{
-                background: !isNew ? 'var(--bg3)' : 'transparent',
-                color: !isNew ? 'var(--text1)' : 'var(--text3)',
-              }}
-            >
-              Entrar
-            </button>
-            <button
-              onClick={() => setIsNew(true)}
-              className="flex-1 py-2.5 text-[13px] font-dm transition-all"
-              style={{
-                background: isNew ? 'var(--bg3)' : 'transparent',
-                color: isNew ? 'var(--text1)' : 'var(--text3)',
-              }}
-            >
-              Criar conta
-            </button>
-          </div>
+            Entrar
+          </button>
+          <button
+            onClick={() => {
+              setIsNew(true)
+              setError('')
+              setSuccess('')
+            }}
+            className="flex-1 py-2.5 text-[13px] font-dm transition-all"
+            style={{
+              background: isNew ? 'var(--bg3)' : 'transparent',
+              color: isNew ? 'var(--text1)' : 'var(--text3)',
+            }}
+          >
+            Criar conta
+          </button>
+        </div>
 
-          {isNew && (
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="O teu nome"
-              className="w-full rounded-xl p-3.5 text-[14px] mb-3"
-              style={{
-                background: 'var(--bg3)',
-                border: '0.5px solid var(--border)',
-                color: 'var(--text1)',
-                outline: 'none',
-                fontFamily: 'inherit',
-              }}
-            />
-          )}
-
+        {isNew && (
           <input
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            type="email"
-            placeholder="O teu email"
-            className="w-full rounded-xl p-3.5 text-[14px] mb-4"
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="O teu nome"
+            className="w-full rounded-xl p-3.5 text-[14px] mb-3"
             style={{
               background: 'var(--bg3)',
               border: '0.5px solid var(--border)',
@@ -148,16 +144,72 @@ export default function AuthPage() {
               fontFamily: 'inherit',
             }}
           />
+        )}
 
-          <button onClick={submit} disabled={loading} className="btn-primary">
-            {loading ? 'A enviar…' : isNew ? 'Criar conta →' : 'Entrar com link mágico →'}
-          </button>
+        <input
+          value={email}
+          onChange={e => setEmail(e.target.value)}
+          type="email"
+          placeholder="O teu email"
+          className="w-full rounded-xl p-3.5 text-[14px] mb-3"
+          style={{
+            background: 'var(--bg3)',
+            border: '0.5px solid var(--border)',
+            color: 'var(--text1)',
+            outline: 'none',
+            fontFamily: 'inherit',
+          }}
+        />
 
-          <p className="text-[11px] text-text-3 mt-4 leading-relaxed">
-            Sem password. Recebes um link no email.
-          </p>
-        </div>
-      )}
+        <input
+          value={password}
+          onChange={e => setPassword(e.target.value)}
+          type="password"
+          placeholder="A tua senha"
+          className="w-full rounded-xl p-3.5 text-[14px] mb-4"
+          style={{
+            background: 'var(--bg3)',
+            border: '0.5px solid var(--border)',
+            color: 'var(--text1)',
+            outline: 'none',
+            fontFamily: 'inherit',
+          }}
+        />
+
+        {error && (
+          <div
+            className="text-[12px] mb-3 text-left rounded-lg p-3"
+            style={{
+              background: 'rgba(255, 80, 80, 0.08)',
+              border: '0.5px solid rgba(255, 80, 80, 0.25)',
+              color: '#ff9b9b',
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div
+            className="text-[12px] mb-3 text-left rounded-lg p-3"
+            style={{
+              background: 'rgba(120, 200, 120, 0.08)',
+              border: '0.5px solid rgba(120, 200, 120, 0.25)',
+              color: '#a8e6a3',
+            }}
+          >
+            {success}
+          </div>
+        )}
+
+        <button onClick={submit} disabled={loading} className="btn-primary">
+          {loading ? 'A entrar…' : isNew ? 'Criar conta →' : 'Entrar →'}
+        </button>
+
+        <p className="text-[11px] text-text-3 mt-4 leading-relaxed">
+          Autenticação com email e senha.
+        </p>
+      </div>
     </main>
   )
 }
