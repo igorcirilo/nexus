@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 import Nav from '@/components/Nav'
 import { supabase, getProfile } from '@/lib/supabase'
-import { format, subDays, startOfWeek, endOfWeek } from 'date-fns'
+import { format, subDays } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import type { Profile } from '@/types'
 
@@ -18,10 +18,6 @@ async function fetchAllStats(userId: string) {
   const since28   = format(subDays(today, 27), 'yyyy-MM-dd')
   const todayStr  = format(today, 'yyyy-MM-dd')
 
-  const thisWeekStart = format(startOfWeek(today, { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  const lastWeekStart = format(startOfWeek(subDays(today, 7), { weekStartsOn: 1 }), 'yyyy-MM-dd')
-  const lastWeekEnd   = format(endOfWeek(subDays(today, 7),   { weekStartsOn: 1 }), 'yyyy-MM-dd')
-
   const [
     { data: logs7 },
     { data: logs14 },
@@ -31,7 +27,7 @@ async function fetchAllStats(userId: string) {
     { data: habits },
   ] = await Promise.all([
     supabase.from('habit_logs').select('date, completed, habit_id').eq('user_id', userId).gte('date', since7),
-    supabase.from('habit_logs').select('date, completed').eq('user_id', userId).gte('date', since14).lt('date', since7),
+    supabase.from('habit_logs').select('date, completed, habit_id').eq('user_id', userId).gte('date', since14).lt('date', since7),
     supabase.from('habit_logs').select('date, completed').eq('user_id', userId).gte('date', since28),
     supabase.from('checkins').select('date, phase, energy, sleep_hours, mood, xp_earned').eq('user_id', userId).gte('date', since7),
     supabase.from('checkins').select('date, phase, xp_earned').eq('user_id', userId).gte('date', since14).lt('date', since7),
@@ -47,16 +43,18 @@ async function fetchAllStats(userId: string) {
     const d   = subDays(today, 6 - i)
     const day = format(d, 'yyyy-MM-dd')
     const habitXP   = (logs7 ?? []).filter((l: { date: string; completed: boolean }) => l.date === day && l.completed)
-      .reduce((a: number, l: { habit_id: string }) => a + (xpMap[l.habit_id] ?? 10), 0)
+      .reduce((a: number, l: {habit_id: string; date: string; completed: boolean}) => a + (xpMap[l.habit_id] ?? 10), 0)
     const checkinXP = (checkins7 ?? []).filter((c: { date: string }) => c.date === day)
       .reduce((a: number, c: { xp_earned: number }) => a + (c.xp_earned ?? 0), 0)
     return { day: DAYS_PT[d.getDay()], xp: habitXP + checkinXP, hab: habitXP, ci: checkinXP }
   })
 
   // XP semana passada (para comparativo)
-  const prevWeekXP = (logs14 ?? []).filter((l: { completed: boolean }) => l.completed)
-    .reduce((a: number, l: { habit_id?: string }) => a + (xpMap[l.habit_id ?? ''] ?? 10), 0) +
-    (checkins14 ?? []).reduce((a: number, c: { xp_earned: number }) => a + (c.xp_earned ?? 0), 0)
+  type Log14 = { date: string; completed: boolean; habit_id: string }
+  type CI14  = { date: string; phase: string; xp_earned: number }
+  const prevWeekXP = (logs14 as Log14[] ?? []).filter(l => l.completed)
+    .reduce((a: number, l: Log14) => a + (xpMap[l.habit_id] ?? 10), 0) +
+    (checkins14 as CI14[] ?? []).reduce((a: number, c: CI14) => a + (c.xp_earned ?? 0), 0)
 
   // Consistência esta semana vs semana passada
   const thisLogs = (logs7 ?? [])
