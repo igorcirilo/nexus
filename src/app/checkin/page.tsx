@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import Nav from '@/components/Nav'
 import XPToast, { triggerXP } from '@/components/XPToast'
+import NightSummary from '@/components/NightSummary'
 import { supabase, getProfile, saveCheckin, addXP, updateStreak, getCheckinsForDate } from '@/lib/supabase'
 import type { Profile, CheckinPhase } from '@/types'
 
@@ -80,30 +81,29 @@ function TextArea({ value, onChange, placeholder }: { value: string; onChange: (
 }
 
 export default function CheckinPage() {
-  const [profile,      setProfile]      = useState<Profile | null>(null)
-  const [activePhase,  setActivePhase]  = useState<Phase>('manha')
-  const [donePhases,   setDonePhases]   = useState<Set<Phase>>(new Set())
-  const [step,         setStep]         = useState(0)
-  const [submitting,   setSubmitting]   = useState(false)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [activePhase, setActivePhase] = useState<Phase>('manha')
+  const [donePhases, setDonePhases] = useState<Set<Phase>>(new Set())
+  const [step, setStep] = useState(0)
+  const [submitting, setSubmitting] = useState(false)
+  const [nightSummaryOpen, setNightSummaryOpen] = useState(false)
+  const [nightSummaryXP, setNightSummaryXP] = useState(0)
   const today = format(new Date(), 'yyyy-MM-dd')
 
-  // Manhã
-  const [sleep,      setSleep]      = useState('')
-  const [energy,     setEnergy]     = useState(7)
-  const [mood,       setMood]       = useState(3)
-  const [mission,    setMission]    = useState('')
-  const [willTrain,  setWillTrain]  = useState<boolean | null>(null)
+  const [sleep, setSleep] = useState('')
+  const [energy, setEnergy] = useState(7)
+  const [mood, setMood] = useState(3)
+  const [mission, setMission] = useState('')
+  const [willTrain, setWillTrain] = useState<boolean | null>(null)
 
-  // Tarde
   const [progressOpt, setProgressOpt] = useState('')
-  const [focusOpt,    setFocusOpt]    = useState('')
-  const [nextAction,  setNextAction]  = useState('')
+  const [focusOpt, setFocusOpt] = useState('')
+  const [nextAction, setNextAction] = useState('')
 
-  // Noite
   const [missionDone, setMissionDone] = useState('')
-  const [winOfDay,    setWinOfDay]    = useState('')
-  const [reflection,  setReflection]  = useState('')
-  const [moodNight,   setMoodNight]   = useState(3)
+  const [winOfDay, setWinOfDay] = useState('')
+  const [reflection, setReflection] = useState('')
+  const [moodNight, setMoodNight] = useState(3)
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -117,11 +117,10 @@ export default function CheckinPage() {
       setDonePhases(done)
       const manha = checkins.find((c: { phase: string; mission?: string }) => c.phase === 'manha')
       if (manha?.mission) setMission(manha.mission)
-      // Fase activa por hora
       const h = new Date().getHours()
-      if (!done.has('manha'))               setActivePhase('manha')
-      else if (!done.has('tarde') && h>=12) setActivePhase('tarde')
-      else if (!done.has('noite') && h>=18) setActivePhase('noite')
+      if (!done.has('manha')) setActivePhase('manha')
+      else if (!done.has('tarde') && h >= 12) setActivePhase('tarde')
+      else if (!done.has('noite') && h >= 18) setActivePhase('noite')
       else setActivePhase(done.has('manha') ? (done.has('tarde') ? 'noite' : 'tarde') : 'manha')
     })
   }, [today])
@@ -130,8 +129,11 @@ export default function CheckinPage() {
 
   async function reset(phase: Phase) {
     if (!profile) return
-    // Remove do set de concluídas para permitir re-fazer
-    setDonePhases(p => { const n = new Set(Array.from(p)); n.delete(phase); return n })
+    setDonePhases(p => {
+      const n = new Set(Array.from(p))
+      n.delete(phase)
+      return n
+    })
     setStep(0)
   }
 
@@ -160,7 +162,17 @@ export default function CheckinPage() {
     await addXP(profile.id, xp)
     if (phase === 'noite') await updateStreak(profile.id)
     triggerXP(xp, `Check-in ${LABELS[phase].toLowerCase()} — +${xp} XP`)
-    setDonePhases(p => new Set(Array.from(p).concat(phase)))
+    setDonePhases(p => {
+      const next = new Set(p)
+      next.add(phase)
+      return next
+    })
+
+    if (phase === 'noite') {
+      setNightSummaryXP(xp)
+      setNightSummaryOpen(true)
+    }
+
     setSubmitting(false)
   }
 
@@ -185,7 +197,6 @@ export default function CheckinPage() {
     <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
       <XPToast />
 
-      {/* Phase tabs */}
       <div style={{ padding: '24px 20px 0' }}>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 16 }}>Check-in</h1>
         <div style={{ display: 'flex', gap: 8 }}>
@@ -214,8 +225,6 @@ export default function CheckinPage() {
       </div>
 
       <div style={{ padding: '20px 20px 0' }}>
-
-        {/* ── Fase concluída ── */}
         {isDone && (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
             <div style={{ fontSize: 52, marginBottom: 12 }}>{PHASE_EMOJI[activePhase]}</div>
@@ -225,7 +234,6 @@ export default function CheckinPage() {
             <div style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 28 }}>
               +{PHASE_XP[activePhase]} XP ganhos.
             </div>
-            {/* Botão de reset */}
             <button onClick={() => reset(activePhase)} style={{
               background: 'transparent', border: '0.5px solid var(--border)',
               borderRadius: 12, padding: '11px 20px', cursor: 'pointer',
@@ -234,7 +242,6 @@ export default function CheckinPage() {
             }}>
               ↩ Corrigir respostas desta fase
             </button>
-            {/* Próxima fase */}
             {activePhase !== 'noite' && (
               <button onClick={() => setActivePhase(activePhase === 'manha' ? 'tarde' : 'noite')} style={{
                 width: '100%', background: 'var(--gold)', color: 'var(--bg0)',
@@ -253,7 +260,6 @@ export default function CheckinPage() {
           </div>
         )}
 
-        {/* ── MANHÃ ── */}
         {!isDone && activePhase === 'manha' && (
           <>
             <StepDots total={4} current={step} />
@@ -314,11 +320,9 @@ export default function CheckinPage() {
           </>
         )}
 
-        {/* ── TARDE ── */}
         {!isDone && activePhase === 'tarde' && (
           <>
             <StepDots total={3} current={step} />
-            {/* Referência à missão */}
             {mission && (
               <div style={{ background: 'rgba(127,119,221,.07)', border: '0.5px solid rgba(127,119,221,.18)', borderRadius: 12, padding: '12px 14px', marginBottom: 20 }}>
                 <div style={{ fontSize: 10, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>Missão prometida esta manhã</div>
@@ -367,7 +371,6 @@ export default function CheckinPage() {
           </>
         )}
 
-        {/* ── NOITE ── */}
         {!isDone && activePhase === 'noite' && (
           <>
             <StepDots total={3} current={step} />
@@ -422,6 +425,15 @@ export default function CheckinPage() {
           </>
         )}
       </div>
+
+      <NightSummary
+        open={nightSummaryOpen}
+        onClose={() => setNightSummaryOpen(false)}
+        xpEarned={nightSummaryXP}
+        streakCurrent={profile?.streak_current ?? 0}
+        bestStreak={profile?.streak_best ?? 0}
+        completedPhases={Array.from(donePhases)}
+      />
 
       <Nav />
     </main>
