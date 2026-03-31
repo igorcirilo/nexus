@@ -303,3 +303,14 @@ export async function saveTransaction(payload: Record<string, unknown>) {
 export async function deleteTransaction(id: string) {
   return supabase.from('transactions').delete().eq('id', id)
 }
+
+// ── Auth helpers ────────────────────────────────────────────
+export async function signOut() {
+  return supabase.auth.signOut()
+}
+
+// Verificar sessão activa
+export async function getSession() {
+  const { data: { session } } = await supabase.auth.getSession()
+  return session
+}

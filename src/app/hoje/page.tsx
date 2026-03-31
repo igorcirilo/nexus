@@ -9,7 +9,7 @@ import MissionCard from '@/components/MissionCard'
 import MentorCard from '@/components/MentorCard'
 import HabitItem from '@/components/HabitItem'
 import XPToast, { triggerXP } from '@/components/XPToast'
-import { supabase, getProfile, getHabitsWithLogs, addXP, updateStreak, getDynamicWeeklyChallenge } from '@/lib/supabase'
+import { supabase, getProfile, getHabitsWithLogs, addXP, updateStreak, getDynamicWeeklyChallenge, getCheckinsForDate } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
 import type { Profile, Habit, HabitLog } from '@/types'
 import StreakRecovery from '@/components/StreakRecovery'
@@ -21,6 +21,7 @@ export default function HojePage() {
   const [missionPct, setMissionPct]   = useState(0)
   const [loading, setLoading]         = useState(true)
   const [showRecovery, setShowRecovery] = useState(false)
+  const [todayCheckins, setTodayCheckins] = useState<{phase:string;energy?:number;sleep_hours?:number;mood?:number;mission?:string}[]>([])
   const [weekChallenge, setWeekChallenge] = useState({ title: 'Semana da Consistência', done: 0, total: 7 })
   const today = format(new Date(), 'yyyy-MM-dd')
   const hour  = new Date().getHours()
@@ -41,6 +42,20 @@ export default function HojePage() {
       if (prof && !prof.onboarded) {
         window.location.href = '/onboarding'
         return
+      }
+
+      // Carregar check-ins de hoje para dados reais
+      const checkins = await getCheckinsForDate(user.id, today)
+      setTodayCheckins(checkins as {phase:string;energy?:number;sleep_hours?:number;mood?:number;mission?:string}[])
+
+      // Energia real do check-in da manhã
+      const manhaCI = (checkins as {phase:string;energy?:number;mission?:string}[]).find(c => c.phase === 'manha')
+      if (manhaCI?.energy && prof) {
+        prof.energy_today = manhaCI.energy
+      }
+      // Missão real do check-in
+      if (manhaCI?.mission && prof) {
+        prof.mission_today = manhaCI.mission
       }
 
       setProfile(prof)

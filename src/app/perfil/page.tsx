@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
 import { supabase, getProfile, updateFullProfile } from '@/lib/supabase'
+import { useRouter } from 'next/navigation'
 import type { Profile } from '@/types'
 
 type Section = 'corpo' | 'metas' | 'financas' | 'objetivos' | 'xp'
@@ -90,9 +91,16 @@ export default function PerfilPage() {
     setTimeout(() => setSaved(false), 2200)
   }
 
-  const sections: Section[] = ['corpo', 'metas', 'financas', 'objetivos', 'xp']
+  const router = useRouter()
+
+  async function logout() {
+    await supabase.auth.signOut()
+    router.push('/auth')
+  }
+
+  const sections: Section[] = ['corpo', 'metas', 'objetivos', 'xp']
   const sectionLabels: Record<Section, string> = {
-    corpo: 'Corpo', metas: 'Metas', financas: 'Finanças', objetivos: '90 Dias', xp: 'XP & Goals',
+    corpo: 'Corpo', metas: 'Metas', objetivos: '90 Dias', xp: 'XP & Goals',
   }
 
   return (
@@ -215,48 +223,7 @@ export default function PerfilPage() {
           </>
         )}
 
-        {/* ── FINANÇAS ── */}
-        {section === 'financas' && (
-          <>
-            {/* Saldo actual */}
-            <div style={{ background:'var(--bg2)', border:'0.5px solid rgba(30,203,180,.22)', borderRadius:14, padding:16, marginBottom:20 }}>
-              <div style={{ fontSize:11, color:'var(--text3)', marginBottom:6, textTransform:'uppercase', letterSpacing:'.5px' }}>Saldo actual em poupança</div>
-              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                <span style={{ fontFamily:'Syne,sans-serif', fontSize:22, color:'var(--teal)' }}>€</span>
-                <input type="number" value={String(form.fin_current_savings)} onChange={e => set('fin_current_savings', +e.target.value)} placeholder="0"
-                  style={{ flex:1, fontFamily:'Syne,sans-serif', fontWeight:700, fontSize:24, padding:'8px 0', background:'transparent', border:'none', borderBottom:'0.5px solid var(--border)', borderRadius:0, color:'var(--text1)', outline:'none' }} />
-              </div>
-              <div style={{ fontSize:11, color:'var(--text3)', marginTop:6 }}>Valor actual disponível em conta/poupança</div>
-            </div>
-            <Field label="Meta de poupança mensal (€)" hint="Quanto queres guardar por mês">
-              <input style={inputStyle} type="number" value={String(form.fin_monthly_save)}
-                onChange={e => set('fin_monthly_save', +e.target.value)} placeholder="500" />
-            </Field>
-            <Field label="Meta de reserva de emergência (€)" hint="Objectivo de fundo de emergência">
-              <input style={inputStyle} type="number" value={String(form.fin_reserve_goal)}
-                onChange={e => set('fin_reserve_goal', +e.target.value)} placeholder="10000" />
-            </Field>
-            <Field label="Meta de eliminação de dívida (€)" hint="Total de dívida a eliminar">
-              <input style={inputStyle} type="number" value={String(form.fin_debt_goal)}
-                onChange={e => set('fin_debt_goal', +e.target.value)} placeholder="5000" />
-            </Field>
-            {+form.fin_reserve_goal > 0 && (
-              <div style={{ background:'var(--bg2)', border:'0.5px solid var(--border)', borderRadius:14, padding:14 }}>
-                <div style={{ fontSize:11, color:'var(--text3)', marginBottom:8 }}>Progresso para reserva de emergência</div>
-                <div style={{ display:'flex', justifyContent:'space-between', fontSize:13, marginBottom:6 }}>
-                  <span style={{ color:'var(--text2)' }}>€{Number(form.fin_current_savings||0).toLocaleString('pt-PT')}</span>
-                  <span style={{ color:'var(--text3)' }}>€{Number(form.fin_reserve_goal).toLocaleString('pt-PT')}</span>
-                </div>
-                <div style={{ background:'var(--bg3)', borderRadius:100, height:6 }}>
-                  <div style={{ height:'100%', borderRadius:100, background:'var(--teal)', width:`${Math.min(100,Math.round(+form.fin_current_savings / +form.fin_reserve_goal * 100))}%`, transition:'width .5s' }} />
-                </div>
-                <div style={{ fontSize:11, color:'var(--teal)', marginTop:6 }}>
-                  {Math.min(100,Math.round(+form.fin_current_savings / +form.fin_reserve_goal * 100))}% da meta atingida
-                </div>
-              </div>
-            )}
-          </>
-        )}
+
 
         {/* ── 90 DIAS ── */}
         {section === 'objetivos' && (
@@ -334,6 +301,22 @@ export default function PerfilPage() {
         }}>
           {saving ? 'A guardar…' : 'Guardar perfil'}
         </button>
+      </div>
+
+      {/* ── LOGOUT ── */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <div style={{ height: '0.5px', background: 'var(--border)', marginBottom: 20 }} />
+        <button onClick={logout} style={{
+          width: '100%', padding: '14px', border: '0.5px solid rgba(226,75,74,.3)',
+          borderRadius: 14, background: 'transparent',
+          color: '#E24B4A', fontFamily: 'Syne, sans-serif',
+          fontWeight: 700, fontSize: 14, cursor: 'pointer', transition: 'all .2s',
+        }}>
+          Terminar sessão
+        </button>
+        <p style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginTop: 10 }}>
+          Será redirecionado para o login.
+        </p>
       </div>
 
       <Nav />
