@@ -223,7 +223,7 @@ export default function HojePage() {
         </div>
       )}
 
-      <MentorCard title="Mentor" body={mentorMsg.body} action={mentorMsg.action} />
+      <MentorCard body={mentorMsg.body} action={mentorMsg.action} />
 
       <div style={{ padding: '0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
