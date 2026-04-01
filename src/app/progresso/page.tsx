@@ -84,7 +84,7 @@ export default function ProgressoPage() {
 
       // XP by day
       type LogRow7 = { date: string; completed: boolean; habit_id: string }
-      type CIRow   = { date: string; phase: string; energy?: number; sleep_hours?: number; xp_earned: number }
+      type CIRow   = { date: string; phase?: string | null; energy?: number | null; sleep_hours?: number | null; mood?: number | null; xp_earned?: number | null }
       const xpByDay = Array.from({length:7},(_,i) => {
         const d      = subDays(new Date(), 6-i)
         const day    = format(d,'yyyy-MM-dd')
