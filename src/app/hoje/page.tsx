@@ -27,6 +27,7 @@ import EmptyState from '@/components/EmptyState'
 
 export default function HojePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [userId, setUserId] = useState<string>("")
   const [habits, setHabits] = useState<(Habit & { habit_logs: HabitLog[] })[]>([])
   const [missionPct, setMissionPct] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -45,6 +46,7 @@ export default function HojePage() {
         window.location.href = '/auth'
         return
       }
+      setUserId(user.id)
 
       const [prof, hab, checkins] = await Promise.all([
         getProfile(user.id),
@@ -241,7 +243,9 @@ export default function HojePage() {
               <HabitItem
                 key={habit.id}
                 habit={habit}
-                done={!!habit.habit_logs?.[0]?.completed}
+                log={habit.habit_logs?.[0] ?? null}
+                userId={userId}
+                date={today}
                 onXP={handleXP}
               />
             ))}
