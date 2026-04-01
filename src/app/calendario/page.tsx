@@ -127,6 +127,21 @@ export default function CalendarioPage() {
     setRmSaving(false)
   }
 
+
+  async function toggleRm(id: string, active: boolean) {
+    if (!userId) return
+    await toggleReminder(id, !active)
+    setReminders(await getReminders(userId) as Reminder[])
+    showToast(!active ? 'Lembrete ativado!' : 'Lembrete desativado!')
+  }
+
+  async function removeRm(id: string) {
+    if (!userId) return
+    await deleteReminder(id)
+    setReminders(prev => prev.filter(r => r.id !== id))
+    showToast('Lembrete removido!')
+  }
+
   async function saveEv() {
     if (!userId || !evTitle.trim()) return
     setEvSaving(true)
