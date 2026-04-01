@@ -314,3 +314,33 @@ export async function getSession() {
   const { data: { session } } = await supabase.auth.getSession()
   return session
 }
+
+// ── Agenda ─────────────────────────────────────────────────
+export type AgendaEvent = {
+  id: string; user_id: string; title: string; description: string | null
+  date: string; time: string | null; end_time: string | null
+  color: string; all_day: boolean; created_at: string
+}
+
+export async function getAgendaEvents(userId: string, year: number, month: number) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const start = `${year}-${pad(month)}-01`
+  const end   = `${year}-${pad(month)}-31`
+  const { data } = await supabase
+    .from('agenda_events').select('*')
+    .eq('user_id', userId).gte('date', start).lte('date', end)
+    .order('time')
+  return (data ?? []) as AgendaEvent[]
+}
+
+export async function saveAgendaEvent(payload: Partial<AgendaEvent> & { user_id: string }) {
+  if (payload.id) {
+    const { id, ...rest } = payload
+    return supabase.from('agenda_events').update(rest).eq('id', id)
+  }
+  return supabase.from('agenda_events').insert(payload)
+}
+
+export async function deleteAgendaEvent(id: string) {
+  return supabase.from('agenda_events').delete().eq('id', id)
+}

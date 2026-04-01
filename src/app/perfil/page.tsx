@@ -6,7 +6,7 @@ import { supabase, getProfile, updateFullProfile } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { Profile } from '@/types'
 
-type Section = 'corpo' | 'metas' | 'financas' | 'objetivos' | 'xp'
+type Section = 'corpo' | 'metas' | 'objetivos' | 'xp'
 
 function SectionTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -52,26 +52,27 @@ export default function PerfilPage() {
       if (!user) { window.location.href = '/auth'; return }
       const prof = await getProfile(user.id)
       setProfile(prof)
+      // Pré-preencher formulário
       setForm({
-        username:            prof?.username ?? '',
-        age:                 prof?.age ?? '',
-        sex:                 prof?.sex ?? '',
-        weight_kg:           prof?.weight_kg ?? '',
-        height_cm:           prof?.height_cm ?? '',
-        goal_weight:         prof?.goal_weight ?? '',
-        water_goal_ml:       prof?.water_goal_ml ?? 2000,
-        workouts_per_week:   prof?.workouts_per_week ?? 3,
-        sleep_goal_h:        prof?.sleep_goal_h ?? 8,
-        read_pages_day:      prof?.read_pages_day ?? 10,
+        username:           prof?.username ?? '',
+        age:                prof?.age ?? '',
+        sex:                prof?.sex ?? '',
+        weight_kg:          prof?.weight_kg ?? '',
+        height_cm:          prof?.height_cm ?? '',
+        goal_weight:        prof?.goal_weight ?? '',
+        water_goal_ml:      prof?.water_goal_ml ?? 2000,
+        workouts_per_week:  prof?.workouts_per_week ?? 3,
+        sleep_goal_h:       prof?.sleep_goal_h ?? 8,
+        read_pages_day:     prof?.read_pages_day ?? 10,
         fin_current_savings: prof?.fin_current_savings ?? '',
-        fin_monthly_save:    prof?.fin_monthly_save ?? '',
-        fin_debt_goal:       prof?.fin_debt_goal ?? '',
-        fin_reserve_goal:    prof?.fin_reserve_goal ?? '',
-        goal_90_personal:    prof?.goal_90_personal ?? '',
-        goal_90_career:      prof?.goal_90_career ?? '',
-        goal_90_health:      prof?.goal_90_health ?? '',
-        xp_weekly_goal:      prof?.xp_weekly_goal ?? 500,
-        completion_pct_goal: prof?.completion_pct_goal ?? 80,
+        fin_monthly_save:   prof?.fin_monthly_save ?? '',
+        fin_debt_goal:      prof?.fin_debt_goal ?? '',
+        fin_reserve_goal:   prof?.fin_reserve_goal ?? '',
+        goal_90_personal:   prof?.goal_90_personal ?? '',
+        goal_90_career:     prof?.goal_90_career ?? '',
+        goal_90_health:     prof?.goal_90_health ?? '',
+        xp_weekly_goal:     prof?.xp_weekly_goal ?? 500,
+        completion_pct_goal:prof?.completion_pct_goal ?? 80,
       })
     }
     load()
@@ -97,18 +98,15 @@ export default function PerfilPage() {
     router.push('/auth')
   }
 
-  const sections: Section[] = ['corpo', 'metas', 'financas', 'objetivos', 'xp']
+  const sections: Section[] = ['corpo', 'metas', 'objetivos', 'xp']
   const sectionLabels: Record<Section, string> = {
-    corpo: 'Corpo',
-    metas: 'Metas',
-    financas: 'Finanças',
-    objetivos: '90 Dias',
-    xp: 'XP & Goals',
+    corpo: 'Corpo', metas: 'Metas', objetivos: '90 Dias', xp: 'XP & Goals',
   }
 
   return (
     <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
 
+      {/* Toast */}
       {saved && (
         <div style={{
           position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)',
@@ -123,6 +121,7 @@ export default function PerfilPage() {
         </div>
       )}
 
+      {/* Header */}
       <div style={{ padding: '28px 20px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 2 }}>Perfil</h1>
@@ -136,6 +135,7 @@ export default function PerfilPage() {
         </button>
       </div>
 
+      {/* Tabs */}
       <div style={{
         display: 'flex', margin: '0 20px 20px', padding: 4,
         background: 'var(--bg2)', borderRadius: 12, border: '0.5px solid var(--border)',
@@ -148,6 +148,7 @@ export default function PerfilPage() {
 
       <div style={{ padding: '0 20px' }}>
 
+        {/* ── CORPO ── */}
         {section === 'corpo' && (
           <>
             <Field label="Nome de utilizador">
@@ -180,6 +181,7 @@ export default function PerfilPage() {
           </>
         )}
 
+        {/* ── METAS ── */}
         {section === 'metas' && (
           <>
             <Field label={`Meta de água diária: ${Math.round(+form.water_goal_ml / 1000 * 10) / 10}L`}
@@ -221,32 +223,9 @@ export default function PerfilPage() {
           </>
         )}
 
-        {section === 'financas' && (
-          <>
-            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
-              Define a tua base financeira. Isto alimenta o módulo de finanças e permite comparar o teu progresso com as metas do perfil.
-            </div>
 
-            <div style={rowStyle}>
-              <Field label="Poupança atual (€)">
-                <input style={inputStyle} type="number" step="0.01" value={String(form.fin_current_savings)} onChange={e => set('fin_current_savings', +e.target.value)} placeholder="1500" />
-              </Field>
-              <Field label="Meta de poupança mensal (€)">
-                <input style={inputStyle} type="number" step="0.01" value={String(form.fin_monthly_save)} onChange={e => set('fin_monthly_save', +e.target.value)} placeholder="300" />
-              </Field>
-            </div>
 
-            <div style={rowStyle}>
-              <Field label="Meta de abater dívida (€)">
-                <input style={inputStyle} type="number" step="0.01" value={String(form.fin_debt_goal)} onChange={e => set('fin_debt_goal', +e.target.value)} placeholder="2000" />
-              </Field>
-              <Field label="Meta de fundo de reserva (€)">
-                <input style={inputStyle} type="number" step="0.01" value={String(form.fin_reserve_goal)} onChange={e => set('fin_reserve_goal', +e.target.value)} placeholder="5000" />
-              </Field>
-            </div>
-          </>
-        )}
-
+        {/* ── 90 DIAS ── */}
         {section === 'objetivos' && (
           <>
             <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
@@ -273,6 +252,7 @@ export default function PerfilPage() {
           </>
         )}
 
+        {/* ── XP & GOALS ── */}
         {section === 'xp' && (
           <>
             <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
@@ -298,6 +278,7 @@ export default function PerfilPage() {
               </div>
             </Field>
 
+            {/* Preview visual */}
             <div style={{ marginTop: 8, padding: '14px 16px', borderRadius: 14, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
               <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>Preview semanal com estas metas</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 13, color: 'var(--text2)' }}>
@@ -312,6 +293,7 @@ export default function PerfilPage() {
           </>
         )}
 
+        {/* Botão guardar */}
         <button onClick={save} disabled={saving} style={{
           width: '100%', background: 'var(--gold)', color: 'var(--bg0)', border: 'none',
           borderRadius: 16, padding: '15px', marginTop: 24,
@@ -321,6 +303,7 @@ export default function PerfilPage() {
         </button>
       </div>
 
+      {/* ── LOGOUT ── */}
       <div style={{ padding: '24px 20px 0' }}>
         <div style={{ height: '0.5px', background: 'var(--border)', marginBottom: 20 }} />
         <button onClick={logout} style={{
