@@ -13,10 +13,30 @@ export interface Profile {
   energy_today: number
   onboarded: boolean
   created_at: string
-  // Campos financeiros
-  fin_monthly_save:    number | null
-  fin_reserve_goal:    number | null
-  fin_current_savings: number | null
+
+  // Perfil expandido
+  age?: number | null
+  sex?: string | null
+  weight_kg?: number | null
+  height_cm?: number | null
+  goal_weight?: number | null
+  water_goal_ml?: number | null
+  workouts_per_week?: number | null
+  sleep_goal_h?: number | null
+  read_pages_day?: number | null
+
+  // Objetivos
+  goal_90_personal?: string | null
+  goal_90_career?: string | null
+  goal_90_health?: string | null
+  xp_weekly_goal?: number | null
+  completion_pct_goal?: number | null
+
+  // Financeiro
+  fin_current_savings?: number | null
+  fin_monthly_save?: number | null
+  fin_debt_goal?: number | null
+  fin_reserve_goal?: number | null
 }
 
 export interface Habit {
@@ -55,17 +75,17 @@ export interface Checkin {
   user_id: string
   date: string
   phase: CheckinPhase
-  sleep_hours?: number
-  energy?: number
-  mood?: number
-  mission?: string
-  will_train?: boolean
-  progress_pct?: number
-  focus_level?: string
-  next_action?: string
-  mission_done?: string
-  win_of_day?: string
-  reflection?: string
+  sleep_hours?: number | null
+  energy?: number | null
+  mood?: number | null
+  mission?: string | null
+  will_train?: boolean | null
+  progress_pct?: number | null
+  focus_level?: string | null
+  next_action?: string | null
+  mission_done?: string | null
+  win_of_day?: string | null
+  reflection?: string | null
   xp_earned: number
   completed_at: string
 }
@@ -118,7 +138,6 @@ export interface UserBadge {
   badge?: Badge
 }
 
-// XP por nível
 export function xpForLevel(level: number): number {
   return Math.round(500 * level * (level + 1) / 2)
 }
@@ -128,20 +147,20 @@ export function levelFromXP(xp: number): number {
 }
 
 export const AREA_META: Record<HabitArea, { label: string; icon: string; color: string }> = {
-  corpo:          { label: 'Corpo & Saúde',   icon: '💪', color: '#1ECBB4' },
-  produtividade:  { label: 'Produtividade',   icon: '🎯', color: '#7F77DD' },
-  idiomas:        { label: 'Idiomas',         icon: '🗣️', color: '#E24B4A' },
-  carreira:       { label: 'Carreira',        icon: '📚', color: '#E8A838' },
-  financas:       { label: 'Finanças',        icon: '💰', color: '#1D9E75' },
-  emocoes:        { label: 'Emoções',         icon: '🧘', color: '#D4537E' },
-  relacionamentos:{ label: 'Relacionamentos', icon: '🤝', color: '#85B7EB' },
+  corpo:           { label: 'Corpo & Saúde',   icon: '💪', color: '#1ECBB4' },
+  produtividade:   { label: 'Produtividade',   icon: '🎯', color: '#7F77DD' },
+  idiomas:         { label: 'Idiomas',         icon: '🗣️', color: '#E24B4A' },
+  carreira:        { label: 'Carreira',        icon: '📚', color: '#E8A838' },
+  financas:        { label: 'Finanças',        icon: '💰', color: '#1D9E75' },
+  emocoes:         { label: 'Emoções',         icon: '🧘', color: '#D4537E' },
+  relacionamentos: { label: 'Relacionamentos', icon: '🤝', color: '#85B7EB' },
 }
 
 export const TITLES: Record<string, string> = {
-  Recruta:      'Estás a começar. Cada ação conta.',
-  Consistente:  'A consistência está a ganhar forma.',
-  Focado:       'O foco é o teu superpoder.',
+  Recruta: 'Estás a começar. Cada ação conta.',
+  Consistente: 'A consistência está a ganhar forma.',
+  Focado: 'O foco é o teu superpoder.',
   Estrategista: 'Pensas antes de agir. Isso é raro.',
-  Imparável:    'Nada te pára por muito tempo.',
-  Antifrágil:   'Cresces com a pressão. Lendário.',
+  Imparável: 'Nada te pára por muito tempo.',
+  Antifrágil: 'Cresces com a pressão. Lendário.',
 }

@@ -383,3 +383,47 @@ export async function updateFinancialGoals(
 ) {
   return supabase.from('profiles').update(goals).eq('id', userId)
 }
+
+// ── Badges automáticos ─────────────────────────────────────
+const BADGE_NAMES: Record<string, string> = {
+  primeiro_checkin: 'Primeira Vez',
+  streak_7: 'Uma Semana',
+  streak_21: 'Três Semanas',
+  streak_100: 'Centenário',
+  xp_1000: 'Mil Pontos',
+  xp_5000: 'Veterano',
+  xp_10000: 'Elite',
+}
+
+export async function checkAndAwardBadges(
+  userId: string,
+  profile: { streak_current: number; xp_total: number },
+) {
+  const { data: existing } = await supabase
+    .from('user_badges')
+    .select('badge_key')
+    .eq('user_id', userId)
+
+  const earned = new Set((existing ?? []).map((b: { badge_key: string }) => b.badge_key))
+  const { data: firstCheckin } = await supabase
+    .from('checkins')
+    .select('id')
+    .eq('user_id', userId)
+    .limit(1)
+    .maybeSingle()
+
+  const toAward: string[] = []
+  if (firstCheckin && !earned.has('primeiro_checkin')) toAward.push('primeiro_checkin')
+  if (profile.streak_current >= 7 && !earned.has('streak_7')) toAward.push('streak_7')
+  if (profile.streak_current >= 21 && !earned.has('streak_21')) toAward.push('streak_21')
+  if (profile.streak_current >= 100 && !earned.has('streak_100')) toAward.push('streak_100')
+  if (profile.xp_total >= 1000 && !earned.has('xp_1000')) toAward.push('xp_1000')
+  if (profile.xp_total >= 5000 && !earned.has('xp_5000')) toAward.push('xp_5000')
+  if (profile.xp_total >= 10000 && !earned.has('xp_10000')) toAward.push('xp_10000')
+
+  for (const key of toAward) {
+    await awardBadge(userId, key)
+  }
+
+  return toAward.map((key) => ({ key, name: BADGE_NAMES[key] ?? key }))
+}
