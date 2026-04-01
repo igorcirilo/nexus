@@ -1,16 +1,18 @@
 'use client'
 // src/app/onboarding/page.tsx
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase, updateFullProfile } from '@/lib/supabase'
 import { AREA_META } from '@/types'
 import type { HabitArea } from '@/types'
 
+const STORAGE_KEY = 'nexus_onboarding_draft_v1'
+
 const FOCUS_OPTIONS = [
-  { key: 'saude',         icon: '💪', label: 'Saúde & Corpo',      desc: 'Treino, sono e energia' },
-  { key: 'produtividade', icon: '🎯', label: 'Produtividade',       desc: 'Foco, tarefas e execução' },
-  { key: 'carreira',      icon: '📚', label: 'Carreira & Estudos',  desc: 'Crescimento profissional' },
-  { key: 'financas',      icon: '💰', label: 'Finanças',            desc: 'Poupança e controlo' },
-  { key: 'equilibrio',    icon: '🧘', label: 'Equilíbrio pessoal',  desc: 'Emoções e relações' },
+  { key: 'saude', icon: '💪', label: 'Saúde & Corpo', desc: 'Treino, sono e energia' },
+  { key: 'produtividade', icon: '🎯', label: 'Produtividade', desc: 'Foco, tarefas e execução' },
+  { key: 'carreira', icon: '📚', label: 'Carreira & Estudos', desc: 'Crescimento profissional' },
+  { key: 'financas', icon: '💰', label: 'Finanças', desc: 'Poupança e controlo' },
+  { key: 'equilibrio', icon: '🧘', label: 'Equilíbrio pessoal', desc: 'Emoções e relações' },
 ]
 
 const SUGGESTED_HABITS: Record<string, { name: string; area: HabitArea; xp: number; time: string }[]> = {
@@ -68,7 +70,16 @@ const S = {
   } as React.CSSProperties,
 }
 
+type DraftState = {
+  step: number
+  name: string
+  focus: string
+  goal90: string
+  selected: number[]
+}
+
 export default function OnboardingPage() {
+  const [hydrated, setHydrated] = useState(false)
   const [step, setStep] = useState(0)
   const [name, setName] = useState('')
   const [focus, setFocus] = useState('')
@@ -79,8 +90,47 @@ export default function OnboardingPage() {
 
   const habits = focus ? SUGGESTED_HABITS[focus] : []
 
+  useEffect(() => {
+    try {
+      const raw = window.sessionStorage.getItem(STORAGE_KEY)
+      if (raw) {
+        const draft = JSON.parse(raw) as Partial<DraftState>
+        if (typeof draft.step === 'number') setStep(Math.max(0, Math.min(2, draft.step)))
+        if (typeof draft.name === 'string') setName(draft.name)
+        if (typeof draft.focus === 'string') setFocus(draft.focus)
+        if (typeof draft.goal90 === 'string') setGoal90(draft.goal90)
+        if (Array.isArray(draft.selected)) setSelected(draft.selected.filter((v): v is number => typeof v === 'number'))
+      }
+    } catch {}
+    setHydrated(true)
+  }, [])
+
+  useEffect(() => {
+    if (!hydrated) return
+    const draft: DraftState = { step, name, focus, goal90, selected }
+    try {
+      window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft))
+    } catch {}
+  }, [hydrated, step, name, focus, goal90, selected])
+
+  function clearDraft() {
+    try {
+      window.sessionStorage.removeItem(STORAGE_KEY)
+    } catch {}
+  }
+
   function toggleHabit(i: number) {
     setSelected((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]))
+  }
+
+  function nextStep() {
+    setErrorMsg('')
+    setStep((s) => Math.min(2, s + 1))
+  }
+
+  function prevStep() {
+    setErrorMsg('')
+    setStep((s) => Math.max(0, s - 1))
   }
 
   async function finish() {
@@ -176,6 +226,7 @@ export default function OnboardingPage() {
         throw new Error(reminderError.message || 'Não foi possível criar os lembretes iniciais.')
       }
 
+      clearDraft()
       window.location.href = '/hoje'
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Erro inesperado ao concluir o onboarding.'
@@ -185,6 +236,14 @@ export default function OnboardingPage() {
   }
 
   const pct = ((step + 1) / 3) * 100
+
+  if (!hydrated) {
+    return (
+      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: 'var(--text3)', fontFamily: 'Syne, sans-serif' }}>a carregar…</div>
+      </main>
+    )
+  }
 
   return (
     <main
@@ -263,11 +322,12 @@ export default function OnboardingPage() {
               placeholder="Ex: Igor, Guerreiro, Campeão…"
               style={{ ...S.input, marginBottom: 24 }}
               autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && name.trim() && setStep(1)}
+              onKeyDown={(e) => e.key === 'Enter' && name.trim() && nextStep()}
             />
             <button
+              type="button"
               disabled={!name.trim()}
-              onClick={() => setStep(1)}
+              onClick={nextStep}
               style={{
                 ...S.btn,
                 opacity: name.trim() ? 1 : 0.4,
@@ -310,6 +370,7 @@ export default function OnboardingPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
               {FOCUS_OPTIONS.map((f) => (
                 <button
+                  type="button"
                   key={f.key}
                   onClick={() => setFocus(f.key)}
                   style={{
@@ -371,19 +432,42 @@ export default function OnboardingPage() {
               value={goal90}
               onChange={(e) => setGoal90(e.target.value)}
               placeholder="Ex: Perder 5kg e criar uma rotina de treino consistente"
-              style={{ ...S.input, height: 72, resize: 'none', marginBottom: 24 } as React.CSSProperties}
+              style={{ ...S.input, height: 72, resize: 'none', marginBottom: 16 } as React.CSSProperties}
             />
-            <button
-              disabled={!focus}
-              onClick={() => setStep(2)}
-              style={{
-                ...S.btn,
-                opacity: focus ? 1 : 0.4,
-                cursor: focus ? 'pointer' : 'not-allowed',
-              }}
-            >
-              Continuar →
-            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={prevStep}
+                style={{
+                  flex: 1,
+                  background: 'var(--bg2)',
+                  color: 'var(--text2)',
+                  border: '0.5px solid var(--border)',
+                  borderRadius: 14,
+                  padding: 15,
+                  fontFamily: 'Syne, sans-serif',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: 'pointer',
+                }}
+              >
+                ← Voltar
+              </button>
+              <button
+                type="button"
+                disabled={!focus}
+                onClick={nextStep}
+                style={{
+                  ...S.btn,
+                  flex: 1,
+                  width: 'auto',
+                  opacity: focus ? 1 : 0.4,
+                  cursor: focus ? 'pointer' : 'not-allowed',
+                }}
+              >
+                Continuar →
+              </button>
+            </div>
           </div>
         )}
 
@@ -422,6 +506,7 @@ export default function OnboardingPage() {
 
                 return (
                   <button
+                    type="button"
                     key={i}
                     onClick={() => toggleHabit(i)}
                     style={{
@@ -503,17 +588,41 @@ export default function OnboardingPage() {
               </div>
             )}
 
-            <button
-              disabled={saving || selected.length === 0}
-              onClick={finish}
-              style={{
-                ...S.btn,
-                opacity: selected.length > 0 ? 1 : 0.4,
-                cursor: selected.length > 0 ? 'pointer' : 'not-allowed',
-              }}
-            >
-              {saving ? 'A configurar…' : 'Começar a evolução →'}
-            </button>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={prevStep}
+                style={{
+                  flex: 1,
+                  background: 'var(--bg2)',
+                  color: 'var(--text2)',
+                  border: '0.5px solid var(--border)',
+                  borderRadius: 14,
+                  padding: 15,
+                  fontFamily: 'Syne, sans-serif',
+                  fontWeight: 700,
+                  fontSize: 15,
+                  cursor: 'pointer',
+                }}
+              >
+                ← Voltar
+              </button>
+              <button
+                type="button"
+                disabled={saving || selected.length === 0}
+                onClick={finish}
+                style={{
+                  ...S.btn,
+                  flex: 1,
+                  width: 'auto',
+                  opacity: selected.length > 0 ? 1 : 0.4,
+                  cursor: selected.length > 0 ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {saving ? 'A configurar…' : 'Começar →'}
+              </button>
+            </div>
+
             <div style={{ textAlign: 'center', marginTop: 12, fontSize: 12, color: 'var(--text3)' }}>
               Podes adicionar mais hábitos depois em Hábitos
             </div>
