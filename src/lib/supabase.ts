@@ -279,32 +279,6 @@ export async function saveMilestone(payload: Record<string, unknown>) {
 export async function toggleMilestone(id: string, done: boolean) {
   return supabase.from('goal_milestones').update({ done }).eq('id', id)
 }
-
-// ── Finanças ───────────────────────────────────────────────
-export async function getTransactions(userId: string, months = 1) {
-  const since = new Date()
-  since.setMonth(since.getMonth() - months + 1)
-  since.setDate(1)
-  const sinceStr = since.toISOString().split('T')[0]
-
-  const { data } = await supabase
-    .from('transactions')
-    .select('*')
-    .eq('user_id', userId)
-    .gte('date', sinceStr)
-    .order('date', { ascending: false })
-  return data ?? []
-}
-
-export async function saveTransaction(payload: Record<string, unknown>) {
-  return supabase.from('transactions').insert(payload)
-}
-
-export async function deleteTransaction(id: string) {
-  return supabase.from('transactions').delete().eq('id', id)
-}
-
-// ── Auth helpers ────────────────────────────────────────────
 export async function signOut() {
   return supabase.auth.signOut()
 }
@@ -343,4 +317,69 @@ export async function saveAgendaEvent(payload: Partial<AgendaEvent> & { user_id:
 
 export async function deleteAgendaEvent(id: string) {
   return supabase.from('agenda_events').delete().eq('id', id)
+}
+
+// ── Transacções financeiras ─────────────────────────────────
+export async function getTransactions(userId: string, months = 1) {
+  const since = new Date()
+  since.setMonth(since.getMonth() - months + 1)
+  since.setDate(1)
+  const sinceStr = since.toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', sinceStr)
+    .order('date', { ascending: false })
+
+  if (error) {
+    console.error('getTransactions error:', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+// Busca transacções de um intervalo de meses para gráfico de evolução
+export async function getTransactionsByMonth(userId: string, numMonths = 6) {
+  const since = new Date()
+  since.setMonth(since.getMonth() - numMonths + 1)
+  since.setDate(1)
+  const sinceStr = since.toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('date, type, amount, category')
+    .eq('user_id', userId)
+    .gte('date', sinceStr)
+    .order('date', { ascending: true })
+
+  if (error) {
+    console.error('getTransactionsByMonth error:', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+export async function saveTransaction(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .insert(payload)
+    .select()
+    .single()
+  if (error) console.error('saveTransaction error:', error.message)
+  return { data, error }
+}
+
+export async function deleteTransaction(id: string) {
+  const { error } = await supabase.from('transactions').delete().eq('id', id)
+  if (error) console.error('deleteTransaction error:', error.message)
+  return { error }
+}
+
+export async function updateFinancialGoals(
+  userId: string,
+  goals: { fin_monthly_save?: number; fin_reserve_goal?: number; fin_current_savings?: number }
+) {
+  return supabase.from('profiles').update(goals).eq('id', userId)
 }

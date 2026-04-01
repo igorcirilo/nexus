@@ -13,6 +13,10 @@ export interface Profile {
   energy_today: number
   onboarded: boolean
   created_at: string
+  // Campos financeiros
+  fin_monthly_save:    number | null
+  fin_reserve_goal:    number | null
+  fin_current_savings: number | null
 }
 
 export interface Habit {
@@ -78,6 +82,17 @@ export interface Goal90 {
   created_at: string
 }
 
+export interface Transaction {
+  id: string
+  user_id: string
+  date: string
+  type: 'entrada' | 'saida'
+  category: string
+  description: string | null
+  amount: number
+  created_at: string
+}
+
 export interface FocusSession {
   id: string
   user_id: string
@@ -113,13 +128,13 @@ export function levelFromXP(xp: number): number {
 }
 
 export const AREA_META: Record<HabitArea, { label: string; icon: string; color: string }> = {
-  corpo:          { label: 'Corpo & Saúde',  icon: '💪', color: '#1ECBB4' },
-  produtividade:  { label: 'Produtividade',  icon: '🎯', color: '#7F77DD' },
-  idiomas:        { label: 'Idiomas',        icon: '🗣️', color: '#E24B4A' },
-  carreira:       { label: 'Carreira',       icon: '📚', color: '#E8A838' },
-  financas:       { label: 'Finanças',       icon: '💰', color: '#1D9E75' },
-  emocoes:        { label: 'Emoções',        icon: '🧘', color: '#D4537E' },
-  relacionamentos:{ label: 'Relacionamentos',icon: '🤝', color: '#85B7EB' },
+  corpo:          { label: 'Corpo & Saúde',   icon: '💪', color: '#1ECBB4' },
+  produtividade:  { label: 'Produtividade',   icon: '🎯', color: '#7F77DD' },
+  idiomas:        { label: 'Idiomas',         icon: '🗣️', color: '#E24B4A' },
+  carreira:       { label: 'Carreira',        icon: '📚', color: '#E8A838' },
+  financas:       { label: 'Finanças',        icon: '💰', color: '#1D9E75' },
+  emocoes:        { label: 'Emoções',         icon: '🧘', color: '#D4537E' },
+  relacionamentos:{ label: 'Relacionamentos', icon: '🤝', color: '#85B7EB' },
 }
 
 export const TITLES: Record<string, string> = {
