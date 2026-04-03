@@ -444,3 +444,70 @@ export async function claimLoginBonus(userId: string): Promise<boolean> {
 
   return true
 }
+
+// ── Liga semanal de XP ─────────────────────────────────────
+// Calcula XP ganho desde a última segunda-feira
+export async function getWeeklyLeagueXP(userId: string): Promise<number> {
+  // Segunda-feira desta semana
+  const now = new Date()
+  const day = now.getDay() // 0=dom, 1=seg...
+  const diffToMonday = day === 0 ? 6 : day - 1
+  const monday = new Date(now)
+  monday.setDate(now.getDate() - diffToMonday)
+  monday.setHours(0, 0, 0, 0)
+  const mondayStr = monday.toISOString().split('T')[0]
+
+  // XP de check-ins
+  const { data: checkins } = await supabase
+    .from('checkins')
+    .select('xp_earned')
+    .eq('user_id', userId)
+    .gte('date', mondayStr)
+
+  const checkinXP = (checkins ?? []).reduce(
+    (sum, c: { xp_earned: number | null }) => sum + (c.xp_earned ?? 0), 0
+  )
+
+  // XP de hábitos completados (cada hábito completo = xp_reward ou 10 por defeito)
+  const { data: logs } = await supabase
+    .from('habit_logs')
+    .select('habit_id, completed')
+    .eq('user_id', userId)
+    .eq('completed', true)
+    .gte('date', mondayStr)
+
+  // Buscar XP de cada hábito
+  const habitIds = [...new Set((logs ?? []).map((l: { habit_id: string }) => l.habit_id))]
+  let habitXP = 0
+
+  if (habitIds.length > 0) {
+    const { data: habits } = await supabase
+      .from('habits')
+      .select('id, xp_reward')
+      .in('id', habitIds)
+
+    const xpMap: Record<string, number> = {}
+    for (const h of (habits ?? []) as { id: string; xp_reward: number | null }[]) {
+      xpMap[h.id] = h.xp_reward ?? 10
+    }
+
+    habitXP = (logs ?? []).reduce(
+      (sum, l: { habit_id: string; completed: boolean }) =>
+        sum + (l.completed ? (xpMap[l.habit_id] ?? 10) : 0),
+      0
+    )
+  }
+
+  // XP de sessões de foco
+  const { data: sessions } = await supabase
+    .from('focus_sessions')
+    .select('xp_earned')
+    .eq('user_id', userId)
+    .gte('date', mondayStr)
+
+  const sessionXP = (sessions ?? []).reduce(
+    (sum, s: { xp_earned: number | null }) => sum + (s.xp_earned ?? 0), 0
+  )
+
+  return checkinXP + habitXP + sessionXP
+}
