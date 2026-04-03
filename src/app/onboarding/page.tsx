@@ -284,7 +284,7 @@ export default function OnboardingPage() {
             </div>
 
             <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>
-              Objetivo para os próximos 90 dias (opcional)
+              Objectivo para os próximos 90 dias (opcional)
             </label>
             <textarea
               value={goal90}

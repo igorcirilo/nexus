@@ -1,5 +1,6 @@
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
+import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding } from '@/types'
 
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -510,4 +511,179 @@ export async function getWeeklyLeagueXP(userId: string): Promise<number> {
   )
 
   return checkinXP + habitXP + sessionXP
+}
+
+
+// ── Quick actions ───────────────────────────────────────────
+export async function createHabitQuick(payload: {
+  user_id: string
+  name: string
+  area: HabitArea
+  xp_reward: number
+  time_window?: string | null
+}) {
+  const { data, error } = await supabase
+    .from('habits')
+    .insert({
+      user_id: payload.user_id,
+      name: payload.name.trim(),
+      area: payload.area,
+      xp_reward: payload.xp_reward,
+      time_window: payload.time_window?.trim() || null,
+      active: true,
+    })
+    .select()
+    .single()
+
+  if (error) console.error('createHabitQuick error:', error.message)
+  return { data, error }
+}
+
+function getWeekWindow(base = new Date()) {
+  const now = new Date(base)
+  const day = now.getDay()
+  const diffToMonday = day === 0 ? 6 : day - 1
+  const monday = new Date(now)
+  monday.setDate(now.getDate() - diffToMonday)
+  monday.setHours(0, 0, 0, 0)
+
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  sunday.setHours(23, 59, 59, 999)
+
+  const prevMonday = new Date(monday)
+  prevMonday.setDate(monday.getDate() - 7)
+  const prevSunday = new Date(sunday)
+  prevSunday.setDate(sunday.getDate() - 7)
+
+  const toDate = (d: Date) => d.toISOString().split('T')[0]
+  return {
+    weekStart: toDate(monday),
+    weekEnd: toDate(sunday),
+    prevWeekStart: toDate(prevMonday),
+    prevWeekEnd: toDate(prevSunday),
+  }
+}
+
+function getLeagueTier(xp: number): WeeklyLeagueStanding['tier'] {
+  if (xp >= 750) return 'Lenda'
+  if (xp >= 400) return 'Ouro'
+  if (xp >= 150) return 'Prata'
+  return 'Bronze'
+}
+
+export async function ensureWeeklyLeagueSnapshot(userId: string) {
+  const { weekStart, weekEnd } = getWeekWindow()
+  const xp = await getWeeklyLeagueXP(userId)
+  const tier = getLeagueTier(xp)
+
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('username, level, title')
+    .eq('id', userId)
+    .single()
+
+  const { data, error } = await supabase
+    .from('weekly_league_snapshots')
+    .upsert({
+      user_id: userId,
+      week_start: weekStart,
+      week_end: weekEnd,
+      xp,
+      tier,
+      username: profile?.username ?? 'Guerreiro',
+      level: profile?.level ?? 1,
+      title: profile?.title ?? 'Recruta',
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,week_start' })
+    .select()
+    .single()
+
+  if (error) {
+    console.error('ensureWeeklyLeagueSnapshot error:', error.message)
+    return { data: null, error }
+  }
+
+  return { data, error: null }
+}
+
+export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLeagueOverview | null> {
+  const { weekStart, weekEnd, prevWeekStart } = getWeekWindow()
+
+  const snapshot = await ensureWeeklyLeagueSnapshot(userId)
+  if (snapshot.error) return null
+
+  const { data: rows, error } = await supabase
+    .from('weekly_league_snapshots')
+    .select('user_id, week_start, week_end, xp, tier, username, level, title, updated_at')
+    .eq('week_start', weekStart)
+    .order('xp', { ascending: false })
+    .order('updated_at', { ascending: true })
+
+  if (error) {
+    console.error('getWeeklyLeagueOverview current error:', error.message)
+    return null
+  }
+
+  const standings = (rows ?? []).map((row, index) => ({
+    user_id: row.user_id as string,
+    week_start: row.week_start as string,
+    week_end: row.week_end as string,
+    xp: row.xp as number,
+    tier: row.tier as WeeklyLeagueStanding['tier'],
+    username: (row.username as string | null) ?? 'Guerreiro',
+    level: (row.level as number | null) ?? 1,
+    title: (row.title as string | null) ?? 'Recruta',
+    updated_at: row.updated_at as string | undefined,
+    rank: index + 1,
+  }))
+
+  const me = standings.find(row => row.user_id === userId) ?? null
+
+  const { data: previousRows } = await supabase
+    .from('weekly_league_snapshots')
+    .select('user_id, week_start, week_end, xp, tier, username, level, title, updated_at')
+    .eq('week_start', prevWeekStart)
+    .order('xp', { ascending: false })
+    .order('updated_at', { ascending: true })
+
+  const previousStandings = (previousRows ?? []).map((row, index) => ({
+    user_id: row.user_id as string,
+    week_start: row.week_start as string,
+    week_end: row.week_end as string,
+    xp: row.xp as number,
+    tier: row.tier as WeeklyLeagueStanding['tier'],
+    username: (row.username as string | null) ?? 'Guerreiro',
+    level: (row.level as number | null) ?? 1,
+    title: (row.title as string | null) ?? 'Recruta',
+    updated_at: row.updated_at as string | undefined,
+    rank: index + 1,
+  }))
+  const previousMe = previousStandings.find(row => row.user_id === userId) ?? null
+
+  const { data: historyRows } = await supabase
+    .from('weekly_league_snapshots')
+    .select('week_start, week_end, xp, tier')
+    .eq('user_id', userId)
+    .order('week_start', { ascending: false })
+    .limit(4)
+
+  return {
+    week_start: weekStart,
+    week_end: weekEnd,
+    total_players: standings.length,
+    top: standings.slice(0, 5),
+    me,
+    previous_rank: previousMe?.rank ?? null,
+    previous_xp: previousMe?.xp ?? null,
+    history: (historyRows ?? []).map(row => ({
+      week_start: row.week_start as string,
+      week_end: row.week_end as string,
+      xp: row.xp as number,
+      tier: row.tier as WeeklyLeagueStanding['tier'],
+      rank: row.week_start === weekStart ? me?.rank ?? null : previousRows
+        ? previousStandings.find(item => item.user_id === userId && item.week_start === row.week_start)?.rank ?? null
+        : null,
+    })),
+  }
 }

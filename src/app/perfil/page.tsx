@@ -310,13 +310,13 @@ export default function PerfilPage() {
             <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
               Define o que queres alcançar nos próximos 90 dias em cada área. Estas metas guiam o sistema.
             </div>
-            <Field label="Objetivo pessoal de 90 dias">
+            <Field label="Objectivo pessoal de 90 dias">
               <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_personal)} onChange={(e) => set('goal_90_personal', e.target.value)} placeholder="Ex: Criar um hábito de meditação diária e melhorar o sono" />
             </Field>
-            <Field label="Objetivo profissional / carreira">
+            <Field label="Objectivo profissional / carreira">
               <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_career)} onChange={(e) => set('goal_90_career', e.target.value)} placeholder="Ex: Lançar o projecto X e conseguir os primeiros clientes" />
             </Field>
-            <Field label="Objetivo de saúde">
+            <Field label="Objectivo de saúde">
               <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_health)} onChange={(e) => set('goal_90_health', e.target.value)} placeholder="Ex: Perder 5kg e correr 5km sem parar" />
             </Field>
           </>

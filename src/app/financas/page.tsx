@@ -502,7 +502,7 @@ export default function FinancasPage() {
 
       {/* MODAL: Metas */}
       {showGoals&&(
-        <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowGoals(false)}>
+        <div style={{position:'fixed',inset:0,zIndex:40,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowGoals(false)}>
           <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',padding:24}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
               <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Metas financeiras</h2>
@@ -510,7 +510,7 @@ export default function FinancasPage() {
             </div>
             {[
               {l:'Meta poupança mensal (€)',v:gSave,s:setGSave,ph:'Ex: 300'},
-              {l:'Objetivo reserva de emergência (€)',v:gReserve,s:setGReserve,ph:'Ex: 5000'},
+              {l:'Objectivo reserva emergência (€)',v:gReserve,s:setGReserve,ph:'Ex: 5000'},
               {l:'Poupança actual acumulada (€)',v:gCurrent,s:setGCurrent,ph:'Ex: 1200'},
             ].map(({l,v,s,ph})=>(
               <div key={l} style={{marginBottom:14}}>

@@ -47,7 +47,7 @@ export default function ObjetivosPage() {
   async function loadGoals(uid: string) {
     const data = await getGoals90(uid) as Goal90[]
     setGoals(data)
-    // Carregar marcos para cada objetivo
+    // Carregar marcos para cada objectivo
     const ms: Record<string, Milestone[]> = {}
     await Promise.all(data.map(async g => {
       ms[g.id] = (await getMilestones(g.id)) as Milestone[]
@@ -84,7 +84,7 @@ export default function ObjetivosPage() {
     await saveGoal90(payload)
     await loadGoals(userId)
     setShowForm(false)
-    showToast(editGoal ? 'Objetivo actualizado!' : 'Objetivo criado!')
+    showToast(editGoal ? 'Objectivo actualizado!' : 'Objectivo criado!')
     setSaving(false)
   }
 
@@ -92,7 +92,7 @@ export default function ObjetivosPage() {
     if (!userId) return
     await deleteGoal90(id)
     setGoals(g => g.filter(x => x.id !== id))
-    showToast('Objetivo removido.')
+    showToast('Objectivo removido.')
   }
 
   async function updateProgress(goal: Goal90, pct: number) {
@@ -141,7 +141,7 @@ export default function ObjetivosPage() {
       {/* Header */}
       <div style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 3 }}>Objetivos</h1>
+          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 3 }}>Objectivos</h1>
           <p style={{ fontSize: 12, color: 'var(--text3)' }}>
             {goals.length} activo{goals.length !== 1 ? 's' : ''} · plano de 90 dias
           </p>
@@ -155,12 +155,12 @@ export default function ObjetivosPage() {
       {goals.length === 0 && (
         <div style={{ margin: '20px', padding: 28, borderRadius: 18, background: 'var(--bg2)', border: '0.5px solid var(--border)', textAlign: 'center' }}>
           <div style={{ fontSize: 44, marginBottom: 12 }}>🎯</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Sem objetivos ainda</div>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Sem objectivos ainda</div>
           <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 24, lineHeight: 1.6 }}>
-            Define o que queres alcançar nos próximos 90 dias. Um objetivo por área da vida.
+            Define o que queres alcançar nos próximos 90 dias. Um objectivo por área da vida.
           </p>
           <button onClick={openNew} style={{ width: '100%', background: 'var(--gold)', color: 'var(--bg0)', border: 'none', borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            Criar primeiro objetivo
+            Criar primeiro objectivo
           </button>
         </div>
       )}
@@ -314,18 +314,18 @@ export default function ObjetivosPage() {
 
       {/* ── FORM MODAL ── */}
       {showForm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
+        <div style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
           onClick={e => e.target === e.currentTarget && setShowForm(false)}>
           <div style={{ width: '100%', maxWidth: 448, margin: '0 auto', background: 'var(--bg1)', borderRadius: '20px 20px 0 0', borderTop: '0.5px solid var(--border)', padding: 24 }}>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>
-                {editGoal ? 'Editar objetivo' : 'Novo objetivo'}
+                {editGoal ? 'Editar objectivo' : 'Novo objectivo'}
               </h2>
               <button onClick={() => setShowForm(false)} style={{ width: 30, height: 30, borderRadius: 9, background: 'var(--bg3)', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--text2)' }}>×</button>
             </div>
 
-            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>Objetivo</label>
+            <label style={{ fontSize: 12, color: 'var(--text3)', display: 'block', marginBottom: 6 }}>Objectivo</label>
             <input value={fTitle} onChange={e => setFTitle(e.target.value)}
               placeholder="Ex: Correr 5km sem parar" style={{ ...inp, marginBottom: 14 }} />
 
@@ -369,7 +369,7 @@ export default function ObjetivosPage() {
               color: fTitle.trim() ? 'var(--bg0)' : 'var(--text3)', border: 'none',
               borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700,
               fontSize: 14, cursor: fTitle.trim() ? 'pointer' : 'not-allowed',
-            }}>{saving ? 'A guardar…' : editGoal ? 'Guardar alterações' : 'Criar objetivo'}</button>
+            }}>{saving ? 'A guardar…' : editGoal ? 'Guardar alterações' : 'Criar objectivo'}</button>
           </div>
         </div>
       )}

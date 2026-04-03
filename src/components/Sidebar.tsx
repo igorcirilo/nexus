@@ -9,7 +9,7 @@ const ITEMS = [
   { href: '/habitos',   label: 'Hábitos',     icon: CheckIcon    },
   { href: '/progresso', label: 'Progresso',   icon: ActivityIcon },
   { href: '/financas',  label: 'Finanças',    icon: EuroIcon     },
-  { href: '/objetivos', label: 'Objetivos',  icon: TargetIcon   },
+  { href: '/objetivos', label: 'Objectivos',  icon: TargetIcon   },
   { href: '/perfil',    label: 'Perfil',      icon: UserIcon     },
 ]
 
