@@ -19,6 +19,7 @@ import {
   getDynamicWeeklyChallenge,
   getCheckinsForDate,
   checkAndAwardBadges,
+  claimLoginBonus,
 } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
 import type { Profile, Habit, HabitLog, Checkin } from '@/types'
@@ -74,6 +75,13 @@ export default function HojePage() {
       const challenge = await getDynamicWeeklyChallenge(user.id)
       setWeekChallenge(challenge)
       await updateStreak(user.id)
+
+      // Bónus de login diário
+      const gotBonus = await claimLoginBonus(user.id)
+      if (gotBonus) {
+        triggerXP(10, '🎁 Login diário! +10 XP')
+        if (prof) prof.xp_total += 10
+      }
 
       if (prof) {
         const newBadges = await checkAndAwardBadges(user.id, {

@@ -184,7 +184,6 @@ export async function getCalendarData(userId: string, year: number, month: numbe
 }
 
 // ── Desafio semanal dinâmico ───────────────────────────────
-// Calcula a área com menos consistência nos últimos 14 dias
 export async function getDynamicWeeklyChallenge(userId: string) {
   const since = new Date()
   since.setDate(since.getDate() - 13)
@@ -200,7 +199,6 @@ export async function getDynamicWeeklyChallenge(userId: string) {
     return { title: 'Semana da Consistência', area: 'corpo', done: 0, total: 7 }
   }
 
-  // Agrupar por área
   const areaMap: Record<string, { ids: string[]; done: number; total: number }> = {}
   for (const h of habits as { id: string; area: string }[]) {
     if (!areaMap[h.area]) areaMap[h.area] = { ids: [], done: 0, total: 0 }
@@ -208,7 +206,7 @@ export async function getDynamicWeeklyChallenge(userId: string) {
   }
 
   for (const log of logs as { habit_id: string; completed: boolean }[]) {
-    for (const [area, data] of Object.entries(areaMap)) {
+    for (const [, data] of Object.entries(areaMap)) {
       if (data.ids.includes(log.habit_id)) {
         data.total++
         if (log.completed) data.done++
@@ -216,7 +214,6 @@ export async function getDynamicWeeklyChallenge(userId: string) {
     }
   }
 
-  // Área com pior consistência
   let worstArea = 'corpo'
   let worstPct  = 100
   for (const [area, data] of Object.entries(areaMap)) {
@@ -230,7 +227,6 @@ export async function getDynamicWeeklyChallenge(userId: string) {
     idiomas: 'Idiomas', emocoes: 'Equilíbrio', relacionamentos: 'Relações',
   }
 
-  // Dias completos esta semana na área
   const thisWeek = new Date()
   thisWeek.setDate(thisWeek.getDate() - thisWeek.getDay())
   const weekStr  = thisWeek.toISOString().split('T')[0]
@@ -279,11 +275,11 @@ export async function saveMilestone(payload: Record<string, unknown>) {
 export async function toggleMilestone(id: string, done: boolean) {
   return supabase.from('goal_milestones').update({ done }).eq('id', id)
 }
+
 export async function signOut() {
   return supabase.auth.signOut()
 }
 
-// Verificar sessão activa
 export async function getSession() {
   const { data: { session } } = await supabase.auth.getSession()
   return session
@@ -340,7 +336,6 @@ export async function getTransactions(userId: string, months = 1) {
   return data ?? []
 }
 
-// Busca transacções de um intervalo de meses para gráfico de evolução
 export async function getTransactionsByMonth(userId: string, numMonths = 6) {
   const since = new Date()
   since.setMonth(since.getMonth() - numMonths + 1)
@@ -426,4 +421,26 @@ export async function checkAndAwardBadges(
   }
 
   return toAward.map((key) => ({ key, name: BADGE_NAMES[key] ?? key }))
+}
+
+// ── Bónus de login diário ──────────────────────────────────
+export async function claimLoginBonus(userId: string): Promise<boolean> {
+  const today = new Date().toISOString().split('T')[0]
+
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('last_login_bonus')
+    .eq('id', userId)
+    .single()
+
+  if (!prof || prof.last_login_bonus === today) return false
+
+  await supabase
+    .from('profiles')
+    .update({ last_login_bonus: today })
+    .eq('id', userId)
+
+  await supabase.rpc('add_xp', { p_user_id: userId, p_xp: 10 })
+
+  return true
 }
