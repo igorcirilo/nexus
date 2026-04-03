@@ -207,15 +207,15 @@ export default function CalendarioPage() {
       {/* ─── TAB CALENDÁRIO ─── */}
       {tab==='calendario' && (
         <div style={{padding:'14px 20px 0'}}>
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
             {[
-              {label:'Completos',value:doneDays,color:'var(--teal)'},
-              {label:'Parciais', value:Object.values(dayMap).filter(d=>!d.complete&&(d.checkins>0||d.habits>0)).length,color:'var(--accent)'},
-              {label:'% do mês', value:days.length>0?Math.round(doneDays/days.length*100)+'%':'0%',color:'var(--gold)'},
+              {label:'Completos',value:doneDays,color:'var(--teal)',icon:'✓'},
+              {label:'Parciais', value:Object.values(dayMap).filter(d=>!d.complete&&(d.checkins>0||d.habits>0)).length,color:'var(--accent)',icon:'◐'},
+              {label:'% do mês', value:days.length>0?Math.round(doneDays/days.length*100)+'%':'0%',color:'var(--gold)',icon:''},
             ].map(({label,value,color})=>(
-              <div key={label} style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:12,padding:'10px',textAlign:'center'}}>
-                <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:20,color}}>{value}</div>
-                <div style={{fontSize:10,color:'var(--text3)',marginTop:2}}>{label}</div>
+              <div key={label} style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:14,padding:'12px 10px',textAlign:'center'}}>
+                <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:22,color,lineHeight:1}}>{value}</div>
+                <div style={{fontSize:10,color:'var(--text3)',marginTop:4}}>{label}</div>
               </div>
             ))}
           </div>
@@ -226,8 +226,8 @@ export default function CalendarioPage() {
             <button onClick={()=>changeMonth(1)} style={{width:34,height:34,borderRadius:10,background:'var(--bg2)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:18}}>›</button>
           </div>
 
-          <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:3,marginBottom:4}}>
-            {DAYS_SHORT.map(d=><div key={d} style={{textAlign:'center',fontSize:10,color:'var(--text3)',paddingBottom:4}}>{d}</div>)}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:6}}>
+            {DAYS_SHORT.map(d=><div key={d} style={{textAlign:'center',fontSize:10,color:'var(--text3)',paddingBottom:6,fontWeight:500}}>{d}</div>)}
             {Array.from({length:startPad}).map((_,i)=><div key={`p${i}`}/>)}
             {days.map(day=>{
               const dateStr=format(day,'yyyy-MM-dd')
@@ -238,13 +238,13 @@ export default function CalendarioPage() {
               const status=dayMap[dateStr]
               return (
                 <button key={dateStr} onClick={()=>selectDay(dateStr)} style={{
-                  aspectRatio:'1',borderRadius:10,border:'none',cursor:'pointer',
-                  background:isSel?'rgba(127,119,221,.18)':dayBg(dateStr),
-                  outline:isT?'2px solid var(--gold)':isSel?'1.5px solid var(--accent)':'0.5px solid transparent',
-                  display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,
+                  aspectRatio:'1',borderRadius:12,border:'none',cursor:'pointer',
+                  background:isSel?'rgba(127,119,221,.22)':dayBg(dateStr),
+                  outline:isT?'2px solid var(--gold)':isSel?'1.5px solid var(--accent)':'none',
+                  display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,
                   opacity:future?0.3:1,transition:'all .15s',
                 }}>
-                  <span style={{fontFamily:'Syne, sans-serif',fontWeight:isT?700:400,fontSize:13,color:status?.complete?'var(--bg0)':isT?'var(--gold)':'var(--text2)',lineHeight:1}}>
+                  <span style={{fontFamily:'Syne, sans-serif',fontWeight:isT?700:500,fontSize:14,color:status?.complete?'var(--bg0)':isT?'var(--gold)':'var(--text2)',lineHeight:1}}>
                     {format(day,'d')}
                   </span>
                   <div style={{display:'flex',gap:2}}>
@@ -257,10 +257,10 @@ export default function CalendarioPage() {
             })}
           </div>
 
-          <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:12}}>
-            {[['var(--teal)','Dia completo'],['rgba(127,119,221,.4)','Check-in'],['rgba(232,168,56,.3)','Hábito'],['var(--teal)','Evento (ponto)']].map(([c,l])=>(
+          <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:14,padding:'10px 12px',background:'var(--bg2)',borderRadius:12,border:'0.5px solid var(--border)'}}>
+            {[['var(--teal)','Dia completo'],['rgba(127,119,221,.5)','Check-in'],['rgba(232,168,56,.4)','Hábito'],['var(--teal)','Evento (ponto)']].map(([c,l])=>(
               <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}>
-                <div style={{width:10,height:10,borderRadius:3,background:c}}/>{l}
+                <div style={{width:10,height:10,borderRadius:3,background:c,flexShrink:0}}/>{l}
               </div>
             ))}
           </div>

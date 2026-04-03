@@ -95,14 +95,16 @@ export default function FinancasPage() {
   const balance    = totalIn - totalOut
   const savedPct   = totalIn>0 ? Math.round(balance/totalIn*100) : 0
 
-  // Previsão — só projectar com dados suficientes (mínimo 3 dias)
-  const dayOfMonth   = getDate(new Date())
-  const daysInMonth  = getDaysInMonth(new Date())
-  const daysLeft     = daysInMonth - dayOfMonth
-  const hasEnoughData = dayOfMonth >= 3
-  const dailyBurn    = hasEnoughData ? totalOut / dayOfMonth : 0
-  const projectedOut = hasEnoughData ? Math.round(dailyBurn * daysInMonth) : 0
-  const projectedBal = hasEnoughData ? totalIn - projectedOut : 0
+  // Previsão — mínimo 7 dias para dados estáveis; baseada no saldo líquido diário
+  const dayOfMonth    = getDate(new Date())
+  const daysInMonth   = getDaysInMonth(new Date())
+  const daysLeft      = daysInMonth - dayOfMonth
+  const hasEnoughData = dayOfMonth >= 7
+  // Taxa diária de saídas (info)
+  const dailyBurn     = dayOfMonth > 0 ? totalOut / dayOfMonth : 0
+  // Projeção: saldo actual + (ritmo líquido diário × dias restantes)
+  const dailyNet      = hasEnoughData ? balance / dayOfMonth : 0
+  const projectedBal  = hasEnoughData ? Math.round(balance + dailyNet * daysLeft) : 0
 
   // Por categoria
   const byCategory = useMemo(()=>{
@@ -244,18 +246,24 @@ export default function FinancasPage() {
               <span style={{fontSize:12,color:'var(--text3)'}}>Previsão fim de mês</span>
               <span style={{fontSize:11,color:'var(--text3)'}}>dia {dayOfMonth}/{daysInMonth}</span>
             </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-              {[
-                {l:'Saídas previstas',v:fmt(projectedOut),c:'#E24B4A'},
-                {l:'Saldo previsto',v:fmt(projectedBal),c:projectedBal>=0?'var(--gold)':'#E24B4A'},
-                {l:'Ritmo/dia',v:fmt(Math.round(dailyBurn)),c:'var(--text2)'},
-              ].map(({l,v,c})=>(
-                <div key={l} style={{textAlign:'center'}}>
-                  <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,color:c,marginBottom:2}}>{v}</div>
-                  <div style={{fontSize:10,color:'var(--text3)',lineHeight:1.3}}>{l}</div>
-                </div>
-              ))}
-            </div>
+            {!hasEnoughData ? (
+              <div style={{textAlign:'center',padding:'8px 0',fontSize:12,color:'var(--text3)'}}>
+                Projeção disponível a partir do dia 7 — dados insuficientes.
+              </div>
+            ) : (
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
+                {[
+                  {l:'Saldo previsto', v:fmt(projectedBal), c:projectedBal>=0?'var(--teal)':'#E24B4A'},
+                  {l:'Ritmo líquido/dia', v:`${dailyNet>=0?'+':''}${fmt(Math.round(dailyNet))}`, c:dailyNet>=0?'var(--teal)':'#E24B4A'},
+                  {l:'Saídas/dia', v:fmt(Math.round(dailyBurn)), c:'var(--text2)'},
+                ].map(({l,v,c})=>(
+                  <div key={l} style={{textAlign:'center'}}>
+                    <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,color:c,marginBottom:2,lineHeight:1.2}}>{v}</div>
+                    <div style={{fontSize:10,color:'var(--text3)',lineHeight:1.3}}>{l}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Evolução 6 meses */}
@@ -454,36 +462,40 @@ export default function FinancasPage() {
         </div>
       )}
 
-      {/* MODAL: Nova transacção */}
       {showForm&&(
         <div style={{position:'fixed',inset:0,zIndex:40,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowForm(false)}>
-          <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',padding:24,maxHeight:'90vh',overflowY:'auto'}}>
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-              <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Nova transacção</h2>
-              <button onClick={()=>setShowForm(false)} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>
+          <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',display:'flex',flexDirection:'column',maxHeight:'90vh'}}>
+            <div style={{padding:'24px 24px 16px',overflowY:'auto',flex:1}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+                <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Nova transacção</h2>
+                <button onClick={()=>setShowForm(false)} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>
+              </div>
+              <div style={{display:'flex',gap:8,marginBottom:16}}>
+                {(['entrada','saida'] as const).map(t=>(
+                  <button key={t} onClick={()=>{setTxType(t);setFCat('')}} style={{flex:1,padding:'11px',borderRadius:12,border:'none',cursor:'pointer',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,background:txType===t?(t==='entrada'?'var(--teal)':'#E24B4A'):'var(--bg2)',color:txType===t?'var(--bg0)':'var(--text2)',transition:'all .15s'}}>
+                    {t==='entrada'?'↓ Entrada':'↑ Saída'}
+                  </button>
+                ))}
+              </div>
+              <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Valor (€)</label>
+              <input type="number" step="0.01" value={fAmount} onChange={e=>setFAmount(e.target.value)} placeholder="0.00" style={{...inp,marginBottom:12,fontSize:18,fontFamily:'Syne, sans-serif',fontWeight:600}}/>
+              <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Categoria</label>
+              <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:12}}>
+                {(txType==='entrada'?CATEGORIES_IN:CATEGORIES_OUT).map(cat=>(
+                  <button key={cat} onClick={()=>setFCat(cat)} style={{padding:'7px 12px',borderRadius:10,border:'none',cursor:'pointer',fontSize:12,fontFamily:'DM Sans, sans-serif',background:fCat===cat?(txType==='entrada'?'var(--teal)':'#E24B4A'):'var(--bg2)',color:fCat===cat?'var(--bg0)':'var(--text2)',outline:fCat===cat?'none':'0.5px solid var(--border)',transition:'all .15s'}}>{cat}</button>
+                ))}
+              </div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:8}}>
+                <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Descrição</label><input value={fDesc} onChange={e=>setFDesc(e.target.value)} placeholder="Opcional" style={inp}/></div>
+                <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Data</label><input type="date" value={fDate} onChange={e=>setFDate(e.target.value)} style={inp}/></div>
+              </div>
             </div>
-            <div style={{display:'flex',gap:8,marginBottom:16}}>
-              {(['entrada','saida'] as const).map(t=>(
-                <button key={t} onClick={()=>{setTxType(t);setFCat('')}} style={{flex:1,padding:'11px',borderRadius:12,border:'none',cursor:'pointer',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,background:txType===t?(t==='entrada'?'var(--teal)':'#E24B4A'):'var(--bg2)',color:txType===t?'var(--bg0)':'var(--text2)',transition:'all .15s'}}>
-                  {t==='entrada'?'↓ Entrada':'↑ Saída'}
-                </button>
-              ))}
+            {/* Botão sticky — sempre visível mesmo com teclado aberto */}
+            <div style={{padding:'12px 24px 28px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)'}}>
+              <button onClick={addTx} disabled={saving||!fAmount||!fCat} style={{width:'100%',border:'none',borderRadius:14,padding:15,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,cursor:(fAmount&&fCat)?'pointer':'not-allowed',background:(fAmount&&fCat)?'var(--gold)':'rgba(232,168,56,0.25)',color:(fAmount&&fCat)?'var(--bg0)':'rgba(232,168,56,0.6)',transition:'all .15s'}}>
+                {saving?'A guardar…':'Guardar transacção'}
+              </button>
             </div>
-            <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Valor (€)</label>
-            <input type="number" step="0.01" value={fAmount} onChange={e=>setFAmount(e.target.value)} placeholder="0.00" style={{...inp,marginBottom:12,fontSize:18,fontFamily:'Syne, sans-serif',fontWeight:600}}/>
-            <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Categoria</label>
-            <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:12}}>
-              {(txType==='entrada'?CATEGORIES_IN:CATEGORIES_OUT).map(cat=>(
-                <button key={cat} onClick={()=>setFCat(cat)} style={{padding:'7px 12px',borderRadius:10,border:'none',cursor:'pointer',fontSize:12,fontFamily:'DM Sans, sans-serif',background:fCat===cat?(txType==='entrada'?'var(--teal)':'#E24B4A'):'var(--bg2)',color:fCat===cat?'var(--bg0)':'var(--text2)',outline:fCat===cat?'none':'0.5px solid var(--border)',transition:'all .15s'}}>{cat}</button>
-              ))}
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:18}}>
-              <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Descrição</label><input value={fDesc} onChange={e=>setFDesc(e.target.value)} placeholder="Opcional" style={inp}/></div>
-              <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Data</label><input type="date" value={fDate} onChange={e=>setFDate(e.target.value)} style={inp}/></div>
-            </div>
-            <button onClick={addTx} disabled={saving||!fAmount||!fCat} style={{width:'100%',border:'none',borderRadius:14,padding:15,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,cursor:(fAmount&&fCat)?'pointer':'not-allowed',background:(fAmount&&fCat)?'var(--gold)':'rgba(232,168,56,0.25)',color:(fAmount&&fCat)?'var(--bg0)':'rgba(232,168,56,0.6)',transition:'all .15s',marginTop:4}}>
-              {saving?'A guardar…':'Guardar transacção'}
-            </button>
           </div>
         </div>
       )}

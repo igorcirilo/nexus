@@ -168,35 +168,21 @@ export default function HojePage() {
       {profile && <XPBar xp={profile.xp_total} level={profile.level} title={profile.title} />}
 
       <div style={{ display: 'flex', gap: 8, padding: '12px 20px 0' }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 14, padding: '11px 14px' }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(30,203,180,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>⚡</div>
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 2 }}>Energia</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--teal)', lineHeight: 1 }}>
-              {profile?.energy_today ?? 5}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text3)' }}>/10</span>
+        {[
+          { icon: '⚡', bg: 'rgba(30,203,180,.12)', label: 'Energia',  value: `${profile?.energy_today ?? 5}`, suffix: '/10', color: 'var(--teal)' },
+          { icon: '🎯', bg: 'rgba(127,119,221,.12)', label: 'Hábitos', value: `${doneCnt}`, suffix: `/${totalHabits}`, color: 'var(--accent)' },
+          { icon: '📋', bg: 'rgba(232,168,56,.1)',   label: 'Check-in', value: hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite', suffix: '', color: 'var(--gold)' },
+        ].map(({ icon, bg, label, value, suffix, color }) => (
+          <div key={label} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 14, padding: '12px 12px', minWidth: 0 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 9, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{icon}</div>
+            <div style={{ minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 2, whiteSpace: 'nowrap' }}>{label}</div>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color, lineHeight: 1, whiteSpace: 'nowrap' }}>
+                {value}<span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)' }}>{suffix}</span>
+              </div>
             </div>
           </div>
-        </div>
-
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 14, padding: '11px 14px' }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(127,119,221,.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>🎯</div>
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 2 }}>Hábitos</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--accent)', lineHeight: 1 }}>
-              {doneCnt}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--text3)' }}>/{totalHabits}</span>
-            </div>
-          </div>
-        </div>
-
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 14, padding: '11px 14px' }}>
-          <div style={{ width: 34, height: 34, borderRadius: 10, background: 'rgba(232,168,56,.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, flexShrink: 0 }}>📋</div>
-          <div>
-            <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 2 }}>Check-in</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--gold)', lineHeight: 1 }}>
-              {hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite'}
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
       <div style={{ margin: '12px 20px 0', padding: '14px 16px', borderRadius: 16, background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.2)' }}>
