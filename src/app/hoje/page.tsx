@@ -206,7 +206,7 @@ export default function HojePage() {
       </div>
 
       {profile && (
-        <div style={{ paddingTop: 12 }}>
+        <div style={{ padding: '12px 20px 0' }}>
           <MissionCard mission={profile.mission_today || 'Definir a missão no check-in da manhã'} onProgress={setMissionPct} />
         </div>
       )}

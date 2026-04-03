@@ -220,49 +220,57 @@ export default function CalendarioPage() {
             ))}
           </div>
 
-          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
-            <button onClick={()=>changeMonth(-1)} style={{width:34,height:34,borderRadius:10,background:'var(--bg2)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:18}}>‹</button>
-            <span style={{fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:15}}>{format(current,'MMMM yyyy',{locale:pt})}</span>
-            <button onClick={()=>changeMonth(1)} style={{width:34,height:34,borderRadius:10,background:'var(--bg2)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:18}}>›</button>
-          </div>
+          {/* Card do calendário */}
+          <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:20,padding:'16px',marginBottom:14}}>
+            {/* Navegação mês */}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+              <button onClick={()=>changeMonth(-1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
+              <span style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:16,color:'var(--text1)'}}>{format(current,'MMMM yyyy',{locale:pt})}</span>
+              <button onClick={()=>changeMonth(1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
+            </div>
 
-          <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:6}}>
-            {DAYS_SHORT.map(d=><div key={d} style={{textAlign:'center',fontSize:10,color:'var(--text3)',paddingBottom:6,fontWeight:500}}>{d}</div>)}
-            {Array.from({length:startPad}).map((_,i)=><div key={`p${i}`}/>)}
-            {days.map(day=>{
-              const dateStr=format(day,'yyyy-MM-dd')
-              const isT=isToday(day)
-              const isSel=selected===dateStr
-              const hasEv=events.some(e=>e.date===dateStr)
-              const future=day>new Date()
-              const status=dayMap[dateStr]
-              return (
-                <button key={dateStr} onClick={()=>selectDay(dateStr)} style={{
-                  aspectRatio:'1',borderRadius:12,border:'none',cursor:'pointer',
-                  background:isSel?'rgba(127,119,221,.22)':dayBg(dateStr),
-                  outline:isT?'2px solid var(--gold)':isSel?'1.5px solid var(--accent)':'none',
-                  display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,
-                  opacity:future?0.3:1,transition:'all .15s',
-                }}>
-                  <span style={{fontFamily:'Syne, sans-serif',fontWeight:isT?700:500,fontSize:14,color:status?.complete?'var(--bg0)':isT?'var(--gold)':'var(--text2)',lineHeight:1}}>
-                    {format(day,'d')}
-                  </span>
-                  <div style={{display:'flex',gap:2}}>
-                    {status?.checkins>0&&<div style={{width:3,height:3,borderRadius:'50%',background:status.complete?'var(--bg0)':'var(--accent)'}}/>}
-                    {status?.habits>0&&<div style={{width:3,height:3,borderRadius:'50%',background:status.complete?'var(--bg0)':'var(--gold)'}}/>}
-                    {hasEv&&<div style={{width:3,height:3,borderRadius:'50%',background:status?.complete?'var(--bg0)':'var(--teal)'}}/>}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
+            {/* Grid */}
+            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:6}}>
+              {DAYS_SHORT.map(d=><div key={d} style={{textAlign:'center',fontSize:10,color:'var(--text3)',paddingBottom:6,fontWeight:600,letterSpacing:'.02em'}}>{d}</div>)}
+              {Array.from({length:startPad}).map((_,i)=><div key={`p${i}`}/>)}
+              {days.map(day=>{
+                const dateStr=format(day,'yyyy-MM-dd')
+                const isT=isToday(day)
+                const isSel=selected===dateStr
+                const hasEv=events.some(e=>e.date===dateStr)
+                const future=day>new Date()
+                const status=dayMap[dateStr]
+                return (
+                  <button key={dateStr} onClick={()=>selectDay(dateStr)} style={{
+                    aspectRatio:'1',borderRadius:10,border:'none',cursor:'pointer',
+                    background:isSel?'rgba(127,119,221,.25)':dayBg(dateStr),
+                    outline:isT?'2px solid var(--gold)':'none',
+                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,
+                    opacity:future?0.25:1,transition:'all .15s',
+                  }}>
+                    <span style={{fontFamily:'Syne, sans-serif',fontWeight:isT?700:500,fontSize:14,color:status?.complete?'var(--bg0)':isT?'var(--gold)':isSel?'var(--accent)':'var(--text2)',lineHeight:1}}>
+                      {format(day,'d')}
+                    </span>
+                    {(status?.checkins>0||status?.habits>0||hasEv)&&(
+                      <div style={{display:'flex',gap:2}}>
+                        {status?.checkins>0&&<div style={{width:3,height:3,borderRadius:'50%',background:status.complete?'var(--bg0)':'var(--accent)'}}/>}
+                        {status?.habits>0&&<div style={{width:3,height:3,borderRadius:'50%',background:status.complete?'var(--bg0)':'var(--gold)'}}/>}
+                        {hasEv&&<div style={{width:3,height:3,borderRadius:'50%',background:status?.complete?'var(--bg0)':'var(--teal)'}}/>}
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
 
-          <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:14,padding:'10px 12px',background:'var(--bg2)',borderRadius:12,border:'0.5px solid var(--border)'}}>
-            {[['var(--teal)','Dia completo'],['rgba(127,119,221,.5)','Check-in'],['rgba(232,168,56,.4)','Hábito'],['var(--teal)','Evento (ponto)']].map(([c,l])=>(
-              <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}>
-                <div style={{width:10,height:10,borderRadius:3,background:c,flexShrink:0}}/>{l}
-              </div>
-            ))}
+            {/* Legenda */}
+            <div style={{display:'flex',gap:10,flexWrap:'wrap',paddingTop:10,borderTop:'0.5px solid var(--border)'}}>
+              {([['var(--teal)','Dia completo'],['rgba(127,119,221,.6)','Check-in'],['rgba(232,168,56,.5)','Hábito'],['var(--teal)','Evento']] as [string,string][]).map(([c,l])=>(
+                <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}>
+                  <div style={{width:8,height:8,borderRadius:2,background:c,flexShrink:0}}/>{l}
+                </div>
+              ))}
+            </div>
           </div>
 
           {selected && (

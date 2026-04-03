@@ -463,7 +463,7 @@ export default function FinancasPage() {
       )}
 
       {showForm&&(
-        <div style={{position:'fixed',inset:0,zIndex:40,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowForm(false)}>
+        <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowForm(false)}>
           <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',display:'flex',flexDirection:'column',maxHeight:'90vh'}}>
             <div style={{padding:'24px 24px 16px',overflowY:'auto',flex:1}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
@@ -490,8 +490,8 @@ export default function FinancasPage() {
                 <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Data</label><input type="date" value={fDate} onChange={e=>setFDate(e.target.value)} style={inp}/></div>
               </div>
             </div>
-            {/* Botão sticky — sempre visível mesmo com teclado aberto */}
-            <div style={{padding:'12px 24px 28px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)'}}>
+            {/* Botão sticky — zIndex 9999 garante que fica acima do Nav */}
+            <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)'}}>
               <button onClick={addTx} disabled={saving||!fAmount||!fCat} style={{width:'100%',border:'none',borderRadius:14,padding:15,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,cursor:(fAmount&&fCat)?'pointer':'not-allowed',background:(fAmount&&fCat)?'var(--gold)':'rgba(232,168,56,0.25)',color:(fAmount&&fCat)?'var(--bg0)':'rgba(232,168,56,0.6)',transition:'all .15s'}}>
                 {saving?'A guardar…':'Guardar transacção'}
               </button>
