@@ -400,6 +400,50 @@ export default function PerfilPage() {
         <p style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginTop: 10 }}>Será redirecionado para o login.</p>
       </div>
 
+
+      {/* Zona de perigo */}
+      <div style={{ margin: '0 20px 100px', padding: '16px', background: 'rgba(226,75,74,.05)', border: '0.5px solid rgba(226,75,74,.2)', borderRadius: 16 }}>
+        <div style={{ fontSize: 11, color: '#E24B4A', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, marginBottom: 10 }}>
+          Zona de perigo
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 14 }}>
+          Repõe todos os teus dados — XP, hábitos, check-ins, streak e progresso serão apagados permanentemente. A conta mantém-se activa.
+        </p>
+        <button
+          type="button"
+          onClick={async () => {
+            const confirm1 = window.confirm('Tens a certeza? Esta acção é irreversível.')
+            if (!confirm1) return
+            const confirm2 = window.confirm('Confirmas que queres apagar todos os teus dados?')
+            if (!confirm2) return
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            await Promise.all([
+              supabase.from('habit_logs').delete().eq('user_id', user.id),
+              supabase.from('habits').delete().eq('user_id', user.id),
+              supabase.from('checkins').delete().eq('user_id', user.id),
+              supabase.from('focus_sessions').delete().eq('user_id', user.id),
+              supabase.from('user_badges').delete().eq('user_id', user.id),
+              supabase.from('goals_90').delete().eq('user_id', user.id),
+              supabase.from('reminders').delete().eq('user_id', user.id),
+              supabase.from('transactions').delete().eq('user_id', user.id),
+              supabase.from('agenda_events').delete().eq('user_id', user.id),
+              supabase.from('profiles').update({
+                xp_total: 0, level: 1, streak_current: 0, streak_best: 0,
+                streak_last_date: null, mission_today: null, energy_today: 5, onboarded: false,
+              }).eq('id', user.id),
+            ])
+            window.location.href = '/onboarding'
+          }}
+          style={{
+            width: '100%', border: '0.5px solid rgba(226,75,74,.4)', borderRadius: 12,
+            padding: '11px 16px', background: 'transparent', color: '#E24B4A',
+            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+          }}
+        >
+          Repor todos os dados
+        </button>
+      </div>
       <Nav />
     </main>
   )

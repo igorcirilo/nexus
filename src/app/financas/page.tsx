@@ -95,12 +95,14 @@ export default function FinancasPage() {
   const balance    = totalIn - totalOut
   const savedPct   = totalIn>0 ? Math.round(balance/totalIn*100) : 0
 
-  // Previsão
-  const dayOfMonth  = getDate(new Date())
-  const daysInMonth = getDaysInMonth(new Date())
-  const dailyBurn   = dayOfMonth>0 ? totalOut/dayOfMonth : 0
-  const projectedOut= Math.round(dailyBurn*daysInMonth)
-  const projectedBal= totalIn - projectedOut
+  // Previsão — só projectar com dados suficientes (mínimo 3 dias)
+  const dayOfMonth   = getDate(new Date())
+  const daysInMonth  = getDaysInMonth(new Date())
+  const daysLeft     = daysInMonth - dayOfMonth
+  const hasEnoughData = dayOfMonth >= 3
+  const dailyBurn    = hasEnoughData ? totalOut / dayOfMonth : 0
+  const projectedOut = hasEnoughData ? Math.round(dailyBurn * daysInMonth) : 0
+  const projectedBal = hasEnoughData ? totalIn - projectedOut : 0
 
   // Por categoria
   const byCategory = useMemo(()=>{
@@ -479,7 +481,7 @@ export default function FinancasPage() {
               <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Descrição</label><input value={fDesc} onChange={e=>setFDesc(e.target.value)} placeholder="Opcional" style={inp}/></div>
               <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Data</label><input type="date" value={fDate} onChange={e=>setFDate(e.target.value)} style={inp}/></div>
             </div>
-            <button onClick={addTx} disabled={saving||!fAmount||!fCat} style={{width:'100%',border:'none',borderRadius:14,padding:14,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',background:(fAmount&&fCat)?'var(--gold)':'var(--bg3)',color:(fAmount&&fCat)?'var(--bg0)':'var(--text3)'}}>
+            <button onClick={addTx} disabled={saving||!fAmount||!fCat} style={{width:'100%',border:'none',borderRadius:14,padding:15,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,cursor:(fAmount&&fCat)?'pointer':'not-allowed',background:(fAmount&&fCat)?'var(--gold)':'rgba(232,168,56,0.25)',color:(fAmount&&fCat)?'var(--bg0)':'rgba(232,168,56,0.6)',transition:'all .15s',marginTop:4}}>
               {saving?'A guardar…':'Guardar transacção'}
             </button>
           </div>
