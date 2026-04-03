@@ -4,31 +4,34 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const ITEMS = [
-  { href: '/hoje',      label: 'Hoje',       icon: HomeIcon     },
-  { href: '/calendario',label: 'Calendário', icon: CalIcon      },
-  { href: '/habitos',   label: 'Hábitos',    icon: CheckIcon    },
-  { href: '/progresso', label: 'Progresso',  icon: ActivityIcon },
-  { href: '/financas',  label: 'Finanças',   icon: EuroIcon     },
-  { href: '/objetivos', label: 'Objetivos',  icon: TargetIcon   },
-  { href: '/perfil',    label: 'Perfil',     icon: UserIcon     },
+  { href: '/hoje',       label: 'Hoje',       icon: HomeIcon     },
+  { href: '/calendario', label: 'Calendário', icon: CalIcon      },
+  { href: '/habitos',    label: 'Hábitos',    icon: CheckIcon    },
+  { href: '/progresso',  label: 'Progresso',  icon: ActivityIcon },
+  { href: '/financas',   label: 'Finanças',   icon: EuroIcon     },
+  { href: '/objetivos',  label: 'Objetivos',  icon: TargetIcon   },
+  { href: '/perfil',     label: 'Perfil',     icon: UserIcon     },
 ]
 
 export default function Nav() {
   const path = usePathname()
   return (
-    <nav className="mobile-nav" style={{
+    <nav style={{
       position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
       background: 'var(--bg1)', borderTop: '0.5px solid var(--border)',
-      paddingBottom: 'env(safe-area-inset-bottom, 0px)', overflowX: 'auto',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', padding: '6px 4px', minWidth: 'max-content', margin: '0 auto' }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-around',
+        padding: '6px 0', width: '100%',
+      }}>
         {ITEMS.map(({ href, label, icon: Icon }) => {
           const active = path === href || (href === '/progresso' && (path === '/evolucao' || path === '/dashboard'))
           return (
             <Link key={href} href={href} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
-              padding: '4px 10px', borderRadius: 10, textDecoration: 'none',
-              color: active ? 'var(--gold)' : 'var(--text3)', minWidth: 48, flexShrink: 0,
+              padding: '4px 6px', borderRadius: 10, textDecoration: 'none',
+              color: active ? 'var(--gold)' : 'var(--text3)', flex: 1, maxWidth: 64,
             }}>
               <Icon active={active} />
               <span style={{ fontSize: 8, fontFamily: 'var(--font-dm)', whiteSpace: 'nowrap' }}>{label}</span>

@@ -10,7 +10,6 @@ import HabitItem from '@/components/HabitItem'
 import XPToast, { triggerXP } from '@/components/XPToast'
 import AvatarXP from '@/components/AvatarXP'
 import NightSummaryCard from '@/components/NightSummaryCard'
-import QuickAction from '@/components/QuickAction'
 import LevelUpModal from '@/components/LevelUpModal'
 import WeeklyLeagueCard, { calcLeague } from '@/components/WeeklyLeagueCard'
 import {
@@ -290,7 +289,6 @@ export default function HojePage() {
         />
       )}
 
-      <QuickAction />
       <Nav />
     </main>
   )

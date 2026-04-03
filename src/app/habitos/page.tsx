@@ -301,14 +301,16 @@ export default function HabitosPage() {
       {/* ── FORMULÁRIO MODAL ── */}
       {showForm && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 40, display: 'flex', alignItems: 'flex-end',
+          position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end',
           background: 'rgba(0,0,0,.65)',
         }} onClick={e => e.target === e.currentTarget && setShowForm(false)}>
           <div style={{
             width: '100%', maxWidth: 448, margin: '0 auto',
             background: 'var(--bg1)', borderRadius: '20px 20px 0 0',
-            borderTop: '0.5px solid var(--border)', padding: 24,
+            borderTop: '0.5px solid var(--border)',
+            display: 'flex', flexDirection: 'column', maxHeight: '90vh',
           }}>
+            <div style={{ overflowY: 'auto', flex: 1, padding: 24 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>
                 {editHabit ? 'Editar hábito' : 'Novo hábito'}
@@ -366,12 +368,15 @@ export default function HabitosPage() {
               ))}
             </div>
 
-            <button onClick={save} disabled={saving || !form.name.trim()} style={{
-              width: '100%', background: form.name.trim() ? 'var(--gold)' : 'var(--bg3)',
-              color: form.name.trim() ? 'var(--bg0)' : 'var(--text3)', border: 'none',
-              borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700,
-              fontSize: 14, cursor: form.name.trim() ? 'pointer' : 'not-allowed', transition: 'all .2s',
-            }}>{saving ? 'A guardar…' : editHabit ? 'Guardar alterações' : 'Criar hábito'}</button>
+            </div>
+            <div style={{ padding: '12px 24px 48px', background: 'var(--bg1)', borderTop: '0.5px solid var(--border)' }}>
+              <button onClick={save} disabled={saving || !form.name.trim()} style={{
+                width: '100%', background: form.name.trim() ? 'var(--gold)' : 'var(--bg3)',
+                color: form.name.trim() ? 'var(--bg0)' : 'var(--text3)', border: 'none',
+                borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700,
+                fontSize: 14, cursor: form.name.trim() ? 'pointer' : 'not-allowed', transition: 'all .2s',
+              }}>{saving ? 'A guardar…' : editHabit ? 'Guardar alterações' : 'Criar hábito'}</button>
+            </div>
           </div>
         </div>
       )}
