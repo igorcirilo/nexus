@@ -11,6 +11,7 @@ import XPToast, { triggerXP } from '@/components/XPToast'
 import AvatarXP from '@/components/AvatarXP'
 import NightSummaryCard from '@/components/NightSummaryCard'
 import QuickAction from '@/components/QuickAction'
+import LevelUpModal from '@/components/LevelUpModal'
 import {
   supabase,
   getProfile,
@@ -36,6 +37,7 @@ export default function HojePage() {
   const [showRecovery, setShowRecovery] = useState(false)
   const [todayCheckins, setTodayCheckins] = useState<Checkin[]>([])
   const [weekChallenge, setWeekChallenge] = useState({ title: 'Semana da Consistência', done: 0, total: 7 })
+  const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
   const today = format(new Date(), 'yyyy-MM-dd')
   const hour = new Date().getHours()
 
@@ -101,8 +103,21 @@ export default function HojePage() {
   async function handleXP(xp: number, msg: string) {
     if (!profile) return
     triggerXP(xp, msg)
+    const oldLevel = profile.level
     await addXP(profile.id, xp)
-    setProfile((p) => (p ? { ...p, xp_total: p.xp_total + xp } : p))
+
+    // Re-fetch perfil para detectar level-up
+    const updated = await getProfile(profile.id)
+    if (updated) {
+      setProfile(updated)
+      if (updated.level > oldLevel) {
+        setTimeout(() => {
+          setLevelUpData({ level: updated.level, title: updated.title ?? 'Guerreiro' })
+        }, 800)
+      }
+    } else {
+      setProfile((p) => (p ? { ...p, xp_total: p.xp_total + xp } : p))
+    }
   }
 
   const doneCnt = habits.filter((h) => h.habit_logs?.[0]?.completed).length
@@ -133,6 +148,14 @@ export default function HojePage() {
   return (
     <main style={{ paddingBottom: 100, minHeight: '100vh', animation: 'fadeUp .3s ease' }}>
       <XPToast />
+
+      {levelUpData && (
+        <LevelUpModal
+          level={levelUpData.level}
+          title={levelUpData.title}
+          onClose={() => setLevelUpData(null)}
+        />
+      )}
 
       {habits.length === 0 && profile && (
         <EmptyState
