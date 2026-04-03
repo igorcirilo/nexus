@@ -225,7 +225,7 @@ export default function LembretesPage() {
       {/* Formulário modal */}
       {showForm && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 40,
+          position: 'fixed', inset: 0, zIndex: 9999,
           background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end',
         }} onClick={e => e.target === e.currentTarget && setShowForm(false)}>
           <div style={{

@@ -2,8 +2,11 @@
 // src/components/QuickAction.tsx
 
 import { useState, useEffect, useMemo } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 
 export default function QuickAction() {
+  const router = useRouter()
+  const pathname = usePathname()
   const [open, setOpen] = useState(false)
   const [showPomodoro, setShowPomodoro] = useState(false)
   const [secondsLeft, setSecondsLeft] = useState(25 * 60)
@@ -29,19 +32,64 @@ export default function QuickAction() {
   const pct = Math.round(((25 * 60 - secondsLeft) / (25 * 60)) * 100)
 
   useEffect(() => {
-    if (!open) return
+    setOpen(false)
+  }, [pathname])
+
+  useEffect(() => {
+    if (!open && !showPomodoro) return
+
     function handleClick(e: MouseEvent) {
       const target = e.target as HTMLElement
-      if (!target.closest('[data-quickaction]')) setOpen(false)
+      if (open && !target.closest('[data-quickaction]')) setOpen(false)
     }
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        setOpen(false)
+        setShowPomodoro(false)
+        setRunning(false)
+      }
+    }
+
     document.addEventListener('click', handleClick)
-    return () => document.removeEventListener('click', handleClick)
-  }, [open])
+    document.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('click', handleClick)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [open, showPomodoro])
 
   const actions = [
-    { label: 'Hábito',      icon: '✅', color: 'var(--teal)',   bg: 'rgba(30,203,180,.12)',  onClick: () => { window.location.href = '/habitos';  setOpen(false) } },
-    { label: 'Transacção',  icon: '💰', color: 'var(--gold)',   bg: 'rgba(232,168,56,.12)',  onClick: () => { window.location.href = '/financas'; setOpen(false) } },
-    { label: 'Pomodoro',    icon: '⏱', color: 'var(--accent)', bg: 'rgba(127,119,221,.12)', onClick: () => { setShowPomodoro(true); setOpen(false) } },
+    {
+      label: 'Hábito',
+      icon: '✅',
+      color: 'var(--teal)',
+      bg: 'rgba(30,203,180,.12)',
+      onClick: () => {
+        setOpen(false)
+        router.push('/habitos')
+      },
+    },
+    {
+      label: 'Transacção',
+      icon: '💰',
+      color: 'var(--gold)',
+      bg: 'rgba(232,168,56,.12)',
+      onClick: () => {
+        setOpen(false)
+        router.push('/financas')
+      },
+    },
+    {
+      label: 'Pomodoro',
+      icon: '⏱',
+      color: 'var(--accent)',
+      bg: 'rgba(127,119,221,.12)',
+      onClick: () => {
+        setShowPomodoro(true)
+        setOpen(false)
+      },
+    },
   ]
 
   return (
