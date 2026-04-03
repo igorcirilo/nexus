@@ -367,7 +367,7 @@ export default function CalendarioPage() {
                         display:'flex',flexDirection:'column',alignItems:'center',gap:4,
                         padding:'10px 4px',borderRadius:14,border:'none',cursor:'pointer',
                         background:bg,
-                        outline:isT?'2px solid var(--gold)':'isSel'?'1.5px solid var(--accent)':'none',
+                        outline:isT?'2px solid var(--gold)':isSel?'1.5px solid var(--accent)':'none',
                         opacity:future?0.3:1,transition:'all .15s',
                       }}
                     >
