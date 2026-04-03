@@ -1,9 +1,10 @@
 'use client'
-// src/app/calendario/page.tsx — Calendário unificado com 4 abas
+// src/app/calendario/page.tsx — Cal 1: Vista semanal | Cal 2: Heatmap
 import { useEffect, useState, useCallback } from 'react'
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
-  getDay, isToday, subMonths, addMonths,
+  getDay, isToday, subMonths, addMonths, startOfWeek, addWeeks, subWeeks, eachDayOfInterval as eachDay,
+  endOfWeek, isSameMonth,
 } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import Nav from '@/components/Nav'
@@ -14,12 +15,14 @@ import {
 } from '@/lib/supabase'
 import type { AgendaEvent } from '@/lib/supabase'
 
-type DayStatus = { habits: number; checkins: number; complete: boolean }
+type DayStatus = { habits: number; total: number; checkins: number; complete: boolean }
 type Tab = 'calendario' | 'checkin' | 'lembretes' | 'agenda'
+type ViewMode = 'month' | 'week'
 type Reminder = { id: string; title: string; time: string; days: number[]; active: boolean; type: string }
 type Checkin = { phase: string; energy?: number; sleep_hours?: number; mood?: number; mission?: string; win_of_day?: string; xp_earned: number }
 
 const DAYS_SHORT  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
+const DAYS_MIN    = ['D','S','T','Q','Q','S','S']
 const PHASE_LABELS: Record<string,string> = { manha:'Manhã', tarde:'Tarde', noite:'Noite' }
 const PHASE_EMOJI:  Record<string,string> = { manha:'🌅', tarde:'☀️',  noite:'🌙' }
 const EVENT_COLORS = ['#E8A838','#1ECBB4','#7F77DD','#E24B4A','#1D9E75','#D4537E','#85B7EB']
@@ -30,10 +33,33 @@ const inp: React.CSSProperties = {
   fontFamily:'DM Sans, sans-serif', fontSize:14, outline:'none',
 }
 
+// ── Heatmap: cor baseada em intensidade de hábitos ──────────
+function heatColor(status: DayStatus | undefined): string {
+  if (!status || status.habits === 0) return 'transparent'
+  if (status.complete) return 'var(--teal)'
+  // Intensidade baseada em hábitos completados (max visual = 5)
+  const intensity = Math.min(status.habits, 5) / 5
+  if (intensity >= 0.8) return 'rgba(30,203,180,.65)'
+  if (intensity >= 0.6) return 'rgba(30,203,180,.45)'
+  if (intensity >= 0.4) return 'rgba(30,203,180,.28)'
+  if (intensity >= 0.2) return 'rgba(30,203,180,.14)'
+  return 'rgba(232,168,56,.2)'
+}
+
+// Cor do texto sobre o heatmap
+function heatTextColor(status: DayStatus | undefined, isT: boolean, isSel: boolean): string {
+  if (status?.complete) return 'var(--bg0)'
+  if (isT) return 'var(--gold)'
+  if (isSel) return 'var(--accent)'
+  return 'var(--text2)'
+}
+
 export default function CalendarioPage() {
   const [userId,     setUserId]     = useState<string|null>(null)
   const [tab,        setTab]        = useState<Tab>('calendario')
+  const [viewMode,   setViewMode]   = useState<ViewMode>('month')
   const [current,    setCurrent]    = useState(new Date())
+  const [weekStart,  setWeekStart]  = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [dayMap,     setDayMap]     = useState<Record<string,DayStatus>>({})
   const [selected,   setSelected]   = useState<string|null>(null)
   const [selCheckins,setSelCheckins]= useState<Checkin[]>([])
@@ -74,12 +100,14 @@ export default function CalendarioPage() {
     ])
     setEvents(evs)
     const map: Record<string,DayStatus> = {}
+    // Contar todos os logs (completados e não)
     ;(calData.logs as {date:string;completed:boolean}[]).forEach(l => {
-      if (!map[l.date]) map[l.date] = { habits:0, checkins:0, complete:false }
+      if (!map[l.date]) map[l.date] = { habits:0, total:0, checkins:0, complete:false }
+      map[l.date].total++
       if (l.completed) map[l.date].habits++
     })
     ;(calData.checkins as {date:string}[]).forEach(c => {
-      if (!map[c.date]) map[c.date] = { habits:0, checkins:0, complete:false }
+      if (!map[c.date]) map[c.date] = { habits:0, total:0, checkins:0, complete:false }
       map[c.date].checkins++
     })
     Object.values(map).forEach(d => { d.complete = d.checkins >= 2 && d.habits >= 1 })
@@ -105,6 +133,21 @@ export default function CalendarioPage() {
     if (userId) await loadMonth(userId, next)
   }
 
+  function changeWeek(dir: 1|-1) {
+    const next = dir===1 ? addWeeks(weekStart,1) : subWeeks(weekStart,1)
+    setWeekStart(next)
+    // Se a semana entrar num mês diferente, carregar dados desse mês
+    const weekEnd = endOfWeek(next, { weekStartsOn: 1 })
+    if (userId && !isSameMonth(next, current)) {
+      const monthToLoad = next
+      setCurrent(monthToLoad)
+      loadMonth(userId, monthToLoad)
+    } else if (userId && !isSameMonth(weekEnd, current)) {
+      // Semana spans dois meses — carregar o mês do início da semana
+      loadMonth(userId, next)
+    }
+  }
+
   async function selectDay(dateStr: string) {
     if (selected === dateStr) { setSelected(null); return }
     setSelected(dateStr)
@@ -126,7 +169,6 @@ export default function CalendarioPage() {
     showToast('Lembrete criado!')
     setRmSaving(false)
   }
-
 
   async function toggleRm(id: string, active: boolean) {
     if (!userId) return
@@ -156,14 +198,8 @@ export default function CalendarioPage() {
   const startPad  = getDay(startOfMonth(current))
   const doneDays  = Object.values(dayMap).filter(d=>d.complete).length
 
-  function dayBg(dateStr: string) {
-    const s = dayMap[dateStr]
-    if (!s) return 'transparent'
-    if (s.complete) return 'var(--teal)'
-    if (s.checkins>=1) return 'rgba(127,119,221,.4)'
-    if (s.habits>=1)   return 'rgba(232,168,56,.3)'
-    return 'transparent'
-  }
+  // Dias da semana actual (seg a dom)
+  const weekDays = eachDay({ start: weekStart, end: endOfWeek(weekStart, { weekStartsOn: 1 }) })
 
   const TABS: {key:Tab;label:string;icon:string}[] = [
     {key:'calendario',label:'Calendário',icon:'📅'},
@@ -207,11 +243,13 @@ export default function CalendarioPage() {
       {/* ─── TAB CALENDÁRIO ─── */}
       {tab==='calendario' && (
         <div style={{padding:'14px 20px 0'}}>
+
+          {/* Métricas */}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
             {[
-              {label:'Completos',value:doneDays,color:'var(--teal)',icon:'✓'},
-              {label:'Parciais', value:Object.values(dayMap).filter(d=>!d.complete&&(d.checkins>0||d.habits>0)).length,color:'var(--accent)',icon:'◐'},
-              {label:'% do mês', value:days.length>0?Math.round(doneDays/days.length*100)+'%':'0%',color:'var(--gold)',icon:''},
+              {label:'Completos',value:doneDays,color:'var(--teal)'},
+              {label:'Parciais', value:Object.values(dayMap).filter(d=>!d.complete&&(d.checkins>0||d.habits>0)).length,color:'var(--accent)'},
+              {label:'% do mês', value:days.length>0?Math.round(doneDays/days.length*100)+'%':'0%',color:'var(--gold)'},
             ].map(({label,value,color})=>(
               <div key={label} style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:14,padding:'12px 10px',textAlign:'center'}}>
                 <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:22,color,lineHeight:1}}>{value}</div>
@@ -220,69 +258,226 @@ export default function CalendarioPage() {
             ))}
           </div>
 
-          {/* Card do calendário */}
-          <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:20,padding:'16px',marginBottom:14}}>
-            {/* Navegação mês */}
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-              <button onClick={()=>changeMonth(-1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
-              <span style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:16,color:'var(--text1)'}}>{format(current,'MMMM yyyy',{locale:pt})}</span>
-              <button onClick={()=>changeMonth(1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
-            </div>
-
-            {/* Grid */}
-            <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:6}}>
-              {DAYS_SHORT.map(d=><div key={d} style={{textAlign:'center',fontSize:10,color:'var(--text3)',paddingBottom:6,fontWeight:600,letterSpacing:'.02em'}}>{d}</div>)}
-              {Array.from({length:startPad}).map((_,i)=><div key={`p${i}`}/>)}
-              {days.map(day=>{
-                const dateStr=format(day,'yyyy-MM-dd')
-                const isT=isToday(day)
-                const isSel=selected===dateStr
-                const hasEv=events.some(e=>e.date===dateStr)
-                const future=day>new Date()
-                const status=dayMap[dateStr]
-                return (
-                  <button key={dateStr} onClick={()=>selectDay(dateStr)} style={{
-                    aspectRatio:'1',borderRadius:10,border:'none',cursor:'pointer',
-                    background:isSel?'rgba(127,119,221,.25)':dayBg(dateStr),
-                    outline:isT?'2px solid var(--gold)':'none',
-                    display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,
-                    opacity:future?0.25:1,transition:'all .15s',
-                  }}>
-                    <span style={{fontFamily:'Syne, sans-serif',fontWeight:isT?700:500,fontSize:14,color:status?.complete?'var(--bg0)':isT?'var(--gold)':isSel?'var(--accent)':'var(--text2)',lineHeight:1}}>
-                      {format(day,'d')}
-                    </span>
-                    {(status?.checkins>0||status?.habits>0||hasEv)&&(
-                      <div style={{display:'flex',gap:2}}>
-                        {status?.checkins>0&&<div style={{width:3,height:3,borderRadius:'50%',background:status.complete?'var(--bg0)':'var(--accent)'}}/>}
-                        {status?.habits>0&&<div style={{width:3,height:3,borderRadius:'50%',background:status.complete?'var(--bg0)':'var(--gold)'}}/>}
-                        {hasEv&&<div style={{width:3,height:3,borderRadius:'50%',background:status?.complete?'var(--bg0)':'var(--teal)'}}/>}
-                      </div>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Legenda */}
-            <div style={{display:'flex',gap:10,flexWrap:'wrap',paddingTop:10,borderTop:'0.5px solid var(--border)'}}>
-              {([['var(--teal)','Dia completo'],['rgba(127,119,221,.6)','Check-in'],['rgba(232,168,56,.5)','Hábito'],['var(--teal)','Evento']] as [string,string][]).map(([c,l])=>(
-                <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}>
-                  <div style={{width:8,height:8,borderRadius:2,background:c,flexShrink:0}}/>{l}
-                </div>
-              ))}
-            </div>
+          {/* Toggle mês/semana */}
+          <div style={{display:'flex',background:'var(--bg2)',borderRadius:12,padding:3,gap:2,border:'0.5px solid var(--border)',marginBottom:14}}>
+            {(['month','week'] as ViewMode[]).map(v=>(
+              <button key={v} onClick={()=>setViewMode(v)} style={{
+                flex:1,padding:'7px 0',borderRadius:9,border:'none',cursor:'pointer',
+                background:viewMode===v?'var(--bg1)':'transparent',
+                color:viewMode===v?'var(--teal)':'var(--text3)',
+                fontSize:12,fontFamily:'Syne, sans-serif',fontWeight:viewMode===v?700:400,
+                transition:'all .15s',
+              }}>
+                {v==='month'?'📅 Mês':'📆 Semana'}
+              </button>
+            ))}
           </div>
 
-          {selected && (
+          {/* ── VISTA MENSAL ── */}
+          {viewMode==='month' && (
+            <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:20,padding:'16px',marginBottom:14}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                <button onClick={()=>changeMonth(-1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
+                <span style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:16,color:'var(--text1)'}}>{format(current,'MMMM yyyy',{locale:pt})}</span>
+                <button onClick={()=>changeMonth(1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
+              </div>
+
+              <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:6}}>
+                {DAYS_SHORT.map(d=><div key={d} style={{textAlign:'center',fontSize:10,color:'var(--text3)',paddingBottom:6,fontWeight:600,letterSpacing:'.02em'}}>{d}</div>)}
+                {Array.from({length:startPad}).map((_,i)=><div key={`p${i}`}/>)}
+                {days.map(day=>{
+                  const dateStr = format(day,'yyyy-MM-dd')
+                  const isT     = isToday(day)
+                  const isSel   = selected===dateStr
+                  const future  = day > new Date()
+                  const status  = dayMap[dateStr]
+                  const hasEv   = events.some(e=>e.date===dateStr)
+                  const bg      = isSel ? 'rgba(127,119,221,.25)' : heatColor(status)
+                  return (
+                    <button key={dateStr} onClick={()=>selectDay(dateStr)} style={{
+                      aspectRatio:'1',borderRadius:10,border:'none',cursor:'pointer',
+                      background:bg,
+                      outline:isT?'2px solid var(--gold)':'none',
+                      display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,
+                      opacity:future?0.25:1,transition:'all .15s',
+                    }}>
+                      <span style={{fontFamily:'Syne, sans-serif',fontWeight:isT?700:500,fontSize:14,color:heatTextColor(status,isT,isSel),lineHeight:1}}>
+                        {format(day,'d')}
+                      </span>
+                      {(status?.checkins>0||status?.habits>0||hasEv)&&(
+                        <div style={{display:'flex',gap:2}}>
+                          {status?.checkins>0&&<div style={{width:3,height:3,borderRadius:'50%',background:status.complete?'var(--bg0)':'var(--accent)'}}/>}
+                          {status?.habits>0&&<div style={{width:3,height:3,borderRadius:'50%',background:status.complete?'var(--bg0)':'var(--gold)'}}/>}
+                          {hasEv&&<div style={{width:3,height:3,borderRadius:'50%',background:status?.complete?'var(--bg0)':'var(--teal)'}}/>}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Legenda heatmap */}
+              <div style={{paddingTop:10,borderTop:'0.5px solid var(--border)'}}>
+                <div style={{fontSize:10,color:'var(--text3)',marginBottom:6}}>Intensidade de hábitos</div>
+                <div style={{display:'flex',alignItems:'center',gap:4}}>
+                  {[
+                    'transparent',
+                    'rgba(30,203,180,.14)',
+                    'rgba(30,203,180,.28)',
+                    'rgba(30,203,180,.45)',
+                    'rgba(30,203,180,.65)',
+                    'var(--teal)',
+                  ].map((c,i)=>(
+                    <div key={i} style={{width:18,height:18,borderRadius:4,background:c,border:'0.5px solid var(--border)'}}/>
+                  ))}
+                  <span style={{fontSize:10,color:'var(--text3)',marginLeft:4}}>Menos → Mais</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── VISTA SEMANAL ── */}
+          {viewMode==='week' && (
+            <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:20,padding:'16px',marginBottom:14}}>
+              {/* Navegação semana */}
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
+                <button onClick={()=>changeWeek(-1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
+                <span style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,color:'var(--text1)'}}>
+                  {format(weekStart,'d MMM',{locale:pt})} – {format(endOfWeek(weekStart,{weekStartsOn:1}),'d MMM',{locale:pt})}
+                </span>
+                <button onClick={()=>changeWeek(1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
+              </div>
+
+              {/* Colunas dos dias */}
+              <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:6}}>
+                {weekDays.map(day=>{
+                  const dateStr  = format(day,'yyyy-MM-dd')
+                  const isT      = isToday(day)
+                  const isSel    = selected===dateStr
+                  const future   = day > new Date()
+                  const status   = dayMap[dateStr]
+                  const dayEvs   = events.filter(e=>e.date===dateStr)
+                  const pct      = status?.total > 0 ? Math.round((status.habits/status.total)*100) : 0
+                  const bg       = isSel ? 'rgba(127,119,221,.2)' : heatColor(status)
+                  return (
+                    <button
+                      key={dateStr}
+                      onClick={()=>selectDay(dateStr)}
+                      style={{
+                        display:'flex',flexDirection:'column',alignItems:'center',gap:4,
+                        padding:'10px 4px',borderRadius:14,border:'none',cursor:'pointer',
+                        background:bg,
+                        outline:isT?'2px solid var(--gold)':'isSel'?'1.5px solid var(--accent)':'none',
+                        opacity:future?0.3:1,transition:'all .15s',
+                      }}
+                    >
+                      {/* Dia */}
+                      <div style={{fontSize:9,color:isT?'var(--gold)':'var(--text3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>
+                        {DAYS_MIN[getDay(day)]}
+                      </div>
+                      {/* Número */}
+                      <div style={{
+                        fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,
+                        color:status?.complete?'var(--bg0)':isT?'var(--gold)':isSel?'var(--accent)':'var(--text1)',
+                        lineHeight:1,
+                      }}>
+                        {format(day,'d')}
+                      </div>
+                      {/* Mini barra hábitos */}
+                      {!future && (
+                        <div style={{width:'100%',padding:'0 2px'}}>
+                          <div style={{background:'rgba(255,255,255,.1)',borderRadius:100,height:3}}>
+                            <div style={{
+                              height:'100%',borderRadius:100,
+                              background:status?.complete?'var(--bg0)':'var(--teal)',
+                              width:`${pct}%`,
+                              transition:'width .4s',
+                            }}/>
+                          </div>
+                        </div>
+                      )}
+                      {/* Pontos de eventos */}
+                      {dayEvs.length>0&&(
+                        <div style={{display:'flex',gap:2,flexWrap:'wrap',justifyContent:'center'}}>
+                          {dayEvs.slice(0,3).map(ev=>(
+                            <div key={ev.id} style={{width:5,height:5,borderRadius:'50%',background:ev.color}}/>
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Detalhe do dia seleccionado */}
+              {selected && weekDays.some(d=>format(d,'yyyy-MM-dd')===selected) && (
+                <div style={{marginTop:14,paddingTop:14,borderTop:'0.5px solid var(--border)'}}>
+                  <div style={{fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:13,color:'var(--text2)',marginBottom:10}}>
+                    {format(new Date(selected+'T12:00:00'),"EEEE, d 'de' MMMM",{locale:pt})}
+                  </div>
+
+                  {/* Barra de progresso hábitos */}
+                  {dayMap[selected] && (
+                    <div style={{marginBottom:12}}>
+                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                        <span style={{fontSize:11,color:'var(--text3)'}}>Hábitos</span>
+                        <span style={{fontSize:11,color:'var(--teal)',fontFamily:'Syne, sans-serif',fontWeight:600}}>
+                          {dayMap[selected].habits}/{dayMap[selected].total > 0 ? dayMap[selected].total : '?'}
+                        </span>
+                      </div>
+                      <div style={{background:'var(--bg3)',borderRadius:100,height:5}}>
+                        <div style={{
+                          height:'100%',borderRadius:100,background:'var(--teal)',
+                          width:`${dayMap[selected].total>0?Math.round((dayMap[selected].habits/dayMap[selected].total)*100):0}%`,
+                        }}/>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Check-ins */}
+                  {selCheckins.map((ci,i)=>(
+                    <div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,padding:'8px 10px',borderRadius:10,background:'var(--bg3)'}}>
+                      <span style={{fontSize:14}}>{PHASE_EMOJI[ci.phase]??'⏰'}</span>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,color:'var(--text1)',fontWeight:500}}>{PHASE_LABELS[ci.phase]??ci.phase}</div>
+                        {ci.energy&&<div style={{fontSize:10,color:'var(--text3)'}}>Energia {ci.energy}/10</div>}
+                      </div>
+                      <div style={{fontSize:11,color:'var(--gold)',fontFamily:'Syne, sans-serif',fontWeight:600}}>+{ci.xp_earned} XP</div>
+                    </div>
+                  ))}
+
+                  {/* Eventos do dia */}
+                  {selEvents.map(ev=>(
+                    <div key={ev.id} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,padding:'8px 10px',borderRadius:10,background:'var(--bg3)'}}>
+                      <div style={{width:3,height:32,borderRadius:2,background:ev.color,flexShrink:0}}/>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:12,color:'var(--text1)',fontWeight:500}}>{ev.title}</div>
+                        {ev.time&&<div style={{fontSize:10,color:'var(--text3)'}}>{ev.time.slice(0,5)}{ev.end_time?` – ${ev.end_time.slice(0,5)}`:''}</div>}
+                      </div>
+                    </div>
+                  ))}
+
+                  {selCheckins.length===0&&selEvents.length===0&&!dayMap[selected]&&(
+                    <div style={{fontSize:12,color:'var(--text3)',textAlign:'center',padding:'8px 0'}}>Sem registos neste dia.</div>
+                  )}
+
+                  <button onClick={()=>{setEvDate(selected);setShowEvForm(true);setTab('agenda')}} style={{width:'100%',marginTop:8,padding:'8px',border:'0.5px solid rgba(30,203,180,.28)',borderRadius:10,background:'rgba(30,203,180,.06)',color:'var(--teal)',cursor:'pointer',fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:12}}>+ Evento neste dia</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Painel do dia seleccionado (vista mensal) */}
+          {viewMode==='month' && selected && (
             <div style={{background:'var(--bg2)',border:'0.5px solid rgba(127,119,221,.22)',borderRadius:16,padding:16}}>
               <div style={{fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:15,marginBottom:12}}>
                 {format(new Date(selected+'T12:00:00'),"EEEE, d 'de' MMMM",{locale:pt})}
               </div>
               <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
                 {[
-                  {l:'Hábitos', v:dayMap[selected]?.habits??0,    c:'var(--gold)'},
-                  {l:'Check-ins',v:dayMap[selected]?.checkins??0, c:'var(--accent)'},
-                  {l:'Eventos', v:selEvents.length,               c:'var(--teal)'},
+                  {l:'Hábitos',  v:dayMap[selected]?.habits??0,    c:'var(--gold)'},
+                  {l:'Check-ins',v:dayMap[selected]?.checkins??0,  c:'var(--accent)'},
+                  {l:'Eventos',  v:selEvents.length,               c:'var(--teal)'},
                 ].map(({l,v,c})=>(
                   <div key={l} style={{textAlign:'center'}}>
                     <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18,color:c}}>{v}</div>
@@ -290,6 +485,25 @@ export default function CalendarioPage() {
                   </div>
                 ))}
               </div>
+
+              {/* Barra de progresso hábitos */}
+              {dayMap[selected]?.total > 0 && (
+                <div style={{marginBottom:12}}>
+                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
+                    <span style={{fontSize:11,color:'var(--text3)'}}>Progresso hábitos</span>
+                    <span style={{fontSize:11,color:'var(--teal)',fontFamily:'Syne, sans-serif',fontWeight:600}}>
+                      {dayMap[selected].habits}/{dayMap[selected].total}
+                    </span>
+                  </div>
+                  <div style={{background:'var(--bg3)',borderRadius:100,height:5}}>
+                    <div style={{
+                      height:'100%',borderRadius:100,background:'var(--teal)',
+                      width:`${Math.round((dayMap[selected].habits/dayMap[selected].total)*100)}%`,
+                    }}/>
+                  </div>
+                </div>
+              )}
+
               {selCheckins.map((ci,i)=>(
                 <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:8,padding:'10px 12px',borderRadius:10,background:'var(--bg3)'}}>
                   <span style={{fontSize:16,flexShrink:0}}>{PHASE_EMOJI[ci.phase]??'⏰'}</span>
@@ -376,7 +590,7 @@ export default function CalendarioPage() {
             </div>
           ))}
           {showRmForm&&(
-            <div style={{position:'fixed',inset:0,zIndex:40,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowRmForm(false)}>
+            <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowRmForm(false)}>
               <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',padding:24}}>
                 <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
                   <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Novo lembrete</h2>
@@ -440,36 +654,40 @@ export default function CalendarioPage() {
             </div>
           ))}
           {showEvForm&&(
-            <div style={{position:'fixed',inset:0,zIndex:40,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowEvForm(false)}>
-              <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',padding:24,maxHeight:'90vh',overflowY:'auto'}}>
-                <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-                  <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Novo evento</h2>
-                  <button onClick={()=>setShowEvForm(false)} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>
+            <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowEvForm(false)}>
+              <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',display:'flex',flexDirection:'column',maxHeight:'90vh'}}>
+                <div style={{padding:'24px 24px 0',overflowY:'auto',flex:1}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
+                    <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Novo evento</h2>
+                    <button onClick={()=>setShowEvForm(false)} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>
+                  </div>
+                  <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Título</label>
+                  <input value={evTitle} onChange={e=>setEvTitle(e.target.value)} placeholder="Ex: Consulta, Reunião, Treino…" style={{...inp,marginBottom:12}}/>
+                  <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Descrição (opcional)</label>
+                  <input value={evDesc} onChange={e=>setEvDesc(e.target.value)} placeholder="Notas" style={{...inp,marginBottom:12}}/>
+                  <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:12}}>
+                    <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Data</label><input type="date" value={evDate} onChange={e=>setEvDate(e.target.value)} style={inp}/></div>
+                    <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Início</label><input type="time" value={evTime} onChange={e=>setEvTime(e.target.value)} style={inp} disabled={evAllDay}/></div>
+                    <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Fim</label><input type="time" value={evEndTime} onChange={e=>setEvEndTime(e.target.value)} style={inp} disabled={evAllDay}/></div>
+                  </div>
+                  <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+                    <button onClick={()=>setEvAllDay(v=>!v)} style={{width:36,height:20,borderRadius:100,border:'none',cursor:'pointer',background:evAllDay?'var(--teal)':'var(--bg3)',position:'relative',transition:'background .2s'}}>
+                      <div style={{position:'absolute',top:2,width:16,height:16,borderRadius:'50%',background:'white',transition:'left .2s',left:evAllDay?'calc(100% - 18px)':'2px'}}/>
+                    </button>
+                    <span style={{fontSize:13,color:'var(--text2)'}}>Dia inteiro</span>
+                  </div>
+                  <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:8}}>Cor</label>
+                  <div style={{display:'flex',gap:8,marginBottom:8}}>
+                    {EVENT_COLORS.map(c=>(
+                      <button key={c} onClick={()=>setEvColor(c)} style={{width:28,height:28,borderRadius:'50%',background:c,border:'none',cursor:'pointer',outline:evColor===c?'2.5px solid white':'none'}}/>
+                    ))}
+                  </div>
                 </div>
-                <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Título</label>
-                <input value={evTitle} onChange={e=>setEvTitle(e.target.value)} placeholder="Ex: Consulta, Reunião, Treino…" style={{...inp,marginBottom:12}}/>
-                <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Descrição (opcional)</label>
-                <input value={evDesc} onChange={e=>setEvDesc(e.target.value)} placeholder="Notas" style={{...inp,marginBottom:12}}/>
-                <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:10,marginBottom:12}}>
-                  <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Data</label><input type="date" value={evDate} onChange={e=>setEvDate(e.target.value)} style={inp}/></div>
-                  <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Início</label><input type="time" value={evTime} onChange={e=>setEvTime(e.target.value)} style={inp} disabled={evAllDay}/></div>
-                  <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Fim</label><input type="time" value={evEndTime} onChange={e=>setEvEndTime(e.target.value)} style={inp} disabled={evAllDay}/></div>
-                </div>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
-                  <button onClick={()=>setEvAllDay(v=>!v)} style={{width:36,height:20,borderRadius:100,border:'none',cursor:'pointer',background:evAllDay?'var(--teal)':'var(--bg3)',position:'relative',transition:'background .2s'}}>
-                    <div style={{position:'absolute',top:2,width:16,height:16,borderRadius:'50%',background:'white',transition:'left .2s',left:evAllDay?'calc(100% - 18px)':'2px'}}/>
+                <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)'}}>
+                  <button onClick={saveEv} disabled={evSaving||!evTitle.trim()} style={{width:'100%',background:evTitle.trim()?'var(--gold)':'var(--bg3)',color:evTitle.trim()?'var(--bg0)':'var(--text3)',border:'none',borderRadius:14,padding:14,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
+                    {evSaving?'A guardar…':'Guardar evento'}
                   </button>
-                  <span style={{fontSize:13,color:'var(--text2)'}}>Dia inteiro</span>
                 </div>
-                <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:8}}>Cor</label>
-                <div style={{display:'flex',gap:8,marginBottom:18}}>
-                  {EVENT_COLORS.map(c=>(
-                    <button key={c} onClick={()=>setEvColor(c)} style={{width:28,height:28,borderRadius:'50%',background:c,border:'none',cursor:'pointer',outline:evColor===c?'2.5px solid white':'none'}}/>
-                  ))}
-                </div>
-                <button onClick={saveEv} disabled={evSaving||!evTitle.trim()} style={{width:'100%',background:evTitle.trim()?'var(--gold)':'var(--bg3)',color:evTitle.trim()?'var(--bg0)':'var(--text3)',border:'none',borderRadius:14,padding:14,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
-                  {evSaving?'A guardar…':'Guardar evento'}
-                </button>
               </div>
             </div>
           )}

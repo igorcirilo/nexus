@@ -477,7 +477,7 @@ export async function getWeeklyLeagueXP(userId: string): Promise<number> {
     .gte('date', mondayStr)
 
   // Buscar XP de cada hábito
-  const habitIds = [...new Set((logs ?? []).map((l: { habit_id: string }) => l.habit_id))]
+  const habitIds = Array.from(new Set((logs ?? []).map((l: { habit_id: string }) => l.habit_id)))
   let habitXP = 0
 
   if (habitIds.length > 0) {
