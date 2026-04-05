@@ -169,8 +169,9 @@ export async function toggleReminder(id: string, active: boolean) {
 
 // ── Calendário: dias concluídos ────────────────────────────
 export async function getCalendarData(userId: string, year: number, month: number) {
-  const start = `${year}-${String(month).padStart(2,'0')}-01`
-  const end   = `${year}-${String(month).padStart(2,'0')}-31`
+  const start   = `${year}-${String(month).padStart(2,'0')}-01`
+  const lastDay = new Date(year, month, 0).getDate() // último dia real do mês
+  const end     = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
   const [{ data: logs }, { data: checkins }] = await Promise.all([
     supabase.from('habit_logs')
       .select('date, completed')
