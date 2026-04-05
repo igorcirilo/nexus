@@ -1,6 +1,6 @@
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
-import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding } from '@/types'
+import type { HabitArea } from '@/types'
 
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
@@ -85,6 +85,103 @@ export async function saveFocusSession(
     date: new Date().toISOString().split('T')[0],
   })
 }
+
+export type WeeklyChallenge = {
+  id?: string
+  user_id?: string
+  week_start?: string
+  week_end?: string
+  title: string
+  done: number
+  total: number
+  created_at?: string
+  updated_at?: string
+}
+
+const WEEKLY_CHALLENGE_PRESETS = [
+  'Fazer pelo menos 1 hábito por dia durante 7 dias',
+  'Completar o check-in da manhã 5 vezes esta semana',
+  'Fechar 3 dias com rotina completa',
+  'Treinar ou caminhar em 4 dias esta semana',
+  'Dormir a horas em 5 noites esta semana',
+  'Fazer progresso visível no objetivo principal em 5 dias',
+]
+
+function getWeekWindow(base = new Date()) {
+  const now = new Date(base)
+  const day = now.getDay()
+  const diffToMonday = day === 0 ? 6 : day - 1
+  const monday = new Date(now)
+  monday.setDate(now.getDate() - diffToMonday)
+  monday.setHours(0, 0, 0, 0)
+
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  sunday.setHours(23, 59, 59, 999)
+
+  const toDate = (d: Date) => d.toISOString().split('T')[0]
+  return {
+    weekStart: toDate(monday),
+    weekEnd: toDate(sunday),
+  }
+}
+
+export async function getWeeklyChallenge(userId: string): Promise<WeeklyChallenge> {
+  const dynamic = await getDynamicWeeklyChallenge(userId)
+  const { weekStart } = getWeekWindow()
+
+  const { data, error } = await supabase
+    .from('weekly_challenges')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('week_start', weekStart)
+    .maybeSingle()
+
+  if (error) console.error('getWeeklyChallenge error:', error.message)
+
+  return {
+    ...(data ?? {}),
+    title: (data?.title as string | undefined) ?? dynamic.title,
+    done: dynamic.done,
+    total: dynamic.total,
+  }
+}
+
+export async function saveWeeklyChallenge(userId: string, title: string) {
+  const { weekStart, weekEnd } = getWeekWindow()
+  const cleanTitle = title.trim()
+
+  const { data, error } = await supabase
+    .from('weekly_challenges')
+    .upsert({
+      user_id: userId,
+      week_start: weekStart,
+      week_end: weekEnd,
+      title: cleanTitle,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,week_start' })
+    .select()
+    .single()
+
+  if (error) console.error('saveWeeklyChallenge error:', error.message)
+  return { data, error }
+}
+
+export async function generateWeeklyChallenge(userId: string) {
+  const { data: existing } = await supabase
+    .from('weekly_challenges')
+    .select('title')
+    .eq('user_id', userId)
+    .order('updated_at', { ascending: false })
+    .limit(12)
+
+  const used = new Set((existing ?? []).map((row: { title: string }) => row.title))
+  const nextTitle = WEEKLY_CHALLENGE_PRESETS.find((title) => !used.has(title))
+    ?? WEEKLY_CHALLENGE_PRESETS[Math.floor(Math.random() * WEEKLY_CHALLENGE_PRESETS.length)]
+
+  return saveWeeklyChallenge(userId, nextTitle)
+}
+
 
 // ── Objectivos 90 dias ─────────────────────────────────────
 export async function getGoals90(userId: string) {
@@ -289,32 +386,80 @@ export async function getSession() {
 
 // ── Agenda ─────────────────────────────────────────────────
 export type AgendaEvent = {
-  id: string; user_id: string; title: string; description: string | null
-  date: string; time: string | null; end_time: string | null
-  color: string; all_day: boolean; created_at: string
+  id: string
+  user_id: string
+  title: string
+  description: string | null
+  date: string
+  time: string | null
+  end_time: string | null
+  color: string
+  all_day: boolean
+  created_at: string
 }
 
 export async function getAgendaEvents(userId: string, year: number, month: number) {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const start = `${year}-${pad(month)}-01`
-  const end   = `${year}-${pad(month)}-31`
-  const { data } = await supabase
-    .from('agenda_events').select('*')
-    .eq('user_id', userId).gte('date', start).lte('date', end)
-    .order('time')
+  const start = new Date(year, month - 1, 1)
+  const end = new Date(year, month, 0)
+  const toDate = (value: Date) => value.toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('agenda_events')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', toDate(start))
+    .lte('date', toDate(end))
+    .order('date', { ascending: true })
+    .order('all_day', { ascending: false })
+    .order('time', { ascending: true })
+
+  if (error) {
+    console.error('getAgendaEvents error:', error.message)
+    return []
+  }
+
   return (data ?? []) as AgendaEvent[]
 }
 
 export async function saveAgendaEvent(payload: Partial<AgendaEvent> & { user_id: string }) {
-  if (payload.id) {
-    const { id, ...rest } = payload
-    return supabase.from('agenda_events').update(rest).eq('id', id)
+  const cleanPayload = {
+    ...payload,
+    title: payload.title?.trim(),
+    description: payload.description?.trim() || null,
+    time: payload.all_day ? null : payload.time || null,
+    end_time: payload.all_day ? null : payload.end_time || null,
   }
-  return supabase.from('agenda_events').insert(payload)
+
+  if (payload.id) {
+    const { id, ...rest } = cleanPayload
+    const { data, error } = await supabase
+      .from('agenda_events')
+      .update(rest)
+      .eq('id', id)
+      .eq('user_id', payload.user_id)
+      .select()
+      .single()
+
+    if (error) console.error('saveAgendaEvent update error:', error.message)
+    return { data, error }
+  }
+
+  const { data, error } = await supabase
+    .from('agenda_events')
+    .insert(cleanPayload)
+    .select()
+    .single()
+
+  if (error) console.error('saveAgendaEvent insert error:', error.message)
+  return { data, error }
 }
 
-export async function deleteAgendaEvent(id: string) {
-  return supabase.from('agenda_events').delete().eq('id', id)
+export async function deleteAgendaEvent(id: string, userId?: string) {
+  let query = supabase.from('agenda_events').delete().eq('id', id)
+  if (userId) query = query.eq('user_id', userId)
+  const { error } = await query
+  if (error) console.error('deleteAgendaEvent error:', error.message)
+  return { error }
 }
 
 // ── Transacções financeiras ─────────────────────────────────
@@ -447,74 +592,6 @@ export async function claimLoginBonus(userId: string): Promise<boolean> {
   return true
 }
 
-// ── Liga semanal de XP ─────────────────────────────────────
-// Calcula XP ganho desde a última segunda-feira
-export async function getWeeklyLeagueXP(userId: string): Promise<number> {
-  // Segunda-feira desta semana
-  const now = new Date()
-  const day = now.getDay() // 0=dom, 1=seg...
-  const diffToMonday = day === 0 ? 6 : day - 1
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - diffToMonday)
-  monday.setHours(0, 0, 0, 0)
-  const mondayStr = monday.toISOString().split('T')[0]
-
-  // XP de check-ins
-  const { data: checkins } = await supabase
-    .from('checkins')
-    .select('xp_earned')
-    .eq('user_id', userId)
-    .gte('date', mondayStr)
-
-  const checkinXP = (checkins ?? []).reduce(
-    (sum, c: { xp_earned: number | null }) => sum + (c.xp_earned ?? 0), 0
-  )
-
-  // XP de hábitos completados (cada hábito completo = xp_reward ou 10 por defeito)
-  const { data: logs } = await supabase
-    .from('habit_logs')
-    .select('habit_id, completed')
-    .eq('user_id', userId)
-    .eq('completed', true)
-    .gte('date', mondayStr)
-
-  // Buscar XP de cada hábito
-  const habitIds = Array.from(new Set((logs ?? []).map((l: { habit_id: string }) => l.habit_id)))
-  let habitXP = 0
-
-  if (habitIds.length > 0) {
-    const { data: habits } = await supabase
-      .from('habits')
-      .select('id, xp_reward')
-      .in('id', habitIds)
-
-    const xpMap: Record<string, number> = {}
-    for (const h of (habits ?? []) as { id: string; xp_reward: number | null }[]) {
-      xpMap[h.id] = h.xp_reward ?? 10
-    }
-
-    habitXP = (logs ?? []).reduce(
-      (sum, l: { habit_id: string; completed: boolean }) =>
-        sum + (l.completed ? (xpMap[l.habit_id] ?? 10) : 0),
-      0
-    )
-  }
-
-  // XP de sessões de foco
-  const { data: sessions } = await supabase
-    .from('focus_sessions')
-    .select('xp_earned')
-    .eq('user_id', userId)
-    .gte('date', mondayStr)
-
-  const sessionXP = (sessions ?? []).reduce(
-    (sum, s: { xp_earned: number | null }) => sum + (s.xp_earned ?? 0), 0
-  )
-
-  return checkinXP + habitXP + sessionXP
-}
-
-
 // ── Quick actions ───────────────────────────────────────────
 export async function createHabitQuick(payload: {
   user_id: string
@@ -538,153 +615,4 @@ export async function createHabitQuick(payload: {
 
   if (error) console.error('createHabitQuick error:', error.message)
   return { data, error }
-}
-
-function getWeekWindow(base = new Date()) {
-  const now = new Date(base)
-  const day = now.getDay()
-  const diffToMonday = day === 0 ? 6 : day - 1
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - diffToMonday)
-  monday.setHours(0, 0, 0, 0)
-
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  sunday.setHours(23, 59, 59, 999)
-
-  const prevMonday = new Date(monday)
-  prevMonday.setDate(monday.getDate() - 7)
-  const prevSunday = new Date(sunday)
-  prevSunday.setDate(sunday.getDate() - 7)
-
-  const toDate = (d: Date) => d.toISOString().split('T')[0]
-  return {
-    weekStart: toDate(monday),
-    weekEnd: toDate(sunday),
-    prevWeekStart: toDate(prevMonday),
-    prevWeekEnd: toDate(prevSunday),
-  }
-}
-
-function getLeagueTier(xp: number): WeeklyLeagueStanding['tier'] {
-  if (xp >= 750) return 'Lenda'
-  if (xp >= 400) return 'Ouro'
-  if (xp >= 150) return 'Prata'
-  return 'Bronze'
-}
-
-export async function ensureWeeklyLeagueSnapshot(userId: string) {
-  const { weekStart, weekEnd } = getWeekWindow()
-  const xp = await getWeeklyLeagueXP(userId)
-  const tier = getLeagueTier(xp)
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('username, level, title')
-    .eq('id', userId)
-    .single()
-
-  const { data, error } = await supabase
-    .from('weekly_league_snapshots')
-    .upsert({
-      user_id: userId,
-      week_start: weekStart,
-      week_end: weekEnd,
-      xp,
-      tier,
-      username: profile?.username ?? 'Guerreiro',
-      level: profile?.level ?? 1,
-      title: profile?.title ?? 'Recruta',
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,week_start' })
-    .select()
-    .single()
-
-  if (error) {
-    console.error('ensureWeeklyLeagueSnapshot error:', error.message)
-    return { data: null, error }
-  }
-
-  return { data, error: null }
-}
-
-export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLeagueOverview | null> {
-  const { weekStart, weekEnd, prevWeekStart } = getWeekWindow()
-
-  const snapshot = await ensureWeeklyLeagueSnapshot(userId)
-  if (snapshot.error) return null
-
-  const { data: rows, error } = await supabase
-    .from('weekly_league_snapshots')
-    .select('user_id, week_start, week_end, xp, tier, username, level, title, updated_at')
-    .eq('week_start', weekStart)
-    .order('xp', { ascending: false })
-    .order('updated_at', { ascending: true })
-
-  if (error) {
-    console.error('getWeeklyLeagueOverview current error:', error.message)
-    return null
-  }
-
-  const standings = (rows ?? []).map((row, index) => ({
-    user_id: row.user_id as string,
-    week_start: row.week_start as string,
-    week_end: row.week_end as string,
-    xp: row.xp as number,
-    tier: row.tier as WeeklyLeagueStanding['tier'],
-    username: (row.username as string | null) ?? 'Guerreiro',
-    level: (row.level as number | null) ?? 1,
-    title: (row.title as string | null) ?? 'Recruta',
-    updated_at: row.updated_at as string | undefined,
-    rank: index + 1,
-  }))
-
-  const me = standings.find(row => row.user_id === userId) ?? null
-
-  const { data: previousRows } = await supabase
-    .from('weekly_league_snapshots')
-    .select('user_id, week_start, week_end, xp, tier, username, level, title, updated_at')
-    .eq('week_start', prevWeekStart)
-    .order('xp', { ascending: false })
-    .order('updated_at', { ascending: true })
-
-  const previousStandings = (previousRows ?? []).map((row, index) => ({
-    user_id: row.user_id as string,
-    week_start: row.week_start as string,
-    week_end: row.week_end as string,
-    xp: row.xp as number,
-    tier: row.tier as WeeklyLeagueStanding['tier'],
-    username: (row.username as string | null) ?? 'Guerreiro',
-    level: (row.level as number | null) ?? 1,
-    title: (row.title as string | null) ?? 'Recruta',
-    updated_at: row.updated_at as string | undefined,
-    rank: index + 1,
-  }))
-  const previousMe = previousStandings.find(row => row.user_id === userId) ?? null
-
-  const { data: historyRows } = await supabase
-    .from('weekly_league_snapshots')
-    .select('week_start, week_end, xp, tier')
-    .eq('user_id', userId)
-    .order('week_start', { ascending: false })
-    .limit(4)
-
-  return {
-    week_start: weekStart,
-    week_end: weekEnd,
-    total_players: standings.length,
-    top: standings.slice(0, 5),
-    me,
-    previous_rank: previousMe?.rank ?? null,
-    previous_xp: previousMe?.xp ?? null,
-    history: (historyRows ?? []).map(row => ({
-      week_start: row.week_start as string,
-      week_end: row.week_end as string,
-      xp: row.xp as number,
-      tier: row.tier as WeeklyLeagueStanding['tier'],
-      rank: row.week_start === weekStart ? me?.rank ?? null : previousRows
-        ? previousStandings.find(item => item.user_id === userId && item.week_start === row.week_start)?.rank ?? null
-        : null,
-    })),
-  }
 }
