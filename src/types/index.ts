@@ -138,16 +138,34 @@ export interface UserBadge {
   badge?: Badge
 }
 
-export interface WeeklyChallenge {
-  id?: string
-  user_id?: string
-  week_start?: string
-  week_end?: string
+export interface WeeklyLeagueStanding {
+  user_id: string
+  week_start: string
+  week_end: string
+  xp: number
+  rank: number
+  tier: 'Bronze' | 'Prata' | 'Ouro' | 'Lenda'
+  username: string
+  level: number
   title: string
-  done: number
-  total: number
-  created_at?: string
   updated_at?: string
+}
+
+export interface WeeklyLeagueOverview {
+  week_start: string
+  week_end: string
+  total_players: number
+  top: WeeklyLeagueStanding[]
+  me: WeeklyLeagueStanding | null
+  previous_rank: number | null
+  previous_xp: number | null
+  history: Array<{
+    week_start: string
+    week_end: string
+    xp: number
+    rank: number | null
+    tier: 'Bronze' | 'Prata' | 'Ouro' | 'Lenda'
+  }>
 }
 
 export function xpForLevel(level: number): number {
@@ -176,3 +194,44 @@ export const TITLES: Record<string, string> = {
   Imparável: 'Nada te pára por muito tempo.',
   Antifrágil: 'Cresces com a pressão. Lendário.',
 }
+
+
+export type ImportSourceKind = 'pdf' | 'spreadsheet'
+export type FileImportStatus = 'idle' | 'loading' | 'success' | 'error'
+
+export interface ImportPreviewMeta {
+  fileName: string
+  fileType: string
+  fileSize: number
+}
+
+export interface PdfPagePreview {
+  pageNumber: number
+  text: string
+}
+
+export interface PdfImportResult {
+  kind: 'pdf'
+  meta: ImportPreviewMeta
+  pageCount: number
+  extractedText: string
+  pages: PdfPagePreview[]
+  hasUsefulText: boolean
+  warnings: string[]
+}
+
+export interface SpreadsheetSheetPreview {
+  name: string
+  headers: string[]
+  rows: Array<Record<string, string | number | boolean | null>>
+  rowCount: number
+}
+
+export interface SpreadsheetImportResult {
+  kind: 'spreadsheet'
+  meta: ImportPreviewMeta
+  sheets: SpreadsheetSheetPreview[]
+  warnings: string[]
+}
+
+export type FileImportResult = PdfImportResult | SpreadsheetImportResult

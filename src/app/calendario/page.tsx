@@ -161,57 +161,11 @@ export default function CalendarioPage() {
   const [evColor,      setEvColor]      = useState('#E8A838')
   const [evAllDay,     setEvAllDay]     = useState(false)
   const [evRecurrence, setEvRecurrence] = useState<Recurrence>('none')
-  const [editingEventId, setEditingEventId] = useState<string | null>(null)
   const [evSaving,     setEvSaving]     = useState(false)
 
   const today = format(new Date(),'yyyy-MM-dd')
 
   function showToast(m: string) { setToast(m); setTimeout(()=>setToast(''),2800) }
-
-
-  function resetEventForm() {
-    setEditingEventId(null)
-    setEvTitle('')
-    setEvDesc('')
-    setEvDate(format(new Date(), 'yyyy-MM-dd'))
-    setEvTime('')
-    setEvEndTime('')
-    setEvColor('#E8A838')
-    setEvAllDay(false)
-    setEvRecurrence('none')
-  }
-
-  function openNewEventForm(dateStr?: string) {
-    resetEventForm()
-    if (dateStr) setEvDate(dateStr)
-    setShowEvForm(true)
-  }
-
-  function openEditEventForm(event: AgendaEvent) {
-    setEditingEventId(event.id)
-    setEvTitle(event.title)
-    setEvDesc(event.description ?? '')
-    setEvDate(event.date)
-    setEvTime(event.time?.slice(0, 5) ?? '')
-    setEvEndTime(event.end_time?.slice(0, 5) ?? '')
-    setEvColor(event.color)
-    setEvAllDay(event.all_day)
-    setEvRecurrence('none')
-    setShowEvForm(true)
-  }
-
-  async function handleDeleteEvent(eventId: string) {
-    if (!userId) return
-    const { error } = await deleteAgendaEvent(eventId, userId)
-    if (error) {
-      showToast('Erro ao remover evento')
-      return
-    }
-    setEvents(prev => prev.filter(event => event.id !== eventId))
-    setSelEvents(prev => prev.filter(event => event.id !== eventId))
-    showToast('Evento removido!')
-    await loadMonth(userId, current)
-  }
 
   // ── loadMonth ─────────────────────────────────────────────
   const loadMonth = useCallback(async (uid: string, date: Date) => {
@@ -374,58 +328,21 @@ export default function CalendarioPage() {
   async function saveEv() {
     if (!userId || !evTitle.trim()) return
     setEvSaving(true)
-
-    const basePayload = {
-      user_id: userId,
-      title: evTitle,
-      description: evDesc || null,
-      date: evDate,
-      time: evTime || null,
-      end_time: evEndTime || null,
-      color: evColor,
-      all_day: evAllDay,
-    }
-
-    if (editingEventId) {
-      const { error } = await saveAgendaEvent({ id: editingEventId, ...basePayload })
-      if (error) {
-        showToast('Erro ao guardar evento')
-        setEvSaving(false)
-        return
-      }
-
-      await loadMonth(userId, new Date(evDate + 'T12:00:00'))
-      if (selected === evDate) await selectDay(evDate)
-      setShowEvForm(false)
-      resetEventForm()
-      setEvSaving(false)
-      showToast('Evento atualizado!')
-      return
-    }
-
     const baseDate = new Date(evDate + 'T12:00:00')
     const dates: string[] = [evDate]
     if (evRecurrence === 'semanal') {
-      for (let i = 1; i < 12; i++) dates.push(format(addWeeks(baseDate, i), 'yyyy-MM-dd'))
+      for (let i = 1; i < 12; i++)
+        dates.push(format(addWeeks(baseDate, i), 'yyyy-MM-dd'))
     } else if (evRecurrence === 'mensal') {
-      for (let i = 1; i < 6; i++) dates.push(format(addMonths(baseDate, i), 'yyyy-MM-dd'))
+      for (let i = 1; i < 6; i++)
+        dates.push(format(addMonths(baseDate, i), 'yyyy-MM-dd'))
     }
-
-    const results = await Promise.all(
-      dates.map((date) => saveAgendaEvent({ ...basePayload, date }))
-    )
-
-    const hasError = results.some((result) => result.error)
-    if (hasError) {
-      showToast('Erro ao guardar evento')
-      setEvSaving(false)
-      return
-    }
-
-    await loadMonth(userId, new Date(evDate + 'T12:00:00'))
-    if (selected === evDate) await selectDay(evDate)
+    await Promise.all(dates.map(d =>
+      saveAgendaEvent({ user_id:userId, title:evTitle, description:evDesc||null, date:d, time:evTime||null, end_time:evEndTime||null, color:evColor, all_day:evAllDay })
+    ))
+    await loadMonth(userId, current)
     setShowEvForm(false)
-    resetEventForm()
+    setEvTitle(''); setEvDesc(''); setEvTime(''); setEvEndTime(''); setEvRecurrence('none')
     const msg = evRecurrence === 'semanal' ? '12 semanas criadas!' : evRecurrence === 'mensal' ? '6 meses criados!' : 'Evento adicionado!'
     showToast(msg)
     setEvSaving(false)
@@ -627,7 +544,7 @@ export default function CalendarioPage() {
                         {!ev.all_day && ev.time && <div style={{fontSize:11,color:'var(--text3)'}}>{ev.time.slice(0,5)}{ev.end_time?` – ${ev.end_time.slice(0,5)}`:''}</div>}
                         {ev.all_day && <div style={{fontSize:11,color:'var(--text3)'}}>Dia inteiro</div>}
                       </div>
-                      <div style={{display:'flex',gap:6,flexShrink:0}}><button onClick={()=>openEditEventForm(ev)} style={{width:26,height:26,borderRadius:7,background:'var(--bg2)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:12}}>✎</button><button onClick={()=>handleDeleteEvent(ev.id)} style={{width:26,height:26,borderRadius:7,background:'var(--bg2)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14}}>×</button></div>
+                      <button onClick={()=>{deleteAgendaEvent(ev.id);setSelEvents(e=>e.filter(x=>x.id!==ev.id))}} style={{width:26,height:26,borderRadius:7,background:'var(--bg2)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14,flexShrink:0}}>×</button>
                     </div>
                   ))}
                 </div>
@@ -637,7 +554,7 @@ export default function CalendarioPage() {
             {!hasData && !isToday_ && (
               <div style={{textAlign:'center',padding:'12px 0',fontSize:12,color:'var(--text3)'}}>Sem registos neste dia.</div>
             )}
-            <button onClick={()=>{openNewEventForm(dateStr);setTab('agenda')}} style={{width:'100%',marginTop:4,padding:'9px',border:'0.5px solid rgba(30,203,180,.28)',borderRadius:11,background:'rgba(30,203,180,.06)',color:'var(--teal)',cursor:'pointer',fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:12}}>
+            <button onClick={()=>{setEvDate(dateStr);setShowEvForm(true);setTab('agenda')}} style={{width:'100%',marginTop:4,padding:'9px',border:'0.5px solid rgba(30,203,180,.28)',borderRadius:11,background:'rgba(30,203,180,.06)',color:'var(--teal)',cursor:'pointer',fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:12}}>
               + Evento neste dia
             </button>
           </>
@@ -958,7 +875,7 @@ export default function CalendarioPage() {
         <div style={{padding:'14px 20px 0'}}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
             <div style={{fontSize:12,color:'var(--text3)'}}>{events.length} evento{events.length!==1?'s':''} em {format(current,'MMMM',{locale:pt})}</div>
-            <button onClick={()=>openNewEventForm()} style={{background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:10,padding:'8px 14px',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>+ Evento</button>
+            <button onClick={()=>setShowEvForm(true)} style={{background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:10,padding:'8px 14px',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>+ Evento</button>
           </div>
           {events.length===0&&<div style={{textAlign:'center',padding:'32px 0',color:'var(--text3)',fontSize:13}}><div style={{fontSize:40,marginBottom:12}}>📋</div>Sem eventos este mês.</div>}
           {Object.entries(events.reduce((acc:Record<string,AgendaEvent[]>,ev)=>{if(!acc[ev.date])acc[ev.date]=[];acc[ev.date].push(ev);return acc},{})).sort(([a],[b])=>a.localeCompare(b)).map(([date,evs])=>(
@@ -976,7 +893,7 @@ export default function CalendarioPage() {
                     {ev.all_day&&<div style={{fontSize:12,color:'var(--text3)'}}>Dia inteiro</div>}
                     {ev.description&&<div style={{fontSize:12,color:'var(--text2)',marginTop:2}}>{ev.description}</div>}
                   </div>
-                  <div style={{display:'flex',gap:6}}><button onClick={()=>openEditEventForm(ev)} style={{width:28,height:28,borderRadius:8,background:'var(--bg3)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:13}}>✎</button><button onClick={()=>handleDeleteEvent(ev.id)} style={{width:28,height:28,borderRadius:8,background:'var(--bg3)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14}}>×</button></div>
+                  <button onClick={()=>{deleteAgendaEvent(ev.id);setEvents(e=>e.filter(x=>x.id!==ev.id))}} style={{width:28,height:28,borderRadius:8,background:'var(--bg3)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14}}>×</button>
                 </div>
               ))}
             </div>
@@ -984,12 +901,12 @@ export default function CalendarioPage() {
 
           {/* ── Cal 6: Form com recorrência ── */}
           {showEvForm&&(
-            <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>{ if (e.target===e.currentTarget) { setShowEvForm(false); resetEventForm() } }}>
+            <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowEvForm(false)}>
               <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',display:'flex',flexDirection:'column',maxHeight:'90vh'}}>
                 <div style={{padding:'24px 24px 0',overflowY:'auto',flex:1}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-                    <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>{editingEventId ? 'Editar evento' : 'Novo evento'}</h2>
-                    <button onClick={()=>{setShowEvForm(false); resetEventForm()}} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>
+                    <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Novo evento</h2>
+                    <button onClick={()=>setShowEvForm(false)} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>
                   </div>
                   <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Título</label>
                   <input value={evTitle} onChange={e=>setEvTitle(e.target.value)} placeholder="Ex: Consulta, Reunião, Treino…" style={{...inp,marginBottom:12}}/>
@@ -1015,12 +932,12 @@ export default function CalendarioPage() {
                       {key:'semanal'as Recurrence, label:'Semanal · 12×', icon:'📅'},
                       {key:'mensal' as Recurrence, label:'Mensal · 6×',  icon:'🗓️'},
                     ]).map(opt=>(
-                      <button key={opt.key} onClick={()=>!editingEventId && setEvRecurrence(opt.key)} disabled={!!editingEventId} style={{
+                      <button key={opt.key} onClick={()=>setEvRecurrence(opt.key)} style={{
                         flex:1,padding:'9px 4px',borderRadius:11,border:'none',cursor:'pointer',
                         display:'flex',flexDirection:'column',alignItems:'center',gap:3,
                         background:evRecurrence===opt.key?'rgba(232,168,56,.12)':'var(--bg2)',
                         outline:evRecurrence===opt.key?'1.5px solid var(--gold)':'0.5px solid var(--border)',
-                        transition:'all .15s', opacity: editingEventId ? 0.5 : 1,
+                        transition:'all .15s',
                       }}>
                         <span style={{fontSize:16}}>{opt.icon}</span>
                         <span style={{fontSize:9,fontFamily:'Syne, sans-serif',fontWeight:evRecurrence===opt.key?700:400,color:evRecurrence===opt.key?'var(--gold)':'var(--text3)',textAlign:'center'}}>{opt.label}</span>
@@ -1037,7 +954,7 @@ export default function CalendarioPage() {
                 </div>
                 <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)'}}>
                   <button onClick={saveEv} disabled={evSaving||!evTitle.trim()} style={{width:'100%',background:evTitle.trim()?'var(--gold)':'var(--bg3)',color:evTitle.trim()?'var(--bg0)':'var(--text3)',border:'none',borderRadius:14,padding:14,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
-                    {evSaving ? 'A guardar…' : editingEventId ? 'Guardar alterações' : evRecurrence==='semanal' ? 'Criar 12 semanas' : evRecurrence==='mensal' ? 'Criar 6 meses' : 'Guardar evento'}
+                    {evSaving ? 'A guardar…' : evRecurrence==='semanal' ? 'Criar 12 semanas' : evRecurrence==='mensal' ? 'Criar 6 meses' : 'Guardar evento'}
                   </button>
                 </div>
               </div>

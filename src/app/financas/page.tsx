@@ -7,6 +7,7 @@ import {
   ResponsiveContainer, Cell,
 } from 'recharts'
 import Nav from '@/components/Nav'
+import FileImportModal from '@/components/FileImportModal'
 import {
   supabase, getProfile, getTransactions,
   getTransactionsByMonth, saveTransaction,
@@ -14,7 +15,7 @@ import {
 } from '@/lib/supabase'
 import { format, startOfMonth, endOfMonth, subMonths, getDaysInMonth, getDate } from 'date-fns'
 import { pt } from 'date-fns/locale'
-import type { Profile, Transaction } from '@/types'
+import type { FileImportResult, Profile, Transaction } from '@/types'
 
 const CATEGORIES_IN  = ['Salário','Freelance','Investimento','Rendas','Presente','Outro']
 const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
@@ -61,6 +62,7 @@ export default function FinancasPage() {
   const [editBudget, setEditBudget]= useState<string|null>(null)
   const [budgetVal,  setBudgetVal] = useState('')
   const csvRef = useRef<HTMLInputElement>(null)
+  const [showImportModal, setShowImportModal] = useState(false)
 
   const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
   function showToast(m:string) { setToast(m); setTimeout(()=>setToast(''),2400) }
@@ -178,6 +180,11 @@ export default function FinancasPage() {
     reader.readAsText(file); e.target.value=''
   }
 
+  async function handleImportPreviewConfirm(_result: FileImportResult) {
+    setShowImportModal(false)
+    showToast('Preview concluído. Infraestrutura de importação pronta.')
+  }
+
   const savingsGoal    = profile?.fin_monthly_save    ?? 0
   const reserveGoal    = profile?.fin_reserve_goal    ?? 0
   const currentSavings = profile?.fin_current_savings ?? 0
@@ -206,7 +213,8 @@ export default function FinancasPage() {
           <h1 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:22,marginBottom:3}}>Finanças</h1>
           <p style={{fontSize:12,color:'var(--text3)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
         </div>
-        <div style={{display:'flex',gap:8}}>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end'}}>
+          <button onClick={()=>setShowImportModal(true)} style={{background:'rgba(127,119,221,.12)',color:'var(--accent)',border:'0.5px solid rgba(127,119,221,.28)',borderRadius:12,padding:'9px 12px',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>Importar ficheiro</button>
           <button onClick={()=>csvRef.current?.click()} style={{background:'var(--bg2)',color:'var(--text2)',border:'0.5px solid var(--border)',borderRadius:12,padding:'9px 12px',fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:12,cursor:'pointer'}}>↑ CSV</button>
           <input ref={csvRef} type="file" accept=".csv" style={{display:'none'}} onChange={importCSV}/>
           <button onClick={()=>setShowForm(true)} style={{background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:12,padding:'9px 16px',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>+ Registar</button>
@@ -220,6 +228,12 @@ export default function FinancasPage() {
             <span style={{fontSize:15}}>{t.icon}</span>{t.label}
           </button>
         ))}
+      </div>
+
+      <div style={{padding:'10px 20px 0'}}>
+        <div style={{background:'rgba(127,119,221,.08)',border:'0.5px solid rgba(127,119,221,.22)',borderRadius:14,padding:'12px 14px',fontSize:12,color:'var(--text2)'}}>
+          Infraestrutura de importação ativa: já consegues testar leitura base de <strong>PDF</strong>, <strong>XLSX</strong>, <strong>XLS</strong> e <strong>CSV</strong> com preview antes de guardar.
+        </div>
       </div>
 
       {/* ── TAB RESUMO ── */}
@@ -524,6 +538,15 @@ export default function FinancasPage() {
           </div>
         </div>
       )}
+
+      <FileImportModal
+        open={showImportModal}
+        title="Importar ficheiro"
+        kind="mixed"
+        confirmLabel="Usar este preview"
+        onClose={() => setShowImportModal(false)}
+        onConfirm={handleImportPreviewConfirm}
+      />
 
       <Nav/>
     </main>
