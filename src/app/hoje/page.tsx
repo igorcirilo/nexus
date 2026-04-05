@@ -17,15 +17,13 @@ import {
   getHabitsWithLogs,
   addXP,
   updateStreak,
+  getDynamicWeeklyChallenge,
   getCheckinsForDate,
   checkAndAwardBadges,
   claimLoginBonus,
-  getWeeklyChallenge,
-  saveWeeklyChallenge,
-  generateWeeklyChallenge,
 } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
-import type { Profile, Habit, HabitLog, Checkin, WeeklyChallenge } from '@/types'
+import type { Profile, Habit, HabitLog, Checkin } from '@/types'
 import StreakRecovery from '@/components/StreakRecovery'
 import EmptyState from '@/components/EmptyState'
 
@@ -37,10 +35,7 @@ export default function HojePage() {
   const [loading, setLoading] = useState(true)
   const [showRecovery, setShowRecovery] = useState(false)
   const [todayCheckins, setTodayCheckins] = useState<Checkin[]>([])
-  const [weekChallenge, setWeekChallenge] = useState<WeeklyChallenge>({ title: 'Semana da Consistência', done: 0, total: 7 })
-  const [challengeDraft, setChallengeDraft] = useState('')
-  const [editingChallenge, setEditingChallenge] = useState(false)
-  const [challengeSaving, setChallengeSaving] = useState(false)
+  const [weekChallenge, setWeekChallenge] = useState({ title: 'Semana da Consistência', done: 0, total: 7 })
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
   const today = format(new Date(), 'yyyy-MM-dd')
   const hour = new Date().getHours()
@@ -56,11 +51,10 @@ export default function HojePage() {
       }
       setUserId(user.id)
 
-      const [prof, hab, checkins, challenge] = await Promise.all([
+      const [prof, hab, checkins] = await Promise.all([
         getProfile(user.id),
         getHabitsWithLogs(user.id, today),
         getCheckinsForDate(user.id, today),
-        getWeeklyChallenge(user.id),
       ])
 
       if (prof && !prof.onboarded) {
@@ -77,11 +71,11 @@ export default function HojePage() {
 
       setProfile(prof)
       setHabits(hab as (Habit & { habit_logs: HabitLog[] })[])
-      setWeekChallenge(challenge)
-      setChallengeDraft(challenge.title)
 
       if (prof && prof.streak_current === 0 && prof.streak_best > 0) setShowRecovery(true)
 
+      const challenge = await getDynamicWeeklyChallenge(user.id)
+      setWeekChallenge(challenge)
       await updateStreak(user.id)
 
       const gotBonus = await claimLoginBonus(user.id)
@@ -110,7 +104,9 @@ export default function HojePage() {
     const oldLevel = profile.level
     await addXP(profile.id, xp)
 
-    const updated = await getProfile(profile.id)
+    const [updated] = await Promise.all([
+      getProfile(profile.id),
+    ])
     if (updated) {
       setProfile(updated)
       if (updated.level > oldLevel) {
@@ -139,29 +135,6 @@ export default function HojePage() {
         hour,
       })
     : { body: '…', action: '…' }
-
-  async function handleSaveWeeklyChallenge() {
-    if (!userId || !challengeDraft.trim()) return
-    setChallengeSaving(true)
-    const { error } = await saveWeeklyChallenge(userId, challengeDraft)
-    if (!error) {
-      setWeekChallenge((prev) => ({ ...prev, title: challengeDraft.trim() }))
-      setEditingChallenge(false)
-    }
-    setChallengeSaving(false)
-  }
-
-  async function handleGenerateWeeklyChallenge() {
-    if (!userId) return
-    setChallengeSaving(true)
-    const { data, error } = await generateWeeklyChallenge(userId)
-    if (!error && data?.title) {
-      setWeekChallenge((prev) => ({ ...prev, title: data.title as string }))
-      setChallengeDraft(data.title as string)
-      setEditingChallenge(false)
-    }
-    setChallengeSaving(false)
-  }
 
   if (loading) {
     return (
@@ -243,8 +216,9 @@ export default function HojePage() {
         ))}
       </div>
 
+
       <div style={{ margin: '12px 20px 0', padding: '14px 16px', borderRadius: 16, background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.2)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--teal)' }} />
             <span style={{ fontSize: 11, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.5px', fontWeight: 600 }}>
@@ -255,51 +229,11 @@ export default function HojePage() {
             {weekChallenge.done} / {weekChallenge.total} dias
           </span>
         </div>
-
-        {editingChallenge ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 10 }}>
-            <input
-              value={challengeDraft}
-              onChange={(e) => setChallengeDraft(e.target.value)}
-              placeholder="Escreve o desafio desta semana"
-              style={{
-                width: '100%',
-                background: 'var(--bg3)',
-                border: '0.5px solid var(--border)',
-                borderRadius: 12,
-                padding: '12px 14px',
-                color: 'var(--text1)',
-                fontFamily: 'DM Sans, sans-serif',
-                fontSize: 14,
-                outline: 'none',
-              }}
-            />
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handleSaveWeeklyChallenge} disabled={challengeSaving || !challengeDraft.trim()} style={{ flex: 1, background: 'var(--teal)', color: 'var(--bg0)', border: 'none', borderRadius: 12, padding: '11px 12px', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer', opacity: challengeSaving ? 0.7 : 1 }}>
-                {challengeSaving ? 'A guardar…' : 'Guardar'}
-              </button>
-              <button onClick={() => { setEditingChallenge(false); setChallengeDraft(weekChallenge.title) }} disabled={challengeSaving} style={{ flex: 1, background: 'var(--bg3)', color: 'var(--text2)', border: '0.5px solid var(--border)', borderRadius: 12, padding: '11px 12px', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-                Cancelar
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 14, color: 'var(--text1)', marginBottom: 10 }}>
-            {weekChallenge.title}
-          </div>
-        )}
-
-        <div style={{ background: 'var(--bg3)', borderRadius: 100, height: 5, marginBottom: 12 }}>
-          <div style={{ height: '100%', borderRadius: 100, background: 'var(--teal)', width: `${Math.round((weekChallenge.done / Math.max(1, weekChallenge.total)) * 100)}%` }} />
+        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 14, color: 'var(--text1)', marginBottom: 10 }}>
+          {weekChallenge.title}
         </div>
-
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => setEditingChallenge(true)} disabled={challengeSaving} style={{ flex: 1, background: 'var(--bg3)', color: 'var(--text1)', border: '0.5px solid var(--border)', borderRadius: 12, padding: '10px 12px', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer' }}>
-            Editar texto
-          </button>
-          <button onClick={handleGenerateWeeklyChallenge} disabled={challengeSaving} style={{ flex: 1, background: 'rgba(232,168,56,.12)', color: 'var(--gold)', border: '0.5px solid rgba(232,168,56,.22)', borderRadius: 12, padding: '10px 12px', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 12, cursor: 'pointer', opacity: challengeSaving ? 0.7 : 1 }}>
-            {challengeSaving ? 'A gerar…' : 'Gerar novo'}
-          </button>
+        <div style={{ background: 'var(--bg3)', borderRadius: 100, height: 5 }}>
+          <div style={{ height: '100%', borderRadius: 100, background: 'var(--teal)', width: `${Math.round((weekChallenge.done / Math.max(1, weekChallenge.total)) * 100)}%` }} />
         </div>
       </div>
 
