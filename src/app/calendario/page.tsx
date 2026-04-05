@@ -1,10 +1,10 @@
 'use client'
-// src/app/calendario/page.tsx — Cal 1: Vista semanal | Cal 2: Heatmap
+// src/app/calendario/page.tsx — Cal 1 | Cal 2 | Cal 3 | Cal 4 | Cal 5
 import { useEffect, useState, useCallback } from 'react'
 import {
   format, startOfMonth, endOfMonth, eachDayOfInterval,
-  getDay, isToday, subMonths, addMonths, startOfWeek, addWeeks, subWeeks, eachDayOfInterval as eachDay,
-  endOfWeek, isSameMonth,
+  getDay, isToday, subMonths, addMonths, startOfWeek, addWeeks, subWeeks,
+  eachDayOfInterval as eachDay, endOfWeek, isSameMonth, subDays, addDays,
 } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import Nav from '@/components/Nav'
@@ -12,19 +12,24 @@ import {
   supabase, getCalendarData, getCheckinsForDate,
   getReminders, saveReminder, toggleReminder, deleteReminder,
   getAgendaEvents, saveAgendaEvent, deleteAgendaEvent,
+  getHabitsWithLogs, toggleHabitLog,
 } from '@/lib/supabase'
+import { AREA_META } from '@/types'
 import type { AgendaEvent } from '@/lib/supabase'
+import type { HabitArea } from '@/types'
 
-type DayStatus = { habits: number; total: number; checkins: number; complete: boolean }
-type Tab = 'calendario' | 'checkin' | 'lembretes' | 'agenda'
-type ViewMode = 'month' | 'week'
-type Reminder = { id: string; title: string; time: string; days: number[]; active: boolean; type: string }
-type Checkin = { phase: string; energy?: number; sleep_hours?: number; mood?: number; mission?: string; win_of_day?: string; xp_earned: number }
+type DayStatus  = { habits: number; total: number; checkins: number; complete: boolean }
+type Tab        = 'calendario' | 'checkin' | 'lembretes' | 'agenda'
+type ViewMode   = 'month' | 'week'
+type StreakSide = 'start' | 'middle' | 'end' | 'solo' | null
+type Reminder   = { id: string; title: string; time: string; days: number[]; active: boolean; type: string }
+type Checkin    = { phase: string; energy?: number; sleep_hours?: number; mood?: number; mission?: string; win_of_day?: string; xp_earned: number }
+type HabitRow   = { id: string; name: string; area: HabitArea; xp_reward: number; habit_logs: { completed: boolean }[] }
 
 const DAYS_SHORT  = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
 const DAYS_MIN    = ['D','S','T','Q','Q','S','S']
 const PHASE_LABELS: Record<string,string> = { manha:'Manhã', tarde:'Tarde', noite:'Noite' }
-const PHASE_EMOJI:  Record<string,string> = { manha:'🌅', tarde:'☀️',  noite:'🌙' }
+const PHASE_EMOJI:  Record<string,string> = { manha:'🌅', tarde:'☀️', noite:'🌙' }
 const EVENT_COLORS = ['#E8A838','#1ECBB4','#7F77DD','#E24B4A','#1D9E75','#D4537E','#85B7EB']
 
 const inp: React.CSSProperties = {
@@ -33,11 +38,10 @@ const inp: React.CSSProperties = {
   fontFamily:'DM Sans, sans-serif', fontSize:14, outline:'none',
 }
 
-// ── Heatmap: cor baseada em intensidade de hábitos ──────────
+// ── Heatmap ───────────────────────────────────────────────────
 function heatColor(status: DayStatus | undefined): string {
   if (!status || status.habits === 0) return 'transparent'
   if (status.complete) return 'var(--teal)'
-  // Intensidade baseada em hábitos completados (max visual = 5)
   const intensity = Math.min(status.habits, 5) / 5
   if (intensity >= 0.8) return 'rgba(30,203,180,.65)'
   if (intensity >= 0.6) return 'rgba(30,203,180,.45)'
@@ -45,8 +49,6 @@ function heatColor(status: DayStatus | undefined): string {
   if (intensity >= 0.2) return 'rgba(30,203,180,.14)'
   return 'rgba(232,168,56,.2)'
 }
-
-// Cor do texto sobre o heatmap
 function heatTextColor(status: DayStatus | undefined, isT: boolean, isSel: boolean): string {
   if (status?.complete) return 'var(--bg0)'
   if (isT) return 'var(--gold)'
@@ -54,20 +56,57 @@ function heatTextColor(status: DayStatus | undefined, isT: boolean, isSel: boole
   return 'var(--text2)'
 }
 
+// ── Cal 4: Streak helpers ─────────────────────────────────────
+function getStreakSide(dateStr: string, dayMap: Record<string, DayStatus>): StreakSide {
+  const hasThis = (dayMap[dateStr]?.habits ?? 0) > 0
+  if (!hasThis) return null
+  const d       = new Date(dateStr + 'T12:00:00')
+  const prev    = format(subDays(d, 1), 'yyyy-MM-dd')
+  const next    = format(addDays(d, 1), 'yyyy-MM-dd')
+  const hasPrev = (dayMap[prev]?.habits ?? 0) > 0
+  const hasNext = (dayMap[next]?.habits ?? 0) > 0
+  if (hasPrev && hasNext) return 'middle'
+  if (hasPrev) return 'end'
+  if (hasNext) return 'start'
+  return 'solo'
+}
+
+function computeCurrentStreak(dayMap: Record<string, DayStatus>): number {
+  let streak = 0
+  let d = new Date()
+  while (streak < 400) {
+    const ds = format(d, 'yyyy-MM-dd')
+    if ((dayMap[ds]?.habits ?? 0) > 0) { streak++; d = subDays(d, 1) } else break
+  }
+  return streak
+}
+
+function streakBarStyle(side: StreakSide): React.CSSProperties {
+  if (!side) return { display: 'none' }
+  const base: React.CSSProperties = { position:'absolute', bottom:0, height:3, background:'rgba(30,203,180,.8)' }
+  if (side === 'solo')   return { ...base, left:4, right:4, borderRadius:3 }
+  if (side === 'start')  return { ...base, left:4, right:0, borderRadius:'3px 0 0 3px' }
+  if (side === 'end')    return { ...base, left:0, right:4, borderRadius:'0 3px 3px 0' }
+  return { ...base, left:0, right:0, borderRadius:0 }
+}
+
 export default function CalendarioPage() {
-  const [userId,     setUserId]     = useState<string|null>(null)
-  const [tab,        setTab]        = useState<Tab>('calendario')
-  const [viewMode,   setViewMode]   = useState<ViewMode>('month')
-  const [current,    setCurrent]    = useState(new Date())
-  const [weekStart,  setWeekStart]  = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
-  const [dayMap,     setDayMap]     = useState<Record<string,DayStatus>>({})
-  const [selected,   setSelected]   = useState<string|null>(null)
-  const [selCheckins,setSelCheckins]= useState<Checkin[]>([])
-  const [selEvents,  setSelEvents]  = useState<AgendaEvent[]>([])
-  const [reminders,  setReminders]  = useState<Reminder[]>([])
-  const [events,     setEvents]     = useState<AgendaEvent[]>([])
-  const [loading,    setLoading]    = useState(true)
-  const [todayCI,    setTodayCI]    = useState<Checkin[]>([])
+  const [userId,      setUserId]      = useState<string|null>(null)
+  const [tab,         setTab]         = useState<Tab>('calendario')
+  const [viewMode,    setViewMode]    = useState<ViewMode>('month')
+  const [current,     setCurrent]     = useState(new Date())
+  const [weekStart,   setWeekStart]   = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
+  const [dayMap,      setDayMap]      = useState<Record<string,DayStatus>>({})
+  const [selected,    setSelected]    = useState<string|null>(null)
+  const [selCheckins, setSelCheckins] = useState<Checkin[]>([])
+  const [selEvents,   setSelEvents]   = useState<AgendaEvent[]>([])
+  const [selHabits,   setSelHabits]   = useState<HabitRow[]>([])
+  const [panelLoad,   setPanelLoad]   = useState(false)
+  const [reminders,   setReminders]   = useState<Reminder[]>([])
+  const [events,      setEvents]      = useState<AgendaEvent[]>([])
+  const [loading,     setLoading]     = useState(true)
+  const [todayCI,     setTodayCI]     = useState<Checkin[]>([])
+  const [toast,       setToast]       = useState('')
 
   // Lembretes form
   const [showRmForm, setShowRmForm] = useState(false)
@@ -87,7 +126,6 @@ export default function CalendarioPage() {
   const [evColor,    setEvColor]    = useState('#E8A838')
   const [evAllDay,   setEvAllDay]   = useState(false)
   const [evSaving,   setEvSaving]   = useState(false)
-  const [toast,      setToast]      = useState('')
 
   const today = format(new Date(),'yyyy-MM-dd')
 
@@ -100,7 +138,6 @@ export default function CalendarioPage() {
     ])
     setEvents(evs)
     const map: Record<string,DayStatus> = {}
-    // Contar todos os logs (completados e não)
     ;(calData.logs as {date:string;completed:boolean}[]).forEach(l => {
       if (!map[l.date]) map[l.date] = { habits:0, total:0, checkins:0, complete:false }
       map[l.date].total++
@@ -136,14 +173,10 @@ export default function CalendarioPage() {
   function changeWeek(dir: 1|-1) {
     const next = dir===1 ? addWeeks(weekStart,1) : subWeeks(weekStart,1)
     setWeekStart(next)
-    // Se a semana entrar num mês diferente, carregar dados desse mês
     const weekEnd = endOfWeek(next, { weekStartsOn: 1 })
     if (userId && !isSameMonth(next, current)) {
-      const monthToLoad = next
-      setCurrent(monthToLoad)
-      loadMonth(userId, monthToLoad)
+      setCurrent(next); loadMonth(userId, next)
     } else if (userId && !isSameMonth(weekEnd, current)) {
-      // Semana spans dois meses — carregar o mês do início da semana
       loadMonth(userId, next)
     }
   }
@@ -152,12 +185,26 @@ export default function CalendarioPage() {
     if (selected === dateStr) { setSelected(null); return }
     setSelected(dateStr)
     if (!userId) return
-    const [ci, evRes] = await Promise.all([
+    setPanelLoad(true)
+    const [ci, evRes, habits] = await Promise.all([
       getCheckinsForDate(userId, dateStr),
       supabase.from('agenda_events').select('*').eq('user_id',userId).eq('date',dateStr).order('time'),
+      getHabitsWithLogs(userId, dateStr),
     ])
     setSelCheckins(ci as Checkin[])
     setSelEvents((evRes.data ?? []) as AgendaEvent[])
+    setSelHabits(habits as HabitRow[])
+    setPanelLoad(false)
+  }
+
+  // Cal 5: registo retroactivo sem XP
+  async function toggleRetroHabit(habitId: string, currentDone: boolean, dateStr: string) {
+    if (!userId) return
+    await toggleHabitLog(userId, habitId, dateStr, !currentDone)
+    const habits = await getHabitsWithLogs(userId, dateStr)
+    setSelHabits(habits as HabitRow[])
+    loadMonth(userId, current) // actualiza heatmap
+    showToast(currentDone ? 'Desmarcado' : 'Marcado ✓ (sem XP)')
   }
 
   async function saveRm() {
@@ -169,21 +216,18 @@ export default function CalendarioPage() {
     showToast('Lembrete criado!')
     setRmSaving(false)
   }
-
   async function toggleRm(id: string, active: boolean) {
     if (!userId) return
     await toggleReminder(id, !active)
     setReminders(await getReminders(userId) as Reminder[])
-    showToast(!active ? 'Lembrete ativado!' : 'Lembrete desativado!')
+    showToast(!active ? 'Ativado!' : 'Desativado!')
   }
-
   async function removeRm(id: string) {
     if (!userId) return
     await deleteReminder(id)
     setReminders(prev => prev.filter(r => r.id !== id))
     showToast('Lembrete removido!')
   }
-
   async function saveEv() {
     if (!userId || !evTitle.trim()) return
     setEvSaving(true)
@@ -194,12 +238,11 @@ export default function CalendarioPage() {
     setEvSaving(false)
   }
 
-  const days      = eachDayOfInterval({ start:startOfMonth(current), end:endOfMonth(current) })
-  const startPad  = getDay(startOfMonth(current))
-  const doneDays  = Object.values(dayMap).filter(d=>d.complete).length
-
-  // Dias da semana actual (seg a dom)
+  const days     = eachDayOfInterval({ start:startOfMonth(current), end:endOfMonth(current) })
+  const startPad = getDay(startOfMonth(current))
+  const doneDays = Object.values(dayMap).filter(d=>d.complete).length
   const weekDays = eachDay({ start: weekStart, end: endOfWeek(weekStart, { weekStartsOn: 1 }) })
+  const currentStreak = computeCurrentStreak(dayMap)
 
   const TABS: {key:Tab;label:string;icon:string}[] = [
     {key:'calendario',label:'Calendário',icon:'📅'},
@@ -207,6 +250,174 @@ export default function CalendarioPage() {
     {key:'lembretes', label:'Alertas',   icon:'🔔'},
     {key:'agenda',    label:'Agenda',    icon:'📋'},
   ]
+
+  // ── Cal 3: Painel do dia rico ─────────────────────────────
+  function DayPanel({ dateStr }: { dateStr: string }) {
+    const isPast   = dateStr < today
+    const isToday_ = dateStr === today
+    const totalXP  = selCheckins.reduce((s, c) => s + (c.xp_earned ?? 0), 0)
+    const status   = dayMap[dateStr]
+    const hasData  = selCheckins.length > 0 || selHabits.length > 0 || selEvents.length > 0
+
+    return (
+      <div style={{paddingTop:14,marginTop:14,borderTop:'0.5px solid var(--border)'}}>
+
+        {/* Header */}
+        <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:14}}>
+          <div>
+            <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,color:'var(--text1)',lineHeight:1.3}}>
+              {format(new Date(dateStr+'T12:00:00'),"EEEE, d 'de' MMMM",{locale:pt})}
+            </div>
+            {isPast && !isToday_ && (
+              <div style={{fontSize:10,color:'var(--text3)',marginTop:3,display:'flex',alignItems:'center',gap:4}}>
+                <span style={{background:'rgba(127,119,221,.15)',color:'var(--accent)',padding:'1px 6px',borderRadius:5,fontSize:9,fontWeight:600}}>RETRO</span>
+                clica nos hábitos para marcar (sem XP)
+              </div>
+            )}
+          </div>
+          {totalXP > 0 && (
+            <div style={{background:'rgba(232,168,56,.12)',border:'0.5px solid rgba(232,168,56,.3)',borderRadius:10,padding:'4px 10px',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,color:'var(--gold)',whiteSpace:'nowrap',flexShrink:0}}>
+              +{totalXP} XP
+            </div>
+          )}
+        </div>
+
+        {panelLoad ? (
+          <div style={{textAlign:'center',padding:'16px 0',fontSize:12,color:'var(--text3)'}}>a carregar…</div>
+        ) : (
+          <>
+            {/* ── Hábitos (Cal 3 + Cal 5) ── */}
+            {selHabits.length > 0 && (
+              <div style={{marginBottom:14}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:7}}>
+                  <span style={{fontSize:10,color:'var(--text3)',fontWeight:700,letterSpacing:'.06em'}}>HÁBITOS</span>
+                  {status && status.total > 0 && (
+                    <span style={{fontSize:11,color:'var(--teal)',fontFamily:'Syne, sans-serif',fontWeight:600}}>
+                      {status.habits}/{status.total}
+                    </span>
+                  )}
+                </div>
+                {status && status.total > 0 && (
+                  <div style={{background:'var(--bg3)',borderRadius:100,height:4,marginBottom:9}}>
+                    <div style={{height:'100%',borderRadius:100,background:'var(--teal)',width:`${Math.round((status.habits/status.total)*100)}%`,transition:'width .4s'}}/>
+                  </div>
+                )}
+                <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                  {selHabits.map(h => {
+                    const done    = (h.habit_logs ?? []).length > 0 && h.habit_logs[0].completed
+                    const meta    = AREA_META[h.area] ?? { icon:'✅', color:'var(--teal)', label:'' }
+                    const canEdit = isPast && !isToday_
+                    return (
+                      <div
+                        key={h.id}
+                        onClick={canEdit ? () => toggleRetroHabit(h.id, done, dateStr) : undefined}
+                        style={{
+                          display:'flex', alignItems:'center', gap:10,
+                          padding:'9px 12px', borderRadius:11,
+                          background: done ? 'rgba(30,203,180,.07)' : 'var(--bg3)',
+                          border: done ? '0.5px solid rgba(30,203,180,.22)' : '0.5px solid transparent',
+                          cursor: canEdit ? 'pointer' : 'default',
+                          transition:'all .15s',
+                          userSelect:'none',
+                        }}
+                      >
+                        <div style={{
+                          width:20, height:20, borderRadius:6, flexShrink:0,
+                          display:'flex', alignItems:'center', justifyContent:'center',
+                          background: done ? 'var(--teal)' : 'transparent',
+                          border: done ? 'none' : '1.5px solid var(--text3)',
+                          transition:'all .15s',
+                        }}>
+                          {done && (
+                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none" stroke="var(--bg0)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="1,4 3.5,7 9,1"/>
+                            </svg>
+                          )}
+                        </div>
+                        <span style={{fontSize:14}}>{meta.icon}</span>
+                        <span style={{flex:1,fontSize:13,color:done?'var(--text1)':'var(--text2)',fontWeight:done?500:400,textDecoration:done?'none':'none'}}>
+                          {h.name}
+                        </span>
+                        {canEdit && (
+                          <span style={{fontSize:10,color:'var(--text3)',opacity:.7}}>
+                            {done ? 'desfazer' : 'marcar'}
+                          </span>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── Check-ins ── */}
+            {selCheckins.length > 0 && (
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:10,color:'var(--text3)',fontWeight:700,letterSpacing:'.06em',marginBottom:7}}>CHECK-INS</div>
+                <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                  {selCheckins.map((ci,i) => (
+                    <div key={i} style={{padding:'10px 12px',borderRadius:11,background:'var(--bg3)'}}>
+                      <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:(ci.energy||ci.mission||ci.win_of_day)?5:0}}>
+                        <span style={{fontSize:15}}>{PHASE_EMOJI[ci.phase]??'⏰'}</span>
+                        <span style={{flex:1,fontSize:13,color:'var(--text1)',fontWeight:600}}>{PHASE_LABELS[ci.phase]??ci.phase}</span>
+                        <span style={{fontSize:11,color:'var(--gold)',fontFamily:'Syne, sans-serif',fontWeight:700}}>+{ci.xp_earned} XP</span>
+                      </div>
+                      {(ci.energy||ci.sleep_hours||ci.mood) && (
+                        <div style={{display:'flex',gap:10,fontSize:11,color:'var(--text3)',flexWrap:'wrap'}}>
+                          {ci.energy    && <span>⚡ {ci.energy}/10</span>}
+                          {ci.sleep_hours && <span>😴 {ci.sleep_hours}h</span>}
+                          {ci.mood      && <span>💭 humor {ci.mood}/10</span>}
+                        </div>
+                      )}
+                      {ci.mission && ci.phase==='manha' && (
+                        <div style={{fontSize:12,color:'var(--text2)',fontStyle:'italic',marginTop:4}}>
+                          &ldquo;{ci.mission}&rdquo;
+                        </div>
+                      )}
+                      {ci.win_of_day && (
+                        <div style={{fontSize:12,color:'var(--teal)',marginTop:4}}>🏆 {ci.win_of_day}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── Eventos ── */}
+            {selEvents.length > 0 && (
+              <div style={{marginBottom:14}}>
+                <div style={{fontSize:10,color:'var(--text3)',fontWeight:700,letterSpacing:'.06em',marginBottom:7}}>EVENTOS</div>
+                <div style={{display:'flex',flexDirection:'column',gap:5}}>
+                  {selEvents.map(ev => (
+                    <div key={ev.id} style={{display:'flex',alignItems:'center',gap:10,padding:'9px 12px',borderRadius:11,background:'var(--bg3)'}}>
+                      <div style={{width:3,height:34,borderRadius:2,background:ev.color,flexShrink:0}}/>
+                      <div style={{flex:1}}>
+                        <div style={{fontSize:13,color:'var(--text1)',fontWeight:500}}>{ev.title}</div>
+                        {!ev.all_day && ev.time && <div style={{fontSize:11,color:'var(--text3)'}}>{ev.time.slice(0,5)}{ev.end_time?` – ${ev.end_time.slice(0,5)}`:''}</div>}
+                        {ev.all_day && <div style={{fontSize:11,color:'var(--text3)'}}>Dia inteiro</div>}
+                      </div>
+                      <button onClick={()=>{deleteAgendaEvent(ev.id);setSelEvents(e=>e.filter(x=>x.id!==ev.id))}} style={{width:26,height:26,borderRadius:7,background:'var(--bg2)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14,flexShrink:0}}>×</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!hasData && (
+              <div style={{textAlign:'center',padding:'12px 0',fontSize:12,color:'var(--text3)'}}>Sem registos neste dia.</div>
+            )}
+
+            <button
+              onClick={()=>{setEvDate(dateStr);setShowEvForm(true);setTab('agenda')}}
+              style={{width:'100%',marginTop:4,padding:'9px',border:'0.5px solid rgba(30,203,180,.28)',borderRadius:11,background:'rgba(30,203,180,.06)',color:'var(--teal)',cursor:'pointer',fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:12}}
+            >
+              + Evento neste dia
+            </button>
+          </>
+        )}
+      </div>
+    )
+  }
 
   if (loading) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh'}}>
@@ -247,9 +458,9 @@ export default function CalendarioPage() {
           {/* Métricas */}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:14}}>
             {[
-              {label:'Completos',value:doneDays,color:'var(--teal)'},
-              {label:'Parciais', value:Object.values(dayMap).filter(d=>!d.complete&&(d.checkins>0||d.habits>0)).length,color:'var(--accent)'},
-              {label:'% do mês', value:days.length>0?Math.round(doneDays/days.length*100)+'%':'0%',color:'var(--gold)'},
+              {label:'Completos', value:doneDays, color:'var(--teal)'},
+              {label:'Parciais',  value:Object.values(dayMap).filter(d=>!d.complete&&(d.checkins>0||d.habits>0)).length, color:'var(--accent)'},
+              {label:'% do mês',  value:days.length>0?Math.round(doneDays/days.length*100)+'%':'0%', color:'var(--gold)'},
             ].map(({label,value,color})=>(
               <div key={label} style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:14,padding:'12px 10px',textAlign:'center'}}>
                 <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:22,color,lineHeight:1}}>{value}</div>
@@ -276,12 +487,23 @@ export default function CalendarioPage() {
           {/* ── VISTA MENSAL ── */}
           {viewMode==='month' && (
             <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:20,padding:'16px',marginBottom:14}}>
+              {/* Cabeçalho com streak (Cal 4) */}
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
                 <button onClick={()=>changeMonth(-1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
-                <span style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:16,color:'var(--text1)'}}>{format(current,'MMMM yyyy',{locale:pt})}</span>
+                <div style={{textAlign:'center'}}>
+                  <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:16,color:'var(--text1)'}}>
+                    {format(current,'MMMM yyyy',{locale:pt})}
+                  </div>
+                  {currentStreak >= 1 && (
+                    <div style={{fontSize:11,marginTop:3,color:currentStreak>=7?'var(--gold)':currentStreak>=3?'var(--teal)':'var(--text3)'}}>
+                      🔥 {currentStreak === 1 ? '1 dia de sequência' : `${currentStreak} dias seguidos`}
+                    </div>
+                  )}
+                </div>
                 <button onClick={()=>changeMonth(1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
               </div>
 
+              {/* Grid */}
               <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:6}}>
                 {DAYS_SHORT.map(d=><div key={d} style={{textAlign:'center',fontSize:10,color:'var(--text3)',paddingBottom:6,fontWeight:600,letterSpacing:'.02em'}}>{d}</div>)}
                 {Array.from({length:startPad}).map((_,i)=><div key={`p${i}`}/>)}
@@ -293,13 +515,15 @@ export default function CalendarioPage() {
                   const status  = dayMap[dateStr]
                   const hasEv   = events.some(e=>e.date===dateStr)
                   const bg      = isSel ? 'rgba(127,119,221,.25)' : heatColor(status)
+                  const side    = future ? null : getStreakSide(dateStr, dayMap)
                   return (
                     <button key={dateStr} onClick={()=>selectDay(dateStr)} style={{
-                      aspectRatio:'1',borderRadius:10,border:'none',cursor:'pointer',
+                      aspectRatio:'1', borderRadius:10, border:'none', cursor:'pointer',
                       background:bg,
-                      outline:isT?'2px solid var(--gold)':'none',
+                      outline:isT?'2px solid var(--gold)':isSel?'1.5px solid rgba(127,119,221,.6)':'none',
                       display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,
-                      opacity:future?0.25:1,transition:'all .15s',
+                      opacity:future?0.25:1, transition:'all .15s',
+                      position:'relative', overflow:'hidden',
                     }}>
                       <span style={{fontFamily:'Syne, sans-serif',fontWeight:isT?700:500,fontSize:14,color:heatTextColor(status,isT,isSel),lineHeight:1}}>
                         {format(day,'d')}
@@ -311,26 +535,32 @@ export default function CalendarioPage() {
                           {hasEv&&<div style={{width:3,height:3,borderRadius:'50%',background:status?.complete?'var(--bg0)':'var(--teal)'}}/>}
                         </div>
                       )}
+                      {/* Cal 4: barra de streak */}
+                      {side && <div style={streakBarStyle(side)}/>}
                     </button>
                   )
                 })}
               </div>
 
-              {/* Legenda heatmap */}
+              {/* Legenda */}
               <div style={{paddingTop:10,borderTop:'0.5px solid var(--border)'}}>
-                <div style={{fontSize:10,color:'var(--text3)',marginBottom:6}}>Intensidade de hábitos</div>
-                <div style={{display:'flex',alignItems:'center',gap:4}}>
-                  {[
-                    'transparent',
-                    'rgba(30,203,180,.14)',
-                    'rgba(30,203,180,.28)',
-                    'rgba(30,203,180,.45)',
-                    'rgba(30,203,180,.65)',
-                    'var(--teal)',
-                  ].map((c,i)=>(
-                    <div key={i} style={{width:18,height:18,borderRadius:4,background:c,border:'0.5px solid var(--border)'}}/>
-                  ))}
-                  <span style={{fontSize:10,color:'var(--text3)',marginLeft:4}}>Menos → Mais</span>
+                <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between'}}>
+                  <div>
+                    <div style={{fontSize:10,color:'var(--text3)',marginBottom:5}}>Intensidade de hábitos</div>
+                    <div style={{display:'flex',alignItems:'center',gap:3}}>
+                      {['transparent','rgba(30,203,180,.14)','rgba(30,203,180,.28)','rgba(30,203,180,.45)','rgba(30,203,180,.65)','var(--teal)'].map((c,i)=>(
+                        <div key={i} style={{width:15,height:15,borderRadius:4,background:c,border:'0.5px solid var(--border)'}}/>
+                      ))}
+                      <span style={{fontSize:10,color:'var(--text3)',marginLeft:2}}>→</span>
+                    </div>
+                  </div>
+                  <div style={{textAlign:'right'}}>
+                    <div style={{fontSize:10,color:'var(--text3)',marginBottom:5}}>Sequência</div>
+                    <div style={{display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end'}}>
+                      <div style={{width:26,height:3,borderRadius:3,background:'rgba(30,203,180,.8)'}}/>
+                      <span style={{fontSize:10,color:'var(--text3)'}}>streak</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -339,7 +569,6 @@ export default function CalendarioPage() {
           {/* ── VISTA SEMANAL ── */}
           {viewMode==='week' && (
             <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:20,padding:'16px',marginBottom:14}}>
-              {/* Navegação semana */}
               <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
                 <button onClick={()=>changeWeek(-1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>‹</button>
                 <span style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,color:'var(--text1)'}}>
@@ -348,185 +577,62 @@ export default function CalendarioPage() {
                 <button onClick={()=>changeWeek(1)} style={{width:36,height:36,borderRadius:11,background:'var(--bg3)',border:'0.5px solid var(--border)',cursor:'pointer',color:'var(--text2)',fontSize:20,display:'flex',alignItems:'center',justifyContent:'center'}}>›</button>
               </div>
 
-              {/* Colunas dos dias */}
               <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:6}}>
                 {weekDays.map(day=>{
-                  const dateStr  = format(day,'yyyy-MM-dd')
-                  const isT      = isToday(day)
-                  const isSel    = selected===dateStr
-                  const future   = day > new Date()
-                  const status   = dayMap[dateStr]
-                  const dayEvs   = events.filter(e=>e.date===dateStr)
-                  const pct      = status?.total > 0 ? Math.round((status.habits/status.total)*100) : 0
-                  const bg       = isSel ? 'rgba(127,119,221,.2)' : heatColor(status)
+                  const dateStr = format(day,'yyyy-MM-dd')
+                  const isT     = isToday(day)
+                  const isSel   = selected===dateStr
+                  const future  = day > new Date()
+                  const status  = dayMap[dateStr]
+                  const dayEvs  = events.filter(e=>e.date===dateStr)
+                  const pct     = status?.total > 0 ? Math.round((status.habits/status.total)*100) : 0
+                  const bg      = isSel ? 'rgba(127,119,221,.2)' : heatColor(status)
+                  const side    = future ? null : getStreakSide(dateStr, dayMap)
                   return (
-                    <button
-                      key={dateStr}
-                      onClick={()=>selectDay(dateStr)}
-                      style={{
-                        display:'flex',flexDirection:'column',alignItems:'center',gap:4,
-                        padding:'10px 4px',borderRadius:14,border:'none',cursor:'pointer',
-                        background:bg,
-                        outline:isT?'2px solid var(--gold)':isSel?'1.5px solid var(--accent)':'none',
-                        opacity:future?0.3:1,transition:'all .15s',
-                      }}
-                    >
-                      {/* Dia */}
+                    <button key={dateStr} onClick={()=>selectDay(dateStr)} style={{
+                      display:'flex',flexDirection:'column',alignItems:'center',gap:4,
+                      padding:'10px 4px',borderRadius:14,border:'none',cursor:'pointer',
+                      background:bg,
+                      outline:isT?'2px solid var(--gold)':isSel?'1.5px solid var(--accent)':'none',
+                      opacity:future?0.3:1,transition:'all .15s',
+                      position:'relative',overflow:'hidden',
+                    }}>
                       <div style={{fontSize:9,color:isT?'var(--gold)':'var(--text3)',fontWeight:600,textTransform:'uppercase',letterSpacing:'.5px'}}>
                         {DAYS_MIN[getDay(day)]}
                       </div>
-                      {/* Número */}
-                      <div style={{
-                        fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,
-                        color:status?.complete?'var(--bg0)':isT?'var(--gold)':isSel?'var(--accent)':'var(--text1)',
-                        lineHeight:1,
-                      }}>
+                      <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,color:status?.complete?'var(--bg0)':isT?'var(--gold)':isSel?'var(--accent)':'var(--text1)',lineHeight:1}}>
                         {format(day,'d')}
                       </div>
-                      {/* Mini barra hábitos */}
                       {!future && (
                         <div style={{width:'100%',padding:'0 2px'}}>
                           <div style={{background:'rgba(255,255,255,.1)',borderRadius:100,height:3}}>
-                            <div style={{
-                              height:'100%',borderRadius:100,
-                              background:status?.complete?'var(--bg0)':'var(--teal)',
-                              width:`${pct}%`,
-                              transition:'width .4s',
-                            }}/>
+                            <div style={{height:'100%',borderRadius:100,background:status?.complete?'var(--bg0)':'var(--teal)',width:`${pct}%`,transition:'width .4s'}}/>
                           </div>
                         </div>
                       )}
-                      {/* Pontos de eventos */}
-                      {dayEvs.length>0&&(
+                      {dayEvs.length>0 && (
                         <div style={{display:'flex',gap:2,flexWrap:'wrap',justifyContent:'center'}}>
-                          {dayEvs.slice(0,3).map(ev=>(
-                            <div key={ev.id} style={{width:5,height:5,borderRadius:'50%',background:ev.color}}/>
-                          ))}
+                          {dayEvs.slice(0,3).map(ev=>(<div key={ev.id} style={{width:5,height:5,borderRadius:'50%',background:ev.color}}/>))}
                         </div>
                       )}
+                      {/* Cal 4 */}
+                      {side && <div style={streakBarStyle(side)}/>}
                     </button>
                   )
                 })}
               </div>
 
-              {/* Detalhe do dia seleccionado */}
+              {/* Cal 3: painel semana */}
               {selected && weekDays.some(d=>format(d,'yyyy-MM-dd')===selected) && (
-                <div style={{marginTop:14,paddingTop:14,borderTop:'0.5px solid var(--border)'}}>
-                  <div style={{fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:13,color:'var(--text2)',marginBottom:10}}>
-                    {format(new Date(selected+'T12:00:00'),"EEEE, d 'de' MMMM",{locale:pt})}
-                  </div>
-
-                  {/* Barra de progresso hábitos */}
-                  {dayMap[selected] && (
-                    <div style={{marginBottom:12}}>
-                      <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                        <span style={{fontSize:11,color:'var(--text3)'}}>Hábitos</span>
-                        <span style={{fontSize:11,color:'var(--teal)',fontFamily:'Syne, sans-serif',fontWeight:600}}>
-                          {dayMap[selected].habits}/{dayMap[selected].total > 0 ? dayMap[selected].total : '?'}
-                        </span>
-                      </div>
-                      <div style={{background:'var(--bg3)',borderRadius:100,height:5}}>
-                        <div style={{
-                          height:'100%',borderRadius:100,background:'var(--teal)',
-                          width:`${dayMap[selected].total>0?Math.round((dayMap[selected].habits/dayMap[selected].total)*100):0}%`,
-                        }}/>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Check-ins */}
-                  {selCheckins.map((ci,i)=>(
-                    <div key={i} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,padding:'8px 10px',borderRadius:10,background:'var(--bg3)'}}>
-                      <span style={{fontSize:14}}>{PHASE_EMOJI[ci.phase]??'⏰'}</span>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:12,color:'var(--text1)',fontWeight:500}}>{PHASE_LABELS[ci.phase]??ci.phase}</div>
-                        {ci.energy&&<div style={{fontSize:10,color:'var(--text3)'}}>Energia {ci.energy}/10</div>}
-                      </div>
-                      <div style={{fontSize:11,color:'var(--gold)',fontFamily:'Syne, sans-serif',fontWeight:600}}>+{ci.xp_earned} XP</div>
-                    </div>
-                  ))}
-
-                  {/* Eventos do dia */}
-                  {selEvents.map(ev=>(
-                    <div key={ev.id} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,padding:'8px 10px',borderRadius:10,background:'var(--bg3)'}}>
-                      <div style={{width:3,height:32,borderRadius:2,background:ev.color,flexShrink:0}}/>
-                      <div style={{flex:1}}>
-                        <div style={{fontSize:12,color:'var(--text1)',fontWeight:500}}>{ev.title}</div>
-                        {ev.time&&<div style={{fontSize:10,color:'var(--text3)'}}>{ev.time.slice(0,5)}{ev.end_time?` – ${ev.end_time.slice(0,5)}`:''}</div>}
-                      </div>
-                    </div>
-                  ))}
-
-                  {selCheckins.length===0&&selEvents.length===0&&!dayMap[selected]&&(
-                    <div style={{fontSize:12,color:'var(--text3)',textAlign:'center',padding:'8px 0'}}>Sem registos neste dia.</div>
-                  )}
-
-                  <button onClick={()=>{setEvDate(selected);setShowEvForm(true);setTab('agenda')}} style={{width:'100%',marginTop:8,padding:'8px',border:'0.5px solid rgba(30,203,180,.28)',borderRadius:10,background:'rgba(30,203,180,.06)',color:'var(--teal)',cursor:'pointer',fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:12}}>+ Evento neste dia</button>
-                </div>
+                <DayPanel dateStr={selected} />
               )}
             </div>
           )}
 
-          {/* Painel do dia seleccionado (vista mensal) */}
+          {/* Cal 3: painel mês */}
           {viewMode==='month' && selected && (
-            <div style={{background:'var(--bg2)',border:'0.5px solid rgba(127,119,221,.22)',borderRadius:16,padding:16}}>
-              <div style={{fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:15,marginBottom:12}}>
-                {format(new Date(selected+'T12:00:00'),"EEEE, d 'de' MMMM",{locale:pt})}
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,marginBottom:12}}>
-                {[
-                  {l:'Hábitos',  v:dayMap[selected]?.habits??0,    c:'var(--gold)'},
-                  {l:'Check-ins',v:dayMap[selected]?.checkins??0,  c:'var(--accent)'},
-                  {l:'Eventos',  v:selEvents.length,               c:'var(--teal)'},
-                ].map(({l,v,c})=>(
-                  <div key={l} style={{textAlign:'center'}}>
-                    <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18,color:c}}>{v}</div>
-                    <div style={{fontSize:10,color:'var(--text3)'}}>{l}</div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Barra de progresso hábitos */}
-              {dayMap[selected]?.total > 0 && (
-                <div style={{marginBottom:12}}>
-                  <div style={{display:'flex',justifyContent:'space-between',marginBottom:4}}>
-                    <span style={{fontSize:11,color:'var(--text3)'}}>Progresso hábitos</span>
-                    <span style={{fontSize:11,color:'var(--teal)',fontFamily:'Syne, sans-serif',fontWeight:600}}>
-                      {dayMap[selected].habits}/{dayMap[selected].total}
-                    </span>
-                  </div>
-                  <div style={{background:'var(--bg3)',borderRadius:100,height:5}}>
-                    <div style={{
-                      height:'100%',borderRadius:100,background:'var(--teal)',
-                      width:`${Math.round((dayMap[selected].habits/dayMap[selected].total)*100)}%`,
-                    }}/>
-                  </div>
-                </div>
-              )}
-
-              {selCheckins.map((ci,i)=>(
-                <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8,marginBottom:8,padding:'10px 12px',borderRadius:10,background:'var(--bg3)'}}>
-                  <span style={{fontSize:16,flexShrink:0}}>{PHASE_EMOJI[ci.phase]??'⏰'}</span>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,color:'var(--text1)',fontWeight:500}}>{PHASE_LABELS[ci.phase]??ci.phase}</div>
-                    {ci.energy&&<div style={{fontSize:11,color:'var(--text3)'}}>Energia {ci.energy}/10{ci.sleep_hours?` · Sono ${ci.sleep_hours}h`:''}</div>}
-                    {ci.mission&&ci.phase==='manha'&&<div style={{fontSize:11,color:'var(--text2)',fontStyle:'italic',marginTop:2}}>"{ci.mission}"</div>}
-                    {ci.win_of_day&&<div style={{fontSize:11,color:'var(--teal)',marginTop:2}}>🏆 {ci.win_of_day}</div>}
-                  </div>
-                  <div style={{fontSize:11,color:'var(--gold)',fontFamily:'Syne, sans-serif',fontWeight:600}}>+{ci.xp_earned} XP</div>
-                </div>
-              ))}
-              {selEvents.map(ev=>(
-                <div key={ev.id} style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,padding:'10px 12px',borderRadius:10,background:'var(--bg3)'}}>
-                  <div style={{width:8,height:8,borderRadius:'50%',background:ev.color,flexShrink:0}}/>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:13,color:'var(--text1)',fontWeight:500}}>{ev.title}</div>
-                    {ev.time&&<div style={{fontSize:11,color:'var(--text3)'}}>{ev.time.slice(0,5)}{ev.end_time?` – ${ev.end_time.slice(0,5)}`:''}</div>}
-                  </div>
-                  <button onClick={()=>{deleteAgendaEvent(ev.id);setSelEvents(e=>e.filter(x=>x.id!==ev.id))}} style={{width:24,height:24,borderRadius:7,background:'var(--bg2)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14}}>×</button>
-                </div>
-              ))}
-              <button onClick={()=>{setEvDate(selected);setShowEvForm(true);setTab('agenda')}} style={{width:'100%',padding:'9px',border:'0.5px solid rgba(30,203,180,.28)',borderRadius:10,background:'rgba(30,203,180,.06)',color:'var(--teal)',cursor:'pointer',fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:12}}>+ Evento neste dia</button>
+            <div style={{background:'var(--bg2)',border:'0.5px solid rgba(127,119,221,.22)',borderRadius:16,padding:16,marginBottom:14}}>
+              <DayPanel dateStr={selected} />
             </div>
           )}
         </div>
@@ -546,7 +652,7 @@ export default function CalendarioPage() {
                   {ci?(
                     <div style={{fontSize:12,color:'var(--text2)',lineHeight:1.5}}>
                       {ci.energy&&`Energia ${ci.energy}/10`}{ci.sleep_hours&&` · Sono ${ci.sleep_hours}h`}
-                      {ci.mission&&phase==='manha'&&<div style={{fontStyle:'italic',color:'var(--text3)'}}>"{ci.mission}"</div>}
+                      {ci.mission&&phase==='manha'&&<div style={{fontStyle:'italic',color:'var(--text3)'}}>&ldquo;{ci.mission}&rdquo;</div>}
                       {ci.win_of_day&&<div style={{color:'var(--teal)'}}>🏆 {ci.win_of_day}</div>}
                     </div>
                   ):<div style={{fontSize:12,color:'var(--text3)'}}>Por fazer</div>}
@@ -633,7 +739,9 @@ export default function CalendarioPage() {
             <button onClick={()=>setShowEvForm(true)} style={{background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:10,padding:'8px 14px',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>+ Evento</button>
           </div>
           {events.length===0&&<div style={{textAlign:'center',padding:'32px 0',color:'var(--text3)',fontSize:13}}><div style={{fontSize:40,marginBottom:12}}>📋</div>Sem eventos este mês.</div>}
-          {Object.entries(events.reduce((acc:Record<string,AgendaEvent[]>,ev)=>{if(!acc[ev.date])acc[ev.date]=[];acc[ev.date].push(ev);return acc},{})).sort(([a],[b])=>a.localeCompare(b)).map(([date,evs])=>(
+          {Object.entries(
+            events.reduce((acc:Record<string,AgendaEvent[]>,ev)=>{if(!acc[ev.date])acc[ev.date]=[];acc[ev.date].push(ev);return acc},{})
+          ).sort(([a],[b])=>a.localeCompare(b)).map(([date,evs])=>(
             <div key={date} style={{marginBottom:16}}>
               <div style={{fontSize:12,color:'var(--text3)',fontFamily:'Syne, sans-serif',fontWeight:600,marginBottom:6}}>
                 {format(new Date(date+'T12:00:00'),"EEEE, d 'de' MMMM",{locale:pt})}
