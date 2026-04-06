@@ -97,12 +97,17 @@ export default function FinancasPage() {
         : Number.parseFloat(String(amountRaw ?? '').replace(/\./g, '').replace(',', '.'))
       const description = String(descKey ? row[descKey] ?? '' : '').trim() || `Linha ${index + 1}`
       const rawType = String(typeKey ? row[typeKey] ?? '' : '').toLowerCase()
-      const type = rawType.includes('entrada') || rawType.includes('receita')
+      const type: FinancialImportCandidate['type'] = rawType.includes('entrada') || rawType.includes('receita')
         ? 'entrada'
         : rawType.includes('saida') || rawType.includes('saída') || rawType.includes('despesa')
           ? 'saida'
           : (Number.isFinite(parsedAmount) && parsedAmount < 0 ? 'saida' : 'saida')
       const date = normalizeImportedDate(dateKey ? String(row[dateKey] ?? '').trim() : '')
+      const confidence: FinancialImportCandidate['confidence'] = Number.isFinite(parsedAmount) && date
+        ? 'high'
+        : Number.isFinite(parsedAmount)
+          ? 'medium'
+          : 'low'
 
       return {
         id: `sheet-${index}`,
@@ -111,7 +116,7 @@ export default function FinancasPage() {
         amount: Number.isFinite(parsedAmount) ? Math.abs(parsedAmount) : null,
         type,
         category: String(categoryKey ? row[categoryKey] ?? '' : '').trim() || 'Outro',
-        confidence: Number.isFinite(parsedAmount) && date ? 'high' : Number.isFinite(parsedAmount) ? 'medium' : 'low',
+        confidence,
         raw: JSON.stringify(row),
         selected: Number.isFinite(parsedAmount) && Boolean(date),
       }
