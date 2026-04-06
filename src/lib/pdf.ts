@@ -1,6 +1,6 @@
 'use client'
 
-import type { PdfImportResult } from '@/types'
+import type { FinancialImportCandidate, FinancialImportPreview, PdfImportResult } from '@/types'
 
 declare global {
   interface Window {
@@ -35,7 +35,7 @@ function loadScript(src: string) {
   return new Promise<void>((resolve, reject) => {
     const existing = document.querySelector(`script[data-src="${src}"]`) as HTMLScriptElement | null
     if (existing) {
-      if ((existing as any).dataset.loaded === 'true') return resolve()
+      if ((existing as HTMLScriptElement).dataset.loaded === 'true') return resolve()
       existing.addEventListener('load', () => resolve(), { once: true })
       existing.addEventListener('error', () => reject(new Error(`Falha ao carregar ${src}`)), { once: true })
       return
@@ -60,9 +60,7 @@ async function ensurePdfJs() {
   if (!pdfJsLoader) {
     pdfJsLoader = (async () => {
       await loadScript(PDFJS_SRC)
-      if (!window.pdfjsLib) {
-        throw new Error('Biblioteca de PDF não ficou disponível.')
-      }
+      if (!window.pdfjsLib) throw new Error('Biblioteca de PDF não ficou disponível.')
       window.pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER_SRC
     })()
   }
@@ -97,21 +95,14 @@ export async function extractPdfText(file: File): Promise<PdfImportResult> {
     const text = normalizePdfText(
       content.items.map((item) => `${item.str ?? ''}${item.hasEOL ? '\n' : ' '}`).join('')
     )
-    pages.push({
-      pageNumber,
-      text,
-    })
+    pages.push({ pageNumber, text })
   }
 
   const extractedText = normalizePdfText(
-    pages
-      .map((page) => page.text)
-      .filter(Boolean)
-      .join('\n\n')
+    pages.map((page) => page.text).filter(Boolean).join('\n\n')
   )
 
   const hasUsefulText = extractedText.replace(/\s/g, '').length >= 20
-
   if (!hasUsefulText) {
     warnings.push('O PDF foi aberto, mas quase não tem texto extraível. Pode ser um scan/imagem.')
   }
@@ -127,6 +118,133 @@ export async function extractPdfText(file: File): Promise<PdfImportResult> {
     extractedText,
     pages,
     hasUsefulText,
+    warnings,
+  }
+}
+
+const DATE_PATTERNS = [
+  /(\d{2})[\/\-.](\d{2})[\/\-.](\d{4})/,
+  /(\d{4})[\/\-.](\d{2})[\/\-.](\d{2})/,
+  /(\d{2})[\/\-.](\d{2})/,
+]
+
+const AMOUNT_PATTERN = /-?\s*\d{1,3}(?:\.\d{3})*,\d{2}-?|[-+]?\s*\d+(?:,\d{2})/
+
+function toIsoDate(fragment: string): string | null {
+  const clean = fragment.trim().replace(/\./g, '/').replace(/-/g, '/')
+  const parts = clean.split('/')
+  if (parts.length === 3 && parts[0].length === 4) {
+    return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`
+  }
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`
+  }
+  if (parts.length === 2) {
+    const year = new Date().getFullYear()
+    return `${year}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`
+  }
+  return null
+}
+
+function parseAmount(fragment: string): number | null {
+  const negative = fragment.includes('-') && !fragment.trim().startsWith('+')
+  const normalized = fragment.replace(/\s/g, '').replace(/\./g, '').replace(',', '.').replace(/-/g, '')
+  const value = Number.parseFloat(normalized)
+  if (Number.isNaN(value)) return null
+  return negative ? Math.abs(value) * -1 : value
+}
+
+function guessType(amount: number | null, text: string): 'entrada' | 'saida' | null {
+  if (amount === null) return null
+  if (amount < 0) return 'saida'
+  const lowered = text.toLowerCase()
+  if (/(sal[áa]rio|transfer[êe]ncia recebida|reembolso|dep[oó]sito|cr[eé]dito)/.test(lowered)) return 'entrada'
+  if (/(pagamento|compra|d[eé]bito|cart[aã]o|levantamento|mb way|transfer[êe]ncia enviada)/.test(lowered)) return 'saida'
+  return amount >= 0 ? 'saida' : 'entrada'
+}
+
+function guessCategory(description: string, type: 'entrada' | 'saida' | null): string {
+  const text = description.toLowerCase()
+  if (type === 'entrada') {
+    if (/(sal[áa]rio|ordenado)/.test(text)) return 'Salário'
+    if (/(freelance|cliente|invoice|fatura)/.test(text)) return 'Freelance'
+    if (/(juros|dividendo|invest)/.test(text)) return 'Investimento'
+    return 'Outro'
+  }
+  if (/(continente|pingo doce|auchan|lidl|mercadona|supermerc)/.test(text)) return 'Alimentação'
+  if (/(uber|bolt|cp|metro|galp|bp|repsol|combust)/.test(text)) return 'Transporte'
+  if (/(farm[aá]cia|hospital|cl[ií]nica|sa[úu]de)/.test(text)) return 'Saúde'
+  if (/(netflix|spotify|disney|prime|assinatura)/.test(text)) return 'Assinaturas'
+  if (/(zara|h&m|bershka|pull&bear|roupa)/.test(text)) return 'Roupa'
+  if (/(fnac|udemy|curso|livro|propina|educa)/.test(text)) return 'Educação'
+  if (/(cinema|restaurante|caf[eé]|bar|lazer)/.test(text)) return 'Lazer'
+  if (/(renda|prest[aã]ção|condom[ií]nio|habita)/.test(text)) return 'Habitação'
+  return 'Outro'
+}
+
+function cleanDescription(line: string, dateMatch: string | null, amountMatch: string | null) {
+  let next = line
+  if (dateMatch) next = next.replace(dateMatch, ' ')
+  if (amountMatch) next = next.replace(amountMatch, ' ')
+  return next.replace(/\s{2,}/g, ' ').replace(/[|]+/g, ' ').trim()
+}
+
+function confidenceForCandidate(date: string | null, amount: number | null, description: string): 'high' | 'medium' | 'low' {
+  if (date && amount !== null && description.length >= 4) return 'high'
+  if ((date || amount !== null) && description.length >= 3) return 'medium'
+  return 'low'
+}
+
+export function parseStatementPdf(result: PdfImportResult): FinancialImportPreview {
+  const lines = result.extractedText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+
+  const candidates: FinancialImportCandidate[] = []
+  const skippedLines: string[] = []
+
+  lines.forEach((line, index) => {
+    const dateMatch = DATE_PATTERNS.map((pattern) => line.match(pattern)?.[0] ?? null).find(Boolean) ?? null
+    const amountMatch = line.match(AMOUNT_PATTERN)?.[0] ?? null
+    const amount = amountMatch ? parseAmount(amountMatch) : null
+    const description = cleanDescription(line, dateMatch, amountMatch)
+    const isoDate = dateMatch ? toIsoDate(dateMatch) : null
+    const type = guessType(amount, line)
+    const confidence = confidenceForCandidate(isoDate, amount, description)
+
+    if (!dateMatch || amount === null || description.length < 3) {
+      if (skippedLines.length < 20 && /\d/.test(line)) skippedLines.push(line)
+      return
+    }
+
+    candidates.push({
+      id: `pdf-${index}`,
+      date: isoDate,
+      description,
+      amount: Math.abs(amount),
+      type,
+      category: guessCategory(description, type),
+      confidence,
+      raw: line,
+      selected: confidence !== 'low',
+    })
+  })
+
+  const warnings = [...result.warnings]
+  if (candidates.length === 0) {
+    warnings.push('Não consegui identificar linhas de movimento com confiança suficiente neste PDF.')
+  }
+  if (skippedLines.length > 0) {
+    warnings.push('Algumas linhas ficaram de fora e podem precisar de revisão manual.')
+  }
+
+  return {
+    source: 'pdf',
+    fileName: result.meta.fileName,
+    rawText: result.extractedText,
+    candidates,
+    skippedLines,
     warnings,
   }
 }

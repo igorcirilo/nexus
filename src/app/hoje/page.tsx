@@ -11,7 +11,6 @@ import XPToast, { triggerXP } from '@/components/XPToast'
 import AvatarXP from '@/components/AvatarXP'
 import NightSummaryCard from '@/components/NightSummaryCard'
 import LevelUpModal from '@/components/LevelUpModal'
-import WeeklyLeagueCard, { calcLeague } from '@/components/WeeklyLeagueCard'
 import {
   supabase,
   getProfile,
@@ -22,11 +21,9 @@ import {
   getCheckinsForDate,
   checkAndAwardBadges,
   claimLoginBonus,
-  getWeeklyLeagueXP,
-  getWeeklyLeagueOverview,
 } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
-import type { Profile, Habit, HabitLog, Checkin, WeeklyLeagueOverview } from '@/types'
+import type { Profile, Habit, HabitLog, Checkin } from '@/types'
 import StreakRecovery from '@/components/StreakRecovery'
 import EmptyState from '@/components/EmptyState'
 
@@ -40,8 +37,6 @@ export default function HojePage() {
   const [todayCheckins, setTodayCheckins] = useState<Checkin[]>([])
   const [weekChallenge, setWeekChallenge] = useState({ title: 'Semana da Consistência', done: 0, total: 7 })
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
-  const [leagueData, setLeagueData] = useState(calcLeague(0))
-  const [leagueOverview, setLeagueOverview] = useState<WeeklyLeagueOverview | null>(null)
   const today = format(new Date(), 'yyyy-MM-dd')
   const hour = new Date().getHours()
 
@@ -56,11 +51,10 @@ export default function HojePage() {
       }
       setUserId(user.id)
 
-      const [prof, hab, checkins, weekXP] = await Promise.all([
+      const [prof, hab, checkins] = await Promise.all([
         getProfile(user.id),
         getHabitsWithLogs(user.id, today),
         getCheckinsForDate(user.id, today),
-        getWeeklyLeagueXP(user.id),
       ])
 
       if (prof && !prof.onboarded) {
@@ -77,9 +71,6 @@ export default function HojePage() {
 
       setProfile(prof)
       setHabits(hab as (Habit & { habit_logs: HabitLog[] })[])
-      setLeagueData(calcLeague(weekXP))
-      const overview = await getWeeklyLeagueOverview(user.id)
-      setLeagueOverview(overview)
 
       if (prof && prof.streak_current === 0 && prof.streak_best > 0) setShowRecovery(true)
 
@@ -113,15 +104,11 @@ export default function HojePage() {
     const oldLevel = profile.level
     await addXP(profile.id, xp)
 
-    const [updated, weekXP, overview] = await Promise.all([
+    const [updated] = await Promise.all([
       getProfile(profile.id),
-      getWeeklyLeagueXP(profile.id),
-      getWeeklyLeagueOverview(profile.id),
     ])
     if (updated) {
       setProfile(updated)
-      setLeagueData(calcLeague(weekXP))
-      setLeagueOverview(overview)
       if (updated.level > oldLevel) {
         setTimeout(() => {
           setLevelUpData({ level: updated.level, title: updated.title ?? 'Guerreiro' })
@@ -229,7 +216,6 @@ export default function HojePage() {
         ))}
       </div>
 
-      <WeeklyLeagueCard data={leagueData} overview={leagueOverview} />
 
       <div style={{ margin: '12px 20px 0', padding: '14px 16px', borderRadius: 16, background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.2)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>

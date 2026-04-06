@@ -235,3 +235,28 @@ export interface SpreadsheetImportResult {
 }
 
 export type FileImportResult = PdfImportResult | SpreadsheetImportResult
+
+
+export type FinancialImportCandidateType = 'entrada' | 'saida'
+export type FinancialImportConfidence = 'high' | 'medium' | 'low'
+
+export interface FinancialImportCandidate {
+  id: string
+  date: string | null
+  description: string
+  amount: number | null
+  type: FinancialImportCandidateType | null
+  category: string
+  confidence: FinancialImportConfidence
+  raw: string
+  selected: boolean
+}
+
+export interface FinancialImportPreview {
+  source: 'pdf' | 'spreadsheet'
+  fileName: string
+  rawText: string
+  candidates: FinancialImportCandidate[]
+  skippedLines: string[]
+  warnings: string[]
+}
