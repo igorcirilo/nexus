@@ -326,7 +326,8 @@ export default function CalendarioPage() {
 
   // Cal 6: guardar evento com recorrência
   async function saveEv() {
-    if (!userId || !evTitle.trim()) return
+    const authUserId = userId || (await supabase.auth.getUser()).data.user?.id || null
+    if (!authUserId || !evTitle.trim()) return
     setEvSaving(true)
     const baseDate = new Date(evDate + 'T12:00:00')
     const dates: string[] = [evDate]
@@ -337,15 +338,33 @@ export default function CalendarioPage() {
       for (let i = 1; i < 6; i++)
         dates.push(format(addMonths(baseDate, i), 'yyyy-MM-dd'))
     }
-    await Promise.all(dates.map(d =>
-      saveAgendaEvent({ user_id:userId, title:evTitle, description:evDesc||null, date:d, time:evTime||null, end_time:evEndTime||null, color:evColor, all_day:evAllDay })
+    const results = await Promise.all(dates.map((d) =>
+      saveAgendaEvent({ user_id: authUserId, title: evTitle, description: evDesc || null, date: d, time: evTime || null, end_time: evEndTime || null, color: evColor, all_day: evAllDay })
     ))
-    await loadMonth(userId, current)
+    const failed = results.find((result) => result.error)
+    if (failed?.error) {
+      showToast(`Erro ao guardar evento: ${failed.error.message}`)
+      setEvSaving(false)
+      return
+    }
+    await loadMonth(authUserId, current)
     setShowEvForm(false)
     setEvTitle(''); setEvDesc(''); setEvTime(''); setEvEndTime(''); setEvRecurrence('none')
     const msg = evRecurrence === 'semanal' ? '12 semanas criadas!' : evRecurrence === 'mensal' ? '6 meses criados!' : 'Evento adicionado!'
     showToast(msg)
     setEvSaving(false)
+  }
+
+  async function removeEvent(id: string) {
+    if (!userId) return
+    const { error } = await deleteAgendaEvent(id, userId)
+    if (error) {
+      showToast(`Erro ao remover: ${error.message}`)
+      return
+    }
+    setEvents((prev) => prev.filter((event) => event.id !== id))
+    setSelEvents((prev) => prev.filter((event) => event.id !== id))
+    showToast('Evento removido!')
   }
 
   const days     = eachDayOfInterval({ start:startOfMonth(current), end:endOfMonth(current) })
@@ -544,7 +563,7 @@ export default function CalendarioPage() {
                         {!ev.all_day && ev.time && <div style={{fontSize:11,color:'var(--text3)'}}>{ev.time.slice(0,5)}{ev.end_time?` – ${ev.end_time.slice(0,5)}`:''}</div>}
                         {ev.all_day && <div style={{fontSize:11,color:'var(--text3)'}}>Dia inteiro</div>}
                       </div>
-                      <button onClick={()=>{deleteAgendaEvent(ev.id);setSelEvents(e=>e.filter(x=>x.id!==ev.id))}} style={{width:26,height:26,borderRadius:7,background:'var(--bg2)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14,flexShrink:0}}>×</button>
+                      <button onClick={()=>removeEvent(ev.id)} style={{width:26,height:26,borderRadius:7,background:'var(--bg2)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14,flexShrink:0}}>×</button>
                     </div>
                   ))}
                 </div>
@@ -893,7 +912,7 @@ export default function CalendarioPage() {
                     {ev.all_day&&<div style={{fontSize:12,color:'var(--text3)'}}>Dia inteiro</div>}
                     {ev.description&&<div style={{fontSize:12,color:'var(--text2)',marginTop:2}}>{ev.description}</div>}
                   </div>
-                  <button onClick={()=>{deleteAgendaEvent(ev.id);setEvents(e=>e.filter(x=>x.id!==ev.id))}} style={{width:28,height:28,borderRadius:8,background:'var(--bg3)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14}}>×</button>
+                  <button onClick={()=>removeEvent(ev.id)} style={{width:28,height:28,borderRadius:8,background:'var(--bg3)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14}}>×</button>
                 </div>
               ))}
             </div>

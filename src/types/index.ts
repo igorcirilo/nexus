@@ -236,27 +236,24 @@ export interface SpreadsheetImportResult {
 
 export type FileImportResult = PdfImportResult | SpreadsheetImportResult
 
-
-export type FinancialImportCandidateType = 'entrada' | 'saida'
-export type FinancialImportConfidence = 'high' | 'medium' | 'low'
-
-export interface FinancialImportCandidate {
+export interface TrainingPlan {
   id: string
-  date: string | null
-  description: string
-  amount: number | null
-  type: FinancialImportCandidateType | null
-  category: string
-  confidence: FinancialImportConfidence
-  raw: string
-  selected: boolean
+  user_id: string
+  title: string
+  source_type: ImportSourceKind
+  source_file_name: string | null
+  summary: string | null
+  raw_content: Record<string, unknown> | null
+  created_at: string
 }
 
-export interface FinancialImportPreview {
-  source: 'pdf' | 'spreadsheet'
-  fileName: string
-  rawText: string
-  candidates: FinancialImportCandidate[]
-  skippedLines: string[]
-  warnings: string[]
+export interface DietPlan {
+  id: string
+  user_id: string
+  title: string
+  source_type: ImportSourceKind
+  source_file_name: string | null
+  summary: string | null
+  raw_content: Record<string, unknown> | null
+  created_at: string
 }

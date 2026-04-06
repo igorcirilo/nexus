@@ -7,6 +7,7 @@ const ITEMS = [
   { href: '/hoje',      label: 'Hoje',        icon: HomeIcon     },
   { href: '/calendario',label: 'Calendário',  icon: CalIcon      },
   { href: '/habitos',   label: 'Hábitos',     icon: CheckIcon    },
+  { href: '/corpo',     label: 'Corpo',       icon: BodyIcon     },
   { href: '/progresso', label: 'Progresso',   icon: ActivityIcon },
   { href: '/financas',  label: 'Finanças',    icon: EuroIcon     },
   { href: '/objetivos', label: 'Objectivos',  icon: TargetIcon   },
@@ -72,4 +73,8 @@ function TargetIcon({ active }: { active: boolean }) {
 }
 function UserIcon({ active }: { active: boolean }) {
   return <Ico active={active}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Ico>
+}
+
+function BodyIcon({ active }: { active: boolean }) {
+  return <Ico active={active}><path d="M9 6V4a3 3 0 0 1 6 0v2"/><path d="M8 10a4 4 0 1 1 8 0c0 1.8-.6 3.1-1.8 4.2L12 16l-2.2-1.8C8.6 13.1 8 11.8 8 10Z"/><path d="M12 16v5"/><path d="M8.5 21h7"/></Ico>
 }

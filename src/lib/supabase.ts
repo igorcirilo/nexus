@@ -289,32 +289,79 @@ export async function getSession() {
 
 // ── Agenda ─────────────────────────────────────────────────
 export type AgendaEvent = {
-  id: string; user_id: string; title: string; description: string | null
-  date: string; time: string | null; end_time: string | null
-  color: string; all_day: boolean; created_at: string
+  id: string
+  user_id: string
+  title: string
+  description: string | null
+  date: string
+  time: string | null
+  end_time: string | null
+  color: string
+  all_day: boolean
+  created_at: string
 }
 
 export async function getAgendaEvents(userId: string, year: number, month: number) {
   const pad = (n: number) => String(n).padStart(2, '0')
   const start = `${year}-${pad(month)}-01`
-  const end   = `${year}-${pad(month)}-31`
-  const { data } = await supabase
-    .from('agenda_events').select('*')
-    .eq('user_id', userId).gte('date', start).lte('date', end)
+  const end = `${year}-${pad(month)}-31`
+  const { data, error } = await supabase
+    .from('agenda_events')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', start)
+    .lte('date', end)
+    .order('date')
     .order('time')
+
+  if (error) {
+    console.error('getAgendaEvents error:', error.message)
+    return []
+  }
+
   return (data ?? []) as AgendaEvent[]
 }
 
 export async function saveAgendaEvent(payload: Partial<AgendaEvent> & { user_id: string }) {
   if (payload.id) {
     const { id, ...rest } = payload
-    return supabase.from('agenda_events').update(rest).eq('id', id)
+    const { data, error } = await supabase
+      .from('agenda_events')
+      .update(rest)
+      .eq('id', id)
+      .eq('user_id', payload.user_id)
+      .select()
+      .single()
+
+    if (error) console.error('saveAgendaEvent update error:', error.message)
+    return { data: data as AgendaEvent | null, error }
   }
-  return supabase.from('agenda_events').insert(payload)
+
+  const { data, error } = await supabase
+    .from('agenda_events')
+    .insert({
+      user_id: payload.user_id,
+      title: payload.title?.trim() ?? '',
+      description: payload.description ?? null,
+      date: payload.date,
+      time: payload.all_day ? null : payload.time ?? null,
+      end_time: payload.all_day ? null : payload.end_time ?? null,
+      color: payload.color ?? '#E8A838',
+      all_day: payload.all_day ?? false,
+    })
+    .select()
+    .single()
+
+  if (error) console.error('saveAgendaEvent insert error:', error.message)
+  return { data: data as AgendaEvent | null, error }
 }
 
-export async function deleteAgendaEvent(id: string) {
-  return supabase.from('agenda_events').delete().eq('id', id)
+export async function deleteAgendaEvent(id: string, userId?: string) {
+  let query = supabase.from('agenda_events').delete().eq('id', id)
+  if (userId) query = query.eq('user_id', userId)
+  const { error } = await query
+  if (error) console.error('deleteAgendaEvent error:', error.message)
+  return { error }
 }
 
 // ── Transacções financeiras ─────────────────────────────────
@@ -368,16 +415,6 @@ export async function saveTransaction(payload: Record<string, unknown>) {
   return { data, error }
 }
 
-export async function saveTransactionsBulk(payloads: Record<string, unknown>[]) {
-  if (payloads.length === 0) return { data: [], error: null }
-  const { data, error } = await supabase
-    .from('transactions')
-    .insert(payloads)
-    .select()
-  if (error) console.error('saveTransactionsBulk error:', error.message)
-  return { data: data ?? [], error }
-}
-
 export async function deleteTransaction(id: string) {
   const { error } = await supabase.from('transactions').delete().eq('id', id)
   if (error) console.error('deleteTransaction error:', error.message)
@@ -389,6 +426,61 @@ export async function updateFinancialGoals(
   goals: { fin_monthly_save?: number; fin_reserve_goal?: number; fin_current_savings?: number }
 ) {
   return supabase.from('profiles').update(goals).eq('id', userId)
+}
+
+
+
+// ── Corpo ───────────────────────────────────────────────────
+export async function getTrainingPlans(userId: string) {
+  const { data, error } = await supabase
+    .from('training_plans')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('getTrainingPlans error:', error.message)
+    return []
+  }
+
+  return data ?? []
+}
+
+export async function saveTrainingPlan(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('training_plans')
+    .insert(payload)
+    .select()
+    .single()
+
+  if (error) console.error('saveTrainingPlan error:', error.message)
+  return { data, error }
+}
+
+export async function getDietPlans(userId: string) {
+  const { data, error } = await supabase
+    .from('diet_plans')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('getDietPlans error:', error.message)
+    return []
+  }
+
+  return data ?? []
+}
+
+export async function saveDietPlan(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('diet_plans')
+    .insert(payload)
+    .select()
+    .single()
+
+  if (error) console.error('saveDietPlan error:', error.message)
+  return { data, error }
 }
 
 // ── Badges automáticos ─────────────────────────────────────
