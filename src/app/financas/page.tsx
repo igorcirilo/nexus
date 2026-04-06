@@ -7,16 +7,14 @@ import {
   ResponsiveContainer, Cell,
 } from 'recharts'
 import Nav from '@/components/Nav'
-import FileImportModal from '@/components/FileImportModal'
-import { parseStatementPdf } from '@/lib/pdf'
 import {
   supabase, getProfile, getTransactions,
   getTransactionsByMonth, saveTransaction,
-  deleteTransaction, saveTransactionsBulk, updateFinancialGoals,
+  deleteTransaction, updateFinancialGoals,
 } from '@/lib/supabase'
 import { format, startOfMonth, endOfMonth, subMonths, getDaysInMonth, getDate } from 'date-fns'
 import { pt } from 'date-fns/locale'
-import type { FileImportResult, FinancialImportCandidate, FinancialImportPreview, Profile, SpreadsheetImportResult, Transaction } from '@/types'
+import type { Profile, Transaction } from '@/types'
 
 const CATEGORIES_IN  = ['Salário','Freelance','Investimento','Rendas','Presente','Outro']
 const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
@@ -63,93 +61,9 @@ export default function FinancasPage() {
   const [editBudget, setEditBudget]= useState<string|null>(null)
   const [budgetVal,  setBudgetVal] = useState('')
   const csvRef = useRef<HTMLInputElement>(null)
-  const [showImportModal, setShowImportModal] = useState(false)
-  const [importPreview, setImportPreview] = useState<FinancialImportPreview | null>(null)
-  const [importSaving, setImportSaving] = useState(false)
 
   const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
   function showToast(m:string) { setToast(m); setTimeout(()=>setToast(''),2400) }
-
-  function normalizeImportedDate(value: string) {
-    const clean = value.trim().replace(/\./g, '/').replace(/-/g, '/')
-    if (!clean) return ''
-    if (/^\d{4}\/\d{2}\/\d{2}$/.test(clean)) return clean.replace(/\//g, '-')
-    const parts = clean.split('/')
-    if (parts.length === 3) return `${parts[2].padStart(4, '20')}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`
-    return value
-  }
-
-  function normalizeSpreadsheetImport(result: SpreadsheetImportResult): FinancialImportPreview {
-    const firstSheet = result.sheets[0]
-    const rows = firstSheet?.rows ?? []
-    const headers = firstSheet?.headers ?? []
-    const findKey = (patterns: RegExp[]) => headers.find((header) => patterns.some((pattern) => pattern.test(header.toLowerCase())))
-    const dateKey = findKey([/data/, /date/])
-    const amountKey = findKey([/valor/, /amount/, /montante/])
-    const descKey = findKey([/descri/, /movimento/, /detalhe/, /merchant/, /texto/])
-    const typeKey = findKey([/tipo/, /type/])
-    const categoryKey = findKey([/categ/, /category/])
-
-    const candidates: FinancialImportCandidate[] = rows.map((row, index) => {
-      const amountRaw = amountKey ? row[amountKey] : null
-      const parsedAmount = typeof amountRaw === 'number'
-        ? amountRaw
-        : Number.parseFloat(String(amountRaw ?? '').replace(/\./g, '').replace(',', '.'))
-      const description = String(descKey ? row[descKey] ?? '' : '').trim() || `Linha ${index + 1}`
-      const rawType = String(typeKey ? row[typeKey] ?? '' : '').toLowerCase()
-      const type: FinancialImportCandidate['type'] = rawType.includes('entrada') || rawType.includes('receita')
-        ? 'entrada'
-        : rawType.includes('saida') || rawType.includes('saída') || rawType.includes('despesa')
-          ? 'saida'
-          : (Number.isFinite(parsedAmount) && parsedAmount < 0 ? 'saida' : 'saida')
-      const date = normalizeImportedDate(dateKey ? String(row[dateKey] ?? '').trim() : '')
-      const confidence: FinancialImportCandidate['confidence'] = Number.isFinite(parsedAmount) && date
-        ? 'high'
-        : Number.isFinite(parsedAmount)
-          ? 'medium'
-          : 'low'
-
-      return {
-        id: `sheet-${index}`,
-        date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null,
-        description,
-        amount: Number.isFinite(parsedAmount) ? Math.abs(parsedAmount) : null,
-        type,
-        category: String(categoryKey ? row[categoryKey] ?? '' : '').trim() || 'Outro',
-        confidence,
-        raw: JSON.stringify(row),
-        selected: Number.isFinite(parsedAmount) && Boolean(date),
-      }
-    }).filter((candidate) => candidate.amount !== null)
-
-    return {
-      source: 'spreadsheet',
-      fileName: result.meta.fileName,
-      rawText: rows.slice(0, 30).map((row) => JSON.stringify(row)).join('\n'),
-      candidates,
-      skippedLines: [],
-      warnings: result.warnings,
-    }
-  }
-
-  async function refreshTransactions(currentUserId: string) {
-    const [recent, hist] = await Promise.all([
-      getTransactions(currentUserId, 2),
-      getTransactionsByMonth(currentUserId, 6),
-    ])
-    setTxs(recent as Transaction[])
-    setHistory(hist as Transaction[])
-  }
-
-  function updateImportCandidate(candidateId: string, patch: Partial<FinancialImportCandidate>) {
-    setImportPreview((current) => {
-      if (!current) return current
-      return {
-        ...current,
-        candidates: current.candidates.map((candidate) => candidate.id === candidateId ? { ...candidate, ...patch } : candidate),
-      }
-    })
-  }
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data:{user} }) => {
@@ -257,52 +171,11 @@ export default function FinancasPage() {
         await saveTransaction({user_id:userId,date,type:type.toLowerCase().includes('entrada')?'entrada':'saida',category,amount:parseFloat(amount.replace(',','.')),description:description??null})
         imported++
       }
-      await refreshTransactions(userId)
+      const [r,h]=await Promise.all([getTransactions(userId,2),getTransactionsByMonth(userId,6)])
+      setTxs(r as Transaction[]); setHistory(h as Transaction[])
       showToast(`${imported} transacções importadas!`)
     }
     reader.readAsText(file); e.target.value=''
-  }
-
-  async function handleImportPreviewConfirm(result: FileImportResult) {
-    const preview = result.kind === 'pdf' ? parseStatementPdf(result) : normalizeSpreadsheetImport(result)
-    setShowImportModal(false)
-    setImportPreview(preview)
-    if (preview.candidates.length === 0) {
-      showToast('Não encontrei movimentos prontos a importar. Revê o PDF ou usa CSV.')
-      return
-    }
-    showToast(`${preview.candidates.length} movimento(s) prontos para revisão.`)
-  }
-
-  async function confirmImportTransactions() {
-    if (!userId || !importPreview) return
-    const selected = importPreview.candidates.filter((candidate) => candidate.selected && candidate.amount !== null && candidate.type && candidate.date)
-    if (selected.length === 0) {
-      showToast('Seleciona pelo menos um movimento válido.')
-      return
-    }
-
-    setImportSaving(true)
-    const payloads = selected.map((candidate) => ({
-      user_id: userId,
-      date: candidate.date,
-      type: candidate.type,
-      category: candidate.category || 'Outro',
-      amount: candidate.amount,
-      description: candidate.description || candidate.raw,
-    }))
-
-    const { error } = await saveTransactionsBulk(payloads)
-    if (error) {
-      setImportSaving(false)
-      showToast('Erro ao importar o extrato.')
-      return
-    }
-
-    await refreshTransactions(userId)
-    setImportSaving(false)
-    setImportPreview(null)
-    showToast(`${selected.length} movimento(s) importados.`)
   }
 
   const savingsGoal    = profile?.fin_monthly_save    ?? 0
@@ -333,8 +206,7 @@ export default function FinancasPage() {
           <h1 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:22,marginBottom:3}}>Finanças</h1>
           <p style={{fontSize:12,color:'var(--text3)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
         </div>
-        <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end'}}>
-          <button onClick={()=>setShowImportModal(true)} style={{background:'rgba(127,119,221,.12)',color:'var(--accent)',border:'0.5px solid rgba(127,119,221,.28)',borderRadius:12,padding:'9px 12px',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:12,cursor:'pointer'}}>Importar extrato</button>
+        <div style={{display:'flex',gap:8}}>
           <button onClick={()=>csvRef.current?.click()} style={{background:'var(--bg2)',color:'var(--text2)',border:'0.5px solid var(--border)',borderRadius:12,padding:'9px 12px',fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:12,cursor:'pointer'}}>↑ CSV</button>
           <input ref={csvRef} type="file" accept=".csv" style={{display:'none'}} onChange={importCSV}/>
           <button onClick={()=>setShowForm(true)} style={{background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:12,padding:'9px 16px',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>+ Registar</button>
@@ -348,12 +220,6 @@ export default function FinancasPage() {
             <span style={{fontSize:15}}>{t.icon}</span>{t.label}
           </button>
         ))}
-      </div>
-
-      <div style={{padding:'10px 20px 0'}}>
-        <div style={{background:'rgba(127,119,221,.08)',border:'0.5px solid rgba(127,119,221,.22)',borderRadius:14,padding:'12px 14px',fontSize:12,color:'var(--text2)'}}>
-          O fluxo principal agora é <strong>extrato PDF</strong>: carregas, a app lê o texto, tenta identificar data, descrição e valor, e depois revês antes de guardar. CSV continua como opção secundária.
-        </div>
       </div>
 
       {/* ── TAB RESUMO ── */}
@@ -457,7 +323,7 @@ export default function FinancasPage() {
             <div style={{textAlign:'center',padding:'40px 0',color:'var(--text3)'}}>
               <div style={{fontSize:40,marginBottom:12}}>💸</div>
               <div style={{fontSize:14,marginBottom:6}}>Sem transacções ainda.</div>
-              <div style={{fontSize:12}}>Clica em + Registar ou importa um extrato PDF.</div>
+              <div style={{fontSize:12}}>Clica em + Registar ou importa um CSV.</div>
             </div>
           )}
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
@@ -478,9 +344,9 @@ export default function FinancasPage() {
             ))}
           </div>
           <div style={{margin:'16px 0',padding:'12px 14px',borderRadius:12,background:'var(--bg2)',border:'0.5px solid var(--border)',fontSize:12,color:'var(--text3)',lineHeight:1.6}}>
-            <strong style={{color:'var(--text2)'}}>Fluxo principal:</strong> Importar extrato PDF → rever movimentos → confirmar importação.
-            <br />
-            <strong style={{color:'var(--text2)'}}>CSV secundário:</strong> cabeçalho <code style={{background:'var(--bg3)',padding:'1px 5px',borderRadius:4}}>data,tipo,categoria,valor,descricao</code>.
+            <strong style={{color:'var(--text2)'}}>Formato CSV:</strong> cabeçalho{' '}
+            <code style={{background:'var(--bg3)',padding:'1px 5px',borderRadius:4}}>data,tipo,categoria,valor,descricao</code>
+            . Tipo: "entrada" ou "saida".
           </div>
         </div>
       )}
@@ -655,88 +521,6 @@ export default function FinancasPage() {
             <button onClick={saveGoals} disabled={gSaving} style={{width:'100%',background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:14,padding:14,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
               {gSaving?'A guardar…':'Guardar metas'}
             </button>
-          </div>
-        </div>
-      )}
-
-      <FileImportModal
-        open={showImportModal}
-        title="Importar extrato"
-        kind="mixed"
-        confirmLabel="Rever movimentos"
-        onClose={() => setShowImportModal(false)}
-        onConfirm={handleImportPreviewConfirm}
-      />
-
-
-
-      {importPreview && (
-        <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.72)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setImportPreview(null)}>
-          <div style={{width:'100%',maxWidth:720,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',display:'flex',flexDirection:'column',maxHeight:'92vh'}}>
-            <div style={{padding:'18px 18px 12px',borderBottom:'0.5px solid var(--border)',display:'flex',justifyContent:'space-between',alignItems:'center',gap:12}}>
-              <div>
-                <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Rever importação</div>
-                <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>{importPreview.fileName} · {importPreview.candidates.length} movimento(s) detetado(s)</div>
-              </div>
-              <button onClick={()=>setImportPreview(null)} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>
-            </div>
-
-            <div style={{padding:'14px 16px',overflowY:'auto',display:'grid',gap:12}}>
-              {importPreview.warnings.length > 0 && (
-                <div style={{background:'rgba(232,168,56,.08)',border:'0.5px solid rgba(232,168,56,.28)',borderRadius:14,padding:'12px 14px',fontSize:12,color:'var(--text2)',lineHeight:1.6}}>
-                  {importPreview.warnings.map((warning) => <div key={warning}>• {warning}</div>)}
-                </div>
-              )}
-
-              <div style={{display:'grid',gap:10}}>
-                {importPreview.candidates.map((candidate) => (
-                  <div key={candidate.id} style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:14,padding:12,display:'grid',gap:10}}>
-                    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
-                      <label style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'var(--text2)',cursor:'pointer'}}>
-                        <input type="checkbox" checked={candidate.selected} onChange={e=>updateImportCandidate(candidate.id,{selected:e.target.checked})} />
-                        Importar
-                      </label>
-                      <div style={{fontSize:11,color:candidate.confidence==='high'?'var(--teal)':candidate.confidence==='medium'?'var(--gold)':'#FFB4B1'}}>
-                        confiança {candidate.confidence}
-                      </div>
-                    </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                      <div>
-                        <label style={{fontSize:11,color:'var(--text3)',display:'block',marginBottom:4}}>Data</label>
-                        <input type="date" value={candidate.date ?? ''} onChange={e=>updateImportCandidate(candidate.id,{date:e.target.value})} style={inp} />
-                      </div>
-                      <div>
-                        <label style={{fontSize:11,color:'var(--text3)',display:'block',marginBottom:4}}>Valor (€)</label>
-                        <input type="number" step="0.01" value={candidate.amount ?? ''} onChange={e=>updateImportCandidate(candidate.id,{amount:e.target.value?Number(e.target.value):null})} style={inp} />
-                      </div>
-                    </div>
-                    <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
-                      <div>
-                        <label style={{fontSize:11,color:'var(--text3)',display:'block',marginBottom:4}}>Tipo</label>
-                        <select value={candidate.type ?? 'saida'} onChange={e=>updateImportCandidate(candidate.id,{type:e.target.value as 'entrada'|'saida'})} style={inp}>
-                          <option value="entrada">Entrada</option>
-                          <option value="saida">Saída</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label style={{fontSize:11,color:'var(--text3)',display:'block',marginBottom:4}}>Categoria</label>
-                        <input value={candidate.category} onChange={e=>updateImportCandidate(candidate.id,{category:e.target.value})} style={inp} />
-                      </div>
-                    </div>
-                    <div>
-                      <label style={{fontSize:11,color:'var(--text3)',display:'block',marginBottom:4}}>Descrição</label>
-                      <input value={candidate.description} onChange={e=>updateImportCandidate(candidate.id,{description:e.target.value})} style={inp} />
-                    </div>
-                    <div style={{fontSize:11,color:'var(--text3)',lineHeight:1.5}}>Linha lida: {candidate.raw}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div style={{padding:'14px 18px 42px',borderTop:'0.5px solid var(--border)',display:'flex',gap:10}}>
-              <button onClick={()=>setImportPreview(null)} style={{flex:1,background:'var(--bg2)',color:'var(--text2)',border:'0.5px solid var(--border)',borderRadius:14,padding:14,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancelar</button>
-              <button onClick={confirmImportTransactions} disabled={importSaving} style={{flex:1,background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:14,padding:14,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>{importSaving?'A importar…':'Confirmar importação'}</button>
-            </div>
           </div>
         </div>
       )}
