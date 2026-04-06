@@ -339,7 +339,7 @@ export default function CalendarioPage() {
         dates.push(format(addMonths(baseDate, i), 'yyyy-MM-dd'))
     }
     const results = await Promise.all(dates.map((d) =>
-      saveAgendaEvent({ user_id: currentUserId, title: evTitle, description: evDesc || null, date: d, time: evTime || null, end_time: evEndTime || null, color: evColor, all_day: evAllDay })
+      saveAgendaEvent({ user_id: authUserId, title: evTitle, description: evDesc || null, date: d, time: evTime || null, end_time: evEndTime || null, color: evColor, all_day: evAllDay })
     ))
     const failed = results.find((result) => result.error)
     if (failed?.error) {
@@ -347,7 +347,7 @@ export default function CalendarioPage() {
       setEvSaving(false)
       return
     }
-    await loadMonth(currentUserId, current)
+    await loadMonth(authUserId, current)
     setShowEvForm(false)
     setEvTitle(''); setEvDesc(''); setEvTime(''); setEvEndTime(''); setEvRecurrence('none')
     const msg = evRecurrence === 'semanal' ? '12 semanas criadas!' : evRecurrence === 'mensal' ? '6 meses criados!' : 'Evento adicionado!'
