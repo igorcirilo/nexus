@@ -252,6 +252,36 @@ export interface DietPlan {
   created_at: string
 }
 
+
+export interface TrainingEntry {
+  id: string
+  user_id: string
+  training_plan_id: string
+  date: string
+  completed: boolean
+  notes: string | null
+  completed_at: string | null
+  created_at: string
+}
+
+export type DietMealKey =
+  | 'pequeno_almoco'
+  | 'almoco'
+  | 'jantar'
+  | 'lanche'
+
+export interface DietMeal {
+  id: string
+  user_id: string
+  diet_plan_id: string
+  date: string
+  meal_key: DietMealKey
+  completed: boolean
+  notes: string | null
+  completed_at: string | null
+  created_at: string
+}
+
 export function xpForLevel(level: number): number {
   return Math.round((500 * level * (level + 1)) / 2)
 }

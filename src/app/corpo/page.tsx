@@ -13,7 +13,20 @@ import {
   saveDietPlan,
   saveTrainingPlan,
 } from '@/lib/supabase'
-import type { DietPlan, FileImportResult, TrainingPlan } from '@/types'
+import {
+  getDietMeals,
+  getTrainingEntries,
+  upsertDietMeal,
+  upsertTrainingEntry,
+} from '@/lib/body'
+import type {
+  DietMeal,
+  DietMealKey,
+  DietPlan,
+  FileImportResult,
+  TrainingEntry,
+  TrainingPlan,
+} from '@/types'
 
 type BodyTab = 'treino' | 'dieta'
 
@@ -23,6 +36,13 @@ const card: CSSProperties = {
   borderRadius: 16,
   padding: 14,
 }
+
+const mealOptions: Array<{ key: DietMealKey; label: string; icon: string }> = [
+  { key: 'pequeno_almoco', label: 'Pequeno-almoço', icon: '🍳' },
+  { key: 'almoco', label: 'Almoço', icon: '🍽️' },
+  { key: 'jantar', label: 'Jantar', icon: '🌙' },
+  { key: 'lanche', label: 'Lanche', icon: '🥤' },
+]
 
 function getImportSummary(result: FileImportResult) {
   if (result.kind === 'pdf') {
@@ -37,6 +57,13 @@ function getSourceLabel(sourceType: TrainingPlan['source_type'] | DietPlan['sour
   return sourceType === 'pdf' ? 'PDF' : 'Planilha'
 }
 
+function getLocalDateString() {
+  const now = new Date()
+  const offset = now.getTimezoneOffset()
+  const local = new Date(now.getTime() - offset * 60 * 1000)
+  return local.toISOString().split('T')[0]
+}
+
 export default function CorpoPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [tab, setTab] = useState<BodyTab>('treino')
@@ -46,6 +73,15 @@ export default function CorpoPage() {
   const [showDietImport, setShowDietImport] = useState(false)
   const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([])
   const [dietPlans, setDietPlans] = useState<DietPlan[]>([])
+  const [trainingEntries, setTrainingEntries] = useState<TrainingEntry[]>([])
+  const [dietMeals, setDietMeals] = useState<DietMeal[]>([])
+  const [selectedTrainingPlanId, setSelectedTrainingPlanId] = useState<string | null>(null)
+  const [selectedDietPlanId, setSelectedDietPlanId] = useState<string | null>(null)
+  const [trainingNotes, setTrainingNotes] = useState('')
+  const [mealNotes, setMealNotes] = useState<Record<string, string>>({})
+  const [saving, setSaving] = useState(false)
+
+  const today = getLocalDateString()
 
   function showToast(message: string) {
     setToast(message)
@@ -53,20 +89,44 @@ export default function CorpoPage() {
   }
 
   async function loadBodyData(uid: string) {
-    const [training, diet] = await Promise.all([
+    const [training, diet, entries, meals] = await Promise.all([
       getTrainingPlans(uid),
       getDietPlans(uid),
+      getTrainingEntries(uid, today),
+      getDietMeals(uid, today),
     ])
 
-    setTrainingPlans((training ?? []) as TrainingPlan[])
-    setDietPlans((diet ?? []) as DietPlan[])
+    const nextTrainingPlans = (training ?? []) as TrainingPlan[]
+    const nextDietPlans = (diet ?? []) as DietPlan[]
+    const nextEntries = (entries ?? []) as TrainingEntry[]
+    const nextMeals = (meals ?? []) as DietMeal[]
+
+    setTrainingPlans(nextTrainingPlans)
+    setDietPlans(nextDietPlans)
+    setTrainingEntries(nextEntries)
+    setDietMeals(nextMeals)
+
+    setSelectedTrainingPlanId((current) => current ?? nextTrainingPlans[0]?.id ?? null)
+    setSelectedDietPlanId((current) => current ?? nextDietPlans[0]?.id ?? null)
+
+    const effectiveTrainingPlanId = selectedTrainingPlanId ?? nextTrainingPlans[0]?.id
+    const selectedEntry = nextEntries.find((entry) => entry.training_plan_id === effectiveTrainingPlanId)
+    setTrainingNotes(selectedEntry?.notes ?? '')
+
+    const nextMealNotes: Record<string, string> = {}
+    nextMeals.forEach((meal) => {
+      nextMealNotes[meal.meal_key] = meal.notes ?? ''
+    })
+    setMealNotes(nextMealNotes)
   }
 
   useEffect(() => {
     let active = true
 
     async function bootstrap() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
 
       if (!user) {
         window.location.href = '/auth'
@@ -89,8 +149,23 @@ export default function CorpoPage() {
     }
   }, [])
 
+  const selectedTrainingEntry = useMemo(() => {
+    if (!selectedTrainingPlanId) return null
+    return trainingEntries.find((entry) => entry.training_plan_id === selectedTrainingPlanId) ?? null
+  }, [selectedTrainingPlanId, trainingEntries])
+
+  const selectedDietMeals = useMemo(() => {
+    if (!selectedDietPlanId) return []
+    return dietMeals.filter((meal) => meal.diet_plan_id === selectedDietPlanId)
+  }, [selectedDietPlanId, dietMeals])
+
+  useEffect(() => {
+    setTrainingNotes(selectedTrainingEntry?.notes ?? '')
+  }, [selectedTrainingEntry])
+
   const trainingSummary = useMemo(() => {
     const latest = trainingPlans[0]
+    const completedToday = trainingEntries.filter((entry) => entry.completed).length
 
     return {
       total: trainingPlans.length,
@@ -98,11 +173,13 @@ export default function CorpoPage() {
       latestDate: latest?.created_at
         ? format(new Date(latest.created_at), 'd MMM', { locale: pt })
         : '—',
+      completedToday,
     }
-  }, [trainingPlans])
+  }, [trainingPlans, trainingEntries])
 
   const dietSummary = useMemo(() => {
     const latest = dietPlans[0]
+    const doneMeals = dietMeals.filter((meal) => meal.completed).length
 
     return {
       total: dietPlans.length,
@@ -110,8 +187,9 @@ export default function CorpoPage() {
       latestDate: latest?.created_at
         ? format(new Date(latest.created_at), 'd MMM', { locale: pt })
         : '—',
+      doneMeals,
     }
-  }, [dietPlans])
+  }, [dietPlans, dietMeals])
 
   async function handleTrainingImport(result: FileImportResult) {
     if (!userId) return
@@ -161,6 +239,106 @@ export default function CorpoPage() {
     showToast('Plano de dieta importado!')
   }
 
+  async function handleToggleTraining(completed: boolean) {
+    if (!userId || !selectedTrainingPlanId) return
+
+    setSaving(true)
+
+    const { error } = await upsertTrainingEntry({
+      user_id: userId,
+      training_plan_id: selectedTrainingPlanId,
+      date: today,
+      completed,
+      notes: trainingNotes,
+    })
+
+    setSaving(false)
+
+    if (error) {
+      showToast('Erro ao guardar treino do dia.')
+      return
+    }
+
+    await loadBodyData(userId)
+    showToast(completed ? 'Treino marcado como feito.' : 'Treino desmarcado.')
+  }
+
+  async function handleSaveTrainingNotes() {
+    if (!userId || !selectedTrainingPlanId) return
+
+    setSaving(true)
+
+    const { error } = await upsertTrainingEntry({
+      user_id: userId,
+      training_plan_id: selectedTrainingPlanId,
+      date: today,
+      completed: selectedTrainingEntry?.completed ?? false,
+      notes: trainingNotes,
+    })
+
+    setSaving(false)
+
+    if (error) {
+      showToast('Erro ao guardar notas do treino.')
+      return
+    }
+
+    await loadBodyData(userId)
+    showToast('Notas do treino guardadas.')
+  }
+
+  async function handleToggleMeal(mealKey: DietMealKey, completed: boolean) {
+    if (!userId || !selectedDietPlanId) return
+
+    setSaving(true)
+
+    const { error } = await upsertDietMeal({
+      user_id: userId,
+      diet_plan_id: selectedDietPlanId,
+      date: today,
+      meal_key: mealKey,
+      completed,
+      notes: mealNotes[mealKey] ?? '',
+    })
+
+    setSaving(false)
+
+    if (error) {
+      showToast('Erro ao guardar refeição.')
+      return
+    }
+
+    await loadBodyData(userId)
+    showToast(completed ? 'Refeição marcada.' : 'Refeição desmarcada.')
+  }
+
+  async function handleSaveMealNotes(mealKey: DietMealKey) {
+    if (!userId || !selectedDietPlanId) return
+
+    const current = selectedDietMeals.find((meal) => meal.meal_key === mealKey)
+
+    setSaving(true)
+
+    const { error } = await upsertDietMeal({
+      user_id: userId,
+      diet_plan_id: selectedDietPlanId,
+      date: today,
+      meal_key: mealKey,
+      completed: current?.completed ?? false,
+      notes: mealNotes[mealKey] ?? '',
+    })
+
+    setSaving(false)
+
+    if (error) {
+      showToast('Erro ao guardar nota da refeição.')
+      return
+    }
+
+    await loadBodyData(userId)
+    showToast('Nota da refeição guardada.')
+  }
+
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
@@ -198,15 +376,15 @@ export default function CorpoPage() {
           Corpo
         </h1>
         <p style={{ fontSize: 12, color: 'var(--text3)' }}>
-          Treino e dieta num único sítio, com importação e consulta rápida.
+          Treino e dieta com acompanhamento diário simples e persistente.
         </p>
       </div>
 
       <div style={{ padding: '14px 20px 0', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         <div style={card}>
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>Treino</div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>Treino de hoje</div>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--teal)' }}>
-            {trainingSummary.total}
+            {trainingSummary.completedToday > 0 ? 'Feito' : 'Pendente'}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>
             {trainingSummary.latestTitle}
@@ -217,9 +395,9 @@ export default function CorpoPage() {
         </div>
 
         <div style={card}>
-          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>Dieta</div>
+          <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>Dieta de hoje</div>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--gold)' }}>
-            {dietSummary.total}
+            {dietSummary.doneMeals}/4
           </div>
           <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4 }}>
             {dietSummary.latestTitle}
@@ -272,10 +450,10 @@ export default function CorpoPage() {
           <div style={{ ...card, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
             <div>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16 }}>
-                Importar treino
+                Treino de hoje
               </div>
               <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
-                Aceita PDF, XLSX, XLS e CSV com preview antes de guardar.
+                Marca o treino como feito e guarda notas rápidas.
               </div>
             </div>
             <button
@@ -302,29 +480,133 @@ export default function CorpoPage() {
               </div>
             </div>
           ) : (
-            trainingPlans.map((plan) => (
-              <div key={plan.id} style={card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15 }}>
+            <>
+              <div style={card}>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>
+                  Plano ativo de hoje
+                </label>
+                <select
+                  value={selectedTrainingPlanId ?? ''}
+                  onChange={(e) => setSelectedTrainingPlanId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg1)',
+                    color: 'var(--text1)',
+                    border: '0.5px solid var(--border)',
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    outline: 'none',
+                  }}
+                >
+                  {trainingPlans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
                       {plan.title}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
-                      {plan.summary ?? 'Sem resumo'}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>
-                    {format(new Date(plan.created_at), 'd MMM yyyy', { locale: pt })}
-                  </div>
+                    </option>
+                  ))}
+                </select>
+
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                  <button
+                    onClick={() => handleToggleTraining(true)}
+                    disabled={saving || !selectedTrainingPlanId}
+                    style={{
+                      flex: 1,
+                      background: selectedTrainingEntry?.completed ? 'rgba(30,203,180,.14)' : 'var(--teal)',
+                      color: selectedTrainingEntry?.completed ? 'var(--teal)' : '#04110F',
+                      border: 'none',
+                      borderRadius: 12,
+                      padding: '12px 14px',
+                      fontFamily: 'Syne, sans-serif',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      opacity: saving ? 0.7 : 1,
+                    }}
+                  >
+                    {selectedTrainingEntry?.completed ? 'Treino feito ✓' : 'Marcar como feito'}
+                  </button>
+
+                  <button
+                    onClick={() => handleToggleTraining(false)}
+                    disabled={saving || !selectedTrainingPlanId}
+                    style={{
+                      background: 'transparent',
+                      color: 'var(--text3)',
+                      border: '0.5px solid var(--border)',
+                      borderRadius: 12,
+                      padding: '12px 14px',
+                      fontFamily: 'Syne, sans-serif',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      opacity: saving ? 0.7 : 1,
+                    }}
+                  >
+                    Limpar
+                  </button>
                 </div>
-                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text2)' }}>
-                  Ficheiro: {plan.source_file_name ?? '—'}
-                </div>
-                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text3)' }}>
-                  Origem: {getSourceLabel(plan.source_type)}
-                </div>
+
+                <textarea
+                  value={trainingNotes}
+                  onChange={(e) => setTrainingNotes(e.target.value)}
+                  placeholder="Notas do treino: carga, energia, observações..."
+                  style={{
+                    width: '100%',
+                    minHeight: 96,
+                    resize: 'vertical',
+                    marginTop: 12,
+                    background: 'var(--bg1)',
+                    color: 'var(--text1)',
+                    border: '0.5px solid var(--border)',
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    outline: 'none',
+                  }}
+                />
+
+                <button
+                  onClick={handleSaveTrainingNotes}
+                  disabled={saving || !selectedTrainingPlanId}
+                  style={{
+                    width: '100%',
+                    marginTop: 10,
+                    background: 'var(--bg1)',
+                    color: 'var(--gold)',
+                    border: '0.5px solid var(--border)',
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    fontFamily: 'Syne, sans-serif',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    opacity: saving ? 0.7 : 1,
+                  }}
+                >
+                  Guardar notas
+                </button>
               </div>
-            ))
+
+              {trainingPlans.map((plan) => (
+                <div key={plan.id} style={card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15 }}>
+                        {plan.title}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                        {plan.summary ?? 'Sem resumo'}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                      {format(new Date(plan.created_at), 'd MMM yyyy', { locale: pt })}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text2)' }}>
+                    Ficheiro: {plan.source_file_name ?? '—'}
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text3)' }}>
+                    Origem: {getSourceLabel(plan.source_type)}
+                  </div>
+                </div>
+              ))}
+            </>
           )}
         </section>
       )}
@@ -334,10 +616,10 @@ export default function CorpoPage() {
           <div style={{ ...card, display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
             <div>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16 }}>
-                Importar dieta
+                Dieta de hoje
               </div>
               <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
-                Aceita PDF e planilhas para guardar plano alimentar com preview.
+                Marca refeições concluídas e guarda observações rápidas.
               </div>
             </div>
             <button
@@ -364,29 +646,132 @@ export default function CorpoPage() {
               </div>
             </div>
           ) : (
-            dietPlans.map((plan) => (
-              <div key={plan.id} style={card}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15 }}>
+            <>
+              <div style={card}>
+                <label style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>
+                  Plano ativo de hoje
+                </label>
+                <select
+                  value={selectedDietPlanId ?? ''}
+                  onChange={(e) => setSelectedDietPlanId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg1)',
+                    color: 'var(--text1)',
+                    border: '0.5px solid var(--border)',
+                    borderRadius: 12,
+                    padding: '12px 14px',
+                    outline: 'none',
+                  }}
+                >
+                  {dietPlans.map((plan) => (
+                    <option key={plan.id} value={plan.id}>
                       {plan.title}
-                    </div>
-                    <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
-                      {plan.summary ?? 'Sem resumo'}
-                    </div>
-                  </div>
-                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>
-                    {format(new Date(plan.created_at), 'd MMM yyyy', { locale: pt })}
-                  </div>
-                </div>
-                <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text2)' }}>
-                  Ficheiro: {plan.source_file_name ?? '—'}
-                </div>
-                <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text3)' }}>
-                  Origem: {getSourceLabel(plan.source_type)}
+                    </option>
+                  ))}
+                </select>
+
+                <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+                  {mealOptions.map((meal) => {
+                    const current = selectedDietMeals.find((item) => item.meal_key === meal.key)
+                    const checked = current?.completed ?? false
+
+                    return (
+                      <div
+                        key={meal.key}
+                        style={{
+                          background: 'var(--bg1)',
+                          border: '0.5px solid var(--border)',
+                          borderRadius: 14,
+                          padding: 12,
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center' }}>
+                          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14 }}>
+                            {meal.icon} {meal.label}
+                          </div>
+                          <button
+                            onClick={() => handleToggleMeal(meal.key, !checked)}
+                            disabled={saving || !selectedDietPlanId}
+                            style={{
+                              background: checked ? 'rgba(30,203,180,.14)' : 'transparent',
+                              color: checked ? 'var(--teal)' : 'var(--text3)',
+                              border: '0.5px solid var(--border)',
+                              borderRadius: 10,
+                              padding: '8px 10px',
+                              fontFamily: 'Syne, sans-serif',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {checked ? 'Feita ✓' : 'Marcar'}
+                          </button>
+                        </div>
+
+                        <textarea
+                          value={mealNotes[meal.key] ?? ''}
+                          onChange={(e) => setMealNotes((prev) => ({ ...prev, [meal.key]: e.target.value }))}
+                          placeholder="Notas da refeição..."
+                          style={{
+                            width: '100%',
+                            minHeight: 72,
+                            resize: 'vertical',
+                            marginTop: 10,
+                            background: 'transparent',
+                            color: 'var(--text1)',
+                            border: '0.5px solid var(--border)',
+                            borderRadius: 10,
+                            padding: '10px 12px',
+                            outline: 'none',
+                          }}
+                        />
+
+                        <button
+                          onClick={() => handleSaveMealNotes(meal.key)}
+                          disabled={saving || !selectedDietPlanId}
+                          style={{
+                            marginTop: 8,
+                            background: 'transparent',
+                            color: 'var(--gold)',
+                            border: 'none',
+                            padding: 0,
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                          }}
+                        >
+                          Guardar nota
+                        </button>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
-            ))
+
+              {dietPlans.map((plan) => (
+                <div key={plan.id} style={card}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
+                    <div>
+                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15 }}>
+                        {plan.title}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
+                        {plan.summary ?? 'Sem resumo'}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                      {format(new Date(plan.created_at), 'd MMM yyyy', { locale: pt })}
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 10, fontSize: 12, color: 'var(--text2)' }}>
+                    Ficheiro: {plan.source_file_name ?? '—'}
+                  </div>
+                  <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text3)' }}>
+                    Origem: {getSourceLabel(plan.source_type)}
+                  </div>
+                </div>
+              ))}
+            </>
           )}
         </section>
       )}
