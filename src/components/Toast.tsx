@@ -8,14 +8,22 @@ type ToastCtx = { success: (m: string) => void; error: (m: string) => void; info
 
 const Ctx = createContext<ToastCtx | null>(null)
 
+const BG: Record<ToastType, string> = {
+  success: '#1D9E75',
+  error:   '#E24B4A',
+  info:    '#7F77DD',
+}
+
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
   const nextId = useRef(0)
+  const timers = useRef<ReturnType<typeof setTimeout>[]>([])
 
   const add = useCallback((message: string, type: ToastType) => {
     const id = ++nextId.current
     setToasts(prev => [...prev.slice(-2), { id, message, type }])
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
+    const t = setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
+    timers.current.push(t)
   }, [])
 
   useEffect(() => {
@@ -24,14 +32,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       add(message, type)
     }
     window.addEventListener('nexus-toast', handler)
-    return () => window.removeEventListener('nexus-toast', handler)
+    return () => {
+      window.removeEventListener('nexus-toast', handler)
+      timers.current.forEach(clearTimeout)
+    }
   }, [add])
-
-  const BG: Record<ToastType, string> = {
-    success: '#1D9E75',
-    error:   '#E24B4A',
-    info:    '#7F77DD',
-  }
 
   return (
     <Ctx.Provider value={{ success: m => add(m, 'success'), error: m => add(m, 'error'), info: m => add(m, 'info') }}>
