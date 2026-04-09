@@ -22,6 +22,8 @@ import {
   getCheckinsForDate,
   checkAndAwardBadges,
   claimLoginBonus,
+  canClaimStreakRecovery,
+  claimStreakRecovery,
 } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
 import type { Profile, Habit, HabitLog, Checkin } from '@/types'
@@ -44,6 +46,7 @@ export default function HojePage() {
   const [missionPct, setMissionPct] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showRecovery, setShowRecovery] = useState(false)
+  const [canRecover, setCanRecover] = useState(false)
   const [todayCheckins, setTodayCheckins] = useState<Checkin[]>([])
   const [weekChallenge, setWeekChallenge] = useState({ title: 'Semana da Consistencia', done: 0, total: 7 })
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
@@ -85,7 +88,11 @@ export default function HojePage() {
       setProfile(prof)
       setHabits(hab as (Habit & { habit_logs: HabitLog[] })[])
 
-      if (prof && prof.streak_current === 0 && prof.streak_best > 0) setShowRecovery(true)
+      if (prof && prof.streak_current === 0 && prof.streak_best > 0) {
+        setShowRecovery(true)
+        const canRec = await canClaimStreakRecovery(user.id)
+        setCanRecover(canRec)
+      }
 
       const challenge = await getDynamicWeeklyChallenge(user.id)
       setWeekChallenge(challenge)
@@ -129,6 +136,17 @@ export default function HojePage() {
       }
     } else {
       setProfile((p) => (p ? { ...p, xp_total: p.xp_total + xp } : p))
+    }
+  }
+
+  async function handleStreakRecover() {
+    if (!userId) return
+    const success = await claimStreakRecovery(userId)
+    if (success) {
+      setShowRecovery(false)
+      setCanRecover(false)
+      const updated = await getProfile(userId)
+      if (updated) setProfile(updated)
     }
   }
 
@@ -195,6 +213,8 @@ export default function HojePage() {
       {showRecovery && profile && (
         <StreakRecovery
           prevBest={profile.streak_best}
+          canRecover={canRecover}
+          onRecover={handleStreakRecover}
           onDismiss={() => setShowRecovery(false)}
           onCheckin={() => {
             window.location.href = '/checkin'
