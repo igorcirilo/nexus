@@ -1,13 +1,12 @@
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
 import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding, ReaderMode, ReaderTheme } from '@/types'
+import { emitToast } from '@/components/Toast'
 
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnon)
-
-import { emitToast } from '@/components/Toast'
 
 function reportError(context: string, message: string) {
   console.error(`${context}:`, message)
@@ -1017,12 +1016,15 @@ export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLea
 
 // ── Streak Recovery (freeze semanal) ───────────────────────
 
-/** Semana ISO no formato YYYY-Www (ex: 2026-W15) */
+/** Semana ISO no formato YYYY-Www (ex: 2026-W15) usando algoritmo ISO 8601 correto */
 function currentISOWeek(): string {
   const now = new Date()
-  const jan4 = new Date(now.getFullYear(), 0, 4)
-  const week = Math.ceil(((now.getTime() - jan4.getTime()) / 86400000 + jan4.getDay() + 1) / 7)
-  return `${now.getFullYear()}-W${String(week).padStart(2, '0')}`
+  const thursday = new Date(now)
+  thursday.setDate(now.getDate() - ((now.getDay() + 6) % 7) + 3) // quinta-feira desta semana ISO
+  const firstThursday = new Date(thursday.getFullYear(), 0, 4)
+  firstThursday.setDate(firstThursday.getDate() - ((firstThursday.getDay() + 6) % 7) + 3)
+  const week = Math.round((thursday.getTime() - firstThursday.getTime()) / 604800000) + 1
+  return `${thursday.getFullYear()}-W${String(week).padStart(2, '0')}`
 }
 
 /**
@@ -1039,9 +1041,10 @@ export async function canClaimStreakRecovery(userId: string): Promise<boolean> {
     .single()
 
   if (!prof) return false
-  if (prof.streak_current > 0) return false
-  if (!prof.streak_best || prof.streak_best === 0) return false
-  if ((prof as Record<string, unknown>).streak_freeze_used_week === currentISOWeek()) return false
+  const p = prof as typeof prof & { streak_freeze_used_week?: string | null }
+  if (p.streak_current > 0) return false
+  if (!p.streak_best || p.streak_best === 0) return false
+  if (p.streak_freeze_used_week === currentISOWeek()) return false
 
   // Verificar se teve atividade nos últimos 2 dias
   const cutoff = new Date()

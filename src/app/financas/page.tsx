@@ -12,6 +12,7 @@ import {
   getTransactionsByMonth, saveTransaction,
   saveTransactionsBulk, deleteTransaction, updateFinancialGoals,
 } from '@/lib/supabase'
+import { useToast } from '@/components/Toast'
 import {
   parseCsvText, detectColumnMap, rowsToTransactions,
   type TransactionCandidate,
@@ -38,6 +39,7 @@ const TT: React.CSSProperties = {
 }
 
 export default function FinancasPage() {
+  const toast = useToast()
   const [profile,    setProfile]   = useState<Profile|null>(null)
   const [txs,        setTxs]       = useState<Transaction[]>([])
   const [history,    setHistory]   = useState<Transaction[]>([])
@@ -45,7 +47,6 @@ export default function FinancasPage() {
   const [tab,        setTab]       = useState<AppTab>('resumo')
   const [loading,    setLoading]   = useState(true)
   const [ready,      setReady]     = useState(false)
-  const [toast,      setToast]     = useState('')
   const [budgets,    setBudgets]   = useState<Record<string,number>>(DEFAULT_BUDGETS)
   // Form transacção
   const [showForm,   setShowForm]  = useState(false)
@@ -69,7 +70,10 @@ export default function FinancasPage() {
   const [csvImporting, setCsvImporting] = useState(false)
 
   const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
-  function showToast(m:string) { setToast(m); setTimeout(()=>setToast(''),2400) }
+  function showToast(m: string, type: 'success' | 'error' | 'info' = 'success') {
+    if (type === 'error') toast.error(m)
+    else toast.success(m)
+  }
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data:{user} }) => {
@@ -133,7 +137,7 @@ export default function FinancasPage() {
     if (!userId||!fAmount||!fCat) return
     setSaving(true)
     const {error} = await saveTransaction({user_id:userId,type:txType,category:fCat,description:fDesc||null,amount:parseFloat(fAmount),date:fDate})
-    if (error) { showToast('Erro ao guardar.'); setSaving(false); return }
+    if (error) { showToast('Erro ao guardar.', 'error'); setSaving(false); return }
     const [r,h] = await Promise.all([getTransactions(userId,2),getTransactionsByMonth(userId,6)])
     setTxs(r as Transaction[]); setHistory(h as Transaction[])
     setFAmount(''); setFDesc(''); setFCat(''); setShowForm(false)
@@ -172,10 +176,10 @@ export default function FinancasPage() {
     reader.onload = (ev) => {
       const text = ev.target?.result as string
       const { headers, rows } = parseCsvText(text)
-      if (rows.length === 0) { showToast('CSV sem dados reconhecidos.'); return }
+      if (rows.length === 0) { showToast('CSV sem dados reconhecidos.', 'error'); return }
       const map = detectColumnMap(headers)
       const candidates = rowsToTransactions(rows, map)
-      if (candidates.length === 0) { showToast('Não foi possível interpretar o CSV. Verifica o formato.'); return }
+      if (candidates.length === 0) { showToast('Não foi possível interpretar o CSV. Verifica o formato.', 'error'); return }
       setCsvPreview(candidates)
     }
     reader.readAsText(file, 'UTF-8')
@@ -194,7 +198,7 @@ export default function FinancasPage() {
       description: t.description || null,
     }))
     const { error } = await saveTransactionsBulk(payloads)
-    if (error) { showToast('Erro ao importar transacções.'); setCsvImporting(false); return }
+    if (error) { showToast('Erro ao importar transacções.', 'error'); setCsvImporting(false); return }
     const [r, h] = await Promise.all([getTransactions(userId, 2), getTransactionsByMonth(userId, 6)])
     setTxs(r as Transaction[])
     setHistory(h as Transaction[])
@@ -222,8 +226,6 @@ export default function FinancasPage() {
 
   return (
     <main style={{paddingBottom:100,minHeight:'100vh'}}>
-
-      {toast&&<div style={{position:'fixed',bottom:88,left:'50%',transform:'translateX(-50%)',background:'var(--bg2)',border:'0.5px solid rgba(30,203,180,.38)',borderRadius:12,padding:'10px 18px',fontSize:13,color:'var(--teal)',zIndex:200,whiteSpace:'nowrap'}}>✓ {toast}</div>}
 
       {csvPreview && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>

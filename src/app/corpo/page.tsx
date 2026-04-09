@@ -7,6 +7,7 @@ import { pt } from 'date-fns/locale'
 import Nav from '@/components/Nav'
 import FileImportModal from '@/components/FileImportModal'
 import PlanReviewModal from '@/components/PlanReviewModal'
+import { useToast } from '@/components/Toast'
 import {
   supabase,
   getDietPlans,
@@ -189,10 +190,10 @@ function getParsedDietPlan(plan: DietPlan | null | undefined): ParsedDietPlan | 
 }
 
 export default function CorpoPage() {
+  const globalToast = useToast()
   const [userId, setUserId] = useState<string | null>(null)
   const [tab, setTab] = useState<BodyTab>('treino')
   const [loading, setLoading] = useState(true)
-  const [toast, setToast] = useState('')
   const [showTrainingImport, setShowTrainingImport] = useState(false)
   const [showDietImport, setShowDietImport] = useState(false)
   const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([])
@@ -209,9 +210,9 @@ export default function CorpoPage() {
 
   const today = getLocalDateString()
 
-  function showToast(message: string) {
-    setToast(message)
-    setTimeout(() => setToast(''), 2600)
+  function showToast(message: string, type: 'success' | 'error' = 'success') {
+    if (type === 'error') globalToast.error(message)
+    else globalToast.success(message)
   }
 
   async function loadBodyData(uid: string) {
@@ -385,7 +386,7 @@ export default function CorpoPage() {
       raw_content: { ...trainingReview.result, parsedPlan },
     })
 
-    if (error) { showToast('Erro ao guardar treino.'); return }
+    if (error) { showToast('Erro ao guardar treino.', 'error'); return }
     setTrainingReview(null)
     await loadBodyData(userId)
     showToast('Plano de treino importado!')
@@ -412,7 +413,7 @@ export default function CorpoPage() {
       raw_content: { ...dietReview.result, parsedPlan },
     })
 
-    if (error) { showToast('Erro ao guardar dieta.'); return }
+    if (error) { showToast('Erro ao guardar dieta.', 'error'); return }
     setDietReview(null)
     await loadBodyData(userId)
     showToast('Plano de dieta importado!')
@@ -448,7 +449,7 @@ export default function CorpoPage() {
     )
 
     if (error) {
-      showToast('Erro ao guardar treino do dia.')
+      showToast('Erro ao guardar treino do dia.', 'error')
       return
     }
 
@@ -463,7 +464,7 @@ export default function CorpoPage() {
     })
 
     if (error) {
-      showToast('Erro ao guardar notas do treino.')
+      showToast('Erro ao guardar notas do treino.', 'error')
       return
     }
 
@@ -490,7 +491,7 @@ export default function CorpoPage() {
     )
 
     if (error) {
-      showToast('Erro ao guardar exercicio.')
+      showToast('Erro ao guardar exercicio.', 'error')
       return
     }
 
@@ -514,7 +515,7 @@ export default function CorpoPage() {
     })
 
     if (error) {
-      showToast('Erro ao guardar detalhe do exercicio.')
+      showToast('Erro ao guardar detalhe do exercicio.', 'error')
       return
     }
 
@@ -557,7 +558,7 @@ export default function CorpoPage() {
     )
 
     if (error) {
-      showToast('Erro ao guardar refeição.')
+      showToast('Erro ao guardar refeição.', 'error')
       return
     }
 
@@ -580,7 +581,7 @@ export default function CorpoPage() {
     )
 
     if (error) {
-      showToast('Erro ao guardar nota da refeição.')
+      showToast('Erro ao guardar nota da refeição.', 'error')
       return
     }
 
@@ -606,7 +607,7 @@ export default function CorpoPage() {
     )
 
     if (error) {
-      showToast('Erro ao guardar item da refeicao.')
+      showToast('Erro ao guardar item da refeicao.', 'error')
       return
     }
 
@@ -626,26 +627,6 @@ export default function CorpoPage() {
 
   return (
     <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
-      {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 88,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 200,
-            background: 'var(--bg2)',
-            border: '0.5px solid rgba(30,203,180,.35)',
-            borderRadius: 12,
-            padding: '10px 16px',
-            fontSize: 13,
-            color: 'var(--teal)',
-          }}
-        >
-          ✓ {toast}
-        </div>
-      )}
-
       <div style={{ padding: '28px 20px 0' }}>
         <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 4 }}>
           Corpo

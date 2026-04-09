@@ -1,5 +1,3 @@
-'use client'
-
 import type { DietMealKey, FileImportResult } from '@/types'
 
 export type TrainingExercisePlan = {
