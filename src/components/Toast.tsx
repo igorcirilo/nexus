@@ -2,8 +2,6 @@
 'use client'
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import type { ToastType } from '@/lib/toast-events'
-export { emitToast } from '@/lib/toast-events'
-export type { ToastType } from '@/lib/toast-events'
 
 type ToastItem = { id: number; message: string; type: ToastType }
 type ToastCtx = { success: (m: string) => void; error: (m: string) => void; info: (m: string) => void }

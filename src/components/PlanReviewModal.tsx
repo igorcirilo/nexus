@@ -122,8 +122,11 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)',
-      zIndex: 9500, display: 'flex', flexDirection: 'column',
+      position: 'fixed', top: 0, right: 0, bottom: 0, left: 0,
+      background: 'rgba(0,0,0,.8)',
+      zIndex: 9500,
+      display: 'flex', flexDirection: 'column',
+      overflow: 'hidden',
     }}>
       {/* Header */}
       <div style={{
@@ -148,8 +151,8 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
         }}>×</button>
       </div>
 
-      {/* Body — minHeight:0 is required for overflow:auto to work inside flex */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Body: flex:1 + minHeight:0 = scrollable flex child */}
+      <div style={{ flex: '1 1 0', minHeight: 0, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {sections.map((section, si) => (
           <div key={si} style={{
             background: 'var(--bg2)', borderRadius: 14,
