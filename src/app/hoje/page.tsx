@@ -1,5 +1,5 @@
 'use client'
-// src/app/hoje/page.tsx
+
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import Nav from '@/components/Nav'
@@ -11,7 +11,7 @@ import XPToast, { triggerXP } from '@/components/XPToast'
 import AvatarXP from '@/components/AvatarXP'
 import NightSummaryCard from '@/components/NightSummaryCard'
 import LevelUpModal from '@/components/LevelUpModal'
-import WeeklyLeagueCard, { calcLeague } from '@/components/WeeklyLeagueCard'
+import BadgeModal from '@/components/BadgeModal'
 import {
   supabase,
   getProfile,
@@ -22,26 +22,32 @@ import {
   getCheckinsForDate,
   checkAndAwardBadges,
   claimLoginBonus,
-  getWeeklyLeagueXP,
-  getWeeklyLeagueOverview,
 } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
-import type { Profile, Habit, HabitLog, Checkin, WeeklyLeagueOverview } from '@/types'
+import type { Profile, Habit, HabitLog, Checkin } from '@/types'
 import StreakRecovery from '@/components/StreakRecovery'
 import EmptyState from '@/components/EmptyState'
 
+const CHALLENGE_LIBRARY = [
+  'Semana da Consistencia',
+  'Semana do Foco Profundo',
+  'Semana Corpo em Movimento',
+  'Semana de Leitura Diaria',
+  'Semana de Check-ins Completos',
+  'Semana Sem Falhar o Basico',
+]
+
 export default function HojePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
-  const [userId, setUserId] = useState<string>("")
+  const [userId, setUserId] = useState<string>('')
   const [habits, setHabits] = useState<(Habit & { habit_logs: HabitLog[] })[]>([])
   const [missionPct, setMissionPct] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showRecovery, setShowRecovery] = useState(false)
   const [todayCheckins, setTodayCheckins] = useState<Checkin[]>([])
-  const [weekChallenge, setWeekChallenge] = useState({ title: 'Semana da Consistência', done: 0, total: 7 })
+  const [weekChallenge, setWeekChallenge] = useState({ title: 'Semana da Consistencia', done: 0, total: 7 })
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
-  const [leagueData, setLeagueData] = useState(calcLeague(0))
-  const [leagueOverview, setLeagueOverview] = useState<WeeklyLeagueOverview | null>(null)
+  const [pendingBadges, setPendingBadges] = useState<{ key: string; name: string }[]>([])
   const today = format(new Date(), 'yyyy-MM-dd')
   const hour = new Date().getHours()
 
@@ -49,18 +55,19 @@ export default function HojePage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       if (!user) {
         window.location.href = '/auth'
         return
       }
       setUserId(user.id)
 
-      const [prof, hab, checkins, weekXP] = await Promise.all([
+      const [prof, hab, checkins] = await Promise.all([
         getProfile(user.id),
         getHabitsWithLogs(user.id, today),
         getCheckinsForDate(user.id, today),
-        getWeeklyLeagueXP(user.id),
       ])
 
       if (prof && !prof.onboarded) {
@@ -77,9 +84,6 @@ export default function HojePage() {
 
       setProfile(prof)
       setHabits(hab as (Habit & { habit_logs: HabitLog[] })[])
-      setLeagueData(calcLeague(weekXP))
-      const overview = await getWeeklyLeagueOverview(user.id)
-      setLeagueOverview(overview)
 
       if (prof && prof.streak_current === 0 && prof.streak_best > 0) setShowRecovery(true)
 
@@ -89,7 +93,7 @@ export default function HojePage() {
 
       const gotBonus = await claimLoginBonus(user.id)
       if (gotBonus) {
-        triggerXP(10, '🎁 Login diário! +10 XP')
+        triggerXP(10, 'Login diario! +10 XP')
         if (prof) prof.xp_total += 10
       }
 
@@ -98,7 +102,9 @@ export default function HojePage() {
           streak_current: prof.streak_current,
           xp_total: prof.xp_total,
         })
-        newBadges.forEach((badge) => triggerXP(0, `Nova conquista: ${badge.name}`))
+        if (newBadges.length > 0) {
+          setPendingBadges(newBadges)
+        }
       }
 
       setLoading(false)
@@ -113,15 +119,9 @@ export default function HojePage() {
     const oldLevel = profile.level
     await addXP(profile.id, xp)
 
-    const [updated, weekXP, overview] = await Promise.all([
-      getProfile(profile.id),
-      getWeeklyLeagueXP(profile.id),
-      getWeeklyLeagueOverview(profile.id),
-    ])
+    const updated = await getProfile(profile.id)
     if (updated) {
       setProfile(updated)
-      setLeagueData(calcLeague(weekXP))
-      setLeagueOverview(overview)
       if (updated.level > oldLevel) {
         setTimeout(() => {
           setLevelUpData({ level: updated.level, title: updated.title ?? 'Guerreiro' })
@@ -130,6 +130,14 @@ export default function HojePage() {
     } else {
       setProfile((p) => (p ? { ...p, xp_total: p.xp_total + xp } : p))
     }
+  }
+
+  function handleSwapChallenge() {
+    setWeekChallenge((current) => {
+      const index = CHALLENGE_LIBRARY.indexOf(current.title)
+      const nextIndex = index >= 0 ? (index + 1) % CHALLENGE_LIBRARY.length : 0
+      return { ...current, title: CHALLENGE_LIBRARY[nextIndex] }
+    })
   }
 
   const doneCnt = habits.filter((h) => h.habit_logs?.[0]?.completed).length
@@ -147,12 +155,12 @@ export default function HojePage() {
         phase: hour < 13 ? 'manha' : hour < 19 ? 'tarde' : 'noite',
         hour,
       })
-    : { body: '…', action: '…' }
+    : { body: '...', action: '...' }
 
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, color: 'var(--text3)' }}>a carregar…</div>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, color: 'var(--text3)' }}>a carregar...</div>
       </div>
     )
   }
@@ -169,6 +177,13 @@ export default function HojePage() {
         />
       )}
 
+      {pendingBadges.length > 0 && (
+        <BadgeModal
+          badges={pendingBadges}
+          onClose={() => setPendingBadges(prev => prev.slice(1))}
+        />
+      )}
+
       {habits.length === 0 && profile && (
         <EmptyState
           hasHabits={habits.length > 0}
@@ -181,7 +196,9 @@ export default function HojePage() {
         <StreakRecovery
           prevBest={profile.streak_best}
           onDismiss={() => setShowRecovery(false)}
-          onCheckin={() => { window.location.href = '/checkin' }}
+          onCheckin={() => {
+            window.location.href = '/checkin'
+          }}
         />
       )}
 
@@ -213,23 +230,22 @@ export default function HojePage() {
 
       <div style={{ display: 'flex', gap: 8, padding: '12px 20px 0' }}>
         {[
-          { icon: '⚡', bg: 'rgba(30,203,180,.12)', label: 'Energia',  value: `${profile?.energy_today ?? 5}`, suffix: '/10', color: 'var(--teal)' },
+          { icon: '⚡', bg: 'rgba(30,203,180,.12)', label: 'Energia', value: `${profile?.energy_today ?? 5}`, suffix: '/10', color: 'var(--teal)' },
           { icon: '🎯', bg: 'rgba(127,119,221,.12)', label: 'Hábitos', value: `${doneCnt}`, suffix: `/${totalHabits}`, color: 'var(--accent)' },
-          { icon: '📋', bg: 'rgba(232,168,56,.1)',   label: 'Check-in', value: hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite', suffix: '', color: 'var(--gold)' },
+          { icon: '📋', bg: 'rgba(232,168,56,.1)', label: 'Check-in', value: hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite', suffix: '', color: 'var(--gold)' },
         ].map(({ icon, bg, label, value, suffix, color }) => (
           <div key={label} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 14, padding: '12px 12px', minWidth: 0 }}>
             <div style={{ width: 32, height: 32, borderRadius: 9, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>{icon}</div>
             <div style={{ minWidth: 0, overflow: 'hidden' }}>
               <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 2, whiteSpace: 'nowrap' }}>{label}</div>
               <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color, lineHeight: 1, whiteSpace: 'nowrap' }}>
-                {value}<span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)' }}>{suffix}</span>
+                {value}
+                <span style={{ fontSize: 10, fontWeight: 400, color: 'var(--text3)' }}>{suffix}</span>
               </div>
             </div>
           </div>
         ))}
       </div>
-
-      <WeeklyLeagueCard data={leagueData} overview={leagueOverview} />
 
       <div style={{ margin: '12px 20px 0', padding: '14px 16px', borderRadius: 16, background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.2)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -239,9 +255,27 @@ export default function HojePage() {
               Desafio da Semana
             </span>
           </div>
-          <span style={{ fontSize: 12, color: 'var(--text2)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
-            {weekChallenge.done} / {weekChallenge.total} dias
-          </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 12, color: 'var(--text2)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
+              {weekChallenge.done} / {weekChallenge.total} dias
+            </span>
+            <button
+              onClick={handleSwapChallenge}
+              style={{
+                border: '0.5px solid rgba(127,119,221,.28)',
+                borderRadius: 10,
+                background: 'rgba(127,119,221,.08)',
+                color: 'var(--accent)',
+                padding: '7px 10px',
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 700,
+                fontSize: 11,
+                cursor: 'pointer',
+              }}
+            >
+              Trocar
+            </button>
+          </div>
         </div>
         <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 14, color: 'var(--text1)', marginBottom: 10 }}>
           {weekChallenge.title}
@@ -291,7 +325,9 @@ export default function HojePage() {
           habitsFeitos={doneCnt}
           habitsTotal={totalHabits}
           streak={profile.streak_current}
-          onVerProgresso={() => { window.location.href = '/progresso' }}
+          onVerProgresso={() => {
+            window.location.href = '/progresso'
+          }}
         />
       )}
 
