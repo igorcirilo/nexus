@@ -1014,3 +1014,69 @@ export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLea
     })),
   }
 }
+
+// ── Streak Recovery (freeze semanal) ───────────────────────
+
+/** Semana ISO no formato YYYY-Www (ex: 2026-W15) */
+function currentISOWeek(): string {
+  const now = new Date()
+  const jan4 = new Date(now.getFullYear(), 0, 4)
+  const week = Math.ceil(((now.getTime() - jan4.getTime()) / 86400000 + jan4.getDay() + 1) / 7)
+  return `${now.getFullYear()}-W${String(week).padStart(2, '0')}`
+}
+
+/**
+ * Verifica se o utilizador pode usar o streak freeze.
+ * Condições: streak atual = 0, streak_best > 0,
+ *            último log de hábito foi ontem ou hoje,
+ *            freeze ainda não usado esta semana.
+ */
+export async function canClaimStreakRecovery(userId: string): Promise<boolean> {
+  const { data: prof } = await supabase
+    .from('profiles')
+    .select('streak_current, streak_best, streak_freeze_used_week')
+    .eq('id', userId)
+    .single()
+
+  if (!prof) return false
+  if (prof.streak_current > 0) return false
+  if (!prof.streak_best || prof.streak_best === 0) return false
+  if ((prof as Record<string, unknown>).streak_freeze_used_week === currentISOWeek()) return false
+
+  // Verificar se teve atividade nos últimos 2 dias
+  const cutoff = new Date()
+  cutoff.setDate(cutoff.getDate() - 2)
+  const cutoffStr = cutoff.toISOString().split('T')[0]
+
+  const { data: logs } = await supabase
+    .from('habit_logs')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('completed', true)
+    .gte('date', cutoffStr)
+    .limit(1)
+
+  return (logs ?? []).length > 0
+}
+
+/**
+ * Aplica o streak freeze: restaura o streak para 1 e marca a semana como usada.
+ */
+export async function claimStreakRecovery(userId: string): Promise<boolean> {
+  const canRecover = await canClaimStreakRecovery(userId)
+  if (!canRecover) return false
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({
+      streak_current: 1,
+      streak_freeze_used_week: currentISOWeek(),
+    } as Record<string, unknown>)
+    .eq('id', userId)
+
+  if (error) {
+    reportError('claimStreakRecovery error', error.message)
+    return false
+  }
+  return true
+}
