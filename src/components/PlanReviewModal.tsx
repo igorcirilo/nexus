@@ -1,6 +1,6 @@
 // src/components/PlanReviewModal.tsx
 'use client'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { ParsedTrainingPlan, ParsedDietPlan } from '@/lib/body-plan'
 
 type Mode = 'training' | 'diet'
@@ -16,8 +16,13 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
   const [editedPlan, setEditedPlan] = useState(plan)
   const [editingItem, setEditingItem] = useState<{ sectionIdx: number; itemIdx: number } | null>(null)
   const [editValue, setEditValue] = useState('')
+  // inline add state: { sectionIdx } while adding a new item
+  const [addingSection, setAddingSection] = useState<number | null>(null)
+  const [addValue, setAddValue] = useState('')
+  const addInputRef = useRef<HTMLInputElement>(null)
 
   function startEdit(sectionIdx: number, itemIdx: number, currentValue: string) {
+    setAddingSection(null)
     setEditingItem({ sectionIdx, itemIdx })
     setEditValue(currentValue)
   }
@@ -72,25 +77,35 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
     }
   }
 
-  function addItem(sectionIdx: number) {
-    const name = prompt(mode === 'training' ? 'Nome do exercício:' : 'Item:')
-    if (!name?.trim()) return
+  function startAddItem(sectionIdx: number) {
+    setEditingItem(null)
+    setAddValue('')
+    setAddingSection(sectionIdx)
+    // focus after render
+    setTimeout(() => addInputRef.current?.focus(), 50)
+  }
+
+  function commitAdd(sectionIdx: number) {
+    const name = addValue.trim()
+    if (!name) { setAddingSection(null); return }
     if (mode === 'training') {
       const p = editedPlan as ParsedTrainingPlan
       const sections = p.sections.map((s, si) =>
         si !== sectionIdx ? s : {
           ...s,
-          exercises: [...s.exercises, { id: `manual-${Date.now()}`, name: name.trim() }],
+          exercises: [...s.exercises, { id: `manual-${Date.now()}`, name }],
         }
       )
       setEditedPlan({ ...p, sections })
     } else {
       const p = editedPlan as ParsedDietPlan
       const meals = p.meals.map((m, mi) =>
-        mi !== sectionIdx ? m : { ...m, items: [...m.items, name.trim()] }
+        mi !== sectionIdx ? m : { ...m, items: [...m.items, name] }
       )
       setEditedPlan({ ...p, meals })
     }
+    setAddingSection(null)
+    setAddValue('')
   }
 
   const sections: Array<{ title: string; items: string[] }> = mode === 'training'
@@ -116,6 +131,7 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
         background: 'var(--bg1)',
         borderBottom: '0.5px solid var(--border)',
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        flexShrink: 0,
       }}>
         <div>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--text1)' }}>
@@ -132,8 +148,8 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
         }}>×</button>
       </div>
 
-      {/* Body */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Body — minHeight:0 is required for overflow:auto to work inside flex */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
         {sections.map((section, si) => (
           <div key={si} style={{
             background: 'var(--bg2)', borderRadius: 14,
@@ -188,16 +204,36 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
                 </button>
               </div>
             ))}
-            <button
-              onClick={() => addItem(si)}
-              style={{
-                width: '100%', background: 'none', border: 'none',
-                color: 'var(--text3)', padding: '9px 14px', textAlign: 'left',
-                fontFamily: 'DM Sans, sans-serif', fontSize: 12, cursor: 'pointer',
-              }}
-            >
-              + Adicionar item
-            </button>
+
+            {/* Inline add item */}
+            {addingSection === si ? (
+              <div style={{ padding: '8px 14px', borderTop: '0.5px solid var(--border)', display: 'flex', gap: 8 }}>
+                <input
+                  ref={addInputRef}
+                  value={addValue}
+                  onChange={e => setAddValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') commitAdd(si); if (e.key === 'Escape') setAddingSection(null) }}
+                  onBlur={() => commitAdd(si)}
+                  placeholder={mode === 'training' ? 'Nome do exercício…' : 'Item…'}
+                  style={{
+                    flex: 1, background: 'var(--bg3)', border: '0.5px solid var(--gold)',
+                    borderRadius: 8, padding: '7px 10px', color: 'var(--text1)',
+                    fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none',
+                  }}
+                />
+              </div>
+            ) : (
+              <button
+                onClick={() => startAddItem(si)}
+                style={{
+                  width: '100%', background: 'none', border: 'none',
+                  color: 'var(--text3)', padding: '9px 14px', textAlign: 'left',
+                  fontFamily: 'DM Sans, sans-serif', fontSize: 12, cursor: 'pointer',
+                }}
+              >
+                + Adicionar item
+              </button>
+            )}
           </div>
         ))}
       </div>
@@ -208,6 +244,7 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
         background: 'var(--bg1)',
         borderTop: '0.5px solid var(--border)',
         display: 'flex', gap: 10,
+        flexShrink: 0,
       }}>
         <button onClick={onCancel} style={{
           flex: 1, background: 'var(--bg3)', color: 'var(--text2)',

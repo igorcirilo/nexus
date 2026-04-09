@@ -603,8 +603,9 @@ export default function CalendarioPage() {
         <h1 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:22,marginBottom:16}}>Calendário</h1>
         <div style={{display:'flex',background:'var(--bg2)',borderRadius:14,padding:4,gap:3,border:'0.5px solid var(--border)'}}>
           {TABS.map(t=>(
-            <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:'8px 3px',borderRadius:10,border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3,background:tab===t.key?'var(--bg1)':'transparent',color:tab===t.key?'var(--gold)':'var(--text3)',transition:'all .15s',fontSize:9,fontFamily:'Syne, sans-serif',fontWeight:tab===t.key?600:400}}>
+            <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:'8px 3px',borderRadius:10,border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3,background:tab===t.key?'var(--bg1)':'transparent',color:tab===t.key?'var(--gold)':'var(--text3)',transition:'all .15s',fontSize:9,fontFamily:'Syne, sans-serif',fontWeight:tab===t.key?600:400,position:'relative'}}>
               <span style={{fontSize:16}}>{t.icon}</span>{t.label}
+              {t.key==='agenda'&&events.length>0&&<span style={{position:'absolute',top:4,right:6,background:'var(--gold)',color:'var(--bg0)',borderRadius:999,fontSize:8,fontWeight:700,padding:'1px 5px',lineHeight:1.4}}>{events.length}</span>}
             </button>
           ))}
         </div>
@@ -881,7 +882,7 @@ export default function CalendarioPage() {
           {showEvForm&&(
             <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowEvForm(false)}>
               <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',display:'flex',flexDirection:'column',maxHeight:'90vh'}}>
-                <div style={{padding:'24px 24px 0',overflowY:'auto',flex:1}}>
+                <div style={{padding:'24px 24px 0',overflowY:'auto',flex:1,minHeight:0}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
                     <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Novo evento</h2>
                     <button onClick={()=>setShowEvForm(false)} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>

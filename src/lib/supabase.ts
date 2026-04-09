@@ -1,5 +1,6 @@
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
+import { format, endOfMonth } from 'date-fns'
 import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding, ReaderMode, ReaderTheme } from '@/types'
 import { emitToast } from '@/lib/toast-events'
 
@@ -308,9 +309,9 @@ export type AgendaEvent = {
 }
 
 export async function getAgendaEvents(userId: string, year: number, month: number) {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const start = `${year}-${pad(month)}-01`
-  const end = `${year}-${pad(month)}-31`
+  const firstDay = new Date(year, month - 1, 1)
+  const start = format(firstDay, 'yyyy-MM-dd')
+  const end = format(endOfMonth(firstDay), 'yyyy-MM-dd')
   const { data, error } = await supabase
     .from('agenda_events')
     .select('*')
