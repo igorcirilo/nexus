@@ -1,11 +1,18 @@
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
-import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding } from '@/types'
+import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding, ReaderMode, ReaderTheme } from '@/types'
 
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
 export const supabase = createClient(supabaseUrl, supabaseAnon)
+
+import { emitToast } from '@/components/Toast'
+
+function reportError(context: string, message: string) {
+  console.error(`${context}:`, message)
+  emitToast(`Erro: ${context.replace(' error', '').replace(/([A-Z])/g, ' $1').trim()}`, 'error')
+}
 
 // ── Perfil ─────────────────────────────────────────────────
 export async function getProfile(userId: string) {
@@ -315,7 +322,7 @@ export async function getAgendaEvents(userId: string, year: number, month: numbe
     .order('time')
 
   if (error) {
-    console.error('getAgendaEvents error:', error.message)
+    reportError('getAgendaEvents error', error.message)
     return []
   }
 
@@ -333,7 +340,7 @@ export async function saveAgendaEvent(payload: Partial<AgendaEvent> & { user_id:
       .select()
       .single()
 
-    if (error) console.error('saveAgendaEvent update error:', error.message)
+    if (error) reportError('saveAgendaEvent update error', error.message)
     return { data: data as AgendaEvent | null, error }
   }
 
@@ -352,7 +359,7 @@ export async function saveAgendaEvent(payload: Partial<AgendaEvent> & { user_id:
     .select()
     .single()
 
-  if (error) console.error('saveAgendaEvent insert error:', error.message)
+  if (error) reportError('saveAgendaEvent insert error', error.message)
   return { data: data as AgendaEvent | null, error }
 }
 
@@ -360,7 +367,7 @@ export async function deleteAgendaEvent(id: string, userId?: string) {
   let query = supabase.from('agenda_events').delete().eq('id', id)
   if (userId) query = query.eq('user_id', userId)
   const { error } = await query
-  if (error) console.error('deleteAgendaEvent error:', error.message)
+  if (error) reportError('deleteAgendaEvent error', error.message)
   return { error }
 }
 
@@ -379,7 +386,7 @@ export async function getTransactions(userId: string, months = 1) {
     .order('date', { ascending: false })
 
   if (error) {
-    console.error('getTransactions error:', error.message)
+    reportError('getTransactions error', error.message)
     return []
   }
   return data ?? []
@@ -399,7 +406,7 @@ export async function getTransactionsByMonth(userId: string, numMonths = 6) {
     .order('date', { ascending: true })
 
   if (error) {
-    console.error('getTransactionsByMonth error:', error.message)
+    reportError('getTransactionsByMonth error', error.message)
     return []
   }
   return data ?? []
@@ -411,7 +418,7 @@ export async function saveTransaction(payload: Record<string, unknown>) {
     .insert(payload)
     .select()
     .single()
-  if (error) console.error('saveTransaction error:', error.message)
+  if (error) reportError('saveTransaction error', error.message)
   return { data, error }
 }
 
@@ -425,13 +432,13 @@ export async function saveTransactionsBulk(payloads: Record<string, unknown>[]) 
     .insert(payloads)
     .select()
 
-  if (error) console.error('saveTransactionsBulk error:', error.message)
+  if (error) reportError('saveTransactionsBulk error', error.message)
   return { data: data ?? [], error }
 }
 
 export async function deleteTransaction(id: string) {
   const { error } = await supabase.from('transactions').delete().eq('id', id)
-  if (error) console.error('deleteTransaction error:', error.message)
+  if (error) reportError('deleteTransaction error', error.message)
   return { error }
 }
 
@@ -453,7 +460,7 @@ export async function getTrainingPlans(userId: string) {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('getTrainingPlans error:', error.message)
+    reportError('getTrainingPlans error', error.message)
     return []
   }
 
@@ -467,7 +474,7 @@ export async function saveTrainingPlan(payload: Record<string, unknown>) {
     .select()
     .single()
 
-  if (error) console.error('saveTrainingPlan error:', error.message)
+  if (error) reportError('saveTrainingPlan error', error.message)
   return { data, error }
 }
 
@@ -479,7 +486,7 @@ export async function getDietPlans(userId: string) {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('getDietPlans error:', error.message)
+    reportError('getDietPlans error', error.message)
     return []
   }
 
@@ -493,7 +500,210 @@ export async function saveDietPlan(payload: Record<string, unknown>) {
     .select()
     .single()
 
-  if (error) console.error('saveDietPlan error:', error.message)
+  if (error) reportError('saveDietPlan error', error.message)
+  return { data, error }
+}
+
+
+// ── Leitura ────────────────────────────────────────────────
+export async function getBooks(userId: string) {
+  const { data, error } = await supabase
+    .from('books')
+    .select('*')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    reportError('getBooks error', error.message)
+    return []
+  }
+
+  return data ?? []
+}
+
+export async function getBookById(bookId: string, userId: string) {
+  const { data, error } = await supabase
+    .from('books')
+    .select('*')
+    .eq('id', bookId)
+    .eq('user_id', userId)
+    .single()
+
+  if (error) {
+    reportError('getBookById error', error.message)
+    return null
+  }
+
+  return data
+}
+
+export async function saveBook(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('books')
+    .insert(payload)
+    .select()
+    .single()
+
+  if (error) reportError('saveBook error', error.message)
+  return { data, error }
+}
+
+export async function getBookProgress(bookId: string, userId: string) {
+  const { data, error } = await supabase
+    .from('book_progress')
+    .select('*')
+    .eq('book_id', bookId)
+    .eq('user_id', userId)
+    .single()
+
+  if (error && error.code !== 'PGRST116') {
+    reportError('getBookProgress error', error.message)
+  }
+
+  return data ?? null
+}
+
+export async function saveBookProgress(payload: { user_id: string; book_id: string; current_page: number; progress_pct: number }) {
+  const { data, error } = await supabase
+    .from('book_progress')
+    .upsert(payload, { onConflict: 'user_id,book_id' })
+    .select()
+    .single()
+
+  if (error) reportError('saveBookProgress error', error.message)
+  return { data, error }
+}
+
+export async function getBookHighlights(bookId: string, userId: string) {
+  const { data, error } = await supabase
+    .from('book_highlights')
+    .select('*')
+    .eq('book_id', bookId)
+    .eq('user_id', userId)
+    .order('page', { ascending: true })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    reportError('getBookHighlights error', error.message)
+    return []
+  }
+
+  return data ?? []
+}
+
+export async function saveBookHighlight(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('book_highlights')
+    .insert(payload)
+    .select()
+    .single()
+
+  if (error) reportError('saveBookHighlight error', error.message)
+  return { data, error }
+}
+
+export async function deleteBookHighlight(id: string, userId: string) {
+  const { error } = await supabase.from('book_highlights').delete().eq('id', id).eq('user_id', userId)
+  if (error) reportError('deleteBookHighlight error', error.message)
+  return { error }
+}
+
+export async function getBookNotes(bookId: string, userId: string) {
+  const { data, error } = await supabase
+    .from('book_notes')
+    .select('*')
+    .eq('book_id', bookId)
+    .eq('user_id', userId)
+    .order('page', { ascending: true })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    reportError('getBookNotes error', error.message)
+    return []
+  }
+
+  return data ?? []
+}
+
+export async function saveBookNote(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('book_notes')
+    .insert(payload)
+    .select()
+    .single()
+
+  if (error) reportError('saveBookNote error', error.message)
+  return { data, error }
+}
+
+export async function deleteBookNote(id: string, userId: string) {
+  const { error } = await supabase.from('book_notes').delete().eq('id', id).eq('user_id', userId)
+  if (error) reportError('deleteBookNote error', error.message)
+  return { error }
+}
+
+export async function getBookBookmarks(bookId: string, userId: string) {
+  const { data, error } = await supabase
+    .from('book_bookmarks')
+    .select('*')
+    .eq('book_id', bookId)
+    .eq('user_id', userId)
+    .order('page', { ascending: true })
+
+  if (error) {
+    reportError('getBookBookmarks error', error.message)
+    return []
+  }
+
+  return data ?? []
+}
+
+export async function saveBookBookmark(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('book_bookmarks')
+    .insert(payload)
+    .select()
+    .single()
+
+  if (error) reportError('saveBookBookmark error', error.message)
+  return { data, error }
+}
+
+export async function deleteBookBookmark(id: string, userId: string) {
+  const { error } = await supabase.from('book_bookmarks').delete().eq('id', id).eq('user_id', userId)
+  if (error) reportError('deleteBookBookmark error', error.message)
+  return { error }
+}
+
+export async function getReadingPreference(userId: string) {
+  const { data, error } = await supabase
+    .from('reading_preferences')
+    .select('*')
+    .eq('user_id', userId)
+    .single()
+
+  if (error && error.code !== 'PGRST116') {
+    reportError('getReadingPreference error', error.message)
+  }
+
+  return data ?? null
+}
+
+export async function saveReadingPreference(payload: {
+  user_id: string
+  theme: ReaderTheme
+  reading_mode: ReaderMode
+  font_scale: number
+  line_height: number
+  margin_px: number
+}) {
+  const { data, error } = await supabase
+    .from('reading_preferences')
+    .upsert(payload, { onConflict: 'user_id' })
+    .select()
+    .single()
+
+  if (error) reportError('saveReadingPreference error', error.message)
   return { data, error }
 }
 
@@ -652,7 +862,7 @@ export async function createHabitQuick(payload: {
     .select()
     .single()
 
-  if (error) console.error('createHabitQuick error:', error.message)
+  if (error) reportError('createHabitQuick error', error.message)
   return { data, error }
 }
 
@@ -717,7 +927,7 @@ export async function ensureWeeklyLeagueSnapshot(userId: string) {
     .single()
 
   if (error) {
-    console.error('ensureWeeklyLeagueSnapshot error:', error.message)
+    reportError('ensureWeeklyLeagueSnapshot error', error.message)
     return { data: null, error }
   }
 
@@ -738,7 +948,7 @@ export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLea
     .order('updated_at', { ascending: true })
 
   if (error) {
-    console.error('getWeeklyLeagueOverview current error:', error.message)
+    reportError('getWeeklyLeagueOverview current error', error.message)
     return null
   }
 
