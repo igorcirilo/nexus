@@ -1,7 +1,7 @@
 // src/lib/supabase.ts
 import { createClient } from '@supabase/supabase-js'
 import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding, ReaderMode, ReaderTheme } from '@/types'
-import { emitToast } from '@/components/Toast'
+import { emitToast } from '@/lib/toast-events'
 
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!

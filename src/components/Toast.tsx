@@ -1,8 +1,10 @@
 // src/components/Toast.tsx
 'use client'
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
+import type { ToastType } from '@/lib/toast-events'
+export { emitToast } from '@/lib/toast-events'
+export type { ToastType } from '@/lib/toast-events'
 
-export type ToastType = 'success' | 'error' | 'info'
 type ToastItem = { id: number; message: string; type: ToastType }
 type ToastCtx = { success: (m: string) => void; error: (m: string) => void; info: (m: string) => void }
 
@@ -71,11 +73,4 @@ export function useToast() {
   const ctx = useContext(Ctx)
   if (!ctx) throw new Error('useToast fora de ToastProvider')
   return ctx
-}
-
-/** Usável fora do React (ex: supabase.ts) */
-export function emitToast(message: string, type: ToastType = 'error') {
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new CustomEvent('nexus-toast', { detail: { message, type } }))
-  }
 }
