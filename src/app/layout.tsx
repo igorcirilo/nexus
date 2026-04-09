@@ -9,7 +9,8 @@ const syne = Syne({ subsets: ['latin'], variable: '--font-syne', weight: ['400',
 const dm   = DM_Sans({ subsets: ['latin'], variable: '--font-dm',   weight: ['300','400','500'] })
 
 // QuickAction + Pomodoro — cliente only, não aparece em /auth e /onboarding
-const GlobalUI = dynamic(() => import('@/components/GlobalUI'), { ssr: false })
+const GlobalUI    = dynamic(() => import('@/components/GlobalUI'), { ssr: false })
+const ToastClient = dynamic(() => import('@/components/Toast').then(m => ({ default: m.ToastProvider })), { ssr: false })
 
 export const metadata: Metadata = {
   title: 'NEXUS — Evolução Pessoal',
@@ -31,15 +32,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt" className={`${syne.variable} ${dm.variable}`}>
       <body className={`${syne.variable} ${dm.variable}`}>
-        <div className="nexus-layout">
-          <div className="nexus-sidebar">
-            <Sidebar />
+        <ToastClient>
+          <div className="nexus-layout">
+            <div className="nexus-sidebar">
+              <Sidebar />
+            </div>
+            <div className="nexus-content">
+              {children}
+              <GlobalUI />
+            </div>
           </div>
-          <div className="nexus-content">
-            {children}
-            <GlobalUI />
-          </div>
-        </div>
+        </ToastClient>
       </body>
     </html>
   )
