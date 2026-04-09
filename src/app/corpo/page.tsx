@@ -6,6 +6,7 @@ import { format } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import Nav from '@/components/Nav'
 import FileImportModal from '@/components/FileImportModal'
+import PlanReviewModal from '@/components/PlanReviewModal'
 import {
   supabase,
   getDietPlans,
@@ -19,6 +20,12 @@ import {
   upsertDietMeal,
   upsertTrainingEntry,
 } from '@/lib/body'
+import {
+  parseDietImport,
+  parseTrainingImport,
+  type ParsedDietPlan,
+  type ParsedTrainingPlan,
+} from '@/lib/body-plan'
 import type {
   DietMeal,
   DietMealKey,
@@ -44,6 +51,22 @@ const mealOptions: Array<{ key: DietMealKey; label: string; icon: string }> = [
   { key: 'lanche', label: 'Lanche', icon: '🥤' },
 ]
 
+type ExerciseProgress = {
+  checked: boolean
+  load: string
+  notes: string
+}
+
+type TrainingEntryNotesPayload = {
+  freeText: string
+  exercises?: Record<string, ExerciseProgress>
+}
+
+type DietMealNotesPayload = {
+  freeText: string
+  items?: Record<string, boolean>
+}
+
 function getImportSummary(result: FileImportResult) {
   if (result.kind === 'pdf') {
     return `PDF com ${result.pageCount} página(s)`
@@ -64,6 +87,107 @@ function getLocalDateString() {
   return local.toISOString().split('T')[0]
 }
 
+function asObject(value: unknown) {
+  return value && typeof value === 'object' ? (value as Record<string, unknown>) : null
+}
+
+function getImportResultFromRaw(raw: Record<string, unknown> | null): FileImportResult | null {
+  if (!raw) return null
+
+  if (
+    raw.kind === 'pdf' &&
+    typeof raw.pageCount === 'number' &&
+    typeof raw.extractedText === 'string' &&
+    Array.isArray(raw.pages)
+  ) {
+    return raw as unknown as FileImportResult
+  }
+
+  if (raw.kind === 'spreadsheet' && Array.isArray(raw.sheets)) {
+    return raw as unknown as FileImportResult
+  }
+
+  return null
+}
+
+function parseTrainingEntryNotes(notes: string | null | undefined): TrainingEntryNotesPayload {
+  if (!notes) return { freeText: '', exercises: {} }
+
+  try {
+    const parsed = JSON.parse(notes) as TrainingEntryNotesPayload
+    if (parsed && typeof parsed === 'object') {
+      return {
+        freeText: typeof parsed.freeText === 'string' ? parsed.freeText : '',
+        exercises: parsed.exercises ?? {},
+      }
+    }
+  } catch {}
+
+  return { freeText: notes, exercises: {} }
+}
+
+function stringifyTrainingEntryNotes(payload: TrainingEntryNotesPayload) {
+  return JSON.stringify({
+    freeText: payload.freeText,
+    exercises: payload.exercises ?? {},
+  })
+}
+
+function parseDietMealNotes(notes: string | null | undefined): DietMealNotesPayload {
+  if (!notes) return { freeText: '', items: {} }
+
+  try {
+    const parsed = JSON.parse(notes) as DietMealNotesPayload
+    if (parsed && typeof parsed === 'object') {
+      return {
+        freeText: typeof parsed.freeText === 'string' ? parsed.freeText : '',
+        items: parsed.items ?? {},
+      }
+    }
+  } catch {}
+
+  return { freeText: notes, items: {} }
+}
+
+function stringifyDietMealNotes(payload: DietMealNotesPayload) {
+  return JSON.stringify({
+    freeText: payload.freeText,
+    items: payload.items ?? {},
+  })
+}
+
+function getParsedTrainingPlan(plan: TrainingPlan | null | undefined): ParsedTrainingPlan | null {
+  const raw = asObject(plan?.raw_content)
+  const parsed = asObject(raw?.parsedPlan)
+  const sections = Array.isArray(parsed?.sections) ? parsed.sections : null
+
+  if (sections) {
+    return {
+      summary: typeof parsed?.summary === 'string' ? parsed.summary : plan?.summary ?? '',
+      sections: sections as ParsedTrainingPlan['sections'],
+    }
+  }
+
+  const importResult = getImportResultFromRaw(raw)
+  return importResult ? parseTrainingImport(importResult) : null
+}
+
+function getParsedDietPlan(plan: DietPlan | null | undefined): ParsedDietPlan | null {
+  const raw = asObject(plan?.raw_content)
+  const parsed = asObject(raw?.parsedPlan)
+  const meals = Array.isArray(parsed?.meals) ? parsed.meals : null
+
+  if (meals) {
+    return {
+      summary: typeof parsed?.summary === 'string' ? parsed.summary : plan?.summary ?? '',
+      meals: meals as ParsedDietPlan['meals'],
+    }
+  }
+
+  const importResult = getImportResultFromRaw(raw)
+  return importResult ? parseDietImport(importResult) : null
+}
+
 export default function CorpoPage() {
   const [userId, setUserId] = useState<string | null>(null)
   const [tab, setTab] = useState<BodyTab>('treino')
@@ -80,6 +204,8 @@ export default function CorpoPage() {
   const [trainingNotes, setTrainingNotes] = useState('')
   const [mealNotes, setMealNotes] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
+  const [trainingReview, setTrainingReview] = useState<{ result: FileImportResult; parsed: ParsedTrainingPlan } | null>(null)
+  const [dietReview,     setDietReview]     = useState<{ result: FileImportResult; parsed: ParsedDietPlan } | null>(null)
 
   const today = getLocalDateString()
 
@@ -111,11 +237,11 @@ export default function CorpoPage() {
 
     const effectiveTrainingPlanId = selectedTrainingPlanId ?? nextTrainingPlans[0]?.id
     const selectedEntry = nextEntries.find((entry) => entry.training_plan_id === effectiveTrainingPlanId)
-    setTrainingNotes(selectedEntry?.notes ?? '')
+    setTrainingNotes(parseTrainingEntryNotes(selectedEntry?.notes).freeText)
 
     const nextMealNotes: Record<string, string> = {}
     nextMeals.forEach((meal) => {
-      nextMealNotes[meal.meal_key] = meal.notes ?? ''
+      nextMealNotes[meal.meal_key] = parseDietMealNotes(meal.notes).freeText
     })
     setMealNotes(nextMealNotes)
   }
@@ -154,14 +280,61 @@ export default function CorpoPage() {
     return trainingEntries.find((entry) => entry.training_plan_id === selectedTrainingPlanId) ?? null
   }, [selectedTrainingPlanId, trainingEntries])
 
+  const selectedTrainingPlan = useMemo(() => {
+    if (!selectedTrainingPlanId) return null
+    return trainingPlans.find((plan) => plan.id === selectedTrainingPlanId) ?? null
+  }, [selectedTrainingPlanId, trainingPlans])
+
   const selectedDietMeals = useMemo(() => {
     if (!selectedDietPlanId) return []
     return dietMeals.filter((meal) => meal.diet_plan_id === selectedDietPlanId)
   }, [selectedDietPlanId, dietMeals])
 
+  const selectedDietPlan = useMemo(() => {
+    if (!selectedDietPlanId) return null
+    return dietPlans.find((plan) => plan.id === selectedDietPlanId) ?? null
+  }, [selectedDietPlanId, dietPlans])
+
   useEffect(() => {
-    setTrainingNotes(selectedTrainingEntry?.notes ?? '')
+    if (trainingPlans.length === 0) {
+      if (selectedTrainingPlanId !== null) setSelectedTrainingPlanId(null)
+      return
+    }
+
+    if (!selectedTrainingPlanId || !trainingPlans.some((plan) => plan.id === selectedTrainingPlanId)) {
+      setSelectedTrainingPlanId(trainingPlans[0].id)
+    }
+  }, [selectedTrainingPlanId, trainingPlans])
+
+  useEffect(() => {
+    if (dietPlans.length === 0) {
+      if (selectedDietPlanId !== null) setSelectedDietPlanId(null)
+      return
+    }
+
+    if (!selectedDietPlanId || !dietPlans.some((plan) => plan.id === selectedDietPlanId)) {
+      setSelectedDietPlanId(dietPlans[0].id)
+    }
+  }, [selectedDietPlanId, dietPlans])
+
+  useEffect(() => {
+    setTrainingNotes(parseTrainingEntryNotes(selectedTrainingEntry?.notes).freeText)
   }, [selectedTrainingEntry])
+
+  const parsedTrainingPlan = useMemo(
+    () => getParsedTrainingPlan(selectedTrainingPlan),
+    [selectedTrainingPlan]
+  )
+
+  const parsedDietPlan = useMemo(
+    () => getParsedDietPlan(selectedDietPlan),
+    [selectedDietPlan]
+  )
+
+  const trainingExerciseState = useMemo(
+    () => parseTrainingEntryNotes(selectedTrainingEntry?.notes).exercises ?? {},
+    [selectedTrainingEntry]
+  )
 
   const trainingSummary = useMemo(() => {
     const latest = trainingPlans[0]
@@ -193,54 +366,63 @@ export default function CorpoPage() {
 
   async function handleTrainingImport(result: FileImportResult) {
     if (!userId) return
+    const parsedPlan = parseTrainingImport(result)
+    setTrainingReview({ result, parsed: parsedPlan })
+    setShowTrainingImport(false)
+  }
 
-    const summary = getImportSummary(result)
+  async function confirmTrainingImport(confirmed: ParsedTrainingPlan | ParsedDietPlan) {
+    if (!userId || !trainingReview) return
+    const parsedPlan = confirmed as ParsedTrainingPlan
+    const summary = parsedPlan.summary || getImportSummary(trainingReview.result)
 
     const { error } = await saveTrainingPlan({
       user_id: userId,
-      title: `Treino importado · ${result.meta.fileName}`,
-      source_type: result.kind,
-      source_file_name: result.meta.fileName,
+      title: `Treino importado · ${trainingReview.result.meta.fileName}`,
+      source_type: trainingReview.result.kind,
+      source_file_name: trainingReview.result.meta.fileName,
       summary,
-      raw_content: result,
+      raw_content: { ...trainingReview.result, parsedPlan },
     })
 
-    if (error) {
-      showToast('Erro ao guardar treino.')
-      return
-    }
-
+    if (error) { showToast('Erro ao guardar treino.'); return }
+    setTrainingReview(null)
     await loadBodyData(userId)
-    setShowTrainingImport(false)
     showToast('Plano de treino importado!')
   }
 
   async function handleDietImport(result: FileImportResult) {
     if (!userId) return
+    const parsedPlan = parseDietImport(result)
+    setDietReview({ result, parsed: parsedPlan })
+    setShowDietImport(false)
+  }
 
-    const summary = getImportSummary(result)
+  async function confirmDietImport(confirmed: ParsedTrainingPlan | ParsedDietPlan) {
+    if (!userId || !dietReview) return
+    const parsedPlan = confirmed as ParsedDietPlan
+    const summary = parsedPlan.summary || getImportSummary(dietReview.result)
 
     const { error } = await saveDietPlan({
       user_id: userId,
-      title: `Dieta importada · ${result.meta.fileName}`,
-      source_type: result.kind,
-      source_file_name: result.meta.fileName,
+      title: `Dieta importada · ${dietReview.result.meta.fileName}`,
+      source_type: dietReview.result.kind,
+      source_file_name: dietReview.result.meta.fileName,
       summary,
-      raw_content: result,
+      raw_content: { ...dietReview.result, parsedPlan },
     })
 
-    if (error) {
-      showToast('Erro ao guardar dieta.')
-      return
-    }
-
+    if (error) { showToast('Erro ao guardar dieta.'); return }
+    setDietReview(null)
     await loadBodyData(userId)
-    setShowDietImport(false)
     showToast('Plano de dieta importado!')
   }
 
-  async function handleToggleTraining(completed: boolean) {
-    if (!userId || !selectedTrainingPlanId) return
+  async function persistTrainingEntry(
+    next: TrainingEntryNotesPayload,
+    completed = selectedTrainingEntry?.completed ?? false
+  ) {
+    if (!userId || !selectedTrainingPlanId) return new Error('missing training context')
 
     setSaving(true)
 
@@ -249,46 +431,103 @@ export default function CorpoPage() {
       training_plan_id: selectedTrainingPlanId,
       date: today,
       completed,
-      notes: trainingNotes,
+      notes: stringifyTrainingEntryNotes(next),
     })
 
     setSaving(false)
+    return error
+  }
+
+  async function handleToggleTraining(completed: boolean) {
+    const error = await persistTrainingEntry(
+      {
+        freeText: trainingNotes,
+        exercises: trainingExerciseState,
+      },
+      completed
+    )
 
     if (error) {
       showToast('Erro ao guardar treino do dia.')
       return
     }
 
-    await loadBodyData(userId)
+    await loadBodyData(userId!)
     showToast(completed ? 'Treino marcado como feito.' : 'Treino desmarcado.')
   }
 
   async function handleSaveTrainingNotes() {
-    if (!userId || !selectedTrainingPlanId) return
-
-    setSaving(true)
-
-    const { error } = await upsertTrainingEntry({
-      user_id: userId,
-      training_plan_id: selectedTrainingPlanId,
-      date: today,
-      completed: selectedTrainingEntry?.completed ?? false,
-      notes: trainingNotes,
+    const error = await persistTrainingEntry({
+      freeText: trainingNotes,
+      exercises: trainingExerciseState,
     })
-
-    setSaving(false)
 
     if (error) {
       showToast('Erro ao guardar notas do treino.')
       return
     }
 
-    await loadBodyData(userId)
+    await loadBodyData(userId!)
     showToast('Notas do treino guardadas.')
   }
 
-  async function handleToggleMeal(mealKey: DietMealKey, completed: boolean) {
-    if (!userId || !selectedDietPlanId) return
+  async function handleExerciseToggle(exerciseId: string, checked: boolean) {
+    const nextExercises = {
+      ...trainingExerciseState,
+      [exerciseId]: {
+        checked,
+        load: trainingExerciseState[exerciseId]?.load ?? '',
+        notes: trainingExerciseState[exerciseId]?.notes ?? '',
+      },
+    }
+
+    const error = await persistTrainingEntry(
+      {
+        freeText: trainingNotes,
+        exercises: nextExercises,
+      },
+      checked || selectedTrainingEntry?.completed || false
+    )
+
+    if (error) {
+      showToast('Erro ao guardar exercicio.')
+      return
+    }
+
+    await loadBodyData(userId!)
+    showToast(checked ? 'Exercicio concluido.' : 'Exercicio desmarcado.')
+  }
+
+  async function handleExerciseFieldSave(exerciseId: string, field: 'load' | 'notes', value: string) {
+    const nextExercises = {
+      ...trainingExerciseState,
+      [exerciseId]: {
+        checked: trainingExerciseState[exerciseId]?.checked ?? false,
+        load: field === 'load' ? value : trainingExerciseState[exerciseId]?.load ?? '',
+        notes: field === 'notes' ? value : trainingExerciseState[exerciseId]?.notes ?? '',
+      },
+    }
+
+    const error = await persistTrainingEntry({
+      freeText: trainingNotes,
+      exercises: nextExercises,
+    })
+
+    if (error) {
+      showToast('Erro ao guardar detalhe do exercicio.')
+      return
+    }
+
+    await loadBodyData(userId!)
+    showToast('Detalhe do exercicio guardado.')
+  }
+
+  async function persistDietMeal(
+    mealKey: DietMealKey,
+    next: DietMealNotesPayload,
+    completed: boolean
+  ) {
+    if (!userId || !selectedDietPlanId) return new Error('missing diet context')
 
     setSaving(true)
 
@@ -298,17 +537,31 @@ export default function CorpoPage() {
       date: today,
       meal_key: mealKey,
       completed,
-      notes: mealNotes[mealKey] ?? '',
+      notes: stringifyDietMealNotes(next),
     })
 
     setSaving(false)
+    return error
+  }
+
+  async function handleToggleMeal(mealKey: DietMealKey, completed: boolean) {
+    const current = selectedDietMeals.find((meal) => meal.meal_key === mealKey)
+    const parsed = parseDietMealNotes(current?.notes)
+    const error = await persistDietMeal(
+      mealKey,
+      {
+        freeText: mealNotes[mealKey] ?? '',
+        items: parsed.items ?? {},
+      },
+      completed
+    )
 
     if (error) {
       showToast('Erro ao guardar refeição.')
       return
     }
 
-    await loadBodyData(userId)
+    await loadBodyData(userId!)
     showToast(completed ? 'Refeição marcada.' : 'Refeição desmarcada.')
   }
 
@@ -316,19 +569,15 @@ export default function CorpoPage() {
     if (!userId || !selectedDietPlanId) return
 
     const current = selectedDietMeals.find((meal) => meal.meal_key === mealKey)
-
-    setSaving(true)
-
-    const { error } = await upsertDietMeal({
-      user_id: userId,
-      diet_plan_id: selectedDietPlanId,
-      date: today,
-      meal_key: mealKey,
-      completed: current?.completed ?? false,
-      notes: mealNotes[mealKey] ?? '',
-    })
-
-    setSaving(false)
+    const parsed = parseDietMealNotes(current?.notes)
+    const error = await persistDietMeal(
+      mealKey,
+      {
+        freeText: mealNotes[mealKey] ?? '',
+        items: parsed.items ?? {},
+      },
+      current?.completed ?? false
+    )
 
     if (error) {
       showToast('Erro ao guardar nota da refeição.')
@@ -337,6 +586,32 @@ export default function CorpoPage() {
 
     await loadBodyData(userId)
     showToast('Nota da refeição guardada.')
+  }
+
+  async function handleMealItemToggle(mealKey: DietMealKey, itemLabel: string, checked: boolean) {
+    const current = selectedDietMeals.find((meal) => meal.meal_key === mealKey)
+    const parsed = parseDietMealNotes(current?.notes)
+    const nextItems = {
+      ...(parsed.items ?? {}),
+      [itemLabel]: checked,
+    }
+
+    const error = await persistDietMeal(
+      mealKey,
+      {
+        freeText: mealNotes[mealKey] ?? '',
+        items: nextItems,
+      },
+      current?.completed ?? checked
+    )
+
+    if (error) {
+      showToast('Erro ao guardar item da refeicao.')
+      return
+    }
+
+    await loadBodyData(userId!)
+    showToast(checked ? 'Item marcado.' : 'Item desmarcado.')
   }
 
   if (loading) {
@@ -544,6 +819,128 @@ export default function CorpoPage() {
                   </button>
                 </div>
 
+                {parsedTrainingPlan && parsedTrainingPlan.sections.length > 0 && (
+                  <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+                    {parsedTrainingPlan.sections.map((section) => (
+                      <div
+                        key={section.id}
+                        style={{
+                          background: 'var(--bg1)',
+                          border: '0.5px solid var(--border)',
+                          borderRadius: 14,
+                          padding: 12,
+                        }}
+                      >
+                        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14 }}>
+                          {section.title}
+                        </div>
+                        <div style={{ display: 'grid', gap: 10, marginTop: 10 }}>
+                          {section.exercises.map((exercise) => {
+                            const progress = trainingExerciseState[exercise.id] ?? {
+                              checked: false,
+                              load: '',
+                              notes: '',
+                            }
+
+                            return (
+                              <div
+                                key={exercise.id}
+                                style={{
+                                  border: '0.5px solid var(--border)',
+                                  borderRadius: 12,
+                                  padding: 10,
+                                }}
+                              >
+                                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
+                                  <div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text1)' }}>
+                                      {exercise.name}
+                                    </div>
+                                    {exercise.detail && (
+                                      <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
+                                        {exercise.detail}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => handleExerciseToggle(exercise.id, !progress.checked)}
+                                    disabled={saving}
+                                    style={{
+                                      background: progress.checked ? 'rgba(30,203,180,.14)' : 'transparent',
+                                      color: progress.checked ? 'var(--teal)' : 'var(--text3)',
+                                      border: '0.5px solid var(--border)',
+                                      borderRadius: 10,
+                                      padding: '8px 10px',
+                                      fontFamily: 'Syne, sans-serif',
+                                      fontWeight: 700,
+                                      cursor: 'pointer',
+                                    }}
+                                  >
+                                    {progress.checked ? 'Feito' : 'Check'}
+                                  </button>
+                                </div>
+
+                                <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: 8, marginTop: 10 }}>
+                                  <input
+                                    value={progress.load}
+                                    onChange={(e) =>
+                                      handleExerciseFieldSave(exercise.id, 'load', e.target.value)
+                                    }
+                                    placeholder="Carga"
+                                    style={{
+                                      background: 'transparent',
+                                      color: 'var(--text1)',
+                                      border: '0.5px solid var(--border)',
+                                      borderRadius: 10,
+                                      padding: '10px 12px',
+                                      outline: 'none',
+                                    }}
+                                  />
+                                  <input
+                                    value={progress.notes}
+                                    onChange={(e) =>
+                                      handleExerciseFieldSave(exercise.id, 'notes', e.target.value)
+                                    }
+                                    placeholder="Observação rápida"
+                                    style={{
+                                      background: 'transparent',
+                                      color: 'var(--text1)',
+                                      border: '0.5px solid var(--border)',
+                                      borderRadius: 10,
+                                      padding: '10px 12px',
+                                      outline: 'none',
+                                    }}
+                                  />
+                                  <div style={{ fontSize: 11, color: 'var(--text3)', alignSelf: 'center' }}>
+                                    {progress.checked ? 'ok' : 'pendente'}
+                                  </div>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {selectedTrainingPlan && (!parsedTrainingPlan || parsedTrainingPlan.sections.length === 0) && (
+                  <div
+                    style={{
+                      marginTop: 12,
+                      background: 'var(--bg1)',
+                      border: '0.5px solid var(--border)',
+                      borderRadius: 14,
+                      padding: 12,
+                      fontSize: 12,
+                      color: 'var(--text3)',
+                    }}
+                  >
+                    Este plano ainda não gerou exercícios utilizáveis. Se foi importado antes desta fase, tenta
+                    reimportar esse ficheiro para o tratamento ficar completo.
+                  </div>
+                )}
+
                 <textarea
                   value={trainingNotes}
                   onChange={(e) => setTrainingNotes(e.target.value)}
@@ -584,7 +981,16 @@ export default function CorpoPage() {
               </div>
 
               {trainingPlans.map((plan) => (
-                <div key={plan.id} style={card}>
+                <div
+                  key={plan.id}
+                  style={{
+                    ...card,
+                    border:
+                      selectedTrainingPlanId === plan.id
+                        ? '0.5px solid rgba(30,203,180,.45)'
+                        : '0.5px solid var(--border)',
+                  }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
                     <div>
                       <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15 }}>
@@ -604,6 +1010,22 @@ export default function CorpoPage() {
                   <div style={{ marginTop: 6, fontSize: 12, color: 'var(--text3)' }}>
                     Origem: {getSourceLabel(plan.source_type)}
                   </div>
+                  <button
+                    onClick={() => setSelectedTrainingPlanId(plan.id)}
+                    style={{
+                      marginTop: 10,
+                      background: selectedTrainingPlanId === plan.id ? 'rgba(30,203,180,.14)' : 'transparent',
+                      color: selectedTrainingPlanId === plan.id ? 'var(--teal)' : 'var(--gold)',
+                      border: '0.5px solid var(--border)',
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      fontFamily: 'Syne, sans-serif',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {selectedTrainingPlanId === plan.id ? 'Plano ativo' : 'Abrir plano'}
+                  </button>
                 </div>
               ))}
             </>
@@ -675,6 +1097,8 @@ export default function CorpoPage() {
                   {mealOptions.map((meal) => {
                     const current = selectedDietMeals.find((item) => item.meal_key === meal.key)
                     const checked = current?.completed ?? false
+                    const parsed = parseDietMealNotes(current?.notes)
+                    const mealPlan = parsedDietPlan?.meals.find((item) => item.key === meal.key)
 
                     return (
                       <div
@@ -707,6 +1131,39 @@ export default function CorpoPage() {
                             {checked ? 'Feita ✓' : 'Marcar'}
                           </button>
                         </div>
+
+                        {mealPlan && mealPlan.items.length > 0 && (
+                          <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+                            {mealPlan.items.map((itemLabel) => {
+                              const itemChecked = parsed.items?.[itemLabel] ?? false
+
+                              return (
+                                <button
+                                  key={itemLabel}
+                                  onClick={() => handleMealItemToggle(meal.key, itemLabel, !itemChecked)}
+                                  disabled={saving || !selectedDietPlanId}
+                                  style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    gap: 10,
+                                    alignItems: 'center',
+                                    background: 'transparent',
+                                    color: 'var(--text2)',
+                                    border: '0.5px solid var(--border)',
+                                    borderRadius: 10,
+                                    padding: '10px 12px',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <span style={{ textAlign: 'left' }}>{itemLabel}</span>
+                                  <span style={{ color: itemChecked ? 'var(--teal)' : 'var(--text3)' }}>
+                                    {itemChecked ? 'ok' : 'check'}
+                                  </span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
 
                         <textarea
                           value={mealNotes[meal.key] ?? ''}
@@ -795,6 +1252,23 @@ export default function CorpoPage() {
       />
 
       <Nav />
+
+      {trainingReview && (
+        <PlanReviewModal
+          mode="training"
+          plan={trainingReview.parsed}
+          onConfirm={confirmTrainingImport}
+          onCancel={() => setTrainingReview(null)}
+        />
+      )}
+      {dietReview && (
+        <PlanReviewModal
+          mode="diet"
+          plan={dietReview.parsed}
+          onConfirm={confirmDietImport}
+          onCancel={() => setDietReview(null)}
+        />
+      )}
     </main>
   )
 }
