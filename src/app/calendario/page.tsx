@@ -23,7 +23,7 @@ type DayStatus     = { habits: number; total: number; checkins: number; complete
 type Tab           = 'calendario' | 'checkin' | 'lembretes' | 'agenda'
 type ViewMode      = 'month' | 'week'
 type StreakSide    = 'start' | 'middle' | 'end' | 'solo' | null
-type Recurrence    = 'none' | 'semanal' | 'mensal'
+type Recurrence    = 'none' | 'diario' | 'semanal' | 'mensal'
 type Reminder      = { id: string; title: string; time: string; days: number[]; active: boolean; type: string }
 type Checkin       = { phase: string; energy?: number; sleep_hours?: number; mood?: number; mission?: string; win_of_day?: string; xp_earned: number }
 type HabitRow      = { id: string; name: string; area: HabitArea; xp_reward: number; habit_logs: { completed: boolean }[] }
@@ -331,7 +331,10 @@ export default function CalendarioPage() {
     setEvSaving(true)
     const baseDate = new Date(evDate + 'T12:00:00')
     const dates: string[] = [evDate]
-    if (evRecurrence === 'semanal') {
+    if (evRecurrence === 'diario') {
+      for (let i = 1; i < 14; i++)
+        dates.push(format(addDays(baseDate, i), 'yyyy-MM-dd'))
+    } else if (evRecurrence === 'semanal') {
       for (let i = 1; i < 12; i++)
         dates.push(format(addWeeks(baseDate, i), 'yyyy-MM-dd'))
     } else if (evRecurrence === 'mensal') {
@@ -350,7 +353,7 @@ export default function CalendarioPage() {
     await loadMonth(authUserId, current)
     setShowEvForm(false)
     setEvTitle(''); setEvDesc(''); setEvTime(''); setEvEndTime(''); setEvRecurrence('none')
-    const msg = evRecurrence === 'semanal' ? '12 semanas criadas!' : evRecurrence === 'mensal' ? '6 meses criados!' : 'Evento adicionado!'
+    const msg = evRecurrence === 'diario' ? '14 dias criados!' : evRecurrence === 'semanal' ? '12 semanas criadas!' : evRecurrence === 'mensal' ? '6 meses criados!' : 'Evento adicionado!'
     showToast(msg)
     setEvSaving(false)
   }
@@ -749,50 +752,6 @@ export default function CalendarioPage() {
             </div>
           )}
 
-          {/* ── Cal 8: Padrões automáticos ── */}
-          {patternsLoaded && (
-            <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:16,padding:'14px 16px',marginBottom:14}}>
-              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:10}}>
-                <span style={{fontSize:16}}>📊</span>
-                <span style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,color:'var(--text1)'}}>Padrões</span>
-                <span style={{fontSize:10,color:'var(--text3)',marginLeft:'auto'}}>últimos 3 meses</span>
-              </div>
-
-              {/* Barra por dia da semana */}
-              <div style={{display:'flex',gap:4,marginBottom:12,alignItems:'flex-end',height:48}}>
-                {patterns.map(p=>{
-                  const pct  = p.total > 0 ? Math.round(p.done/p.total*100) : 0
-                  const best = [...patterns].sort((a,b)=>(b.total>0?b.done/b.total:0)-(a.total>0?a.done/a.total:0))[0]
-                  const isBest = p.weekday === best.weekday && p.total >= 2
-                  return (
-                    <div key={p.weekday} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
-                      <div style={{fontSize:9,color:isBest?'var(--gold)':'var(--text3)',fontWeight:isBest?700:400}}>{pct}%</div>
-                      <div style={{width:'100%',background:'var(--bg3)',borderRadius:4,overflow:'hidden',height:28}}>
-                        <div style={{width:'100%',height:`${p.total===0?0:Math.max(4,pct)}%`,background:isBest?'var(--gold)':pct>=60?'var(--teal)':pct>=30?'rgba(30,203,180,.45)':'rgba(30,203,180,.18)',borderRadius:4,marginTop:'auto',position:'relative',bottom:0}}/>
-                      </div>
-                      <div style={{fontSize:9,color:'var(--text3)'}}>{DAYS_SHORT[p.weekday]}</div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Insights */}
-              {patternInsights.length > 0 ? (
-                <div style={{display:'flex',flexDirection:'column',gap:6}}>
-                  {patternInsights.map((txt,i)=>(
-                    <div key={i} style={{display:'flex',alignItems:'flex-start',gap:8,padding:'8px 10px',borderRadius:10,background:'var(--bg3)'}}>
-                      <span style={{fontSize:13,flexShrink:0}}>{i===0?'⭐':'⚠️'}</span>
-                      <span style={{fontSize:12,color:'var(--text2)',lineHeight:1.5}}>{txt}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{fontSize:12,color:'var(--text3)',textAlign:'center',padding:'4px 0'}}>
-                  Ainda a recolher padrões — continua a registar hábitos.
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
 

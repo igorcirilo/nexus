@@ -40,11 +40,6 @@ export default function MissionCard({ mission, progress = 0, onProgress }: Props
         </div>
       </div>
 
-      {/* Barra de progresso */}
-      <div style={{ width: '100%', height: 6, borderRadius: 999, background: 'var(--bg3)', overflow: 'hidden', marginBottom: 10 }}>
-        <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: 'linear-gradient(90deg, var(--gold), var(--teal))', transition: 'width .2s ease' }} />
-      </div>
-
       {/* Slider */}
       <input
         type="range" min={0} max={100} step={5} value={pct}

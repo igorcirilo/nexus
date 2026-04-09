@@ -252,7 +252,6 @@ export interface DietPlan {
   created_at: string
 }
 
-
 export interface TrainingEntry {
   id: string
   user_id: string
@@ -264,11 +263,7 @@ export interface TrainingEntry {
   created_at: string
 }
 
-export type DietMealKey =
-  | 'pequeno_almoco'
-  | 'almoco'
-  | 'jantar'
-  | 'lanche'
+export type DietMealKey = 'pequeno_almoco' | 'almoco' | 'jantar' | 'lanche'
 
 export interface DietMeal {
   id: string
@@ -280,6 +275,75 @@ export interface DietMeal {
   notes: string | null
   completed_at: string | null
   created_at: string
+}
+
+
+export type ReaderTheme = 'claro' | 'sepia' | 'noturno'
+export type ReaderMode = 'scroll' | 'paginado'
+
+export interface Book {
+  id: string
+  user_id: string
+  title: string
+  author: string | null
+  source_file_name: string | null
+  cover_label: string | null
+  raw_content: {
+    pageCount: number
+    extractedText: string
+    pages: Array<{ pageNumber: number; text: string }>
+    toc?: Array<{ label: string; page: number }>
+  } | null
+  created_at: string
+}
+
+export interface BookProgress {
+  id: string
+  user_id: string
+  book_id: string
+  current_page: number
+  progress_pct: number
+  updated_at: string
+}
+
+export interface BookHighlight {
+  id: string
+  user_id: string
+  book_id: string
+  page: number
+  color: string
+  excerpt: string
+  created_at: string
+}
+
+export interface BookNote {
+  id: string
+  user_id: string
+  book_id: string
+  page: number
+  note: string
+  excerpt: string | null
+  created_at: string
+}
+
+export interface BookBookmark {
+  id: string
+  user_id: string
+  book_id: string
+  page: number
+  label: string | null
+  created_at: string
+}
+
+export interface ReadingPreference {
+  id: string
+  user_id: string
+  theme: ReaderTheme
+  reading_mode: ReaderMode
+  font_scale: number
+  line_height: number
+  margin_px: number
+  updated_at: string
 }
 
 export function xpForLevel(level: number): number {
