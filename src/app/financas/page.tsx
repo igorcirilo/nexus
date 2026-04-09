@@ -10,8 +10,12 @@ import Nav from '@/components/Nav'
 import {
   supabase, getProfile, getTransactions,
   getTransactionsByMonth, saveTransaction,
-  deleteTransaction, updateFinancialGoals,
+  saveTransactionsBulk, deleteTransaction, updateFinancialGoals,
 } from '@/lib/supabase'
+import {
+  parseCsvText, detectColumnMap, rowsToTransactions,
+  type TransactionCandidate,
+} from '@/lib/csv-parser'
 import { format, startOfMonth, endOfMonth, subMonths, getDaysInMonth, getDate } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import type { Profile, Transaction } from '@/types'
@@ -61,6 +65,8 @@ export default function FinancasPage() {
   const [editBudget, setEditBudget]= useState<string|null>(null)
   const [budgetVal,  setBudgetVal] = useState('')
   const csvRef = useRef<HTMLInputElement>(null)
+  const [csvPreview, setCsvPreview]     = useState<TransactionCandidate[] | null>(null)
+  const [csvImporting, setCsvImporting] = useState(false)
 
   const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
   function showToast(m:string) { setToast(m); setTimeout(()=>setToast(''),2400) }
@@ -159,23 +165,42 @@ export default function FinancasPage() {
     setEditBudget(null); showToast('Orçamento guardado.')
   }
 
-  function importCSV(e:React.ChangeEvent<HTMLInputElement>) {
-    const file=e.target.files?.[0]; if (!file||!userId) return
-    const reader=new FileReader()
-    reader.onload=async(ev)=>{
-      const lines=(ev.target?.result as string).split('\n').filter(l=>l.trim())
-      let imported=0
-      for (const line of lines.slice(1)) {
-        const [date,type,category,amount,description]=line.split(',').map(c=>c.replace(/"/g,'').trim())
-        if (!date||!type||!category||!amount) continue
-        await saveTransaction({user_id:userId,date,type:type.toLowerCase().includes('entrada')?'entrada':'saida',category,amount:parseFloat(amount.replace(',','.')),description:description??null})
-        imported++
-      }
-      const [r,h]=await Promise.all([getTransactions(userId,2),getTransactionsByMonth(userId,6)])
-      setTxs(r as Transaction[]); setHistory(h as Transaction[])
-      showToast(`${imported} transacções importadas!`)
+  function importCSV(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file || !userId) return
+    const reader = new FileReader()
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string
+      const { headers, rows } = parseCsvText(text)
+      if (rows.length === 0) { showToast('CSV sem dados reconhecidos.'); return }
+      const map = detectColumnMap(headers)
+      const candidates = rowsToTransactions(rows, map)
+      if (candidates.length === 0) { showToast('Não foi possível interpretar o CSV. Verifica o formato.'); return }
+      setCsvPreview(candidates)
     }
-    reader.readAsText(file); e.target.value=''
+    reader.readAsText(file, 'UTF-8')
+    e.target.value = ''
+  }
+
+  async function confirmCsvImport() {
+    if (!csvPreview || !userId) return
+    setCsvImporting(true)
+    const payloads = csvPreview.map(t => ({
+      user_id:     userId,
+      date:        t.date,
+      type:        t.type,
+      category:    t.category || 'Outro',
+      amount:      t.amount,
+      description: t.description || null,
+    }))
+    const { error } = await saveTransactionsBulk(payloads)
+    if (error) { showToast('Erro ao importar transacções.'); setCsvImporting(false); return }
+    const [r, h] = await Promise.all([getTransactions(userId, 2), getTransactionsByMonth(userId, 6)])
+    setTxs(r as Transaction[])
+    setHistory(h as Transaction[])
+    showToast(`${csvPreview.length} transacções importadas!`)
+    setCsvPreview(null)
+    setCsvImporting(false)
   }
 
   const savingsGoal    = profile?.fin_monthly_save    ?? 0
@@ -199,6 +224,38 @@ export default function FinancasPage() {
     <main style={{paddingBottom:100,minHeight:'100vh'}}>
 
       {toast&&<div style={{position:'fixed',bottom:88,left:'50%',transform:'translateX(-50%)',background:'var(--bg2)',border:'0.5px solid rgba(30,203,180,.38)',borderRadius:12,padding:'10px 18px',fontSize:13,color:'var(--teal)',zIndex:200,whiteSpace:'nowrap'}}>✓ {toast}</div>}
+
+      {csvPreview && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>
+          <div style={{background:'var(--bg1)',borderRadius:'20px 20px 0 0',padding:'24px 20px',width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column',gap:12}}>
+            <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:16,color:'var(--text1)'}}>
+              Pré-visualização — {csvPreview.length} transacções
+            </div>
+            <div style={{overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:6}}>
+              {csvPreview.slice(0,20).map((t,i)=>(
+                <div key={i} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'8px 12px',background:'var(--bg2)',borderRadius:10,fontSize:13}}>
+                  <div>
+                    <span style={{color:t.type==='entrada'?'#1D9E75':'#E24B4A',fontWeight:600}}>
+                      {t.type==='entrada'?'+':'-'}{fmt(t.amount)}
+                    </span>
+                    <span style={{color:'var(--text3)',marginLeft:8}}>{t.category}</span>
+                  </div>
+                  <span style={{color:'var(--text3)',fontSize:12}}>{t.date}</span>
+                </div>
+              ))}
+              {csvPreview.length>20&&(
+                <div style={{fontSize:12,color:'var(--text3)',textAlign:'center',padding:8}}>+{csvPreview.length-20} mais...</div>
+              )}
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <button onClick={()=>setCsvPreview(null)} style={{flex:1,background:'var(--bg3)',color:'var(--text2)',border:'none',borderRadius:12,padding:13,fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:13,cursor:'pointer'}}>Cancelar</button>
+              <button onClick={confirmCsvImport} disabled={csvImporting} style={{flex:2,background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:12,padding:13,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',opacity:csvImporting?.6:1}}>
+                {csvImporting?'A importar...':`Importar ${csvPreview.length} transacções`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div style={{padding:'28px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
