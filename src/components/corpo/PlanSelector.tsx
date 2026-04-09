@@ -39,7 +39,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
           position: 'fixed',
           inset: 0,
           background: 'rgba(0,0,0,0.55)',
-          zIndex: 200,
+          zIndex: 9400,
         }}
       />
 
@@ -50,7 +50,9 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
           bottom: 0,
           left: 0,
           right: 0,
-          zIndex: 201,
+          zIndex: 9401,
+          maxWidth: 480,
+          margin: '0 auto',
           background: 'var(--bg1)',
           borderRadius: '20px 20px 0 0',
           maxHeight: '80vh',
