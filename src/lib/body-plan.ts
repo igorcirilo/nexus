@@ -56,11 +56,30 @@ const TRAINING_NOISE_PATTERNS = [
   /^notas?$/i,
   /^comments?$/i,
   /^info$/i,
+  /^data$/i,
+  /^date$/i,
+  /^dia$/i,
+  /^semana$/i,
+  /^semanas?$/i,
+  /^bloco$/i,
+  /^grupo$/i,
+  /^muscular$/i,
+  /^execucao$/i,
+  /^execução$/i,
+  /^orientacao$/i,
+  /^orientação$/i,
+  /^instrucao$/i,
+  /^instrução$/i,
+  /^descricao$/i,
+  /^descrição$/i,
   /^\d+[\s\.]+$/,
   /^[-–—]+$/,
   /^[A-Z]{1,4}$/,    // Siglas puras (RPE, RM, RIR, etc.)
   /^\d+%$/,          // Percentagens sozinhas
   /^(seg|ter|qua|qui|sex|sab|dom)\.?$/i, // Abreviações de dias
+  /^\d+\s*[x×]\s*\d+\s*(reps?|rep)?$/i,
+  /^\d+\s*-\s*\d+\s*reps?$/i,
+  // Linhas de instrução técnica longa (>60 chars sem ser nome de exercício)
 ]
 
 const TRAINING_DETAIL_HINT =
