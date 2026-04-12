@@ -6,6 +6,51 @@ const AREAS: HabitArea[] = [
   'financas', 'emocoes', 'relacionamentos',
 ]
 
+export function difficultyForWeek(weekNumber: number): 1 | 2 | 3 {
+  if (weekNumber <= 3) return 1
+  if (weekNumber <= 6) return 2
+  return 3
+}
+
+export function selectTemplatesForProgram(
+  templates: TaskTemplate[],
+  scores: AreaScores,
+  priorityArea: HabitArea,
+  weekNumber: number
+): TaskTemplate[] {
+  const targetDifficulty = difficultyForWeek(weekNumber)
+  let candidates = templates.filter(t => t.difficulty === targetDifficulty && t.active)
+
+  // Fallback: se n?o houver templates no n?vel alvo, usa difficulty 1
+  if (candidates.length === 0) {
+    candidates = templates.filter(t => t.difficulty === 1 && t.active)
+  }
+
+  const lowestArea = AREAS.reduce((a, b) => (scores[a] < scores[b] ? a : b))
+  const selected: TaskTemplate[] = []
+
+  const fromLowest = candidates.find(t => t.area === lowestArea)
+  if (fromLowest) selected.push(fromLowest)
+
+  if (priorityArea !== lowestArea) {
+    const fromPriority = candidates.find(
+      t => t.area === priorityArea && !selected.some(s => s.id === t.id)
+    )
+    if (fromPriority) selected.push(fromPriority)
+  }
+
+  const remaining = candidates
+    .filter(t => !selected.some(s => s.id === t.id))
+    .sort((a, b) => b.frequency_per_week - a.frequency_per_week)
+
+  for (const template of remaining) {
+    if (selected.length >= 3) break
+    selected.push(template)
+  }
+
+  return selected.slice(0, 3)
+}
+
 export function shouldTaskBeOnDay(frequencyPerWeek: number, dayIndex: number): boolean {
   if (frequencyPerWeek >= 7) return true
   if (frequencyPerWeek >= 5) return dayIndex <= 4
