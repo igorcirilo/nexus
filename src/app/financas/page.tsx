@@ -380,7 +380,7 @@ export default function FinancasPage() {
             disabled={pdfLoading}
             style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '8px 14px', color: 'var(--text2)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, cursor: 'pointer' }}
           >
-            {pdfLoading ? 'A lerâ€¦' : '📄 Importar PDF'}
+            {pdfLoading ? 'A ler...' : '📄 Importar PDF'}
           </button>
           <input ref={csvRef} type="file" accept=".csv" style={{display:'none'}} onChange={importCSV}/>
           <input ref={pdfRef} type="file" accept=".pdf" style={{ display: 'none' }} onChange={importPDF} />
