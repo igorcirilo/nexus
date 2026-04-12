@@ -143,3 +143,4 @@ body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; 
   from { opacity: 0; transform: translate(-50%,-50%) scale(.7); }
   to   { opacity: 1; transform: translate(-50%,-50%) scale(1); }
 }
+@keyframes spin { to { transform: rotate(360deg); } }
