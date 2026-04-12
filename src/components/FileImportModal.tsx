@@ -13,16 +13,18 @@ const overlay: CSSProperties = {
   background: 'rgba(10,12,18,.72)',
   backdropFilter: 'blur(10px)',
   display: 'flex',
-  alignItems: 'flex-end',
+  alignItems: 'center',
   justifyContent: 'center',
-  padding: 12,
+  padding: 16,
   zIndex: 9999,
 }
 
 const modal: CSSProperties = {
   width: '100%',
-  maxWidth: 720,
+  maxWidth: 520,
   maxHeight: '90vh',
+  display: 'flex',
+  flexDirection: 'column',
   overflow: 'hidden',
   background: 'var(--bg2)',
   border: '0.5px solid var(--border)',
@@ -121,7 +123,7 @@ export default function FileImportModal({
           </button>
         </div>
 
-        <div style={{ padding: 16, overflow: 'auto', maxHeight: 'calc(90vh - 140px)', display: 'grid', gap: 14 }}>
+        <div style={{ flex: '1 1 0', minHeight: 0, padding: 16, overflowY: 'auto', display: 'grid', gap: 14, alignContent: 'start' }}>
           <label style={{
             display: 'grid',
             gap: 8,
