@@ -372,3 +372,108 @@ export const TITLES: Record<string, string> = {
   Imparável: 'Nada te pára por muito tempo.',
   Antifrágil: 'Cresces com a pressão. Lendário.',
 }
+
+// ── Sprint 1: Assessment, Score, Programa ──────────────────
+
+export type UserAssessment = {
+  id: string
+  user_id: string
+  version: number
+  responses: Record<string, unknown>
+  completed_at: string | null
+  created_at: string
+}
+
+export type LifeAreaScore = {
+  id: string
+  user_id: string
+  assessment_id: string
+  area: HabitArea
+  score: number        // 0–100
+  snapshot_at: string
+}
+
+export type AreaScores = Record<HabitArea, number> & { global: number }
+
+export type Program = {
+  id: string
+  user_id: string
+  assessment_id: string
+  status: 'active' | 'paused' | 'completed'
+  started_at: string
+  ends_at: string
+  created_at: string
+}
+
+export type ProgramWeek = {
+  id: string
+  program_id: string
+  week_number: number
+  theme: string
+  starts_on: string
+  created_at: string
+}
+
+export type ProgramDay = {
+  id: string
+  program_id: string
+  week_id: string
+  day_number: number
+  date: string
+  created_at: string
+}
+
+export type ProgramTask = {
+  id: string
+  program_id: string
+  day_id: string
+  user_id: string
+  template_id: string | null
+  title: string
+  description: string | null
+  area: HabitArea
+  difficulty: 1 | 2 | 3
+  xp_reward: number
+  status: 'pending' | 'completed' | 'skipped'
+  source: 'generated' | 'manual'
+  completed_at: string | null
+  created_at: string
+}
+
+export type TaskTemplate = {
+  id: string
+  area: HabitArea
+  title: string
+  description: string | null
+  difficulty: 1 | 2 | 3
+  frequency_per_week: number
+  xp_reward: number
+  tags: string[]
+  active: boolean
+  created_at: string
+}
+
+// ── Onboarding Engine ──────────────────────────────────────
+
+export type QuestionType = 'scale' | 'single' | 'multiple' | 'ranking'
+
+export type QuestionOption = {
+  id: string
+  label: string
+  score_value: number   // 0.0–1.0
+}
+
+export type Question = {
+  id: string
+  block: number
+  text: string
+  type: QuestionType
+  area?: HabitArea | HabitArea[]
+  weight: number                  // 0 = não contribui para score
+  options?: QuestionOption[]
+  min?: number                    // para scale
+  max?: number                    // para scale
+  invert?: boolean                // escala/multiple: valor alto = score menor
+}
+
+export type Answers = Record<string, number | string | string[]>
