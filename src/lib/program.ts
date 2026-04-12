@@ -154,3 +154,30 @@ export async function getProgramWithWeeks(userId: string): Promise<{
 
   return { program: prog as Program, weeks }
 }
+
+export async function getTasksForDate(
+  userId: string,
+  date: string
+): Promise<ProgramTask[]> {
+  const { supabase } = await import('@/lib/supabase')
+
+  const { data: prog } = await supabase
+    .from('programs')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (!prog) return []
+
+  const { data: day } = await supabase
+    .from('program_days')
+    .select('id')
+    .eq('program_id', prog.id)
+    .eq('date', date)
+    .maybeSingle()
+
+  if (!day) return []
+
+  return getProgramTasks(day.id)
+}
