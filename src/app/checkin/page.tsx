@@ -5,7 +5,8 @@ import { format } from 'date-fns'
 import Nav from '@/components/Nav'
 import XPToast, { triggerXP } from '@/components/XPToast'
 import { supabase, getProfile, saveCheckin, addXP, updateStreak, getCheckinsForDate } from '@/lib/supabase'
-import type { Profile, CheckinPhase } from '@/types'
+import type { Profile, CheckinPhase, ProgramTask } from '@/types'
+import { getTasksForDate } from '@/lib/program'
 
 type Phase = 'manha' | 'tarde' | 'noite'
 const LABELS: Record<Phase, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' }
@@ -104,6 +105,7 @@ export default function CheckinPage() {
   const [winOfDay,    setWinOfDay]    = useState('')
   const [reflection,  setReflection]  = useState('')
   const [moodNight,   setMoodNight]   = useState(3)
+  const [nightTasks, setNightTasks] = useState<ProgramTask[]>([])
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -113,6 +115,8 @@ export default function CheckinPage() {
         getCheckinsForDate(user.id, today),
       ])
       setProfile(prof)
+      const todayTasks = await getTasksForDate(user.id, today)
+      setNightTasks(todayTasks)
       const done = new Set(checkins.map((c: { phase: CheckinPhase }) => c.phase as Phase))
       setDonePhases(done)
       const manha = checkins.find((c: { phase: string; mission?: string }) => c.phase === 'manha')
