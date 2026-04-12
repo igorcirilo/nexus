@@ -160,10 +160,10 @@ export default function AnaliseInicialPage() {
         disabled={generating}
         style={{ opacity: generating ? 0.5 : 1, cursor: generating ? 'not-allowed' : 'pointer' }}
       >
-        {generating ? 'Gerando seu plano...' : 'Ver meu plano de 60 dias →'}
+        {generating ? 'Gerando seu plano...' : 'Ver meu plano de 63 dias →'}
       </button>
       <p style={{ marginTop: 12, fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
-        Vamos montar sua semana 1 personalizada com base no seu diagnóstico
+        Vamos montar seu plano de 63 dias personalizado com base no seu diagnóstico
       </p>
     </div>
   )
