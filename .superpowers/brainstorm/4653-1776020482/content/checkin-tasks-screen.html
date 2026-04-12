@@ -1,0 +1,47 @@
+<h2>Como é a tela de resumo de tasks no final do check-in?</h2>
+<p class="subtitle">É o último passo antes do "Fechar dia". Qual é o nível de interação?</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Só leitura — resumo visual</h3>
+      <p>Mostra contagem (3/5 feitas), lista com ícones de status. Não dá para alterar nada. Botão "Fechar dia" encerra.</p>
+      <div style="margin-top:10px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:12px">
+        <div style="color:#1ecbb4;margin-bottom:6px;font-weight:600">✓ 3 de 5 tasks concluídas</div>
+        <div style="color:#aaa">✓ Beber 2L de água</div>
+        <div style="color:#aaa">✓ Meditação 10min</div>
+        <div style="color:#aaa">○ Leitura 30min</div>
+        <div style="color:#aaa">⏭ Treino</div>
+        <div style="color:#aaa">✓ Diário</div>
+        <div style="margin-top:10px;padding:8px 16px;background:#7f77dd;border-radius:8px;color:#fff;text-align:center;font-weight:600">Fechar dia →</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Interativo — ainda dá para atualizar</h3>
+      <p>Tasks pendentes ainda têm botão "Feito"/"Pular". Útil se o usuário esqueceu de marcar algo no /hoje.</p>
+      <div style="margin-top:10px;padding:12px;background:rgba(255,255,255,0.05);border-radius:8px;font-size:12px">
+        <div style="color:#e8a838;margin-bottom:6px;font-weight:600">⚡ 2 tasks ainda pendentes</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;color:#aaa;margin-bottom:4px">
+          <span>○ Leitura 30min</span>
+          <span style="display:flex;gap:4px">
+            <span style="padding:2px 8px;background:#333;border-radius:4px">Pular</span>
+            <span style="padding:2px 8px;background:#7f77dd;border-radius:4px;color:#fff">Feito</span>
+          </span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;color:#aaa">
+          <span>○ Treino</span>
+          <span style="display:flex;gap:4px">
+            <span style="padding:2px 8px;background:#333;border-radius:4px">Pular</span>
+            <span style="padding:2px 8px;background:#7f77dd;border-radius:4px;color:#fff">Feito</span>
+          </span>
+        </div>
+        <div style="margin-top:10px;padding:8px 16px;background:#7f77dd;border-radius:8px;color:#fff;text-align:center;font-weight:600">Fechar dia →</div>
+      </div>
+    </div>
+  </div>
+</div>

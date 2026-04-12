@@ -50,6 +50,7 @@ export default function LeituraReaderPage() {
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
   const [tocOpen, setTocOpen] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
   const [highlightText, setHighlightText] = useState('')
   const [bookmarkLabel, setBookmarkLabel] = useState('')
@@ -195,7 +196,10 @@ export default function LeituraReaderPage() {
       <div style={{ padding: '18px 16px 0', display: 'grid', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
           <Link href="/leitura" style={{ textDecoration: 'none', color: 'inherit', fontSize: 13 }}>← Biblioteca</Link>
-          <button onClick={() => setTocOpen((v) => !v)} style={{ border: '0.5px solid rgba(0,0,0,.12)', borderRadius: 10, background: palette.panel, padding: '8px 12px', cursor: 'pointer', color: palette.text }}>Sumário</button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={() => setSettingsOpen((v) => !v)} style={{ border: '0.5px solid rgba(0,0,0,.12)', borderRadius: 10, background: settingsOpen ? 'var(--gold)' : palette.panel, padding: '8px 12px', cursor: 'pointer', color: settingsOpen ? '#111' : palette.text, fontSize: 13 }}>Aa</button>
+            <button onClick={() => setTocOpen((v) => !v)} style={{ border: '0.5px solid rgba(0,0,0,.12)', borderRadius: 10, background: palette.panel, padding: '8px 12px', cursor: 'pointer', color: palette.text }}>Sumário</button>
+          </div>
         </div>
 
         <div>
@@ -203,39 +207,43 @@ export default function LeituraReaderPage() {
           <div style={{ fontSize: 12, opacity: .72, marginTop: 6 }}>Página {currentPage} de {pageCount}</div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-          <div style={{ background: palette.panel, borderRadius: 14, padding: 12 }}>
-            <div style={{ fontSize: 11, opacity: .7 }}>Modo</div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              {(['scroll', 'paginado'] as ReaderMode[]).map((mode) => (
-                <button key={mode} onClick={() => updatePrefs({ reading_mode: mode })} style={{ flex: 1, borderRadius: 10, border: 'none', padding: '9px 10px', background: (prefs?.reading_mode ?? 'scroll') === mode ? 'var(--gold)' : 'rgba(0,0,0,.08)', color: (prefs?.reading_mode ?? 'scroll') === mode ? '#111' : palette.text, cursor: 'pointer' }}>{mode === 'scroll' ? 'Scroll' : 'Folheio'}</button>
-              ))}
+        {settingsOpen && (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+              <div style={{ background: palette.panel, borderRadius: 14, padding: 12 }}>
+                <div style={{ fontSize: 11, opacity: .7 }}>Modo</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  {(['scroll', 'paginado'] as ReaderMode[]).map((mode) => (
+                    <button key={mode} onClick={() => updatePrefs({ reading_mode: mode })} style={{ flex: 1, borderRadius: 10, border: 'none', padding: '9px 10px', background: (prefs?.reading_mode ?? 'scroll') === mode ? 'var(--gold)' : 'rgba(0,0,0,.08)', color: (prefs?.reading_mode ?? 'scroll') === mode ? '#111' : palette.text, cursor: 'pointer' }}>{mode === 'scroll' ? 'Scroll' : 'Folheio'}</button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ background: palette.panel, borderRadius: 14, padding: 12 }}>
+                <div style={{ fontSize: 11, opacity: .7 }}>Tema</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                  {(['claro', 'sepia', 'noturno'] as ReaderTheme[]).map((theme) => (
+                    <button key={theme} onClick={() => updatePrefs({ theme })} style={{ flex: 1, borderRadius: 10, border: 'none', padding: '9px 8px', background: (prefs?.theme ?? 'sepia') === theme ? 'var(--gold)' : 'rgba(0,0,0,.08)', color: (prefs?.theme ?? 'sepia') === theme ? '#111' : palette.text, cursor: 'pointer', fontSize: 12 }}>{theme}</button>
+                  ))}
+                </div>
+              </div>
             </div>
-          </div>
-          <div style={{ background: palette.panel, borderRadius: 14, padding: 12 }}>
-            <div style={{ fontSize: 11, opacity: .7 }}>Tema</div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-              {(['claro', 'sepia', 'noturno'] as ReaderTheme[]).map((theme) => (
-                <button key={theme} onClick={() => updatePrefs({ theme })} style={{ flex: 1, borderRadius: 10, border: 'none', padding: '9px 8px', background: (prefs?.theme ?? 'sepia') === theme ? 'var(--gold)' : 'rgba(0,0,0,.08)', color: (prefs?.theme ?? 'sepia') === theme ? '#111' : palette.text, cursor: 'pointer', fontSize: 12 }}>{theme}</button>
-              ))}
-            </div>
-          </div>
-        </div>
 
-        <div style={{ background: palette.panel, borderRadius: 14, padding: 12, display: 'grid', gap: 10 }}>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12 }}>
-            Tamanho da fonte
-            <input type="range" min="0.9" max="1.5" step="0.05" value={prefs?.font_scale ?? 1} onChange={(e) => updatePrefs({ font_scale: Number(e.target.value) })} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12 }}>
-            Espaçamento entre linhas
-            <input type="range" min="1.4" max="2.2" step="0.1" value={prefs?.line_height ?? 1.7} onChange={(e) => updatePrefs({ line_height: Number(e.target.value) })} />
-          </label>
-          <label style={{ display: 'grid', gap: 6, fontSize: 12 }}>
-            Margens
-            <input type="range" min="14" max="40" step="2" value={prefs?.margin_px ?? 20} onChange={(e) => updatePrefs({ margin_px: Number(e.target.value) })} />
-          </label>
-        </div>
+            <div style={{ background: palette.panel, borderRadius: 14, padding: 12, display: 'grid', gap: 10 }}>
+              <label style={{ display: 'grid', gap: 6, fontSize: 12 }}>
+                Tamanho da fonte
+                <input type="range" min="0.9" max="1.5" step="0.05" value={prefs?.font_scale ?? 1} onChange={(e) => updatePrefs({ font_scale: Number(e.target.value) })} />
+              </label>
+              <label style={{ display: 'grid', gap: 6, fontSize: 12 }}>
+                Espaçamento entre linhas
+                <input type="range" min="1.4" max="2.2" step="0.1" value={prefs?.line_height ?? 1.7} onChange={(e) => updatePrefs({ line_height: Number(e.target.value) })} />
+              </label>
+              <label style={{ display: 'grid', gap: 6, fontSize: 12 }}>
+                Margens
+                <input type="range" min="14" max="40" step="2" value={prefs?.margin_px ?? 20} onChange={(e) => updatePrefs({ margin_px: Number(e.target.value) })} />
+              </label>
+            </div>
+          </>
+        )}
 
         {tocOpen && (
           <div style={{ background: palette.panel, borderRadius: 14, padding: 12, display: 'grid', gap: 8 }}>

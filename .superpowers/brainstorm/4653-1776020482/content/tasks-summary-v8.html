@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasks do dia</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0d0d0d;
+    color: #f2f2f2;
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+  .screen {
+    width: 100%;
+    max-width: 390px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 1. Título */
+  .header {
+    margin-bottom: 24px;
+  }
+  .header-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #666;
+    margin-bottom: 6px;
+  }
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px;
+    font-weight: 800;
+    color: #f2f2f2;
+    line-height: 1.1;
+  }
+
+  /* 2. Contador */
+  .counter {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 18px 16px;
+    background: #161616;
+    border: 0.5px solid #222;
+    border-radius: 16px;
+    margin-bottom: 16px;
+  }
+  .counter-item { text-align: center; }
+  .counter-num {
+    font-family: 'Syne', sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .counter-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    margin-top: 5px;
+    color: #555;
+  }
+  .counter-divider {
+    width: 0.5px;
+    height: 36px;
+    background: #252525;
+  }
+
+  /* 3. Lista */
+  .tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    background: #161616;
+    border-radius: 14px;
+    border: 0.5px solid #222;
+  }
+  .task-row.done {
+    border-color: rgba(30,203,180,.2);
+    background: rgba(30,203,180,.04);
+  }
+  .task-row.skipped { opacity: .5; }
+  .task-row.pending { opacity: .35; }
+  .task-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+    width: 22px;
+    text-align: center;
+  }
+  .task-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+    color: #ccc;
+    line-height: 1.3;
+  }
+  .task-title.done {
+    text-decoration: line-through;
+    color: #555;
+  }
+  .task-xp {
+    font-size: 11px;
+    font-weight: 600;
+    color: #1ecbb4;
+    flex-shrink: 0;
+  }
+  .badge {
+    font-size: 10px;
+    font-weight: 600;
+    color: #666;
+    background: #222;
+    padding: 3px 7px;
+    border-radius: 5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* 4. XP box */
+  .xp-box {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px;
+    background: rgba(232,168,56,.06);
+    border: 0.5px solid rgba(232,168,56,.18);
+    border-radius: 14px;
+    margin-bottom: 12px;
+  }
+  .xp-icon { font-size: 18px; }
+  .xp-text {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    color: #e8a838;
+  }
+
+  /* 5. Botão */
+  .btn-close {
+    width: 100%;
+    padding: 17px;
+    background: linear-gradient(135deg, #7f77dd, #6b63cc);
+    border-radius: 16px;
+    color: #fff;
+    text-align: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+    letter-spacing: .3px;
+    box-shadow: 0 4px 20px rgba(127,119,221,.25);
+  }
+</style>
+</head>
+<body>
+<div class="screen">
+
+  <!-- 1. Título -->
+  <div class="header">
+    <div class="header-label">Check-in noturno</div>
+    <div class="header-title">Tasks do dia</div>
+  </div>
+
+  <!-- 2. Contador -->
+  <div class="counter">
+    <div class="counter-item">
+      <div class="counter-num" style="color:#1ecbb4">3</div>
+      <div class="counter-label">Feitas</div>
+    </div>
+    <div class="counter-divider"></div>
+    <div class="counter-item">
+      <div class="counter-num" style="color:#e8a838">1</div>
+      <div class="counter-label">Puladas</div>
+    </div>
+    <div class="counter-divider"></div>
+    <div class="counter-item">
+      <div class="counter-num" style="color:#3a3a3a">1</div>
+      <div class="counter-label">Pendentes</div>
+    </div>
+  </div>
+
+  <!-- 3. Lista -->
+  <div class="tasks-list">
+    <div class="task-row done">
+      <span class="task-icon" style="color:#1ecbb4">✓</span>
+      <span class="task-title done">Beber 2L de água</span>
+      <span class="task-xp">+15 XP</span>
+    </div>
+    <div class="task-row done">
+      <span class="task-icon" style="color:#1ecbb4">✓</span>
+      <span class="task-title done">Meditação 10min</span>
+      <span class="task-xp">+20 XP</span>
+    </div>
+    <div class="task-row done">
+      <span class="task-icon" style="color:#1ecbb4">✓</span>
+      <span class="task-title done">Diário noturno</span>
+      <span class="task-xp">+10 XP</span>
+    </div>
+    <div class="task-row skipped">
+      <span class="badge">pulado</span>
+      <span class="task-title" style="color:#555">Treino funcional</span>
+    </div>
+    <div class="task-row pending">
+      <span class="task-icon" style="color:#333">○</span>
+      <span class="task-title" style="color:#444">Leitura 30min</span>
+    </div>
+  </div>
+
+  <!-- 4. XP total -->
+  <div class="xp-box">
+    <span class="xp-icon">⚡</span>
+    <span class="xp-text">+45 XP em tasks hoje</span>
+  </div>
+
+  <!-- 5. Fechar dia -->
+  <button class="btn-close">Fechar dia 🌙</button>
+
+</div>
+</body>
+</html>

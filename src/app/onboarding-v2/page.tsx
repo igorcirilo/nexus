@@ -24,13 +24,28 @@ export default function OnboardingV2Page() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
+    async function loadUser() {
+      const { data } = await supabase.auth.getUser()
       if (!data.user) {
         router.replace('/auth')
         return
       }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('onboarded, onboarding_version, program_id')
+        .eq('id', data.user.id)
+        .single()
+
+      if (profile?.onboarded && (profile.onboarding_version ?? 1) >= 2 && profile.program_id) {
+        router.replace('/hoje')
+        return
+      }
+
       setUserId(data.user.id)
-    })
+    }
+
+    loadUser()
     const draft = loadDraft()
     if (Object.keys(draft).length > 0) setAnswers(draft)
   }, [router])

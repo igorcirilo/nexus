@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { TrainingPlan } from '@/types'
 import type { ParsedTrainingPlan } from '@/lib/body-plan'
 
@@ -20,6 +21,13 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
   const [expandedId, setExpandedId] = useState<string | null>(
     plans.length === 1 ? plans[0].id : null
   )
+  const [mounted, setMounted] = useState(false)
+  const portalRef = useRef<Element | null>(null)
+
+  useEffect(() => {
+    portalRef.current = document.body
+    setMounted(true)
+  }, [])
 
   function togglePlan(planId: string) {
     setExpandedId(prev => (prev === planId ? null : planId))
@@ -30,7 +38,9 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
     onClose()
   }
 
-  return (
+  if (!mounted || !portalRef.current) return null
+
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -359,6 +369,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
           )}
         </div>
       </div>
-    </>
+    </>,
+    portalRef.current
   )
 }

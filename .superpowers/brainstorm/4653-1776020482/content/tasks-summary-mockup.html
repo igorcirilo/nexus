@@ -1,0 +1,73 @@
+<h2>Tela de resumo de tasks — último passo do check-in noturno</h2>
+<p class="subtitle">Clica para selecionar se o design está aprovado</p>
+
+<div class="cards">
+  <div class="card" data-choice="aprovado" onclick="toggleSelect(this)">
+    <div class="card-image" style="padding: 20px; background: #0f0f0f; border-radius: 8px;">
+
+      <!-- Header do step -->
+      <div style="text-align:center; margin-bottom: 20px;">
+        <div style="font-size: 28px; margin-bottom: 8px;">🌙</div>
+        <div style="font-family: sans-serif; font-size: 18px; font-weight: 700; color: #f2f2f2;">Tasks do dia</div>
+        <div style="font-size: 13px; color: #888; margin-top: 4px;">Como foi sua execução hoje?</div>
+      </div>
+
+      <!-- Contador -->
+      <div style="display:flex; justify-content:center; gap: 20px; margin-bottom: 18px;">
+        <div style="text-align:center;">
+          <div style="font-size: 22px; font-weight: 700; color: #1ecbb4;">3</div>
+          <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .5px;">Feitas</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size: 22px; font-weight: 700; color: #e8a838;">1</div>
+          <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .5px;">Puladas</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size: 22px; font-weight: 700; color: #555;">1</div>
+          <div style="font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .5px;">Pendentes</div>
+        </div>
+      </div>
+
+      <!-- Lista de tasks -->
+      <div style="display:flex; flex-direction:column; gap: 8px; margin-bottom: 18px;">
+        <div style="display:flex; align-items:center; gap:10px; padding: 10px 12px; background:#1a1a1a; border-radius:10px; border: 0.5px solid rgba(30,203,180,.25);">
+          <span style="color:#1ecbb4; font-size:16px;">✓</span>
+          <span style="font-size:13px; color:#ccc; text-decoration: line-through;">Beber 2L de água</span>
+          <span style="margin-left:auto; font-size:11px; color:#1ecbb4;">+15 XP</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding: 10px 12px; background:#1a1a1a; border-radius:10px; border: 0.5px solid rgba(30,203,180,.25);">
+          <span style="color:#1ecbb4; font-size:16px;">✓</span>
+          <span style="font-size:13px; color:#ccc; text-decoration: line-through;">Meditação 10min</span>
+          <span style="margin-left:auto; font-size:11px; color:#1ecbb4;">+20 XP</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding: 10px 12px; background:#1a1a1a; border-radius:10px; border: 0.5px solid rgba(30,203,180,.25);">
+          <span style="color:#1ecbb4; font-size:16px;">✓</span>
+          <span style="font-size:13px; color:#ccc; text-decoration: line-through;">Diário noturno</span>
+          <span style="margin-left:auto; font-size:11px; color:#1ecbb4;">+10 XP</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding: 10px 12px; background:#1a1a1a; border-radius:10px; border: 0.5px solid rgba(30,203,180,.15); opacity:0.6;">
+          <span style="color:#888; font-size:13px; font-weight:600; background:#2a2a2a; padding: 1px 6px; border-radius:4px;">pulado</span>
+          <span style="font-size:13px; color:#666;">Treino funcional</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px; padding: 10px 12px; background:#1a1a1a; border-radius:10px; border: 0.5px solid #2a2a2a; opacity:0.5;">
+          <span style="color:#555; font-size:16px;">○</span>
+          <span style="font-size:13px; color:#666;">Leitura 30min</span>
+        </div>
+      </div>
+
+      <!-- XP total das tasks -->
+      <div style="text-align:center; padding: 10px; background:rgba(232,168,56,.08); border:0.5px solid rgba(232,168,56,.2); border-radius:10px; margin-bottom:16px;">
+        <span style="font-size:13px; color:#e8a838; font-weight:600;">+45 XP em tasks hoje</span>
+      </div>
+
+      <!-- Botão fechar dia -->
+      <div style="padding: 14px; background:#7f77dd; border-radius:14px; color:#fff; text-align:center; font-weight:700; font-size:15px;">
+        Fechar dia 🌙
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>Resumo de tasks</h3>
+      <p>Contador 3-colunas + lista com ícones de status + XP total + botão de fechar</p>
+    </div>
+  </div>
+</div>

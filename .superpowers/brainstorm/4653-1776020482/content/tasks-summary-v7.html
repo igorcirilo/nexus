@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tasks do dia</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111;
+    color: #f2f2f2;
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 40px 16px;
+  }
+  .phone {
+    width: 100%;
+    max-width: 390px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .title {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #f2f2f2;
+    margin-bottom: 20px;
+  }
+  .counter {
+    display: flex;
+    justify-content: space-around;
+    padding: 16px 0;
+    border-top: 0.5px solid #2a2a2a;
+    border-bottom: 0.5px solid #2a2a2a;
+    margin-bottom: 20px;
+  }
+  .counter-item { text-align: center; }
+  .counter-num { font-size: 28px; font-weight: 700; line-height: 1; }
+  .counter-label { font-size: 10px; text-transform: uppercase; letter-spacing: .8px; margin-top: 4px; color: #888; }
+  .divider { width: 0.5px; background: #2a2a2a; align-self: stretch; }
+  .tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .task-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    background: #1a1a1a;
+    border-radius: 12px;
+    border: 0.5px solid #2a2a2a;
+  }
+  .task-row.done { border-color: rgba(30,203,180,.25); }
+  .task-icon { font-size: 15px; flex-shrink: 0; width: 20px; text-align: center; }
+  .task-title { flex: 1; font-size: 14px; color: #ccc; }
+  .task-title.done { text-decoration: line-through; color: #888; }
+  .task-xp { font-size: 11px; color: #1ecbb4; flex-shrink: 0; }
+  .badge-pulado {
+    font-size: 10px; font-weight: 600; color: #888;
+    background: #2a2a2a; padding: 2px 7px; border-radius: 4px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  .xp-box {
+    text-align: center;
+    padding: 12px;
+    background: rgba(232,168,56,.08);
+    border: 0.5px solid rgba(232,168,56,.2);
+    border-radius: 12px;
+    margin-bottom: 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #e8a838;
+  }
+  .btn-close {
+    width: 100%;
+    padding: 16px;
+    background: #7f77dd;
+    border-radius: 14px;
+    color: #fff;
+    text-align: center;
+    font-weight: 700;
+    font-size: 16px;
+    cursor: pointer;
+    border: none;
+  }
+</style>
+</head>
+<body>
+<div class="phone">
+
+  <!-- 1. Título -->
+  <div class="title">Tasks do dia</div>
+
+  <!-- 2. Contador -->
+  <div class="counter">
+    <div class="counter-item">
+      <div class="counter-num" style="color:#1ecbb4">3</div>
+      <div class="counter-label">Feitas</div>
+    </div>
+    <div class="divider"></div>
+    <div class="counter-item">
+      <div class="counter-num" style="color:#e8a838">1</div>
+      <div class="counter-label">Puladas</div>
+    </div>
+    <div class="divider"></div>
+    <div class="counter-item">
+      <div class="counter-num" style="color:#444">1</div>
+      <div class="counter-label">Pendentes</div>
+    </div>
+  </div>
+
+  <!-- 3. Lista de tasks -->
+  <div class="tasks-list">
+    <div class="task-row done">
+      <span class="task-icon" style="color:#1ecbb4">✓</span>
+      <span class="task-title done">Beber 2L de água</span>
+      <span class="task-xp">+15 XP</span>
+    </div>
+    <div class="task-row done">
+      <span class="task-icon" style="color:#1ecbb4">✓</span>
+      <span class="task-title done">Meditação 10min</span>
+      <span class="task-xp">+20 XP</span>
+    </div>
+    <div class="task-row done">
+      <span class="task-icon" style="color:#1ecbb4">✓</span>
+      <span class="task-title done">Diário noturno</span>
+      <span class="task-xp">+10 XP</span>
+    </div>
+    <div class="task-row" style="opacity:.55">
+      <span class="badge-pulado">pulado</span>
+      <span class="task-title" style="color:#666">Treino funcional</span>
+    </div>
+    <div class="task-row" style="opacity:.4">
+      <span class="task-icon" style="color:#555">○</span>
+      <span class="task-title" style="color:#666">Leitura 30min</span>
+    </div>
+  </div>
+
+  <!-- 4. XP total -->
+  <div class="xp-box">+45 XP em tasks hoje</div>
+
+  <!-- 5. Fechar dia -->
+  <button class="btn-close">Fechar dia 🌙</button>
+
+</div>
+</body>
+</html>

@@ -95,6 +95,7 @@ export default function AnaliseInicialPage() {
             borderRadius: '50%',
             border: '2px solid var(--gold)',
             borderTopColor: 'transparent',
+            animation: 'spin .8s linear infinite',
           }}
         />
       </div>
