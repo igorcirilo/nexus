@@ -1,5 +1,5 @@
 import { calculateScores, saveScores } from '@/lib/profile-assessment'
-import { createProgram, generateWeek1, selectTemplatesForWeek1 } from '@/lib/program-engine'
+import { createProgram, generate63Days, FALLBACK_TASK_TEMPLATES } from '@/lib/program-engine'
 import type { Answers, HabitArea, TaskTemplate } from '@/types'
 
 export async function generateProgramFromAssessment(
@@ -27,17 +27,16 @@ export async function generateProgramFromAssessment(
 
   if (error) throw error
 
-  const selectedTemplates = selectTemplatesForWeek1(
-    templates as TaskTemplate[],
-    scores,
-    priorityArea
-  )
+  const availableTemplates = ((templates ?? []) as TaskTemplate[]).length > 0
+    ? (templates as TaskTemplate[])
+    : FALLBACK_TASK_TEMPLATES
 
-  await generateWeek1(userId, program.id, selectedTemplates)
+  await generate63Days(userId, program.id, availableTemplates, scores, priorityArea)
 
   const { error: profileError } = await supabase
     .from('profiles')
     .update({
+      onboarded: true,
       program_id: program.id,
       onboarding_version: 2,
     })
