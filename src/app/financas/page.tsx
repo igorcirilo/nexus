@@ -17,9 +17,10 @@ import {
   parseCsvText, detectColumnMap, rowsToTransactions,
   type TransactionCandidate,
 } from '@/lib/csv-parser'
+import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
 import { format, startOfMonth, endOfMonth, subMonths, getDaysInMonth, getDate } from 'date-fns'
 import { pt } from 'date-fns/locale'
-import type { Profile, Transaction } from '@/types'
+import type { Profile, Transaction, FinancialImportPreview, FinancialImportCandidate } from '@/types'
 
 const CATEGORIES_IN  = ['Salário','Freelance','Investimento','Rendas','Presente','Outro']
 const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
@@ -66,8 +67,11 @@ export default function FinancasPage() {
   const [editBudget, setEditBudget]= useState<string|null>(null)
   const [budgetVal,  setBudgetVal] = useState('')
   const csvRef = useRef<HTMLInputElement>(null)
+  const pdfRef = useRef<HTMLInputElement>(null)
   const [csvPreview, setCsvPreview]     = useState<TransactionCandidate[] | null>(null)
   const [csvImporting, setCsvImporting] = useState(false)
+  const [pdfPreview, setPdfPreview] = useState<FinancialImportPreview | null>(null)
+  const [pdfLoading, setPdfLoading] = useState(false)
 
   const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
   function showToast(m: string, type: 'success' | 'error' | 'info' = 'success') {
@@ -207,6 +211,49 @@ export default function FinancasPage() {
     setCsvImporting(false)
   }
 
+  async function importPDF(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+    setPdfLoading(true)
+    try {
+      const extracted = await extractPdfText(file)
+      const preview = parseStatementPdf(extracted)
+      if (preview.candidates.length === 0) {
+        showToast('Não encontrei movimentos neste PDF. Tenta um CSV.', 'error')
+      } else {
+        setPdfPreview(preview)
+      }
+    } catch (err) {
+      showToast('Erro ao ler o PDF.', 'error')
+      console.error(err)
+    } finally {
+      setPdfLoading(false)
+    }
+  }
+
+  async function confirmPdfImport() {
+    if (!userId || !pdfPreview) return
+    const selected = pdfPreview.candidates.filter(c => c.selected)
+    if (selected.length === 0) { showToast('Seleciona pelo menos uma transacção.', 'error'); return }
+    setCsvImporting(true)
+    const rows = selected.map(c => ({
+      user_id: userId,
+      type: c.type ?? 'saida',
+      category: c.category || 'Outro',
+      description: c.description || null,
+      amount: Math.abs(c.amount ?? 0),
+      date: c.date ?? format(new Date(), 'yyyy-MM-dd'),
+    }))
+    const { error } = await saveTransactionsBulk(rows)
+    if (error) { showToast('Erro ao importar.', 'error'); setCsvImporting(false); return }
+    const updated = await getTransactions(userId, 2)
+    setTxs(updated as Transaction[])
+    setPdfPreview(null)
+    setCsvImporting(false)
+    showToast(`${rows.length} transacções importadas!`)
+  }
+
   const savingsGoal    = profile?.fin_monthly_save    ?? 0
   const reserveGoal    = profile?.fin_reserve_goal    ?? 0
   const currentSavings = profile?.fin_current_savings ?? 0
@@ -259,6 +306,67 @@ export default function FinancasPage() {
         </div>
       )}
 
+      {pdfPreview && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 9000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          onClick={() => setPdfPreview(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ width: '100%', maxWidth: 480, background: 'var(--bg1)', borderRadius: '20px 20px 0 0', maxHeight: '80vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+          >
+            <div style={{ padding: '20px 20px 14px', borderBottom: '0.5px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--text1)', margin: 0 }}>Movimentos encontrados</p>
+                <p style={{ fontSize: 12, color: 'var(--text3)', margin: '3px 0 0' }}>
+                  {pdfPreview.candidates.filter(c => c.selected).length} de {pdfPreview.candidates.length} selecionados
+                </p>
+              </div>
+              <button onClick={() => setPdfPreview(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text2)', fontSize: 22 }}>×</button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: '10px 16px' }}>
+              {pdfPreview.warnings.map((w, i) => (
+                <p key={i} style={{ fontSize: 12, color: 'var(--gold)', margin: '0 0 8px' }}>⚠ {w}</p>
+              ))}
+              {pdfPreview.candidates.map((c: FinancialImportCandidate, idx) => (
+                <div
+                  key={c.id}
+                  onClick={() => setPdfPreview(prev => prev ? {
+                    ...prev,
+                    candidates: prev.candidates.map((x, i) => i === idx ? { ...x, selected: !x.selected } : x),
+                  } : null)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '0.5px solid var(--border)', cursor: 'pointer', opacity: c.selected ? 1 : 0.45 }}
+                >
+                  <div style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, background: c.selected ? 'var(--teal)' : 'var(--bg2)', border: c.selected ? 'none' : '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700 }}>
+                    {c.selected ? '✓' : ''}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 500, color: 'var(--text1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.description}</p>
+                    <p style={{ margin: '2px 0 0', fontSize: 11, color: 'var(--text3)' }}>
+                      {c.date ?? '—'} · {c.category}
+                    </p>
+                  </div>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, flexShrink: 0, color: c.type === 'entrada' ? 'var(--teal)' : '#E24B4A' }}>
+                    {c.type === 'entrada' ? '+' : '−'}{c.amount?.toFixed(2)} €
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ padding: '14px 16px', borderTop: '0.5px solid var(--border)' }}>
+              <button
+                disabled={csvImporting}
+                onClick={confirmPdfImport}
+                style={{ width: '100%', padding: 14, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
+              >
+                {csvImporting ? 'A importar…' : `Importar ${pdfPreview.candidates.filter(c => c.selected).length} transacções`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{padding:'28px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div>
@@ -267,7 +375,15 @@ export default function FinancasPage() {
         </div>
         <div style={{display:'flex',gap:8}}>
           <button onClick={()=>csvRef.current?.click()} style={{background:'var(--bg2)',color:'var(--text2)',border:'0.5px solid var(--border)',borderRadius:12,padding:'9px 12px',fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:12,cursor:'pointer'}}>↑ CSV</button>
+          <button
+            onClick={() => pdfRef.current?.click()}
+            disabled={pdfLoading}
+            style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '8px 14px', color: 'var(--text2)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, cursor: 'pointer' }}
+          >
+            {pdfLoading ? 'A lerâ€¦' : '📄 Importar PDF'}
+          </button>
           <input ref={csvRef} type="file" accept=".csv" style={{display:'none'}} onChange={importCSV}/>
+          <input ref={pdfRef} type="file" accept=".pdf" style={{ display: 'none' }} onChange={importPDF} />
           <button onClick={()=>setShowForm(true)} style={{background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:12,padding:'9px 16px',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>+ Registar</button>
         </div>
       </div>
