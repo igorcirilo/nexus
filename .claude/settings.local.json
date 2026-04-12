@@ -9,7 +9,16 @@
       "Bash(git commit:*)",
       "Bash(npm run:*)",
       "Bash(gh run:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(node -e \"const { version } = require\\('./node_modules/date-fns/package.json'\\); console.log\\('date-fns:', version\\)\")",
+      "Bash(node -e \"const { endOfMonth, format } = require\\('date-fns'\\); console.log\\(format\\(endOfMonth\\(new Date\\(2026,3,1\\)\\), 'yyyy-MM-dd'\\)\\)\")",
+      "Bash(findstr \":3001\")",
+      "Bash(git -C \"C:\\\\Users\\\\VORPC\\\\Desktop\\\\nexus-v4\" log --oneline -1)",
+      "Bash(git -C \"C:\\\\Users\\\\VORPC\\\\Desktop\\\\nexus-v4\" log --oneline -2)",
+      "Bash(ls /c/Users/VORPC/Desktop/nexus-v4/src/types*)",
+      "Bash(grep -n \"var\\(--gold\\)\" /c/Users/VORPC/Desktop/nexus-v4/src/components/*.tsx /c/Users/VORPC/Desktop/nexus-v4/src/app/**/*.tsx)",
+      "Bash(echo \"Exit code: $?\")",
+      "Bash(ls /c/Users/VORPC/Desktop/nexus-v4/src/lib/body*)"
     ]
   }
 }
