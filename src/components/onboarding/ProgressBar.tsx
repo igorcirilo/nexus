@@ -4,15 +4,22 @@ export function ProgressBar({ current, total }: Props) {
   const pct = Math.round((current / total) * 100)
 
   return (
-    <div className="w-full">
-      <div className="mb-1 flex justify-between text-xs text-zinc-400">
-        <span>{current} de {total}</span>
-        <span>{pct}%</span>
+    <div style={{ width: '100%', padding: '0 20px', marginBottom: 16 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 12, color: 'var(--text3)' }}>Pergunta {current} de {total}</span>
+        <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
+          {pct}%
+        </span>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+      <div style={{ background: 'var(--bg3)', height: 3, borderRadius: 100, marginTop: 8, overflow: 'hidden' }}>
         <div
-          className="h-full rounded-full bg-violet-500 transition-all duration-300"
-          style={{ width: `${pct}%` }}
+          style={{
+            background: 'var(--accent)',
+            height: '100%',
+            borderRadius: 100,
+            width: `${pct}%`,
+            transition: 'width .4s ease',
+          }}
         />
       </div>
     </div>

@@ -6,24 +6,70 @@ type Props = {
   onChange: (val: string) => void
 }
 
+function CheckIcon() {
+  return (
+    <span
+      style={{
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        background: 'var(--accent)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    </span>
+  )
+}
+
 export function SingleQuestion({ question, value, onChange }: Props) {
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-lg font-medium text-white">{question.text}</p>
-      <div className="flex flex-col gap-2">
-        {question.options?.map((opt) => (
-          <button
-            key={opt.id}
-            onClick={() => onChange(opt.id)}
-            className={`w-full rounded-xl border px-4 py-3 text-left transition-all ${
-              value === opt.id
-                ? 'border-violet-500 bg-violet-500/10 text-violet-300'
-                : 'border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:border-zinc-500'
-            }`}
-          >
-            {opt.label}
-          </button>
-        ))}
+    <div>
+      <p
+        style={{
+          fontFamily: 'Syne, sans-serif',
+          fontWeight: 700,
+          fontSize: 20,
+          color: 'var(--text1)',
+          marginBottom: 20,
+          lineHeight: 1.2,
+        }}
+      >
+        {question.text}
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {question.options?.map((opt) => {
+          const selected = value === opt.id
+          return (
+            <button
+              key={opt.id}
+              onClick={() => onChange(opt.id)}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: selected ? 'rgba(127,119,221,.10)' : 'var(--bg2)',
+                border: selected ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                borderRadius: 12,
+                padding: '14px 16px',
+                cursor: 'pointer',
+                transition: 'all .2s ease',
+              }}
+            >
+              <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: selected ? 'var(--accent)' : 'var(--text1)' }}>
+                {opt.label}
+              </span>
+              {selected ? <CheckIcon /> : <span style={{ width: 18, height: 18, borderRadius: '50%', border: '0.5px solid var(--border)', flexShrink: 0 }} />}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

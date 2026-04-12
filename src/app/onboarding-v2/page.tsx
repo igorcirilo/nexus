@@ -31,11 +31,8 @@ export default function OnboardingV2Page() {
       }
       setUserId(data.user.id)
     })
-
     const draft = loadDraft()
-    if (Object.keys(draft).length > 0) {
-      setAnswers(draft)
-    }
+    if (Object.keys(draft).length > 0) setAnswers(draft)
   }, [router])
 
   const currentQuestion = ONBOARDING_QUESTIONS[currentIndex]
@@ -58,12 +55,11 @@ export default function OnboardingV2Page() {
     if (!isAnswered()) return
 
     if (currentIndex < TOTAL - 1) {
-      setCurrentIndex((i) => i + 1)
+      setCurrentIndex(i => i + 1)
       return
     }
 
     if (!userId) return
-
     setLoading(true)
     setError(null)
 
@@ -82,48 +78,68 @@ export default function OnboardingV2Page() {
   }
 
   const handleBack = () => {
-    if (currentIndex > 0) {
-      setCurrentIndex((i) => i - 1)
-    }
+    if (currentIndex > 0) setCurrentIndex(i => i - 1)
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-zinc-950">
-      <div className="px-4 pb-4 pt-6">
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg0)' }}>
+      <div style={{ padding: '20px 20px 0' }}>
         <ProgressBar current={currentIndex + 1} total={TOTAL} />
       </div>
 
-      <div className="mx-auto flex w-full max-w-lg flex-1 flex-col justify-center px-4 py-8">
-        <div className="mb-2 text-xs font-medium uppercase tracking-wider text-violet-400">
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          padding: '24px 20px',
+          maxWidth: 480,
+          width: '100%',
+          margin: '0 auto',
+        }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            color: 'var(--accent)',
+            fontFamily: 'Syne, sans-serif',
+            fontWeight: 600,
+            textTransform: 'uppercase',
+            letterSpacing: 1,
+            marginBottom: 12,
+          }}
+        >
           Bloco {currentQuestion.block} de 8
         </div>
-        <QuestionRenderer
-          question={currentQuestion}
-          answer={currentAnswer}
-          onChange={handleChange}
-        />
-        {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+        <QuestionRenderer question={currentQuestion} answer={currentAnswer} onChange={handleChange} />
+        {error && <p style={{ marginTop: 16, fontSize: 13, color: '#E24B4A' }}>{error}</p>}
       </div>
 
-      <div className="mx-auto flex w-full max-w-lg gap-3 px-4 pb-8">
+      <div
+        style={{
+          padding: '16px 20px 28px',
+          display: 'flex',
+          gap: 10,
+          maxWidth: 480,
+          width: '100%',
+          margin: '0 auto',
+          borderTop: '0.5px solid var(--border)',
+          background: 'var(--bg0)',
+        }}
+      >
         {currentIndex > 0 && (
-          <button
-            onClick={handleBack}
-            className="flex-1 rounded-xl border border-zinc-700 py-3 font-medium text-zinc-300 transition-colors hover:bg-zinc-800"
-          >
+          <button className="btn-ghost" style={{ flex: 1 }} onClick={handleBack}>
             Voltar
           </button>
         )}
         <button
+          className="btn-primary"
+          style={{ flex: 1, opacity: (!isAnswered() || loading) ? 0.4 : 1, cursor: (!isAnswered() || loading) ? 'not-allowed' : 'pointer' }}
           onClick={handleNext}
           disabled={!isAnswered() || loading}
-          className="flex-1 rounded-xl bg-violet-600 py-3 font-semibold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {loading
-            ? 'Salvando...'
-            : currentIndex === TOTAL - 1
-              ? 'Ver meu diagnóstico'
-              : 'Próxima'}
+          {loading ? 'Salvando...' : currentIndex === TOTAL - 1 ? 'Ver meu diagnóstico' : 'Próxima →'}
         </button>
       </div>
     </div>

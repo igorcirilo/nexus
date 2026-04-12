@@ -22,16 +22,6 @@ const AREA_LABELS: Record<HabitArea, string> = {
   relacionamentos: 'Relacionamentos',
 }
 
-const AREA_COLORS: Record<HabitArea, string> = {
-  corpo: 'bg-emerald-500',
-  produtividade: 'bg-blue-500',
-  idiomas: 'bg-yellow-500',
-  carreira: 'bg-orange-500',
-  financas: 'bg-green-600',
-  emocoes: 'bg-pink-500',
-  relacionamentos: 'bg-purple-500',
-}
-
 const AREAS: HabitArea[] = [
   'corpo', 'produtividade', 'idiomas', 'carreira',
   'financas', 'emocoes', 'relacionamentos',
@@ -89,50 +79,90 @@ export default function AnaliseInicialPage() {
 
   if (!scores) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'var(--bg0)',
+        }}
+      >
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: '2px solid var(--gold)',
+            borderTopColor: 'transparent',
+          }}
+        />
       </div>
     )
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-lg flex-col bg-zinc-950 px-4 py-8">
-      <div className="mb-8 text-center">
-        <p className="mb-1 text-sm text-zinc-400">Diagnóstico inicial</p>
-        <h1 className="mb-1 text-4xl font-bold text-white">
-          {scores.global}<span className="text-2xl text-zinc-400">/100</span>
-        </h1>
-        <p className="text-sm text-zinc-400">Sua pontuação inicial</p>
+    <div
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column',
+        maxWidth: 480,
+        width: '100%',
+        margin: '0 auto',
+        padding: '28px 20px',
+      }}
+    >
+      <div style={{ textAlign: 'center' }}>
+        <span className="chip chip-accent">Diagnóstico inicial</span>
+        <div
+          style={{
+            margin: '20px 0 4px',
+            fontFamily: 'Syne, sans-serif',
+            fontWeight: 800,
+            fontSize: 64,
+            color: 'var(--gold)',
+            lineHeight: 1,
+          }}
+        >
+          {scores.global}
+          <span style={{ fontSize: 24, color: 'var(--text3)', fontWeight: 400 }}>/100</span>
+        </div>
+        <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 28 }}>Sua pontuação inicial</p>
       </div>
 
-      <div className="mb-8 flex flex-col gap-3">
-        {AREAS.map((area) => (
-          <div key={area} className="rounded-xl bg-zinc-900 p-4">
-            <div className="mb-2 flex items-center justify-between">
-              <span className="text-sm font-medium text-zinc-300">{AREA_LABELS[area]}</span>
-              <span className="text-sm font-bold text-white">{scores[area]}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
+        {AREAS.map(area => (
+          <div key={area} className="card" style={{ padding: '14px 16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <span style={{ fontSize: 13, color: 'var(--text2)', fontFamily: 'DM Sans, sans-serif' }}>{AREA_LABELS[area]}</span>
+              <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)' }}>{scores[area]}</span>
             </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-zinc-800">
+            <div style={{ background: 'var(--bg3)', height: 4, borderRadius: 100, overflow: 'hidden' }}>
               <div
-                className={`h-full rounded-full transition-all ${AREA_COLORS[area]}`}
-                style={{ width: `${scores[area]}%` }}
+                style={{
+                  background: 'var(--teal)',
+                  width: `${scores[area]}%`,
+                  borderRadius: 100,
+                  height: '100%',
+                  transition: 'width .6s ease',
+                }}
               />
             </div>
           </div>
         ))}
       </div>
 
-      {error && <p className="mb-4 text-center text-sm text-red-400">{error}</p>}
-
+      {error && <p style={{ marginBottom: 12, fontSize: 13, color: '#E24B4A' }}>{error}</p>}
       <button
+        className="btn-primary"
         onClick={handleGeneratePlan}
         disabled={generating}
-        className="w-full rounded-xl bg-violet-600 py-4 text-base font-semibold text-white transition-colors hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-40"
+        style={{ opacity: generating ? 0.5 : 1, cursor: generating ? 'not-allowed' : 'pointer' }}
       >
         {generating ? 'Gerando seu plano...' : 'Ver meu plano de 60 dias →'}
       </button>
-
-      <p className="mt-3 text-center text-xs text-zinc-500">
+      <p style={{ marginTop: 12, fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
         Vamos montar sua semana 1 personalizada com base no seu diagnóstico
       </p>
     </div>

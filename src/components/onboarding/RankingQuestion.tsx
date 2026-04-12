@@ -23,36 +23,68 @@ export function RankingQuestion({ question, value, onChange }: Props) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-lg font-medium text-white">{question.text}</p>
-      <p className="text-sm text-zinc-500">
+    <div>
+      <p
+        style={{
+          fontFamily: 'Syne, sans-serif',
+          fontWeight: 700,
+          fontSize: 20,
+          color: 'var(--text1)',
+          marginBottom: 8,
+          lineHeight: 1.2,
+        }}
+      >
+        {question.text}
+      </p>
+      <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
         Toque para selecionar em ordem de prioridade ({value.length}/{MAX})
       </p>
-      <div className="flex flex-col gap-2">
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {question.options?.map((opt) => {
           const rank = rankOf(opt.id)
           const selected = rank !== null
+          const blocked = value.length >= MAX && !selected
 
           return (
             <button
               key={opt.id}
               onClick={() => toggleArea(opt.id)}
-              className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
-                selected
-                  ? 'border-violet-500 bg-violet-500/10 text-violet-300'
-                  : value.length >= MAX
-                    ? 'cursor-not-allowed border-zinc-800 bg-zinc-900/30 text-zinc-500'
-                    : 'border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:border-zinc-500'
-              }`}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                background: selected ? 'rgba(232,168,56,.08)' : 'var(--bg2)',
+                border: selected ? '0.5px solid var(--gold)' : '0.5px solid var(--border)',
+                borderRadius: 12,
+                padding: '14px 16px',
+                cursor: blocked ? 'not-allowed' : 'pointer',
+                opacity: blocked ? 0.4 : 1,
+                transition: 'all .2s ease',
+              }}
             >
               <span
-                className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-                  selected ? 'bg-violet-500 text-white' : 'bg-zinc-700 text-zinc-400'
-                }`}
+                style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  background: selected ? 'var(--gold)' : 'var(--bg3)',
+                  color: selected ? 'var(--bg0)' : 'var(--text3)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  fontFamily: 'Syne, sans-serif',
+                }}
               >
                 {rank ?? '·'}
               </span>
-              {opt.label}
+              <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: selected ? 'var(--gold)' : 'var(--text1)', textAlign: 'left' }}>
+                {opt.label}
+              </span>
             </button>
           )
         })}

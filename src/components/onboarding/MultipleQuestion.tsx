@@ -6,41 +6,72 @@ type Props = {
   onChange: (val: string[]) => void
 }
 
+function CheckIcon() {
+  return (
+    <span
+      style={{
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        background: 'var(--accent)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}
+    >
+      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    </span>
+  )
+}
+
 export function MultipleQuestion({ question, value, onChange }: Props) {
   const toggle = (id: string) => {
     onChange(value.includes(id) ? value.filter((v) => v !== id) : [...value, id])
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-lg font-medium text-white">{question.text}</p>
-      <p className="text-sm text-zinc-500">Selecione todas que se aplicam</p>
-      <div className="flex flex-col gap-2">
+    <div>
+      <p
+        style={{
+          fontFamily: 'Syne, sans-serif',
+          fontWeight: 700,
+          fontSize: 20,
+          color: 'var(--text1)',
+          marginBottom: 20,
+          lineHeight: 1.2,
+        }}
+      >
+        {question.text}
+      </p>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {question.options?.map((opt) => {
           const selected = value.includes(opt.id)
-
           return (
             <button
               key={opt.id}
               onClick={() => toggle(opt.id)}
-              className={`flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
-                selected
-                  ? 'border-violet-500 bg-violet-500/10 text-violet-300'
-                  : 'border-zinc-700 bg-zinc-800/50 text-zinc-300 hover:border-zinc-500'
-              }`}
+              style={{
+                width: '100%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: selected ? 'rgba(127,119,221,.10)' : 'var(--bg2)',
+                border: selected ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
+                borderRadius: 12,
+                padding: '14px 16px',
+                cursor: 'pointer',
+                transition: 'all .2s ease',
+                gap: 12,
+              }}
             >
-              <span
-                className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${
-                  selected ? 'border-violet-500 bg-violet-500' : 'border-zinc-600'
-                }`}
-              >
-                {selected && (
-                  <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                )}
+              <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: selected ? 'var(--accent)' : 'var(--text1)', textAlign: 'left', flex: 1 }}>
+                {opt.label}
               </span>
-              {opt.label}
+              {selected ? <CheckIcon /> : <span style={{ width: 18, height: 18, borderRadius: '50%', border: '0.5px solid var(--border)', flexShrink: 0 }} />}
             </button>
           )
         })}
