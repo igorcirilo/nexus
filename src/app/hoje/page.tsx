@@ -25,7 +25,7 @@ import {
 } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
 import type { Profile, Checkin, ProgramDay, ProgramTask, HabitArea } from '@/types'
-import { getProgramDayByDate, getProgramTasks, updateTaskStatus, createManualTask } from '@/lib/program'
+import { getProgramDayByDate, getProgramTasks, getFirstProgramDayWithTasks, ensureProgramHasTasks, updateTaskStatus, createManualTask } from '@/lib/program'
 import StreakRecovery from '@/components/StreakRecovery'
 
 type ProfileWithProgram = Profile & {
@@ -78,11 +78,17 @@ export default function HojePage() {
         getCheckinsForDate(user.id, today),
       ])
 
-      if (prof && !prof.onboarded) {
-        window.location.href = '/onboarding'
+      const hasCompletedV2Onboarding = Boolean(
+        prof &&
+        ((prof as ProfileWithProgram).program_id) &&
+        ((((prof as ProfileWithProgram).onboarding_version) ?? 1) >= 2)
+      )
+
+      if (prof && !prof.onboarded && !hasCompletedV2Onboarding) {
+        window.location.href = '/onboarding-v2'
         return
       }
-      if (prof && (!(prof as ProfileWithProgram).program_id || (((prof as ProfileWithProgram).onboarding_version) ?? 1) < 2)) {
+      if (prof && !hasCompletedV2Onboarding) {
         setNoProgram(true)
       }
 
@@ -101,12 +107,27 @@ export default function HojePage() {
         setCanRecover(canRec)
       }
 
-      if ((prof as ProfileWithProgram)?.program_id && ((((prof as ProfileWithProgram).onboarding_version) ?? 1) >= 2)) {
-        const day = await getProgramDayByDate(user.id)
+      if (hasCompletedV2Onboarding) {
+        const programId = (prof as ProfileWithProgram).program_id!
+        await ensureProgramHasTasks(user.id, programId)
+        const day = await getProgramDayByDate(programId)
         if (day) {
-          setProgramDay(day)
           const dayTasks = await getProgramTasks(day.id)
-          setTasks(dayTasks)
+
+          if (dayTasks.length > 0) {
+            setProgramDay(day)
+            setTasks(dayTasks)
+          } else {
+            const fallbackDay = await getFirstProgramDayWithTasks(programId)
+            if (fallbackDay) {
+              const fallbackTasks = await getProgramTasks(fallbackDay.id)
+              setProgramDay(fallbackDay)
+              setTasks(fallbackTasks)
+            } else {
+              setProgramDay(day)
+              setTasks([])
+            }
+          }
         }
       }
 
@@ -418,6 +439,18 @@ export default function HojePage() {
           </div>
         )}
       </div>
+
+      {programDay && (
+        <div style={{ padding: '0 20px', marginTop: 8 }}>
+          <a
+            href="/programa"
+            className="btn-ghost"
+            style={{ width: '100%', display: 'block', textAlign: 'center', textDecoration: 'none' }}
+          >
+            Ver programa completo →
+          </a>
+        </div>
+      )}
 
       {profile && nightCheckin && (
         <NightSummaryCard
