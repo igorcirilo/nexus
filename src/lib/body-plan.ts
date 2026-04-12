@@ -31,17 +31,17 @@ export type ParsedDietPlan = ParsedBodyPlan & {
 }
 
 const TRAINING_SECTION_MARKERS =
-  /(dia\s+\d+|day\s+\d+|segunda|terca|terça|quarta|quinta|sexta|sabado|sábado|domingo|upper|lower|push|pull|legs|peito|costas|pernas|ombro|ombros|treino\s+[a-z0-9]+)/i
+  /(dia\s+\d+|day\s+\d+|segunda|terca|terÃ§a|quarta|quinta|sexta|sabado|sÃ¡bado|domingo|upper|lower|push|pull|legs|peito|costas|pernas|ombro|ombros|treino\s+[a-z0-9]+)/i
 
 const TRAINING_NOISE_PATTERNS = [
+  // Cabeçalhos de colunas de planilha
   /^exerc/i,
   /^series?$/i,
   /^repet/i,
   /^descanso/i,
   /^rpe$/i,
   /^tempo$/i,
-  /^tecnica$/i,
-  /^t[eé]cnicas?/i,
+  /^t[eé]cnicas?$/i,
   /^sigla/i,
   /^significado$/i,
   /^observa/i,
@@ -59,36 +59,52 @@ const TRAINING_NOISE_PATTERNS = [
   /^data$/i,
   /^date$/i,
   /^dia$/i,
-  /^semana$/i,
   /^semanas?$/i,
   /^bloco$/i,
   /^grupo$/i,
   /^muscular$/i,
-  /^execucao$/i,
-  /^execução$/i,
-  /^orientacao$/i,
-  /^orientação$/i,
-  /^instrucao$/i,
-  /^instrução$/i,
-  /^descricao$/i,
-  /^descrição$/i,
+  /^execu[cç][aã]o$/i,
+  /^orienta[cç][aã]o$/i,
+  /^instru[cç][oõ]es?$/i,
+  /^descri[cç][aã]o$/i,
+  // Metadados de plano de treino
+  /^objetivos?$/i,
+  /^objectivos?$/i,
+  /^divis[aã]o$/i,
+  /^frequ[eê]ncia(\s+sugerida)?$/i,
+  /^aquecimento$/i,
+  /^progress[aã]o$/i,
+  /^agenda(\s+semanal)?(\s+sugerida)?$/i,
+  /^registro(\s+da\s+sess[aã]o)?$/i,
+  /^registo(\s+da\s+sess[aã]o)?$/i,
+  /^sess[aã]o$/i,
+  /^sum[aá]rio$/i,
+  /^introdu[cç][aã]o$/i,
+  /^dicas?$/i,
+  /^recomenda/i,
+  /^princ[ií]pios?$/i,
+  /^estrutura$/i,
+  /^metodologia$/i,
+  /^volume$/i,
+  /^intensidade$/i,
+  /^periodiza[cç][aã]o$/i,
+  // Formatos numéricos puros
   /^\d+[\s\.]+$/,
   /^[-–—]+$/,
-  /^[A-Z]{1,4}$/,    // Siglas puras (RPE, RM, RIR, etc.)
-  /^\d+%$/,          // Percentagens sozinhas
-  /^(seg|ter|qua|qui|sex|sab|dom)\.?$/i, // Abreviações de dias
+  /^[A-Z]{1,4}$/,
+  /^\d+%$/,
+  /^(seg|ter|qua|qui|sex|sab|dom)\.?$/i,
   /^\d+\s*[x×]\s*\d+\s*(reps?|rep)?$/i,
   /^\d+\s*-\s*\d+\s*reps?$/i,
-  // Linhas de instrução técnica longa (>60 chars sem ser nome de exercício)
 ]
 
 const TRAINING_DETAIL_HINT =
-  /(\d+\s*x\s*\d+|\d+\s*-\s*\d+|\d+\s*kg|\d+\s*s|\d+\s*min|rpe|amrap|descanso|rest pause|cadencia|cadência|tempo)/i
+  /(\d+\s*x\s*\d+|\d+\s*-\s*\d+|\d+\s*kg|\d+\s*s|\d+\s*min|rpe|amrap|descanso|rest pause|cadencia|cadÃªncia|tempo)/i
 
 const MEAL_KEYWORDS: Array<{ key: DietMealKey; label: string; pattern: RegExp }> = [
-  { key: 'pequeno_almoco', label: 'Pequeno-almoço', pattern: /(pequeno|cafe\s+da\s+manha|café\s+da\s+manhã|breakfast)/i },
-  { key: 'almoco', label: 'Almoço', pattern: /(almoco|almoço|lunch)/i },
-  { key: 'lanche', label: 'Lanche', pattern: /(lanche|snack|pre\s*treino|pré\s*treino|ceia)/i },
+  { key: 'pequeno_almoco', label: 'Pequeno-almoÃ§o', pattern: /(pequeno|cafe\s+da\s+manha|cafÃ©\s+da\s+manhÃ£|breakfast)/i },
+  { key: 'almoco', label: 'AlmoÃ§o', pattern: /(almoco|almoÃ§o|lunch)/i },
+  { key: 'lanche', label: 'Lanche', pattern: /(lanche|snack|pre\s*treino|prÃ©\s*treino|ceia)/i },
   { key: 'jantar', label: 'Jantar', pattern: /(jantar|dinner)/i },
 ]
 
@@ -162,8 +178,13 @@ function nonEmptyValues(row: Record<string, string | number | boolean | null>) {
 function isTrainingNoise(line: string) {
   const normalized = normalizeText(line)
   if (!normalized) return true
-  if (TRAINING_NOISE_PATTERNS.some((pattern) => pattern.test(normalized))) return true
   if (normalized.length < 3) return true
+  if (TRAINING_NOISE_PATTERNS.some((pattern) => pattern.test(normalized))) return true
+  // Frases descritivas: terminam em ponto e têm mais de 35 chars
+  // (observações, orientações, instruções longas)
+  if (normalized.endsWith('.') && normalized.length > 35) return true
+  // Frases com conectores típicos de instrução
+  if (/\b(antes de|para evitar|nas primeiras|em reserva|de forma a|certific)\b/.test(normalized)) return true
   return false
 }
 
@@ -173,20 +194,20 @@ function isLikelySection(line: string): boolean {
 
   let score = 0
 
-  // Marcador explícito de dia/grupo muscular
+  // Marcador explÃ­cito de dia/grupo muscular
   if (TRAINING_SECTION_MARKERS.test(normalized)) score += 3
 
-  // Linha curta e sem detalhes métricos
+  // Linha curta e sem detalhes mÃ©tricos
   if (normalized.length <= 28) score += 1
   if (normalized.split(' ').length <= 4) score += 1
 
-  // Sem números de séries/reps (indício de que é secção, não exercício)
+  // Sem nÃºmeros de sÃ©ries/reps (indÃ­cio de que Ã© secÃ§Ã£o, nÃ£o exercÃ­cio)
   if (!/\d+\s*x\s*\d+/.test(normalized)) score += 1
 
-  // Só letras e espaços (sem siglas numéricas)
+  // SÃ³ letras e espaÃ§os (sem siglas numÃ©ricas)
   if (/^[a-z\s]+$/.test(normalized)) score += 1
 
-  // Penalizar se parece detalhe de exercício
+  // Penalizar se parece detalhe de exercÃ­cio
   if (TRAINING_DETAIL_HINT.test(normalized)) score -= 3
 
   return score >= 3
@@ -195,7 +216,7 @@ function isLikelySection(line: string): boolean {
 function cleanExerciseName(name: string) {
   return compactSpaces(
     name
-      .replace(/^[-–—]\s*/, '')
+      .replace(/^[-â€“â€”]\s*/, '')
       .replace(/\b(check|ok|pendente)\b/gi, '')
       .trim()
   )
@@ -214,11 +235,11 @@ function splitExerciseLine(line: string) {
     }
   }
 
-  const parts = cleaned.split(/\s{2,}| - | — /).map(compactSpaces).filter(Boolean)
+  const parts = cleaned.split(/\s{2,}| - | â€” /).map(compactSpaces).filter(Boolean)
   if (parts.length > 1) {
     return {
       name: cleanExerciseName(parts[0]),
-      detail: compactSpaces(parts.slice(1).join(' · ')),
+      detail: compactSpaces(parts.slice(1).join(' Â· ')),
     }
   }
 
@@ -294,7 +315,7 @@ function parseTrainingSpreadsheet(result: Extract<FileImportResult, { kind: 'spr
       .map(compactSpaces)
       .filter(Boolean)
 
-    const detail = detailParts.length > 0 ? detailParts.join(' · ') : undefined
+    const detail = detailParts.length > 0 ? detailParts.join(' Â· ') : undefined
     const sectionTitle = explicitSection || fallbackSection || 'Treino'
     const current = sections.get(sectionTitle) ?? []
 
@@ -318,7 +339,7 @@ function parseTrainingSpreadsheet(result: Extract<FileImportResult, { kind: 'spr
   return {
     summary:
       parsedSections.length > 0
-        ? `${parsedSections.length} bloco(s) · ${parsedSections.reduce((sum, section) => sum + section.exercises.length, 0)} exercício(s)`
+        ? `${parsedSections.length} bloco(s) Â· ${parsedSections.reduce((sum, section) => sum + section.exercises.length, 0)} exercÃ­cio(s)`
         : 'Planilha de treino importada',
     sections: parsedSections.length > 0 ? parsedSections : [{ id: 'section-treino', title: 'Treino', exercises: [] }],
   }
@@ -361,8 +382,8 @@ function parseTrainingPdf(result: Extract<FileImportResult, { kind: 'pdf' }>): P
   return {
     summary:
       cleaned.length > 0
-        ? `${cleaned.length} bloco(s) · ${cleaned.reduce((sum, section) => sum + section.exercises.length, 0)} exercício(s)`
-        : `PDF com ${result.pageCount} página(s)`,
+        ? `${cleaned.length} bloco(s) Â· ${cleaned.reduce((sum, section) => sum + section.exercises.length, 0)} exercÃ­cio(s)`
+        : `PDF com ${result.pageCount} pÃ¡gina(s)`,
     sections: cleaned.length > 0 ? cleaned : [{ id: 'section-treino', title: 'Treino', exercises: [] }],
   }
 }
@@ -416,7 +437,7 @@ function parseDietSpreadsheet(result: Extract<FileImportResult, { kind: 'spreads
 
     const parts = [baseItem, quantity, obs].map(compactSpaces).filter(Boolean)
     const current = mealMap.get(meal.key) ?? { key: meal.key, label: meal.label, items: [] }
-    current.items.push(parts.join(' · '))
+    current.items.push(parts.join(' Â· '))
     mealMap.set(meal.key, current)
   })
 
@@ -426,7 +447,7 @@ function parseDietSpreadsheet(result: Extract<FileImportResult, { kind: 'spreads
   }))
 
   return {
-    summary: meals.length > 0 ? `${meals.length} refeição(ões) tratadas` : 'Planilha de dieta importada',
+    summary: meals.length > 0 ? `${meals.length} refeiÃ§Ã£o(Ãµes) tratadas` : 'Planilha de dieta importada',
     meals,
   }
 }
@@ -456,7 +477,7 @@ function parseDietPdf(result: Extract<FileImportResult, { kind: 'pdf' }>): Parse
   }))
 
   return {
-    summary: meals.length > 0 ? `${meals.length} refeição(ões) tratadas` : `PDF com ${result.pageCount} página(s)`,
+    summary: meals.length > 0 ? `${meals.length} refeiÃ§Ã£o(Ãµes) tratadas` : `PDF com ${result.pageCount} pÃ¡gina(s)`,
     meals,
   }
 }
