@@ -6,7 +6,6 @@ import Nav from '@/components/Nav'
 import XPBar from '@/components/XPBar'
 import MissionCard from '@/components/MissionCard'
 import MentorCard from '@/components/MentorCard'
-import HabitItem from '@/components/HabitItem'
 import XPToast, { triggerXP } from '@/components/XPToast'
 import AvatarXP from '@/components/AvatarXP'
 import NightSummaryCard from '@/components/NightSummaryCard'
@@ -15,7 +14,6 @@ import BadgeModal from '@/components/BadgeModal'
 import {
   supabase,
   getProfile,
-  getHabitsWithLogs,
   addXP,
   updateStreak,
   getDynamicWeeklyChallenge,
@@ -26,9 +24,14 @@ import {
   claimStreakRecovery,
 } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
-import type { Profile, Habit, HabitLog, Checkin } from '@/types'
+import type { Profile, Checkin, ProgramDay, ProgramTask, HabitArea } from '@/types'
+import { getProgramDayByDate, getProgramTasks, updateTaskStatus, createManualTask } from '@/lib/program'
 import StreakRecovery from '@/components/StreakRecovery'
-import EmptyState from '@/components/EmptyState'
+
+type ProfileWithProgram = Profile & {
+  program_id?: string | null
+  onboarding_version?: number | null
+}
 
 const CHALLENGE_LIBRARY = [
   'Semana da Consistencia',
@@ -42,13 +45,16 @@ const CHALLENGE_LIBRARY = [
 export default function HojePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [userId, setUserId] = useState<string>('')
-  const [habits, setHabits] = useState<(Habit & { habit_logs: HabitLog[] })[]>([])
   const [missionPct, setMissionPct] = useState(0)
   const [loading, setLoading] = useState(true)
   const [showRecovery, setShowRecovery] = useState(false)
   const [canRecover, setCanRecover] = useState(false)
   const [todayCheckins, setTodayCheckins] = useState<Checkin[]>([])
   const [weekChallenge, setWeekChallenge] = useState({ title: 'Semana da Consistencia', done: 0, total: 7 })
+  const [programDay, setProgramDay] = useState<ProgramDay | null>(null)
+  const [tasks, setTasks] = useState<ProgramTask[]>([])
+  const [noProgram, setNoProgram] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<ProgramTask | null>(null)
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
   const [pendingBadges, setPendingBadges] = useState<{ key: string; name: string }[]>([])
   const today = format(new Date(), 'yyyy-MM-dd')
@@ -67,15 +73,17 @@ export default function HojePage() {
       }
       setUserId(user.id)
 
-      const [prof, hab, checkins] = await Promise.all([
+      const [prof, checkins] = await Promise.all([
         getProfile(user.id),
-        getHabitsWithLogs(user.id, today),
         getCheckinsForDate(user.id, today),
       ])
 
       if (prof && !prof.onboarded) {
         window.location.href = '/onboarding'
         return
+      }
+      if (prof && (!(prof as ProfileWithProgram).program_id || (((prof as ProfileWithProgram).onboarding_version) ?? 1) < 2)) {
+        setNoProgram(true)
       }
 
       const typedCheckins = (checkins ?? []) as Checkin[]
@@ -86,12 +94,20 @@ export default function HojePage() {
       if (prof && manhaCI?.mission) prof.mission_today = manhaCI.mission
 
       setProfile(prof)
-      setHabits(hab as (Habit & { habit_logs: HabitLog[] })[])
 
       if (prof && prof.streak_current === 0 && prof.streak_best > 0) {
         setShowRecovery(true)
         const canRec = await canClaimStreakRecovery(user.id)
         setCanRecover(canRec)
+      }
+
+      if ((prof as ProfileWithProgram)?.program_id && ((((prof as ProfileWithProgram).onboarding_version) ?? 1) >= 2)) {
+        const day = await getProgramDayByDate(user.id)
+        if (day) {
+          setProgramDay(day)
+          const dayTasks = await getProgramTasks(day.id)
+          setTasks(dayTasks)
+        }
       }
 
       const challenge = await getDynamicWeeklyChallenge(user.id)
@@ -120,25 +136,6 @@ export default function HojePage() {
     load()
   }, [today])
 
-  async function handleXP(xp: number, msg: string) {
-    if (!profile) return
-    triggerXP(xp, msg)
-    const oldLevel = profile.level
-    await addXP(profile.id, xp)
-
-    const updated = await getProfile(profile.id)
-    if (updated) {
-      setProfile(updated)
-      if (updated.level > oldLevel) {
-        setTimeout(() => {
-          setLevelUpData({ level: updated.level, title: updated.title ?? 'Guerreiro' })
-        }, 800)
-      }
-    } else {
-      setProfile((p) => (p ? { ...p, xp_total: p.xp_total + xp } : p))
-    }
-  }
-
   async function handleStreakRecover() {
     if (!userId) return
     const success = await claimStreakRecovery(userId)
@@ -158,8 +155,8 @@ export default function HojePage() {
     })
   }
 
-  const doneCnt = habits.filter((h) => h.habit_logs?.[0]?.completed).length
-  const totalHabits = habits.length
+  const doneCnt = tasks.filter((t) => t.status === 'completed').length
+  const totalHabits = tasks.length
   const xpHoje = todayCheckins.reduce((sum, c) => sum + (c.xp_earned ?? 0), 0)
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
 
@@ -199,14 +196,6 @@ export default function HojePage() {
         <BadgeModal
           badges={pendingBadges}
           onClose={() => setPendingBadges(prev => prev.slice(1))}
-        />
-      )}
-
-      {habits.length === 0 && profile && (
-        <EmptyState
-          hasHabits={habits.length > 0}
-          hasMission={!!profile.mission_today}
-          username={profile.username ?? 'Guerreiro'}
         />
       )}
 
@@ -315,26 +304,117 @@ export default function HojePage() {
 
       <div style={{ padding: '0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16 }}>Hábitos de hoje</h2>
-          <a href="/habitos" style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'none' }}>gerir</a>
+          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16 }}>Tarefas de hoje</h2>
         </div>
 
-        {habits.length === 0 ? (
-          <div style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 16, color: 'var(--text3)', fontSize: 13 }}>
-            Ainda não tens hábitos activos.
+        {noProgram ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '24px 0', textAlign: 'center' }}>
+            <span style={{ fontSize: 32 }}>🎯</span>
+            <p style={{ fontWeight: 600, color: 'var(--text1)', fontSize: 15 }}>Faça seu diagnóstico</p>
+            <p style={{ color: 'var(--text3)', fontSize: 13 }}>
+              Responda algumas perguntas para receber seu plano personalizado de 60 dias
+            </p>
+            <a
+              href="/onboarding-v2"
+              style={{ padding: '10px 24px', borderRadius: 14, background: 'var(--accent)', color: '#fff', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}
+            >
+              Começar diagnóstico
+            </a>
+          </div>
+        ) : programDay ? (
+          <div style={{ display: 'grid', gap: 10 }}>
+            {tasks.length > 0 && (
+              <div style={{ display: 'flex', gap: 16, fontSize: 12, color: 'var(--text3)', paddingBottom: 4 }}>
+                <span>✅ {doneCnt}/{totalHabits} concluídas</span>
+                {tasks.some(t => t.status === 'skipped') && (
+                  <span>⏭ {tasks.filter(t => t.status === 'skipped').length} puladas</span>
+                )}
+              </div>
+            )}
+
+            {tasks.map(task => (
+              <div
+                key={task.id}
+                style={{
+                  background: 'var(--bg2)',
+                  border: `0.5px solid ${task.status === 'completed' ? 'rgba(30,203,180,.3)' : task.status === 'skipped' ? 'var(--border)' : 'var(--border)'}`,
+                  borderRadius: 14,
+                  padding: '12px 14px',
+                  opacity: task.status !== 'pending' ? 0.6 : 1,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                  <button
+                    style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    onClick={() => setSelectedTask(task)}
+                  >
+                    <p
+                      style={{
+                        fontWeight: 600,
+                        fontSize: 14,
+                        color: task.status === 'completed' ? 'var(--text3)' : 'var(--text1)',
+                        textDecoration: task.status === 'completed' ? 'line-through' : 'none',
+                        marginBottom: 2,
+                      }}
+                    >
+                      {task.title}
+                    </p>
+                    {task.description && (
+                      <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 4 }}>{task.description}</p>
+                    )}
+                    <div style={{ display: 'flex', gap: 8, fontSize: 11 }}>
+                      <span style={{ color: 'var(--text3)', textTransform: 'capitalize' }}>{task.area}</span>
+                      <span style={{ color: 'var(--accent)' }}>+{task.xp_reward} XP</span>
+                    </div>
+                  </button>
+
+                  {task.status === 'pending' && (
+                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                      <button
+                        onClick={async () => {
+                          await updateTaskStatus(task.id, 'skipped')
+                          setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'skipped' } : t))
+                        }}
+                        style={{ padding: '5px 10px', borderRadius: 8, background: 'var(--bg3)', border: '0.5px solid var(--border)', color: 'var(--text3)', fontSize: 12, cursor: 'pointer' }}
+                      >
+                        Pular
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await updateTaskStatus(task.id, 'completed')
+                          setTasks(prev => prev.map(t =>
+                            t.id === task.id ? { ...t, status: 'completed', completed_at: new Date().toISOString() } : t
+                          ))
+                          if (userId) await addXP(userId, task.xp_reward)
+                        }}
+                        style={{ padding: '5px 12px', borderRadius: 8, background: 'var(--accent)', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none' }}
+                      >
+                        Feito ✓
+                      </button>
+                    </div>
+                  )}
+                  {task.status === 'completed' && (
+                    <span style={{ color: 'var(--teal)', fontSize: 18 }}>✓</span>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            <button
+              onClick={async () => {
+                const title = prompt('Título da tarefa:')
+                if (!title || !userId || !programDay) return
+                const task = await createManualTask(userId, programDay.id, programDay.program_id, title, 'produtividade' as HabitArea)
+                setTasks(prev => [...prev, task])
+              }}
+              style={{ width: '100%', padding: '12px', borderRadius: 14, border: '0.5px dashed var(--border)', background: 'none', color: 'var(--text3)', fontSize: 13, cursor: 'pointer' }}
+            >
+              + Adicionar tarefa manual
+            </button>
           </div>
         ) : (
-          <div style={{ display: 'grid', gap: 10 }}>
-            {habits.map((habit) => (
-              <HabitItem
-                key={habit.id}
-                habit={habit}
-                log={habit.habit_logs?.[0] ?? null}
-                userId={userId}
-                date={today}
-                onXP={handleXP}
-              />
-            ))}
+          <div style={{ color: 'var(--text3)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>
+            Seu próximo dia ainda está sendo preparado
           </div>
         )}
       </div>
@@ -349,6 +429,36 @@ export default function HojePage() {
             window.location.href = '/progresso'
           }}
         />
+      )}
+
+      {selectedTask && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,.5)' }}
+          onClick={() => setSelectedTask(null)}
+        >
+          <div
+            style={{ width: '100%', maxWidth: 512, margin: '0 auto', background: 'var(--bg2)', borderRadius: '20px 20px 0 0', padding: '20px 24px 32px' }}
+            onClick={e => e.stopPropagation()}
+          >
+            <div style={{ width: 32, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
+            <p style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'capitalize', letterSpacing: '.5px', marginBottom: 4 }}>{selectedTask.area}</p>
+            <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text1)', marginBottom: 8 }}>{selectedTask.title}</h3>
+            {selectedTask.description && (
+              <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 16 }}>{selectedTask.description}</p>
+            )}
+            <div style={{ display: 'flex', gap: 12, fontSize: 13, marginBottom: 24 }}>
+              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>+{selectedTask.xp_reward} XP</span>
+              <span style={{ color: 'var(--border)' }}>·</span>
+              <span style={{ color: 'var(--text3)' }}>Dificuldade {selectedTask.difficulty}</span>
+            </div>
+            <button
+              onClick={() => setSelectedTask(null)}
+              style={{ width: '100%', padding: 14, borderRadius: 14, background: 'var(--bg3)', color: 'var(--text2)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
       )}
 
       <Nav />
