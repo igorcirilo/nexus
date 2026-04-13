@@ -21,7 +21,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
     <div style={{ display: 'grid', gap: 12 }}>
       <div style={{ ...card, display: 'grid', gap: 8 }}>
         <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15 }}>
-          Pré-visualização
+          Pre-visualizacao
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
           <div>
@@ -38,12 +38,12 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
       {result.warnings.length > 0 && (
         <div style={{ ...card, border: '0.5px solid rgba(232,168,56,.35)' }}>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, marginBottom: 8, color: 'var(--gold)' }}>
-            Atenção
+            Atencao
           </div>
           <div style={{ display: 'grid', gap: 6 }}>
             {result.warnings.map((warning) => (
               <div key={warning} style={{ fontSize: 12, color: 'var(--text2)' }}>
-                • {warning}
+                - {warning}
               </div>
             ))}
           </div>
@@ -58,7 +58,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
                 Leitura base do PDF
               </div>
               <div style={{ fontSize: 12, color: result.hasUsefulText ? 'var(--teal)' : 'var(--gold)' }}>
-                {result.pageCount} página{result.pageCount === 1 ? '' : 's'}
+                {result.pageCount} pagina{result.pageCount === 1 ? '' : 's'}
               </div>
             </div>
             <div style={{
@@ -73,7 +73,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
               border: '0.5px solid var(--border)',
               padding: 12,
             }}>
-              {result.extractedText || 'Sem texto útil para mostrar.'}
+              {result.extractedText || 'Sem texto util para mostrar.'}
             </div>
           </div>
 
@@ -81,7 +81,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
             {result.pages.slice(0, 3).map((page) => (
               <div key={page.pageNumber} style={card}>
                 <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>
-                  Página {page.pageNumber}
+                  Pagina {page.pageNumber}
                 </div>
                 <div style={{
                   fontSize: 12,
@@ -91,7 +91,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
                   maxHeight: 120,
                   overflow: 'auto',
                 }}>
-                  {page.text || 'Sem texto extraído nesta página.'}
+                  {page.text || 'Sem texto extraido nesta pagina.'}
                 </div>
               </div>
             ))}

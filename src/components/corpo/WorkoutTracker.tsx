@@ -280,10 +280,9 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   async function confirmImport(parsed: ParsedTrainingPlan) {
     const fileName =
       importReview?.result.meta.fileName ?? 'treino'
+    const cleanFileName = fileName.replace(/\.[^.]+$/, '').trim()
     const title =
-      parsed.summary
-        ? parsed.summary.slice(0, 60)
-        : fileName.replace(/\.[^.]+$/, '')
+      cleanFileName || (parsed.summary ? parsed.summary.slice(0, 60) : 'Treino')
 
     await saveTrainingPlan({
       user_id: userId,
@@ -349,8 +348,8 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
             }}
           >
             {plans.length === 0
-              ? 'Importa um plano de treino para começar a registar.'
-              : 'Seleciona o treino de hoje para começar.'}
+              ? 'Importa um plano de treino para comecar a registar.'
+              : 'Seleciona o treino de hoje para comecar.'}
           </p>
           <button
             onClick={() => (plans.length > 0 ? setShowSelector(true) : setShowImport(true))}
@@ -366,7 +365,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
               cursor: 'pointer',
             }}
           >
-            🏋️ Começar treino
+            Comecar treino
           </button>
         </div>
       )}
@@ -450,7 +449,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                     color: 'var(--text3)',
                   }}
                 >
-                  {doneCount}/{totalCount} exercícios
+                  {doneCount}/{totalCount} exercicios
                 </span>
                 {saving && (
                   <span
@@ -460,7 +459,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                       color: 'var(--text3)',
                     }}
                   >
-                    A guardar…
+                    A guardar...
                   </span>
                 )}
               </div>
@@ -514,7 +513,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                     {/* Checkbox */}
                     <button
                       onClick={() => toggleDone(ex.id)}
-                      aria-label={save.done ? 'Marcar como não feito' : 'Marcar como feito'}
+                      aria-label={save.done ? 'Marcar como nao feito' : 'Marcar como feito'}
                       style={{
                         width: 22,
                         height: 22,
@@ -627,7 +626,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                               flexShrink: 0,
                             }}
                           >
-                            Série {si + 1}
+                            Serie {si + 1}
                           </span>
                           <input
                             type="number"
@@ -656,7 +655,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                               color: 'var(--text3)',
                             }}
                           >
-                            kg ×
+                            kg x
                           </span>
                           <input
                             type="number"
@@ -703,7 +702,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                             cursor: 'pointer',
                           }}
                         >
-                          + Série
+                          + Serie
                         </button>
                         <button
                           onClick={() => removeSet(ex.id)}
@@ -720,7 +719,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                             opacity: save.sets.length <= 1 ? 0.5 : 1,
                           }}
                         >
-                          − Série
+                          - Serie
                         </button>
                         <div style={{ flex: 1 }} />
                         <button

@@ -1,4 +1,3 @@
-// src/components/PlanReviewModal.tsx
 'use client'
 import { useRef, useState } from 'react'
 import type { ParsedTrainingPlan, ParsedDietPlan } from '@/lib/body-plan'
@@ -16,7 +15,6 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
   const [editedPlan, setEditedPlan] = useState(plan)
   const [editingItem, setEditingItem] = useState<{ sectionIdx: number; itemIdx: number } | null>(null)
   const [editValue, setEditValue] = useState('')
-  // inline add state: { sectionIdx } while adding a new item
   const [addingSection, setAddingSection] = useState<number | null>(null)
   const [addValue, setAddValue] = useState('')
   const addInputRef = useRef<HTMLInputElement>(null)
@@ -35,9 +33,7 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
       const sections = p.sections.map((s, si) =>
         si !== sectionIdx ? s : {
           ...s,
-          exercises: s.exercises.map((e, ei) =>
-            ei !== itemIdx ? e : { ...e, name: editValue }
-          ),
+          exercises: s.exercises.map((e, ei) => ei !== itemIdx ? e : { ...e, name: editValue }),
         }
       )
       setEditedPlan({ ...p, sections })
@@ -81,7 +77,6 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
     setEditingItem(null)
     setAddValue('')
     setAddingSection(sectionIdx)
-    // focus after render
     setTimeout(() => addInputRef.current?.focus(), 50)
   }
 
@@ -111,7 +106,7 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
   const sections: Array<{ title: string; items: string[] }> = mode === 'training'
     ? (editedPlan as ParsedTrainingPlan).sections.map(s => ({
         title: s.title,
-        items: s.exercises.map(e => e.detail ? `${e.name} — ${e.detail}` : e.name),
+        items: s.exercises.map(e => e.detail ? `${e.name} - ${e.detail}` : e.name),
       }))
     : (editedPlan as ParsedDietPlan).meals.map(m => ({
         title: m.label,
@@ -125,144 +120,163 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
       position: 'fixed', top: 0, right: 0, bottom: 0, left: 0,
       background: 'rgba(0,0,0,.8)',
       zIndex: 9500,
-      display: 'flex', flexDirection: 'column',
+      padding: 16,
       overflow: 'hidden',
     }}>
-      {/* Header */}
       <div style={{
-        padding: '20px 20px 16px',
+        position: 'absolute',
+        top: 16,
+        right: 16,
+        bottom: 16,
+        left: 16,
+        width: '100%',
+        maxWidth: 1360,
+        margin: '0 auto',
+        minHeight: 0,
         background: 'var(--bg1)',
-        borderBottom: '0.5px solid var(--border)',
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        flexShrink: 0,
+        border: '0.5px solid var(--border)',
+        borderRadius: 20,
+        boxShadow: '0 20px 80px rgba(0,0,0,.35)',
+        overflowY: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: 'contain',
       }}>
-        <div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--text1)' }}>
-            Rever {mode === 'training' ? 'Treino' : 'Dieta'}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
-            {sections.length} secções · {totalItems} itens
-          </div>
-        </div>
-        <button onClick={onCancel} style={{
-          background: 'var(--bg3)', border: 'none', borderRadius: 8,
-          color: 'var(--text2)', fontSize: 18, width: 32, height: 32,
-          cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>×</button>
-      </div>
-
-      {/* Body: flex:1 + minHeight:0 = scrollable flex child */}
-      <div style={{ flex: '1 1 0', minHeight: 0, overflowY: 'auto', padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-        {sections.map((section, si) => (
-          <div key={si} style={{
-            background: 'var(--bg2)', borderRadius: 14,
-            border: '0.5px solid var(--border)', overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '10px 14px',
-              borderBottom: '0.5px solid var(--border)',
-              fontFamily: 'Syne, sans-serif', fontWeight: 700,
-              fontSize: 13, color: 'var(--gold)',
-            }}>
-              {section.title}
+        <div style={{
+          position: 'sticky',
+          top: 0,
+          zIndex: 2,
+          padding: '20px 20px 16px',
+          background: 'var(--bg1)',
+          borderBottom: '0.5px solid var(--border)',
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <div>
+            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--text1)' }}>
+              Rever {mode === 'training' ? 'Treino' : 'Dieta'}
             </div>
-            {section.items.map((item, ii) => (
-              <div key={ii} style={{
-                padding: '9px 14px',
-                borderBottom: ii < section.items.length - 1 ? '0.5px solid var(--border)' : 'none',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+            <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
+              {sections.length} secoes | {totalItems} itens
+            </div>
+          </div>
+          <button onClick={onCancel} style={{
+            background: 'var(--bg3)', border: 'none', borderRadius: 8,
+            color: 'var(--text2)', fontSize: 18, width: 32, height: 32,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>x</button>
+        </div>
+
+        <div style={{ padding: '12px 16px 96px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {sections.map((section, si) => (
+            <div key={si} style={{
+              background: 'var(--bg2)', borderRadius: 14,
+              border: '0.5px solid var(--border)', overflow: 'hidden',
+            }}>
+              <div style={{
+                padding: '10px 14px',
+                borderBottom: '0.5px solid var(--border)',
+                fontFamily: 'Syne, sans-serif', fontWeight: 700,
+                fontSize: 13, color: 'var(--gold)',
               }}>
-                {editingItem?.sectionIdx === si && editingItem?.itemIdx === ii ? (
+                {section.title}
+              </div>
+              {section.items.map((item, ii) => (
+                <div key={ii} style={{
+                  padding: '9px 14px',
+                  borderBottom: ii < section.items.length - 1 ? '0.5px solid var(--border)' : 'none',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8,
+                }}>
+                  {editingItem?.sectionIdx === si && editingItem?.itemIdx === ii ? (
+                    <input
+                      autoFocus
+                      value={editValue}
+                      onChange={e => setEditValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingItem(null) }}
+                      onBlur={commitEdit}
+                      style={{
+                        flex: 1, background: 'var(--bg3)', border: '0.5px solid var(--gold)',
+                        borderRadius: 8, padding: '6px 10px', color: 'var(--text1)',
+                        fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none',
+                      }}
+                    />
+                  ) : (
+                    <span
+                      onClick={() => startEdit(si, ii, mode === 'training'
+                        ? (editedPlan as ParsedTrainingPlan).sections[si].exercises[ii].name
+                        : item
+                      )}
+                      style={{ flex: 1, fontSize: 13, color: 'var(--text1)', cursor: 'text', lineHeight: 1.4 }}
+                    >
+                      {item}
+                    </span>
+                  )}
+                  <button
+                    onClick={() => deleteItem(si, ii)}
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--text3)',
+                      cursor: 'pointer', fontSize: 16, padding: '0 4px', flexShrink: 0,
+                    }}
+                  >
+                    x
+                  </button>
+                </div>
+              ))}
+
+              {addingSection === si ? (
+                <div style={{ padding: '8px 14px', borderTop: '0.5px solid var(--border)', display: 'flex', gap: 8 }}>
                   <input
-                    autoFocus
-                    value={editValue}
-                    onChange={e => setEditValue(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') commitEdit(); if (e.key === 'Escape') setEditingItem(null) }}
-                    onBlur={commitEdit}
+                    ref={addInputRef}
+                    value={addValue}
+                    onChange={e => setAddValue(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') commitAdd(si); if (e.key === 'Escape') setAddingSection(null) }}
+                    onBlur={() => commitAdd(si)}
+                    placeholder={mode === 'training' ? 'Nome do exercicio...' : 'Item...'}
                     style={{
                       flex: 1, background: 'var(--bg3)', border: '0.5px solid var(--gold)',
-                      borderRadius: 8, padding: '6px 10px', color: 'var(--text1)',
+                      borderRadius: 8, padding: '7px 10px', color: 'var(--text1)',
                       fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none',
                     }}
                   />
-                ) : (
-                  <span
-                    onClick={() => startEdit(si, ii, mode === 'training'
-                      ? (editedPlan as ParsedTrainingPlan).sections[si].exercises[ii].name
-                      : item
-                    )}
-                    style={{ flex: 1, fontSize: 13, color: 'var(--text1)', cursor: 'text', lineHeight: 1.4 }}
-                  >
-                    {item}
-                  </span>
-                )}
+                </div>
+              ) : (
                 <button
-                  onClick={() => deleteItem(si, ii)}
+                  onClick={() => startAddItem(si)}
                   style={{
-                    background: 'none', border: 'none', color: 'var(--text3)',
-                    cursor: 'pointer', fontSize: 16, padding: '0 4px', flexShrink: 0,
+                    width: '100%', background: 'none', border: 'none',
+                    color: 'var(--text3)', padding: '9px 14px', textAlign: 'left',
+                    fontFamily: 'DM Sans, sans-serif', fontSize: 12, cursor: 'pointer',
                   }}
                 >
-                  ×
+                  + Adicionar item
                 </button>
-              </div>
-            ))}
+              )}
+            </div>
+          ))}
+        </div>
 
-            {/* Inline add item */}
-            {addingSection === si ? (
-              <div style={{ padding: '8px 14px', borderTop: '0.5px solid var(--border)', display: 'flex', gap: 8 }}>
-                <input
-                  ref={addInputRef}
-                  value={addValue}
-                  onChange={e => setAddValue(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') commitAdd(si); if (e.key === 'Escape') setAddingSection(null) }}
-                  onBlur={() => commitAdd(si)}
-                  placeholder={mode === 'training' ? 'Nome do exercício…' : 'Item…'}
-                  style={{
-                    flex: 1, background: 'var(--bg3)', border: '0.5px solid var(--gold)',
-                    borderRadius: 8, padding: '7px 10px', color: 'var(--text1)',
-                    fontFamily: 'DM Sans, sans-serif', fontSize: 13, outline: 'none',
-                  }}
-                />
-              </div>
-            ) : (
-              <button
-                onClick={() => startAddItem(si)}
-                style={{
-                  width: '100%', background: 'none', border: 'none',
-                  color: 'var(--text3)', padding: '9px 14px', textAlign: 'left',
-                  fontFamily: 'DM Sans, sans-serif', fontSize: 12, cursor: 'pointer',
-                }}
-              >
-                + Adicionar item
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Footer */}
-      <div style={{
-        padding: '14px 16px',
-        background: 'var(--bg1)',
-        borderTop: '0.5px solid var(--border)',
-        display: 'flex', gap: 10,
-        flexShrink: 0,
-      }}>
-        <button onClick={onCancel} style={{
-          flex: 1, background: 'var(--bg3)', color: 'var(--text2)',
-          border: 'none', borderRadius: 12, padding: 13,
-          fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+        <div style={{
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 2,
+          padding: '14px 16px',
+          background: 'var(--bg1)',
+          borderTop: '0.5px solid var(--border)',
+          display: 'flex', gap: 10,
         }}>
-          Cancelar
-        </button>
-        <button onClick={() => onConfirm(editedPlan)} style={{
-          flex: 2, background: 'var(--gold)', color: 'var(--bg0)',
-          border: 'none', borderRadius: 12, padding: 13,
-          fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer',
-        }}>
-          Confirmar e Guardar
-        </button>
+          <button onClick={onCancel} style={{
+            flex: 1, background: 'var(--bg3)', color: 'var(--text2)',
+            border: 'none', borderRadius: 12, padding: 13,
+            fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+          }}>
+            Cancelar
+          </button>
+          <button onClick={() => onConfirm(editedPlan)} style={{
+            flex: 2, background: 'var(--gold)', color: 'var(--bg0)',
+            border: 'none', borderRadius: 12, padding: 13,
+            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+          }}>
+            Confirmar e Guardar
+          </button>
+        </div>
       </div>
     </div>
   )

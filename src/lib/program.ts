@@ -1,6 +1,6 @@
 import { format } from 'date-fns'
-import type { Program, ProgramWeek, ProgramDay, ProgramTask, HabitArea } from '@/types'
-import { FALLBACK_TASK_TEMPLATES, shouldTaskBeOnDay } from '@/lib/program-engine'
+import type { Program, ProgramWeek, ProgramDay, ProgramTask, HabitArea, TaskTemplate, AreaScores } from '@/types'
+import { FALLBACK_TASK_TEMPLATES, shouldTaskBeOnDay, difficultyForWeek, selectTemplatesForProgram } from '@/lib/program-engine'
 
 export type DayWithCounts = ProgramDay & {
   task_counts: { total: number; completed: number }
@@ -165,27 +165,54 @@ export async function ensureProgramHasTasks(
     console.error('ensureProgramHasTasks templates error:', templatesError.message)
   }
 
-  const availableTemplates = ((templates ?? []) as Array<Record<string, unknown>>).length > 0
-    ? (templates as Array<Record<string, unknown>>)
+  const availableTemplates: TaskTemplate[] = ((templates ?? []) as TaskTemplate[]).length > 0
+    ? (templates as TaskTemplate[])
     : FALLBACK_TASK_TEMPLATES
 
-  const selectedTemplates = availableTemplates
-    .filter((template) => Number(template.difficulty ?? 1) === 1)
-    .sort((a, b) => Number(b.frequency_per_week ?? 0) - Number(a.frequency_per_week ?? 0))
-    .slice(0, 3)
-
-  if (selectedTemplates.length === 0) {
-    return
+  const baseScores: AreaScores = {
+    corpo: 50,
+    produtividade: 50,
+    idiomas: 50,
+    carreira: 50,
+    financas: 50,
+    emocoes: 50,
+    relacionamentos: 50,
+    global: 50,
   }
 
   const taskRows: Record<string, unknown>[] = []
 
   for (let dayIndex = 0; dayIndex < days.length; dayIndex++) {
     const day = days[dayIndex]
+    const weekNumber = Math.min(Math.max(Math.floor((Number(day.day_number) - 1) / 7) + 1, 1), 9)
+    const dayIndexInWeek = (Number(day.day_number) - 1) % 7
+    const difficulty = difficultyForWeek(weekNumber)
+    const exactCandidates = availableTemplates.filter(
+      (template) => Number(template.difficulty ?? 1) === difficulty && Boolean(template.active ?? true)
+    )
+    const candidatePool = exactCandidates.length > 0
+      ? exactCandidates
+      : availableTemplates.filter(
+          (template) => Number(template.difficulty ?? 1) === 1 && Boolean(template.active ?? true)
+        )
+
+    const primaryTemplates = selectTemplatesForProgram(
+      candidatePool,
+      baseScores,
+      'corpo',
+      weekNumber
+    )
+
+    const extraTemplates = candidatePool
+      .filter((template) => !primaryTemplates.some((selected) => selected.id === String(template.id)))
+      .sort((a, b) => Number(b.frequency_per_week ?? 0) - Number(a.frequency_per_week ?? 0))
+      .slice(0, 3)
+
+    const selectedTemplates = [...primaryTemplates, ...extraTemplates]
 
     for (const template of selectedTemplates) {
       const frequencyPerWeek = Number(template.frequency_per_week ?? 7)
-      if (!shouldTaskBeOnDay(frequencyPerWeek, dayIndex)) continue
+      if (!shouldTaskBeOnDay(frequencyPerWeek, dayIndexInWeek)) continue
 
       taskRows.push({
         program_id: programId,

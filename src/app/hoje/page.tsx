@@ -196,7 +196,7 @@ export default function HojePage() {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, color: 'var(--text3)' }}>a carregar...</div>
+        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, color: 'var(--text3)' }}>A carregar...</div>
       </div>
     )
   }
@@ -333,7 +333,7 @@ export default function HojePage() {
             <span style={{ fontSize: 32 }}>🎯</span>
             <p style={{ fontWeight: 600, color: 'var(--text1)', fontSize: 15 }}>Faça seu diagnóstico</p>
             <p style={{ color: 'var(--text3)', fontSize: 13 }}>
-              Responda algumas perguntas para receber seu plano personalizado de 60 dias
+              Responda algumas perguntas para receber seu plano personalizado de 63 dias
             </p>
             <a
               href="/onboarding-v2"

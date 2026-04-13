@@ -31,17 +31,16 @@ export type ParsedDietPlan = ParsedBodyPlan & {
 }
 
 const TRAINING_SECTION_MARKERS =
-  /(dia\s+\d+|day\s+\d+|segunda|terca|terÃ§a|quarta|quinta|sexta|sabado|sÃ¡bado|domingo|upper|lower|push|pull|legs|peito|costas|pernas|ombro|ombros|treino\s+[a-z0-9]+)/i
+  /(dia\s+\d+|day\s+\d+|segunda|terca|quarta|quinta|sexta|sabado|domingo|upper|lower|push|pull|legs|peito|costas|pernas|ombro|ombros|treino\s+[a-z0-9]+)/i
 
 const TRAINING_NOISE_PATTERNS = [
-  // Cabeçalhos de colunas de planilha
   /^exerc/i,
   /^series?$/i,
   /^repet/i,
   /^descanso/i,
   /^rpe$/i,
   /^tempo$/i,
-  /^t[eé]cnicas?$/i,
+  /^tecnicas?$/i,
   /^sigla/i,
   /^significado$/i,
   /^observa/i,
@@ -49,7 +48,7 @@ const TRAINING_NOISE_PATTERNS = [
   /^check$/i,
   /^ok$/i,
   /^pendente$/i,
-  /^s[eé]t?s?$/i,
+  /^sets?$/i,
   /^reps?$/i,
   /^rest$/i,
   /^peso$/i,
@@ -63,33 +62,32 @@ const TRAINING_NOISE_PATTERNS = [
   /^bloco$/i,
   /^grupo$/i,
   /^muscular$/i,
-  /^execu[cç][aã]o$/i,
-  /^orienta[cç][aã]o$/i,
-  /^instru[cç][oõ]es?$/i,
-  /^descri[cç][aã]o$/i,
-  // Metadados de plano de treino
+  /^execucao$/i,
+  /^orientacao$/i,
+  /^instrucoes?$/i,
+  /^descricao$/i,
+  /^planilha(\s+de\s+treino)?/i,
   /^objetivos?$/i,
   /^objectivos?$/i,
-  /^divis[aã]o$/i,
-  /^frequ[eê]ncia(\s+sugerida)?$/i,
+  /^divisao\b/i,
+  /^frequencia(\s+sugerida)?$/i,
   /^aquecimento$/i,
-  /^progress[aã]o$/i,
+  /^progressao$/i,
   /^agenda(\s+semanal)?(\s+sugerida)?$/i,
-  /^registro(\s+da\s+sess[aã]o)?$/i,
-  /^registo(\s+da\s+sess[aã]o)?$/i,
-  /^sess[aã]o$/i,
-  /^sum[aá]rio$/i,
-  /^introdu[cç][aã]o$/i,
+  /^registro(\s+da\s+sessao)?$/i,
+  /^registo(\s+da\s+sessao)?$/i,
+  /^sessao$/i,
+  /^sumario$/i,
+  /^introducao$/i,
   /^dicas?$/i,
   /^recomenda/i,
-  /^princ[ií]pios?$/i,
+  /^principios?$/i,
   /^estrutura$/i,
   /^metodologia$/i,
-  /^volume$/i,
+  /^volume(\s+total)?(\s*\(.+\))?$/i,
   /^intensidade$/i,
-  /^periodiza[cç][aã]o$/i,
-  // Formatos numéricos puros
-  /^\d+[\s\.]+$/,
+  /^periodizacao$/i,
+  /^\d+[\s.]+$/,
   /^[-–—]+$/,
   /^[A-Z]{1,4}$/,
   /^\d+%$/,
@@ -99,14 +97,44 @@ const TRAINING_NOISE_PATTERNS = [
 ]
 
 const TRAINING_DETAIL_HINT =
-  /(\d+\s*x\s*\d+|\d+\s*-\s*\d+|\d+\s*kg|\d+\s*s|\d+\s*min|rpe|amrap|descanso|rest pause|cadencia|cadÃªncia|tempo)/i
+  /(\d+\s*x\s*\d+|\d+\s*-\s*\d+|\d+\s*kg|\d+\s*s|\d+\s*min|rpe|amrap|descanso|rest pause|cadencia|tempo)/i
 
 const MEAL_KEYWORDS: Array<{ key: DietMealKey; label: string; pattern: RegExp }> = [
-  { key: 'pequeno_almoco', label: 'Pequeno-almoÃ§o', pattern: /(pequeno|cafe\s+da\s+manha|cafÃ©\s+da\s+manhÃ£|breakfast)/i },
-  { key: 'almoco', label: 'AlmoÃ§o', pattern: /(almoco|almoÃ§o|lunch)/i },
-  { key: 'lanche', label: 'Lanche', pattern: /(lanche|snack|pre\s*treino|prÃ©\s*treino|ceia)/i },
-  { key: 'jantar', label: 'Jantar', pattern: /(jantar|dinner)/i },
+  { key: 'pequeno_almoco', label: 'Pequeno-almoço', pattern: /(pequeno[\s-]*almoco|pequeno[\s-]*almoço|cafe\s+da\s+manha|café\s+da\s+manhã|desjejum|breakfast)/i },
+  { key: 'almoco', label: 'Almoço', pattern: /(\balmoco\b|\balmoço\b|lunch|refeicao\s+principal\s+1|refeição\s+principal\s+1)/i },
+  { key: 'lanche', label: 'Lanche', pattern: /(lanche|snack|colacao|colação|ceia|pre\s*treino|pré\s*treino|pos\s*treino|pós\s*treino|merenda)/i },
+  { key: 'jantar', label: 'Jantar', pattern: /(jantar|dinner|refeicao\s+principal\s+2|refeição\s+principal\s+2)/i },
 ]
+
+const DIET_NOISE_PATTERNS = [
+  /^plano(\s+alimentar|\s+nutricional)?$/i,
+  /^dieta$/i,
+  /^refeicoes?$/i,
+  /^refei[cç][aã]o$/i,
+  /^meal$/i,
+  /^horario$/i,
+  /^hor[aá]rio$/i,
+  /^hora$/i,
+  /^alimentos?$/i,
+  /^itens?$/i,
+  /^op[cç][aã]o$/i,
+  /^op[cç][oõ]es$/i,
+  /^substitui[cç][oõ]es$/i,
+  /^observa[cç][oõ]es$/i,
+  /^notas?$/i,
+  /^kcal$/i,
+  /^calorias?$/i,
+  /^prote[ií]nas?$/i,
+  /^carboidratos?$/i,
+  /^hidratos?$/i,
+  /^gorduras?$/i,
+  /^macros?$/i,
+  /^totais?$/i,
+  /^dia\s+\d+$/i,
+  /^segunda|terca|quarta|quinta|sexta|sabado|domingo$/i,
+]
+
+const DIET_ITEM_SPLIT = /\s*(?:•|\u2022|;|\/{2,}|\|)\s*/
 
 function normalizeText(value: string) {
   return value
@@ -126,6 +154,209 @@ function normalizeLine(line: string) {
 
 function compactSpaces(value: string) {
   return value.replace(/\s{2,}/g, ' ').trim()
+}
+
+function isDietNoise(value: string) {
+  const normalized = normalizeText(value)
+  if (!normalized) return true
+  if (normalized.length < 2) return true
+  if (DIET_NOISE_PATTERNS.some((pattern) => pattern.test(normalized))) return true
+  if (/^\d+\s*(kcal|cal)$/.test(normalized)) return true
+  return false
+}
+
+function splitDietItems(value: string) {
+  const cleaned = compactSpaces(value.replace(/\s{2,}/g, ' '))
+
+  return cleaned
+    .split(DIET_ITEM_SPLIT)
+    .map((item) => compactSpaces(item))
+    .filter(Boolean)
+    .filter((item) => !isDietNoise(item))
+}
+
+function looksLikeMealHeaderOnly(value: string) {
+  const normalized = normalizeText(value)
+  if (!normalized) return false
+  return Boolean(mealForText(normalized)) && normalized.length <= 28
+}
+
+function cleanDietInlineValue(value: string, mealLabel?: string) {
+  let next = compactSpaces(value)
+  if (mealLabel) {
+    const escaped = mealLabel
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/\s+/g, '\\s*')
+    next = next.replace(new RegExp(`^${escaped}\\s*[:\\-–—]?\\s*`, 'i'), '')
+  }
+  return compactSpaces(next)
+}
+
+function extractInlineMealContent(value: string) {
+  const colonIndex = value.indexOf(':')
+  if (colonIndex >= 0) return compactSpaces(value.slice(colonIndex + 1))
+
+  const spacedDash = value.match(/\s[–—-]\s(.+)$/)
+  return spacedDash ? compactSpaces(spacedDash[1]) : ''
+}
+
+function isTimedMealHeader(value: string) {
+  return /^\d{1,2}(?::\d{2})?\s*[–—-]\s*/.test(compactSpaces(value))
+}
+
+function extractDietQuantity(value: string) {
+  const patterns = [
+    /(.*\D)\s(\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l)\s*\+\s*\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l))$/i,
+    /(.*\D)\s(\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l|unidades?|un|m[eé]dia|fatias?|colheres?)(?:\s+\w+)?)$/i,
+  ]
+
+  for (const pattern of patterns) {
+    const match = value.match(pattern)
+    if (match) {
+      return {
+        title: compactSpaces(match[1]),
+        quantity: compactSpaces(match[2]),
+      }
+    }
+  }
+
+  return {
+    title: compactSpaces(value),
+    quantity: '',
+  }
+}
+
+function formatPdfNutritionLine(line: string) {
+  const match = line.match(/^(.*?)\s+(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)\s+(\d+(?:[.,]\d+)?)$/)
+  if (!match) return line
+
+  const prefix = compactSpaces(match[1])
+  const kcal = compactSpaces(match[2])
+  const protein = compactSpaces(match[3])
+  const carbs = compactSpaces(match[4])
+  const fats = compactSpaces(match[5])
+  const parsed = extractDietQuantity(prefix)
+
+  if (!parsed.title) return line
+
+  return [
+    parsed.title,
+    parsed.quantity,
+    `${kcal} kcal`,
+    `proteínas: ${protein} g`,
+    `carboidratos: ${carbs} g`,
+    `gorduras: ${fats} g`,
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
+function isQuantityLikeHeader(header: string) {
+  const normalized = normalizeText(header)
+  return /\b(qtd|quantidade|gramas|grama|g|ml|dose|porcao|porção|medida)\b/.test(normalized)
+}
+
+function isObservationLikeHeader(header: string) {
+  const normalized = normalizeText(header)
+  return /\b(obs|observacao|observação|notas?)\b/.test(normalized)
+}
+
+function isCaloriesLikeHeader(header: string) {
+  const normalized = normalizeText(header)
+  return /\bkcal\b/.test(normalized) || /calorias?/.test(normalized)
+}
+
+function valueWithHeaderUnit(header: string, value: string) {
+  const normalizedHeader = normalizeText(header)
+  const normalizedValue = normalizeText(value)
+
+  if ((/\bkcal\b/.test(normalizedHeader) || /calorias?/.test(normalizedHeader)) && /^\d+(?:[.,]\d+)?$/.test(normalizedValue)) {
+    return `${compactSpaces(value)} kcal`
+  }
+
+  return compactSpaces(value)
+}
+
+function nutritionLabelForHeader(header: string) {
+  const normalized = normalizeText(header)
+  if (/\bkcal\b/.test(normalized) || /calorias?/.test(normalized)) return 'kcal'
+  if (/proteinas?/.test(normalized)) return 'proteínas'
+  if (/carboidratos?/.test(normalized) || /hidratos?/.test(normalized)) return 'carboidratos'
+  if (/gorduras?/.test(normalized)) return 'gorduras'
+  return null
+}
+
+function isNutritionLikeHeader(header: string) {
+  return Boolean(nutritionLabelForHeader(header))
+}
+
+function formatNutritionValue(header: string, value: string) {
+  const label = nutritionLabelForHeader(header)
+  const clean = compactSpaces(value)
+  if (!label || !clean) return ''
+
+  if (label === 'kcal') {
+    return /\bkcal\b/i.test(clean) ? clean : `${clean} kcal`
+  }
+
+  return /\bg\b/i.test(clean) ? `${label}: ${clean}` : `${label}: ${clean} g`
+}
+
+function extractNutritionParts(row: Record<string, string | number | boolean | null>) {
+  return Object.entries(row)
+    .map(([header, value]) => formatNutritionValue(header, asString(value)))
+    .filter(Boolean)
+}
+
+function extractWideDietRowEntries(row: Record<string, string | number | boolean | null>) {
+  const entries = Object.entries(row)
+  const usedIndexes = new Set<number>()
+  const collected: Array<{ meal: NonNullable<ReturnType<typeof mealForText>>; content: string }> = []
+
+  entries.forEach(([header, value], index) => {
+    if (usedIndexes.has(index)) return
+
+    const meal = mealForText(header)
+    const text = asString(value)
+    if (!meal || !text) return
+
+    const baseText = cleanDietInlineValue(text, meal.label)
+    const detailParts = [baseText]
+
+    for (let offset = 1; offset <= 2; offset += 1) {
+      const nextIndex = index + offset
+      const nextEntry = entries[nextIndex]
+      if (!nextEntry) continue
+
+      const [nextHeader, nextValue] = nextEntry
+      const nextText = isNutritionLikeHeader(nextHeader)
+        ? formatNutritionValue(nextHeader, asString(nextValue))
+        : valueWithHeaderUnit(nextHeader, asString(nextValue))
+      if (!nextText) continue
+      const nextHeaderMeal = mealForText(nextHeader)
+      const sameMealHeader = nextHeaderMeal?.key === meal.key || normalizeText(nextHeader).includes(normalizeText(meal.label))
+      if (nextHeaderMeal && !sameMealHeader) break
+
+      if (sameMealHeader || isQuantityLikeHeader(nextHeader) || isObservationLikeHeader(nextHeader) || isCaloriesLikeHeader(nextHeader)) {
+        detailParts.push(nextText)
+        usedIndexes.add(nextIndex)
+      }
+    }
+
+    usedIndexes.add(index)
+    const content = [
+      detailParts[0],
+      detailParts.slice(1).map(compactSpaces).filter(Boolean).join(' · '),
+    ]
+      .map(compactSpaces)
+      .filter(Boolean)
+      .join(' · ')
+    if (content) collected.push({ meal, content })
+  })
+
+  return collected
 }
 
 function linesFromPdf(result: Extract<FileImportResult, { kind: 'pdf' }>) {
@@ -159,7 +390,7 @@ function valueFromAliases(
   const normalized = new Map<string, string>()
 
   Object.entries(row).forEach(([key, value]) => {
-    const text = asString(value)
+    const text = valueWithHeaderUnit(key, asString(value))
     if (text) normalized.set(keyOf(key), text)
   })
 
@@ -172,7 +403,9 @@ function valueFromAliases(
 }
 
 function nonEmptyValues(row: Record<string, string | number | boolean | null>) {
-  return Object.values(row).map(asString).filter(Boolean)
+  return Object.entries(row)
+    .map(([key, value]) => valueWithHeaderUnit(key, asString(value)))
+    .filter(Boolean)
 }
 
 function isTrainingNoise(line: string) {
@@ -180,10 +413,7 @@ function isTrainingNoise(line: string) {
   if (!normalized) return true
   if (normalized.length < 3) return true
   if (TRAINING_NOISE_PATTERNS.some((pattern) => pattern.test(normalized))) return true
-  // Frases descritivas: terminam em ponto e têm mais de 35 chars
-  // (observações, orientações, instruções longas)
   if (normalized.endsWith('.') && normalized.length > 35) return true
-  // Frases com conectores típicos de instrução
   if (/\b(antes de|para evitar|nas primeiras|em reserva|de forma a|certific)\b/.test(normalized)) return true
   return false
 }
@@ -191,23 +421,14 @@ function isTrainingNoise(line: string) {
 function isLikelySection(line: string): boolean {
   const normalized = normalizeText(line)
   if (!normalized || normalized.length < 2) return false
+  if (isTrainingNoise(normalized)) return false
 
   let score = 0
-
-  // Marcador explÃ­cito de dia/grupo muscular
   if (TRAINING_SECTION_MARKERS.test(normalized)) score += 3
-
-  // Linha curta e sem detalhes mÃ©tricos
   if (normalized.length <= 28) score += 1
   if (normalized.split(' ').length <= 4) score += 1
-
-  // Sem nÃºmeros de sÃ©ries/reps (indÃ­cio de que Ã© secÃ§Ã£o, nÃ£o exercÃ­cio)
   if (!/\d+\s*x\s*\d+/.test(normalized)) score += 1
-
-  // SÃ³ letras e espaÃ§os (sem siglas numÃ©ricas)
   if (/^[a-z\s]+$/.test(normalized)) score += 1
-
-  // Penalizar se parece detalhe de exercÃ­cio
   if (TRAINING_DETAIL_HINT.test(normalized)) score -= 3
 
   return score >= 3
@@ -216,7 +437,7 @@ function isLikelySection(line: string): boolean {
 function cleanExerciseName(name: string) {
   return compactSpaces(
     name
-      .replace(/^[-â€“â€”]\s*/, '')
+      .replace(/^[-–—]\s*/, '')
       .replace(/\b(check|ok|pendente)\b/gi, '')
       .trim()
   )
@@ -235,11 +456,11 @@ function splitExerciseLine(line: string) {
     }
   }
 
-  const parts = cleaned.split(/\s{2,}| - | â€” /).map(compactSpaces).filter(Boolean)
+  const parts = cleaned.split(/\s{2,}| - | — /).map(compactSpaces).filter(Boolean)
   if (parts.length > 1) {
     return {
       name: cleanExerciseName(parts[0]),
-      detail: compactSpaces(parts.slice(1).join(' Â· ')),
+      detail: compactSpaces(parts.slice(1).join(' | ')),
     }
   }
 
@@ -253,7 +474,7 @@ function isValidExerciseName(name: string) {
   const normalized = normalizeText(name)
   if (!normalized) return false
   if (isTrainingNoise(normalized)) return false
-  if (/^[0-9x\s\.\-]+$/.test(normalized)) return false
+  if (/^[0-9x\s.\-]+$/.test(normalized)) return false
   if (/^(abc|abcabc|abcde|pushpull|legs)/i.test(normalized) && normalized.length < 10) return false
   return /[a-z]/i.test(normalized)
 }
@@ -274,10 +495,17 @@ function parseTrainingSpreadsheet(result: Extract<FileImportResult, { kind: 'spr
   let fallbackSection = 'Treino'
 
   rows.forEach((row, index) => {
+    const lineOnly = asString((row as Record<string, unknown>).__line__)
+    if (lineOnly) {
+      if (!isTrainingNoise(lineOnly) && isLikelySection(lineOnly)) {
+        fallbackSection = lineOnly
+      }
+      return
+    }
+
     const explicitName = valueFromAliases(row, [
       'exercise',
       'exercicio',
-      'exercicio1',
       'nome',
       'name',
       'movimento',
@@ -295,15 +523,25 @@ function parseTrainingSpreadsheet(result: Extract<FileImportResult, { kind: 'spr
     ])
 
     const explicitSeries = valueFromAliases(row, ['series', 'serie', 'set', 'sets'])
-    const explicitReps = valueFromAliases(row, ['reps', 'repeticoes', 'repeticao'])
+    const explicitReps = valueFromAliases(row, ['reps', 'repsalvo', 'repeticoes', 'repeticao'])
     const explicitRest = valueFromAliases(row, ['descanso', 'rest'])
     const explicitRpe = valueFromAliases(row, ['rpe'])
-    const explicitTechnique = valueFromAliases(row, ['tecnica', 'tecnica1', 'tempo', 'cadencia'])
+    const explicitTechnique = valueFromAliases(row, ['tecnica', 'tempo', 'cadencia'])
 
     const filled = nonEmptyValues(row)
+    const positionalValues = Object.entries(row)
+      .filter(([header, value]) => {
+        const text = asString(value)
+        if (!text) return false
+        if (mealForText(header)) return false
+        if (isNutritionLikeHeader(header)) return false
+        return true
+      })
+      .map(([header, value]) => valueWithHeaderUnit(header, asString(value)))
+      .filter(Boolean)
     if (filled.length === 0) return
 
-    if (!explicitName && filled.length === 1 && isLikelySection(filled[0])) {
+    if (!explicitName && filled.length === 1 && !isTrainingNoise(filled[0]) && isLikelySection(filled[0])) {
       fallbackSection = filled[0]
       return
     }
@@ -315,8 +553,21 @@ function parseTrainingSpreadsheet(result: Extract<FileImportResult, { kind: 'spr
       .map(compactSpaces)
       .filter(Boolean)
 
-    const detail = detailParts.length > 0 ? detailParts.join(' Â· ') : undefined
-    const sectionTitle = explicitSection || fallbackSection || 'Treino'
+    if (
+      !explicitSection &&
+      isLikelySection(nameCandidate) &&
+      detailParts.length === 0 &&
+      !TRAINING_DETAIL_HINT.test(nameCandidate)
+    ) {
+      fallbackSection = nameCandidate
+      return
+    }
+
+    const detail = detailParts.length > 0 ? detailParts.join(' | ') : undefined
+    const sectionTitle =
+      (explicitSection && !isTrainingNoise(explicitSection) ? explicitSection : '') ||
+      fallbackSection ||
+      'Treino'
     const current = sections.get(sectionTitle) ?? []
 
     current.push({
@@ -339,7 +590,7 @@ function parseTrainingSpreadsheet(result: Extract<FileImportResult, { kind: 'spr
   return {
     summary:
       parsedSections.length > 0
-        ? `${parsedSections.length} bloco(s) Â· ${parsedSections.reduce((sum, section) => sum + section.exercises.length, 0)} exercÃ­cio(s)`
+        ? `${parsedSections.length} blocos | ${parsedSections.reduce((sum, section) => sum + section.exercises.length, 0)} exercicios`
         : 'Planilha de treino importada',
     sections: parsedSections.length > 0 ? parsedSections : [{ id: 'section-treino', title: 'Treino', exercises: [] }],
   }
@@ -382,8 +633,8 @@ function parseTrainingPdf(result: Extract<FileImportResult, { kind: 'pdf' }>): P
   return {
     summary:
       cleaned.length > 0
-        ? `${cleaned.length} bloco(s) Â· ${cleaned.reduce((sum, section) => sum + section.exercises.length, 0)} exercÃ­cio(s)`
-        : `PDF com ${result.pageCount} pÃ¡gina(s)`,
+        ? `${cleaned.length} blocos | ${cleaned.reduce((sum, section) => sum + section.exercises.length, 0)} exercicios`
+        : `PDF com ${result.pageCount} pagina(s)`,
     sections: cleaned.length > 0 ? cleaned : [{ id: 'section-treino', title: 'Treino', exercises: [] }],
   }
 }
@@ -412,11 +663,41 @@ function parseDietSpreadsheet(result: Extract<FileImportResult, { kind: 'spreads
   let fallbackMeal: DietMealPlan | null = null
 
   rows.forEach((row) => {
+    const lineOnly = asString((row as Record<string, unknown>).__line__)
+    if (lineOnly) {
+      const lineMeal = mealForText(lineOnly)
+      if (lineMeal && looksLikeMealHeaderOnly(lineOnly)) {
+        fallbackMeal = mealMap.get(lineMeal.key) ?? {
+          key: lineMeal.key,
+          label: lineMeal.label,
+          items: [],
+        }
+        mealMap.set(lineMeal.key, fallbackMeal)
+        return
+      }
+
+      if (fallbackMeal && !isDietNoise(lineOnly)) {
+        splitDietItems(lineOnly).forEach((item) => fallbackMeal?.items.push(item))
+      }
+      return
+    }
+
     const mealText = valueFromAliases(row, ['meal', 'refeicao', 'periodo', 'horario'])
     const itemText = valueFromAliases(row, ['item', 'alimento', 'nome', 'name', 'refeicaoitem'])
-    const quantity = valueFromAliases(row, ['quantidade', 'qty', 'gramas', 'porcao', 'porcao'])
+    const quantity = valueFromAliases(row, ['quantidade', 'qty', 'gramas', 'porcao', 'porção'])
     const obs = valueFromAliases(row, ['observacao', 'obs', 'notas'])
+    const nutritionParts = extractNutritionParts(row)
     const filled = nonEmptyValues(row)
+    const positionalValues = Object.entries(row)
+      .filter(([header, value]) => {
+        const text = asString(value)
+        if (!text) return false
+        if (mealForText(header)) return false
+        if (isNutritionLikeHeader(header)) return false
+        return true
+      })
+      .map(([header, value]) => valueWithHeaderUnit(header, asString(value)))
+      .filter(Boolean)
 
     if (filled.length === 0) return
 
@@ -431,14 +712,48 @@ function parseDietSpreadsheet(result: Extract<FileImportResult, { kind: 'spreads
       return
     }
 
+    if (!explicitMeal) {
+      const wideMealEntries = extractWideDietRowEntries(row)
+
+      if (wideMealEntries.length > 0) {
+        wideMealEntries.forEach(({ meal, content }) => {
+          const current = mealMap.get(meal.key) ?? { key: meal.key, label: meal.label, items: [] }
+          splitDietItems(content).forEach((item) => current.items.push(item))
+          mealMap.set(meal.key, current)
+          fallbackMeal = current
+        })
+        return
+      }
+    }
+
+    const nonMealValues = positionalValues.filter((value) => !mealForText(value))
+    const positionalItem = nonMealValues[0] ?? ''
+    const positionalQuantity = nonMealValues[1] ?? ''
+    const positionalObs = nonMealValues[2] ?? ''
+
     const meal = explicitMeal ?? fallbackMeal ?? mealForText(itemText)
-    const baseItem = itemText || (filled.length > 1 ? filled[0] : '')
+    const baseItem = itemText || positionalItem
+    const resolvedQuantity = quantity || positionalQuantity
+    const resolvedObs = obs || positionalObs
     if (!meal || !baseItem) return
 
-    const parts = [baseItem, quantity, obs].map(compactSpaces).filter(Boolean)
+    if (looksLikeMealHeaderOnly(baseItem) && !resolvedQuantity && !resolvedObs) {
+      fallbackMeal = mealMap.get(meal.key) ?? { key: meal.key, label: meal.label, items: [] }
+      mealMap.set(meal.key, fallbackMeal)
+      return
+    }
+
+    const content = [cleanDietInlineValue(baseItem, meal.label), resolvedQuantity, resolvedObs, ...nutritionParts]
+      .map(compactSpaces)
+      .filter(Boolean)
+      .join(' · ')
+
+    if (!content || isDietNoise(content)) return
+
     const current = mealMap.get(meal.key) ?? { key: meal.key, label: meal.label, items: [] }
-    current.items.push(parts.join(' Â· '))
+    splitDietItems(content).forEach((item) => current.items.push(item))
     mealMap.set(meal.key, current)
+    fallbackMeal = current
   })
 
   const meals = Array.from(mealMap.values()).map((meal) => ({
@@ -447,7 +762,7 @@ function parseDietSpreadsheet(result: Extract<FileImportResult, { kind: 'spreads
   }))
 
   return {
-    summary: meals.length > 0 ? `${meals.length} refeiÃ§Ã£o(Ãµes) tratadas` : 'Planilha de dieta importada',
+    summary: meals.length > 0 ? `${meals.length} refeição(ões) tratadas` : 'Planilha de dieta importada',
     meals,
   }
 }
@@ -462,13 +777,24 @@ function parseDietPdf(result: Extract<FileImportResult, { kind: 'pdf' }>): Parse
     if (meal) {
       currentMeal = mealMap.get(meal.key) ?? { key: meal.key, label: meal.label, items: [] }
       mealMap.set(meal.key, currentMeal)
+      const inlineContent = extractInlineMealContent(line) || cleanDietInlineValue(line, meal.label)
+      if (
+        inlineContent &&
+        inlineContent !== line &&
+        !isDietNoise(inlineContent) &&
+        !looksLikeMealHeaderOnly(inlineContent)
+      ) {
+        splitDietItems(inlineContent).forEach((item) => currentMeal?.items.push(item))
+      }
       return
     }
 
     if (!currentMeal) return
     if (line.length < 3) return
+    if (isTimedMealHeader(line)) return
     if (isLikelySection(line)) return
-    currentMeal.items.push(line)
+    if (isDietNoise(line)) return
+    splitDietItems(formatPdfNutritionLine(line)).forEach((item) => currentMeal?.items.push(item))
   })
 
   const meals = Array.from(mealMap.values()).map((meal) => ({
@@ -477,7 +803,7 @@ function parseDietPdf(result: Extract<FileImportResult, { kind: 'pdf' }>): Parse
   }))
 
   return {
-    summary: meals.length > 0 ? `${meals.length} refeiÃ§Ã£o(Ãµes) tratadas` : `PDF com ${result.pageCount} pÃ¡gina(s)`,
+    summary: meals.length > 0 ? `${meals.length} refeição(ões) tratadas` : `PDF com ${result.pageCount} página(s)`,
     meals,
   }
 }

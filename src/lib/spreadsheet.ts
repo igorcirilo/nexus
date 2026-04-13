@@ -13,7 +13,7 @@ declare global {
         sheet_to_json: (
           sheet: unknown,
           options?: Record<string, unknown>
-        ) => Array<Record<string, string | number | boolean | null>>
+        ) => Array<Record<string, string | number | boolean | null>> | Array<Array<string | number | boolean | null>>
       }
     }
   }
@@ -70,29 +70,133 @@ function normalizeCell(value: unknown): string | number | boolean | null {
   return String(value)
 }
 
-function buildSheetPreview(name: string, rows: Array<Record<string, unknown>>): SpreadsheetSheetPreview {
-  const headers = Array.from(
-    rows.reduce((set, row) => {
-      Object.keys(row).forEach((key) => {
-        if (key !== '__rowNum__' && key !== '') set.add(key)
-      })
-      return set
-    }, new Set<string>())
-  )
+function normalizeHeaderText(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+}
 
-  const normalizedRows = rows.slice(0, 25).map((row) => {
-    const normalized: Record<string, string | number | boolean | null> = {}
-    headers.forEach((header) => {
-      normalized[header] = normalizeCell(row[header])
-    })
-    return normalized
+function looksLikeTrainingHeaderRow(cells: Array<string | number | boolean | null>) {
+  const normalized = cells
+    .map((cell) => normalizeHeaderText(String(cell ?? '')))
+    .filter(Boolean)
+
+  if (normalized.length === 0) return false
+
+  const markers = [
+    'exercicio',
+    'exercício',
+    'series',
+    'serie',
+    'reps alvo',
+    'repeticoes',
+    'descanso',
+    'carga',
+    'carga (kg)',
+    'reps feitas',
+    'concluido',
+    'concluído',
+  ]
+
+  const score = normalized.reduce((sum, cell) => (
+    markers.some((marker) => cell.includes(normalizeHeaderText(marker))) ? sum + 1 : sum
+  ), 0)
+
+  return score >= 2 && normalized.some((cell) => cell.includes('exercicio') || cell.includes('serie') || cell.includes('rep'))
+}
+
+function looksLikeDietHeaderRow(cells: Array<string | number | boolean | null>) {
+  const normalized = cells
+    .map((cell) => normalizeHeaderText(String(cell ?? '')))
+    .filter(Boolean)
+
+  if (normalized.length === 0) return false
+
+  const markers = [
+    'refeicao',
+    'refeição',
+    'alimento',
+    'quantidade',
+    'calorias',
+    'calorias (kcal)',
+    'kcal',
+    'proteinas',
+    'proteínas',
+    'carboidratos',
+    'gorduras',
+  ]
+
+  const score = normalized.reduce((sum, cell) => (
+    markers.some((marker) => cell.includes(normalizeHeaderText(marker))) ? sum + 1 : sum
+  ), 0)
+
+  return score >= 3 && normalized.some((cell) => cell.includes('refeicao') || cell.includes('alimento'))
+}
+
+function rowFromCells(
+  cells: Array<string | number | boolean | null>,
+  headers: string[]
+): Record<string, string | number | boolean | null> {
+  return headers.reduce<Record<string, string | number | boolean | null>>((acc, header, index) => {
+    acc[header] = normalizeCell(cells[index] ?? null)
+    return acc
+  }, {})
+}
+
+function buildSheetPreviewFromMatrix(
+  name: string,
+  matrix: Array<Array<string | number | boolean | null>>
+): SpreadsheetSheetPreview {
+  const rows = matrix
+    .map((row) => row.map((cell) => normalizeCell(cell)))
+    .filter((row) => row.some((cell) => cell !== null && String(cell).trim() !== ''))
+
+  if (rows.length === 0) {
+    return {
+      name,
+      headers: [],
+      rows: [],
+      rowCount: 0,
+    }
+  }
+
+  const headerIndex = rows.findIndex((row) => looksLikeTrainingHeaderRow(row) || looksLikeDietHeaderRow(row))
+
+  if (headerIndex === -1) {
+    const width = Math.max(...rows.map((row) => row.length))
+    const headers = Array.from({ length: width }, (_, index) => `Coluna ${index + 1}`)
+    return {
+      name,
+      headers,
+      rows: rows.map((row) => rowFromCells(row, headers)),
+      rowCount: rows.length,
+    }
+  }
+
+  const headerRow = rows[headerIndex]
+  const detectedHeaders = headerRow.map((cell, index) => {
+    const value = String(cell ?? '').trim()
+    return value || `Coluna ${index + 1}`
   })
+
+  const preHeaderRows = rows.slice(0, headerIndex).map((row) => {
+    const content = row
+      .map((cell) => String(cell ?? '').trim())
+      .filter(Boolean)
+      .join(' ')
+
+    return { __line__: content }
+  }).filter((row) => row.__line__)
+
+  const dataRows = rows.slice(headerIndex + 1).map((row) => rowFromCells(row, detectedHeaders))
 
   return {
     name,
-    headers,
-    rows: normalizedRows,
-    rowCount: rows.length,
+    headers: detectedHeaders,
+    rows: [...preHeaderRows, ...dataRows],
+    rowCount: preHeaderRows.length + dataRows.length,
   }
 }
 
@@ -192,11 +296,12 @@ export async function parseSpreadsheetFile(file: File): Promise<SpreadsheetImpor
 
   const sheets = workbook.SheetNames.map((sheetName) => {
     const sheet = workbook.Sheets[sheetName]
-    const rows = window.XLSX!.utils.sheet_to_json(sheet, {
+    const matrix = window.XLSX!.utils.sheet_to_json(sheet, {
+      header: 1,
       defval: null,
       raw: false,
-    }) as Array<Record<string, unknown>>
-    return buildSheetPreview(sheetName, rows)
+    }) as Array<Array<string | number | boolean | null>>
+    return buildSheetPreviewFromMatrix(sheetName, matrix)
   })
 
   const warnings: string[] = []

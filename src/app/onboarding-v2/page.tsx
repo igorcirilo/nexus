@@ -154,7 +154,7 @@ export default function OnboardingV2Page() {
           onClick={handleNext}
           disabled={!isAnswered() || loading}
         >
-          {loading ? 'Salvando...' : currentIndex === TOTAL - 1 ? 'Ver meu diagnóstico' : 'Próxima →'}
+          {loading ? 'Salvando...' : currentIndex === TOTAL - 1 ? 'Ver meu diagnostico' : 'Proxima ->'}
         </button>
       </div>
     </div>

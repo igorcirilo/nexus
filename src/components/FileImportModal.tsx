@@ -85,7 +85,7 @@ export default function FileImportModal({
       setStatus('success')
     } catch (err) {
       setStatus('error')
-      setError(err instanceof Error ? err.message : 'Não foi possível ler o ficheiro.')
+      setError(err instanceof Error ? err.message : 'Nao foi possivel ler o ficheiro.')
     }
   }
 
@@ -115,7 +115,7 @@ export default function FileImportModal({
           <div>
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>{title}</div>
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
-              Upload com leitura base, preview e validação inicial.
+              Upload com leitura base, preview e validacao inicial.
             </div>
           </div>
           <button onClick={onClose} style={{ border: 'none', background: 'transparent', color: 'var(--text3)', cursor: 'pointer', fontSize: 22, lineHeight: 1 }}>
@@ -123,7 +123,7 @@ export default function FileImportModal({
           </button>
         </div>
 
-        <div style={{ flex: '1 1 0', minHeight: 0, padding: 16, overflowY: 'auto', display: 'grid', gap: 14, alignContent: 'start' }}>
+        <div style={{ flex: '1 1 auto', minHeight: 120, padding: 16, overflowY: 'auto', display: 'grid', gap: 14, alignContent: 'start' }}>
           <label style={{
             display: 'grid',
             gap: 8,
@@ -145,7 +145,7 @@ export default function FileImportModal({
 
           {status === 'loading' && (
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14, fontSize: 13, color: 'var(--text2)' }}>
-              A ler conteúdo e a montar preview…
+              A ler conteudo e a montar preview...
             </div>
           )}
 

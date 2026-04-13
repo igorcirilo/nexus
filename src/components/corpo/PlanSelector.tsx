@@ -53,22 +53,31 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
         }}
       />
 
-      {/* Bottom sheet */}
       <div
         style={{
           position: 'fixed',
-          bottom: 0,
-          left: 0,
-          right: 0,
+          inset: 16,
           zIndex: 9401,
-          maxWidth: 480,
-          margin: '0 auto',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          pointerEvents: 'none',
+        }}
+      >
+      <div
+        style={{
+          width: '100%',
+          maxWidth: 560,
           background: 'var(--bg1)',
-          borderRadius: '20px 20px 0 0',
+          borderRadius: 20,
+          minHeight: 320,
           maxHeight: '80vh',
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          border: '1px solid var(--border)',
+          boxShadow: '0 20px 80px rgba(0,0,0,.35)',
+          pointerEvents: 'auto',
         }}
       >
         {/* Header */}
@@ -104,7 +113,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                 margin: '4px 0 0',
               }}
             >
-              Escolhe o plano e a secção
+              Escolhe o plano e a secao
             </p>
           </div>
           <button
@@ -129,8 +138,8 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
         {/* Scrollable body */}
         <div
           style={{
-            flex: '1 1 0',
-            minHeight: 0,
+            flex: '1 1 auto',
+            minHeight: 120,
             overflowY: 'auto',
             padding: '12px 16px 24px',
           }}
@@ -156,7 +165,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                   textAlign: 'center',
                 }}
               >
-                Ainda não tens nenhum plano de treino importado.
+                Ainda nao tens nenhum plano de treino importado.
               </p>
               <button
                 onClick={onImport}
@@ -231,7 +240,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                               margin: '3px 0 0',
                             }}
                           >
-                            {sections.length} secção{sections.length !== 1 ? 'ões' : ''}
+                            {sections.length} secao{sections.length !== 1 ? 'es' : ''}
                           </p>
                         </div>
                         <span
@@ -264,7 +273,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                                 padding: '12px 16px',
                               }}
                             >
-                              Nenhuma secção encontrada neste plano.
+                              Nenhuma secao encontrada neste plano.
                             </p>
                           ) : (
                             sections.map((section, idx) => (
@@ -309,7 +318,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                                       margin: '2px 0 0',
                                     }}
                                   >
-                                    {section.exercises.length} exercício
+                                    {section.exercises.length} exercicio
                                     {section.exercises.length !== 1 ? 's' : ''}
                                   </p>
                                 </div>
@@ -368,6 +377,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
             </>
           )}
         </div>
+      </div>
       </div>
     </>,
     portalRef.current

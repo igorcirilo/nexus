@@ -49,7 +49,7 @@ export default function FinancasPage() {
   const [loading,    setLoading]   = useState(true)
   const [ready,      setReady]     = useState(false)
   const [budgets,    setBudgets]   = useState<Record<string,number>>(DEFAULT_BUDGETS)
-  // Form transacção
+  // Form transação
   const [showForm,   setShowForm]  = useState(false)
   const [txType,     setTxType]    = useState<'entrada'|'saida'>('saida')
   const [fCat,       setFCat]      = useState('')
@@ -100,7 +100,7 @@ export default function FinancasPage() {
     })
   }, [])
 
-  // Métricas mês actual
+  // Métricas do mês atual
   const monthStart = format(startOfMonth(new Date()),'yyyy-MM-dd')
   const monthEnd   = format(endOfMonth(new Date()),'yyyy-MM-dd')
   const thisMonth  = useMemo(()=>txs.filter(t=>t.date>=monthStart&&t.date<=monthEnd),[txs,monthStart,monthEnd])
@@ -116,7 +116,7 @@ export default function FinancasPage() {
   const hasEnoughData = dayOfMonth >= 7
   // Taxa diária de saídas (info)
   const dailyBurn     = dayOfMonth > 0 ? totalOut / dayOfMonth : 0
-  // Projeção: saldo actual + (ritmo líquido diário × dias restantes)
+  // Projeção: saldo atual + (ritmo líquido diário × dias restantes)
   const dailyNet      = hasEnoughData ? balance / dayOfMonth : 0
   const projectedBal  = hasEnoughData ? Math.round(balance + dailyNet * daysLeft) : 0
 
@@ -145,7 +145,7 @@ export default function FinancasPage() {
     const [r,h] = await Promise.all([getTransactions(userId,2),getTransactionsByMonth(userId,6)])
     setTxs(r as Transaction[]); setHistory(h as Transaction[])
     setFAmount(''); setFDesc(''); setFCat(''); setShowForm(false)
-    showToast('Transacção adicionada!'); setSaving(false)
+    showToast('Transação adicionada!'); setSaving(false)
   }
 
   async function removeTx(id:string) {
@@ -162,7 +162,7 @@ export default function FinancasPage() {
       fin_current_savings:gCurrent?parseFloat(gCurrent):undefined,
     })
     setProfile(await getProfile(userId))
-    setShowGoals(false); showToast('Metas actualizadas!'); setGSaving(false)
+    setShowGoals(false); showToast('Metas atualizadas!'); setGSaving(false)
   }
 
   function saveBudget(cat:string,val:string) {
@@ -202,11 +202,11 @@ export default function FinancasPage() {
       description: t.description || null,
     }))
     const { error } = await saveTransactionsBulk(payloads)
-    if (error) { showToast('Erro ao importar transacções.', 'error'); setCsvImporting(false); return }
+    if (error) { showToast('Erro ao importar transações.', 'error'); setCsvImporting(false); return }
     const [r, h] = await Promise.all([getTransactions(userId, 2), getTransactionsByMonth(userId, 6)])
     setTxs(r as Transaction[])
     setHistory(h as Transaction[])
-    showToast(`${csvPreview.length} transacções importadas!`)
+    showToast(`${csvPreview.length} transações importadas!`)
     setCsvPreview(null)
     setCsvImporting(false)
   }
@@ -235,7 +235,7 @@ export default function FinancasPage() {
   async function confirmPdfImport() {
     if (!userId || !pdfPreview) return
     const selected = pdfPreview.candidates.filter(c => c.selected)
-    if (selected.length === 0) { showToast('Seleciona pelo menos uma transacção.', 'error'); return }
+    if (selected.length === 0) { showToast('Seleciona pelo menos uma transação.', 'error'); return }
     setCsvImporting(true)
     const rows = selected.map(c => ({
       user_id: userId,
@@ -251,7 +251,7 @@ export default function FinancasPage() {
     setTxs(updated as Transaction[])
     setPdfPreview(null)
     setCsvImporting(false)
-    showToast(`${rows.length} transacções importadas!`)
+    showToast(`${rows.length} transações importadas!`)
   }
 
   const savingsGoal    = profile?.fin_monthly_save    ?? 0
@@ -278,7 +278,7 @@ export default function FinancasPage() {
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>
           <div style={{background:'var(--bg1)',borderRadius:'20px 20px 0 0',padding:'24px 20px',width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column',gap:12}}>
             <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:16,color:'var(--text1)'}}>
-              Pré-visualização — {csvPreview.length} transacções
+              Pré-visualização — {csvPreview.length} transações
             </div>
             <div style={{overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:6}}>
               {csvPreview.slice(0,20).map((t,i)=>(
@@ -299,7 +299,7 @@ export default function FinancasPage() {
             <div style={{display:'flex',gap:10}}>
               <button onClick={()=>setCsvPreview(null)} style={{flex:1,background:'var(--bg3)',color:'var(--text2)',border:'none',borderRadius:12,padding:13,fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:13,cursor:'pointer'}}>Cancelar</button>
               <button onClick={confirmCsvImport} disabled={csvImporting} style={{flex:2,background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:12,padding:13,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',opacity:csvImporting?.6:1}}>
-                {csvImporting?'A importar...':`Importar ${csvPreview.length} transacções`}
+                {csvImporting?'A importar...':`Importar ${csvPreview.length} transações`}
               </button>
             </div>
           </div>
@@ -360,7 +360,7 @@ export default function FinancasPage() {
                 onClick={confirmPdfImport}
                 style={{ width: '100%', padding: 14, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
               >
-                {csvImporting ? 'A importar…' : `Importar ${pdfPreview.candidates.filter(c => c.selected).length} transacções`}
+                {csvImporting ? 'A importar…' : `Importar ${pdfPreview.candidates.filter(c => c.selected).length} transações`}
               </button>
             </div>
           </div>
@@ -497,7 +497,7 @@ export default function FinancasPage() {
           {txs.length===0&&(
             <div style={{textAlign:'center',padding:'40px 0',color:'var(--text3)'}}>
               <div style={{fontSize:40,marginBottom:12}}>💸</div>
-              <div style={{fontSize:14,marginBottom:6}}>Sem transacções ainda.</div>
+              <div style={{fontSize:14,marginBottom:6}}>Sem transações ainda.</div>
               <div style={{fontSize:12}}>Clica em + Registar ou importa um CSV.</div>
             </div>
           )}
@@ -642,7 +642,7 @@ export default function FinancasPage() {
           <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',display:'flex',flexDirection:'column',maxHeight:'90vh'}}>
             <div style={{padding:'24px 24px 16px',overflowY:'auto',flex:1}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-                <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Nova transacção</h2>
+                <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Nova transação</h2>
                 <button onClick={()=>setShowForm(false)} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>
               </div>
               <div style={{display:'flex',gap:8,marginBottom:16}}>
@@ -668,7 +668,7 @@ export default function FinancasPage() {
             {/* Botão sticky — zIndex 9999 garante que fica acima do Nav */}
             <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)'}}>
               <button onClick={addTx} disabled={saving||!fAmount||!fCat} style={{width:'100%',border:'none',borderRadius:14,padding:15,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,cursor:(fAmount&&fCat)?'pointer':'not-allowed',background:(fAmount&&fCat)?'var(--gold)':'rgba(232,168,56,0.25)',color:(fAmount&&fCat)?'var(--bg0)':'rgba(232,168,56,0.6)',transition:'all .15s'}}>
-                {saving?'A guardar…':'Guardar transacção'}
+                {saving?'A guardar…':'Guardar transação'}
               </button>
             </div>
           </div>
@@ -685,8 +685,8 @@ export default function FinancasPage() {
             </div>
             {[
               {l:'Meta poupança mensal (€)',v:gSave,s:setGSave,ph:'Ex: 300'},
-              {l:'Objectivo reserva emergência (€)',v:gReserve,s:setGReserve,ph:'Ex: 5000'},
-              {l:'Poupança actual acumulada (€)',v:gCurrent,s:setGCurrent,ph:'Ex: 1200'},
+              {l:'Objetivo de reserva de emergência (€)',v:gReserve,s:setGReserve,ph:'Ex: 5000'},
+              {l:'Poupança atual acumulada (€)',v:gCurrent,s:setGCurrent,ph:'Ex: 1200'},
             ].map(({l,v,s,ph})=>(
               <div key={l} style={{marginBottom:14}}>
                 <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>{l}</label>
