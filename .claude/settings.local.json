@@ -18,7 +18,13 @@
       "Bash(ls /c/Users/VORPC/Desktop/nexus-v4/src/types*)",
       "Bash(grep -n \"var\\(--gold\\)\" /c/Users/VORPC/Desktop/nexus-v4/src/components/*.tsx /c/Users/VORPC/Desktop/nexus-v4/src/app/**/*.tsx)",
       "Bash(echo \"Exit code: $?\")",
-      "Bash(ls /c/Users/VORPC/Desktop/nexus-v4/src/lib/body*)"
+      "Bash(ls /c/Users/VORPC/Desktop/nexus-v4/src/lib/body*)",
+      "mcp__5002f499-cb0b-4806-b22d-44711e740b14__list_projects",
+      "mcp__5002f499-cb0b-4806-b22d-44711e740b14__list_tables",
+      "mcp__5002f499-cb0b-4806-b22d-44711e740b14__restore_project",
+      "mcp__5002f499-cb0b-4806-b22d-44711e740b14__get_project",
+      "mcp__5002f499-cb0b-4806-b22d-44711e740b14__execute_sql",
+      "mcp__5002f499-cb0b-4806-b22d-44711e740b14__apply_migration"
     ]
   }
 }
