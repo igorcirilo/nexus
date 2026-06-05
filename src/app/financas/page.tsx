@@ -18,6 +18,7 @@ import {
   type TransactionCandidate,
 } from '@/lib/csv-parser'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
+import { logError } from '@/lib/log'
 import { format, startOfMonth, endOfMonth, subMonths, getDaysInMonth, getDate } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import type { Profile, Transaction, FinancialImportPreview, FinancialImportCandidate } from '@/types'
@@ -226,7 +227,7 @@ export default function FinancasPage() {
       }
     } catch (err) {
       showToast('Erro ao ler o PDF.', 'error')
-      console.error(err)
+      logError('financas: importar PDF', err)
     } finally {
       setPdfLoading(false)
     }

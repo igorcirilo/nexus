@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { calculateScores } from '@/lib/profile-assessment'
 import { generateProgramFromAssessment } from '@/lib/assessment-to-program'
+import { logError } from '@/lib/log'
 import type { AreaScores, HabitArea, Answers } from '@/types'
 
 const supabase = createClient(
@@ -71,7 +72,7 @@ export default function AnaliseInicialPage() {
       router.push('/hoje')
     } catch (e) {
       setError('Erro ao gerar seu plano. Tente novamente.')
-      console.error(e)
+      logError('analise-inicial: gerar plano', e)
     } finally {
       setGenerating(false)
     }

@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { ONBOARDING_QUESTIONS, saveDraft, loadDraft, submitAssessment } from '@/lib/onboarding-engine'
 import { QuestionRenderer } from '@/components/onboarding/QuestionRenderer'
 import { ProgressBar } from '@/components/onboarding/ProgressBar'
+import { logError } from '@/lib/log'
 import type { Answers } from '@/types'
 
 const supabase = createClient(
@@ -86,7 +87,7 @@ export default function OnboardingV2Page() {
       router.push('/analise-inicial')
     } catch (e) {
       setError('Erro ao salvar suas respostas. Tente novamente.')
-      console.error(e)
+      logError('onboarding-v2: submeter assessment', e)
     } finally {
       setLoading(false)
     }

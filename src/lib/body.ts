@@ -4,7 +4,7 @@ import { emitToast } from '@/lib/toast-events'
 import { format, subDays } from 'date-fns'
 
 function reportErr(ctx: string, msg: string) {
-  console.error(`${ctx}:`, msg)
+  console.error(`[${ctx}]`, msg || 'erro desconhecido')
   emitToast(`Erro: ${ctx}`, 'error')
 }
 
