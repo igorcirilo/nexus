@@ -27,6 +27,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    const pending = timers.current
     const handler = (e: Event) => {
       const { message, type } = (e as CustomEvent<{ message: string; type: ToastType }>).detail
       add(message, type)
@@ -34,7 +35,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener('nexus-toast', handler)
     return () => {
       window.removeEventListener('nexus-toast', handler)
-      timers.current.forEach(clearTimeout)
+      pending.forEach(clearTimeout)
     }
   }, [add])
 

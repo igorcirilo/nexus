@@ -521,7 +521,7 @@ export default function FinancasPage() {
           <div style={{margin:'16px 0',padding:'12px 14px',borderRadius:12,background:'var(--bg2)',border:'0.5px solid var(--border)',fontSize:12,color:'var(--text3)',lineHeight:1.6}}>
             <strong style={{color:'var(--text2)'}}>Formato CSV:</strong> cabeçalho{' '}
             <code style={{background:'var(--bg3)',padding:'1px 5px',borderRadius:4}}>data,tipo,categoria,valor,descricao</code>
-            . Tipo: "entrada" ou "saida".
+            . Tipo: &quot;entrada&quot; ou &quot;saida&quot;.
           </div>
         </div>
       )}
@@ -604,7 +604,7 @@ export default function FinancasPage() {
                     </div>
                   </>
                 ):(
-                  <div style={{fontSize:13,color:'var(--text3)',textAlign:'center',padding:'8px 0'}}>Meta não definida — clica em "Editar metas"</div>
+                  <div style={{fontSize:13,color:'var(--text3)',textAlign:'center',padding:'8px 0'}}>Meta não definida — clica em &quot;Editar metas&quot;</div>
                 )}
               </div>
             )
