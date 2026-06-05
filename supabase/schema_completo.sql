@@ -9,9 +9,8 @@
 -- as funções (add_xp, update_streak, handle_new_user, rls_auto_enable) e os
 -- triggers. NÃO contém dados — apenas estrutura.
 --
--- ⚠️  goal_milestones: o código (/objetivos) usa esta tabela, mas ela NÃO existe
---     no banco de produção. A definição está no fim deste ficheiro, comentada,
---     como CORREÇÃO sugerida (rever antes de aplicar).
+-- Nota: goal_milestones estava em falta no banco e foi criada (migration
+--       add_goal_milestones); a sua DDL está incluída no fim deste ficheiro.
 --
 -- Ordem: extensões → tabelas → constraints → índices → RLS → policies →
 --        funções → triggers.
@@ -770,21 +769,22 @@ do $$ begin
 exception when duplicate_object then null; end $$;
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- ⚠️ CORREÇÃO SUGERIDA — tabela em FALTA no banco de produção.
--- O código (src/app/objetivos/page.tsx + src/lib/supabase.ts: getMilestones/
--- saveMilestone/toggleMilestone) usa public.goal_milestones, que NÃO existe.
--- Sem ela, a subfuncionalidade de marcos dos objetivos falha. Revise e aplique:
+-- goal_milestones — usada por /objetivos (getMilestones/saveMilestone/
+-- toggleMilestone). Estava em FALTA no banco; aplicada via migration
+-- add_goal_milestones e agora parte oficial do schema.
 -- ─────────────────────────────────────────────────────────────────────────────
--- create table if not exists public.goal_milestones (
---   id         uuid primary key default gen_random_uuid(),
---   goal_id    uuid not null references public.goals_90(id) on delete cascade,
---   user_id    uuid not null references public.profiles(id) on delete cascade,
---   title      text not null,
---   done       boolean not null default false,
---   due_date   date,
---   created_at timestamptz not null default now()
--- );
--- alter table public.goal_milestones enable row level security;
--- create policy "Milestones próprios" on public.goal_milestones
---   for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
--- create index if not exists goal_milestones_goal_idx on public.goal_milestones (goal_id);
+create table if not exists public.goal_milestones (
+  id         uuid primary key default gen_random_uuid(),
+  goal_id    uuid not null references public.goals_90(id) on delete cascade,
+  user_id    uuid not null references public.profiles(id) on delete cascade,
+  title      text not null,
+  done       boolean not null default false,
+  due_date   date,
+  created_at timestamptz not null default now()
+);
+alter table public.goal_milestones enable row level security;
+do $$ begin
+  create policy "Milestones próprios" on public.goal_milestones
+    for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+exception when duplicate_object then null; end $$;
+create index if not exists goal_milestones_goal_idx on public.goal_milestones (goal_id);
