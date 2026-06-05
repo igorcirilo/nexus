@@ -4,8 +4,13 @@ import { format, endOfMonth } from 'date-fns'
 import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding, ReaderMode, ReaderTheme } from '@/types'
 import { emitToast } from '@/lib/toast-events'
 
-const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+// NEXT_PUBLIC_* values are inlined at build time. During build/CI (and any
+// environment without them set) they are undefined, which makes createClient
+// throw "supabaseUrl is required" and breaks static prerendering. Fall back to
+// safe placeholders so the bundle builds; the real values are provided via env
+// at deploy time (e.g. Vercel) and inlined into the client bundle.
+const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? 'https://placeholder.supabase.co'
+const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key'
 
 export const supabase = createClient(supabaseUrl, supabaseAnon)
 
