@@ -9,6 +9,7 @@ export interface Profile {
   streak_current: number
   streak_best: number
   streak_last_date: string | null
+  streak_freeze_used_week?: string | null
   mission_today: string | null
   energy_today: number
   onboarded: boolean

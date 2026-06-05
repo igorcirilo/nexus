@@ -44,7 +44,23 @@ create table if not exists public.profiles (
   program_id uuid,
   initial_score integer,
   current_score integer,
-  onboarding_version integer default 1
+  onboarding_version integer default 1,
+  -- alinhadas com a interface Profile / página de perfil (migration profiles_align_missing_columns)
+  age integer,
+  sex text,
+  weight_kg numeric(6,2),
+  height_cm numeric(6,2),
+  goal_weight numeric(6,2),
+  water_goal_ml integer,
+  workouts_per_week integer,
+  sleep_goal_h numeric(4,1),
+  read_pages_day integer,
+  fin_debt_goal numeric(12,2),
+  goal_90_personal text,
+  goal_90_career text,
+  goal_90_health text,
+  xp_weekly_goal integer,
+  completion_pct_goal integer
 );
 
 create table if not exists public.badges (
