@@ -21,7 +21,7 @@ const pwaConfig = withPWA({
 
 const nextConfig = {
   reactStrictMode: true,
-  experimental: { serverActions: { allowedOrigins: ['localhost:3000'] } },
+  experimental: { serverActions: { allowedOrigins: ['localhost:3001'] } },
 }
 
 export default pwaConfig(nextConfig)
