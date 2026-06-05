@@ -375,7 +375,7 @@ export default function CheckinPage() {
             {mission && (
               <div style={{ background: 'rgba(127,119,221,.07)', border: '0.5px solid rgba(127,119,221,.18)', borderRadius: 12, padding: '12px 14px', marginBottom: 20 }}>
                 <div style={{ fontSize: 10, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>Missão prometida esta manhã</div>
-                <div style={{ fontSize: 13, color: 'var(--text2)', fontStyle: 'italic' }}>"{mission}"</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', fontStyle: 'italic' }}>&quot;{mission}&quot;</div>
               </div>
             )}
             {step === 0 && (
@@ -445,7 +445,7 @@ export default function CheckinPage() {
             {mission && (
               <div style={{ background: 'rgba(127,119,221,.07)', border: '0.5px solid rgba(127,119,221,.18)', borderRadius: 12, padding: '12px 14px', marginBottom: 20 }}>
                 <div style={{ fontSize: 10, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>Missão do dia — cumpriste?</div>
-                <div style={{ fontSize: 13, color: 'var(--text2)', fontStyle: 'italic' }}>"{mission}"</div>
+                <div style={{ fontSize: 13, color: 'var(--text2)', fontStyle: 'italic' }}>&quot;{mission}&quot;</div>
               </div>
             )}
             {step === 0 && (
