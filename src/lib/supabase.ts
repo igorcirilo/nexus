@@ -15,7 +15,7 @@ const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-a
 export const supabase = createClient(supabaseUrl, supabaseAnon)
 
 function reportError(context: string, message: string) {
-  console.error(`${context}:`, message)
+  console.error(`[${context}]`, message || 'erro desconhecido')
   emitToast(`Erro: ${context.replace(' error', '').replace(/([A-Z])/g, ' $1').trim()}`, 'error')
 }
 
