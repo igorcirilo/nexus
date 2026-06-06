@@ -9,6 +9,7 @@ import { getDietPlans, saveDietPlan } from '@/lib/supabase'
 import { getDietMeals, upsertDietMeal, deleteDietPlan } from '@/lib/body'
 import { parseDietImport, type ParsedDietPlan } from '@/lib/body-plan'
 import type { DietPlan, DietMeal, DietMealKey, FileImportResult } from '@/types'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 
 const MEALS = [
   { key: 'pequeno_almoco', label: 'Pequeno-almoço', icon: '🍳' },
@@ -193,6 +194,12 @@ function isVisibleDietItem(item: string) {
     .trim()
 
   return normalized !== 'total' && normalized !== 'totais'
+}
+
+function parseKcalValue(kcal: string | null): number {
+  if (!kcal) return 0
+  const match = kcal.replace(',', '.').match(/(\d+(?:\.\d+)?)/)
+  return match ? Math.round(parseFloat(match[1])) : 0
 }
 
 function statChipStyle(kind: 'quantity' | 'kcal' | 'empty', checked: boolean): CSSProperties {
@@ -427,6 +434,32 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
       )
     : { totalMeals: 0, doneMeals: 0, totalItems: 0, doneItems: 0 }
 
+  const kcalByMeal = parsed
+    ? MEALS.map((meal) => {
+        const mealPlan = parsed.meals.find((m) => m.key === meal.key)
+        if (!mealPlan) return { label: meal.label, selecionadas: 0, total: 0 }
+        const log = selectedId ? getMealLog(meal.key as DietMealKey) : undefined
+        const payload = selectedId
+          ? getMealPayload(selectedId, meal.key as DietMealKey, log)
+          : { freeText: '' }
+        let selecionadas = 0
+        let total = 0
+        for (const item of mealPlan.items) {
+          if (!isVisibleDietItem(item)) continue
+          const kcal = parseKcalValue(parseDietDisplayItem(item).kcal)
+          if (kcal <= 0) continue
+          total += kcal
+          if (payload.items?.[itemCheckKey(item)]) selecionadas += kcal
+        }
+        return { label: meal.label, selecionadas, total }
+      })
+    : []
+
+  const totalKcalSelecionadas = kcalByMeal.reduce((acc, m) => acc + m.selecionadas, 0)
+  const totalKcalPlano = kcalByMeal.reduce((acc, m) => acc + m.total, 0)
+  const kcalChartData = kcalByMeal.filter((m) => m.total > 0)
+  const hasKcalData = totalKcalPlano > 0
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {plans.length > 1 && (
@@ -498,6 +531,57 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
               />
             </div>
           </div>
+
+          {hasKcalData && (
+            <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 18px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--text1)' }}>
+                  Calorias selecionadas
+                </div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--gold)' }}>
+                    {totalKcalSelecionadas}
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>/ {totalKcalPlano} kcal</span>
+                </div>
+              </div>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={kcalChartData} margin={{ top: 4, right: 8, left: -12, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
+                  <XAxis
+                    dataKey="label"
+                    tick={{ fontSize: 10, fill: 'var(--text3)', fontFamily: 'DM Sans, sans-serif' }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: 'var(--text3)', fontFamily: 'DM Sans, sans-serif' }}
+                    axisLine={false}
+                    tickLine={false}
+                    allowDecimals={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: 'var(--bg2)' }}
+                    contentStyle={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--text1)' }}
+                    formatter={(value: number) => `${value} kcal`}
+                    labelStyle={{ color: 'var(--text3)', fontSize: 11 }}
+                  />
+                  <Bar dataKey="total" name="Total do plano" fill="var(--bg3)" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="selecionadas" name="Selecionadas" fill="var(--teal)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div style={{ display: 'flex', gap: 14, marginTop: 8, fontSize: 11, color: 'var(--text3)' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--teal)' }} />
+                  Selecionadas
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: 2, background: 'var(--bg3)' }} />
+                  Total do plano
+                </span>
+              </div>
+            </div>
+          )}
 
           {MEALS.map((meal) => {
             const mealPlan = parsed.meals.find((m) => m.key === meal.key)
