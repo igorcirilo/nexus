@@ -436,6 +436,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
 
   const macroSelecionados = { carboidratos: 0, proteinas: 0, gorduras: 0 }
   const macroPlano = { carboidratos: 0, proteinas: 0, gorduras: 0 }
+  let kcalSelecionadas = 0
   if (parsed) {
     for (const meal of parsed.meals) {
       const log = selectedId ? getMealLog(meal.key as DietMealKey) : undefined
@@ -444,10 +445,10 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
         : { freeText: '' }
       for (const item of meal.items) {
         if (!isVisibleDietItem(item)) continue
-        const { macros } = parseDietDisplayItem(item)
-        const c = parseGramsValue(macros.carboidratos)
-        const p = parseGramsValue(macros.proteinas)
-        const g = parseGramsValue(macros.gorduras)
+        const parsedItem = parseDietDisplayItem(item)
+        const c = parseGramsValue(parsedItem.macros.carboidratos)
+        const p = parseGramsValue(parsedItem.macros.proteinas)
+        const g = parseGramsValue(parsedItem.macros.gorduras)
         macroPlano.carboidratos += c
         macroPlano.proteinas += p
         macroPlano.gorduras += g
@@ -455,6 +456,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
           macroSelecionados.carboidratos += c
           macroSelecionados.proteinas += p
           macroSelecionados.gorduras += g
+          kcalSelecionadas += parseGramsValue(parsedItem.kcal)
         }
       }
     }
@@ -549,9 +551,9 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                   <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--gold)' }}>
-                    {totalMacrosSelecionados}
+                    {Math.round(kcalSelecionadas)}
                   </span>
-                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>g no total</span>
+                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>kcal</span>
                 </div>
               </div>
 
