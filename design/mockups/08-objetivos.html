@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS – Objetivos</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #040408; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', sans-serif; }
+.screen { width: 428px; min-height: 926px; background: #07070F; border-radius: 52px; overflow: hidden; position: relative; box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 40px 120px rgba(0,0,0,0.9); }
+.status-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 28px 0; font-size: 12px; font-weight: 600; color: #fff; }
+.status-right { display: flex; gap: 6px; align-items: center; }
+.content { padding: 0 22px; padding-bottom: 100px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 6px; }
+.page-title { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+.header-sub { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+.icon-btn { width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); }
+.section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 10px; margin-top: 18px; }
+
+/* Focus banner */
+.focus-banner {
+  background: linear-gradient(135deg, #1A0E00 0%, #201200 100%);
+  border: 1px solid rgba(245,200,66,0.2);
+  border-radius: 20px; padding: 16px 18px; margin: 14px 0;
+  display: flex; align-items: center; gap: 14px;
+}
+.focus-banner::before { content: ''; }
+.focus-icon { width: 44px; height: 44px; border-radius: 14px; background: rgba(245,200,66,0.12); border: 1px solid rgba(245,200,66,0.2); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.focus-text { flex: 1; }
+.focus-label { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(245,200,66,0.6); margin-bottom: 3px; }
+.focus-name { font-size: 15px; font-weight: 700; color: #fff; }
+.focus-arrow { color: rgba(255,255,255,0.3); }
+
+/* Objective cards */
+.obj-list { display: flex; flex-direction: column; gap: 12px; }
+.obj-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px; padding: 18px 18px; position: relative; overflow: hidden;
+}
+.obj-card.priority { border-color: rgba(245,200,66,0.2); background: rgba(245,200,66,0.04); }
+.obj-card.priority::after {
+  content: 'FOCO'; position: absolute; top: 14px; right: 14px;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.1em;
+  color: #F5C842; background: rgba(245,200,66,0.12); border-radius: 5px; padding: 3px 7px;
+}
+.obj-header { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.obj-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 18px; }
+.obj-info { flex: 1; }
+.obj-name { font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 3px; line-height: 1.2; }
+.obj-deadline { font-size: 12px; color: rgba(255,255,255,0.4); font-weight: 500; }
+.obj-pct { font-size: 22px; font-weight: 800; margin-top: 2px; }
+.obj-progress-wrap { margin-bottom: 12px; }
+.obj-progress-labels { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.obj-progress-label { font-size: 12px; color: rgba(255,255,255,0.45); }
+.obj-progress-val { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.8); }
+.obj-bar { height: 7px; background: rgba(255,255,255,0.07); border-radius: 10px; overflow: hidden; }
+.obj-bar-fill { height: 100%; border-radius: 10px; }
+
+/* Milestones */
+.milestones { display: flex; flex-direction: column; gap: 6px; }
+.milestone-row { display: flex; align-items: center; gap: 10px; }
+.milestone-dot {
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800;
+}
+.milestone-dot.done { background: rgba(0,200,150,0.2); color: #00C896; border: 1.5px solid rgba(0,200,150,0.4); }
+.milestone-dot.next { background: transparent; border: 1.5px solid rgba(255,255,255,0.2); color: rgba(255,255,255,0.3); }
+.milestone-text { font-size: 12px; font-weight: 500; }
+.milestone-text.done { color: rgba(255,255,255,0.45); text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.2); }
+.milestone-text.next { color: rgba(255,255,255,0.8); }
+
+/* Next actions */
+.action-list { display: flex; flex-direction: column; gap: 8px; }
+.action-row {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px; padding: 12px 14px;
+}
+.action-obj-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.action-text { flex: 1; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.8); }
+.action-meta { font-size: 11px; color: rgba(255,255,255,0.3); }
+
+/* Bottom Nav */
+.bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(10,10,20,0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.07); padding: 12px 0 28px; display: flex; justify-content: space-around; align-items: center; }
+.nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 60px; }
+.nav-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); }
+.nav-label { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.3); }
+.nav-item.active .nav-icon { color: #9D5CF5; }
+.nav-item.active .nav-label { color: #9D5CF5; font-weight: 700; }
+.nav-active-dot { width: 4px; height: 4px; background: #9D5CF5; border-radius: 50%; margin-top: -2px; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="status-bar">
+    <span style="font-size:13px;font-weight:700;">9:41</span>
+    <div class="status-right">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="3" width="3" height="9" rx="1" fill="rgba(255,255,255,0.9)"/><rect x="4.5" y="2" width="3" height="10" rx="1" fill="rgba(255,255,255,0.9)"/><rect x="9" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.9)"/></svg>
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.35)"/><rect x="2" y="2" width="16" height="9" rx="2" fill="rgba(255,255,255,0.9)"/></svg>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Objetivos</div>
+        <div class="header-sub">3 ativos · Prazo: dez/2026</div>
+      </div>
+      <div class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    </div>
+
+    <!-- Focus banner -->
+    <div class="focus-banner">
+      <div class="focus-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F5C842" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </div>
+      <div class="focus-text">
+        <div class="focus-label">Foco principal agora</div>
+        <div class="focus-name">Construir renda passiva de R$ 5k/mês</div>
+      </div>
+      <div class="focus-arrow">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+
+    <!-- Objectives -->
+    <div class="section-label">Objetivos ativos</div>
+    <div class="obj-list">
+
+      <!-- Priority objective -->
+      <div class="obj-card priority">
+        <div class="obj-header">
+          <div class="obj-icon" style="background:rgba(245,200,66,0.12)">💰</div>
+          <div class="obj-info">
+            <div class="obj-name">Renda passiva R$ 5k/mês</div>
+            <div class="obj-deadline">Prazo: dezembro 2026</div>
+          </div>
+          <div class="obj-pct" style="color:#F5C842">42%</div>
+        </div>
+        <div class="obj-progress-wrap">
+          <div class="obj-progress-labels">
+            <span class="obj-progress-label">R$ 2.100 / mês atual</span>
+            <span class="obj-progress-val">Meta: R$ 5.000</span>
+          </div>
+          <div class="obj-bar"><div class="obj-bar-fill" style="width:42%;background:linear-gradient(90deg,#F5C842,#E07B2A)"></div></div>
+        </div>
+        <div class="milestones">
+          <div class="milestone-row">
+            <div class="milestone-dot done">✓</div>
+            <div class="milestone-text done">Primeiro produto digital lançado</div>
+          </div>
+          <div class="milestone-row">
+            <div class="milestone-dot done">✓</div>
+            <div class="milestone-text done">R$ 1.000/mês atingido</div>
+          </div>
+          <div class="milestone-row">
+            <div class="milestone-dot next">3</div>
+            <div class="milestone-text next">Escalar para R$ 3.000/mês</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Second objective -->
+      <div class="obj-card">
+        <div class="obj-header">
+          <div class="obj-icon" style="background:rgba(0,212,200,0.12)">💪</div>
+          <div class="obj-info">
+            <div class="obj-name">Chegar a 12% gordura corporal</div>
+            <div class="obj-deadline">Prazo: setembro 2026</div>
+          </div>
+          <div class="obj-pct" style="color:#00D4C8">63%</div>
+        </div>
+        <div class="obj-progress-wrap">
+          <div class="obj-progress-labels">
+            <span class="obj-progress-label">18,4% atual → 12% meta</span>
+            <span class="obj-progress-val">−6,4 pp restam</span>
+          </div>
+          <div class="obj-bar"><div class="obj-bar-fill" style="width:63%;background:linear-gradient(90deg,#00D4C8,#00C896)"></div></div>
+        </div>
+        <div class="milestones">
+          <div class="milestone-row">
+            <div class="milestone-dot done">✓</div>
+            <div class="milestone-text done">Abaixo de 22% de gordura</div>
+          </div>
+          <div class="milestone-row">
+            <div class="milestone-dot next">2</div>
+            <div class="milestone-text next">Atingir 15% — próximo marco</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Third objective -->
+      <div class="obj-card">
+        <div class="obj-header">
+          <div class="obj-icon" style="background:rgba(157,92,245,0.12)">🎓</div>
+          <div class="obj-info">
+            <div class="obj-name">Concluir MBA em Gestão</div>
+            <div class="obj-deadline">Prazo: junho 2027</div>
+          </div>
+          <div class="obj-pct" style="color:#9D5CF5">28%</div>
+        </div>
+        <div class="obj-progress-wrap">
+          <div class="obj-progress-labels">
+            <span class="obj-progress-label">7 de 24 módulos</span>
+            <span class="obj-progress-val">17 restantes</span>
+          </div>
+          <div class="obj-bar"><div class="obj-bar-fill" style="width:28%;background:linear-gradient(90deg,#9D5CF5,#00D4C8)"></div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Next actions -->
+    <div class="section-label" style="margin-top:18px">Próximas ações</div>
+    <div class="action-list">
+      <div class="action-row">
+        <div class="action-obj-dot" style="background:#F5C842"></div>
+        <div class="action-text">Publicar artigo no blog esta semana</div>
+        <div class="action-meta">Hoje</div>
+      </div>
+      <div class="action-row">
+        <div class="action-obj-dot" style="background:#00D4C8"></div>
+        <div class="action-text">Consulta de bioimpedância</div>
+        <div class="action-meta">Ter</div>
+      </div>
+      <div class="action-row">
+        <div class="action-obj-dot" style="background:#9D5CF5"></div>
+        <div class="action-text">Módulo 8 – Gestão Financeira</div>
+        <div class="action-meta">Qui</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="nav-label">Hoje</div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="nav-label">Hábitos</div></div>
+    <div class="nav-item active"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></div><div class="nav-label">Objetivos</div><div class="nav-active-dot"></div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="nav-label">Agenda</div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nav-label">Perfil</div></div>
+  </div>
+</div>
+</body>
+</html>
