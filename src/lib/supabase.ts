@@ -1089,3 +1089,35 @@ export async function claimStreakRecovery(userId: string): Promise<boolean> {
   }
   return true
 }
+
+// ── Sessões de leitura ─────────────────────────────────────
+export async function saveReadingSession(payload: {
+  user_id: string
+  book_id: string
+  date: string
+  duration_minutes: number
+  pages_read: number
+}) {
+  const { error } = await supabase.from('reading_sessions').insert(payload)
+  if (error) reportError('saveReadingSession error', error.message)
+  return { error }
+}
+
+export async function getReadingSessionsThisWeek(userId: string) {
+  const now         = new Date()
+  const dayOfWeek   = now.getDay()
+  const daysFromMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+  const monday      = new Date(now)
+  monday.setDate(now.getDate() - daysFromMon)
+  const mondayStr   = monday.toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('reading_sessions')
+    .select('date, duration_minutes, pages_read')
+    .eq('user_id', userId)
+    .gte('date', mondayStr)
+    .order('date', { ascending: true })
+
+  if (error) reportError('getReadingSessionsThisWeek error', error.message)
+  return (data ?? []) as Array<{ date: string; duration_minutes: number; pages_read: number }>
+}

@@ -5,8 +5,16 @@ import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import LeituraHub from '@/components/leitura/LeituraHub'
 import FileImportModal from '@/components/FileImportModal'
-import { supabase, getBooks, getBookProgress, getBookHighlights, saveBook } from '@/lib/supabase'
+import { supabase, getBooks, getBookProgress, getBookHighlights, saveBook, getReadingSessionsThisWeek } from '@/lib/supabase'
 import type { Book, BookProgress, BookHighlight, FileImportResult } from '@/types'
+
+interface WeeklyStats {
+  days: Array<{ date: string; minutes: number }>
+  totalMinutes: number
+  daysWithReading: number
+  avgMinPerDay: number
+  pagesPerDay: number
+}
 
 function inferTitle(fileName: string) {
   return fileName.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim()
@@ -58,6 +66,21 @@ export default function LeituraPage() {
   const [books, setBooks] = useState<Book[]>([])
   const [progressMap, setProgressMap] = useState<Record<string, BookProgress | null>>({})
   const [highlights, setHighlights] = useState<BookHighlight[]>([])
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>(() => {
+    const now         = new Date()
+    const dayOfWeek   = now.getDay()
+    const daysFromMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const monday      = new Date(now)
+    monday.setDate(now.getDate() - daysFromMon)
+    return {
+      days: Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(monday)
+        d.setDate(monday.getDate() + i)
+        return { date: d.toISOString().split('T')[0], minutes: 0 }
+      }),
+      totalMinutes: 0, daysWithReading: 0, avgMinPerDay: 0, pagesPerDay: 0,
+    }
+  })
 
   function showToast(message: string) {
     setToast(message)
@@ -86,6 +109,37 @@ export default function LeituraPage() {
     } else {
       setHighlights([])
     }
+
+    const sessions = await getReadingSessionsThisWeek(uid)
+
+    const now2        = new Date()
+    const dow2        = now2.getDay()
+    const dfm2        = dow2 === 0 ? 6 : dow2 - 1
+    const monday2     = new Date(now2)
+    monday2.setDate(now2.getDate() - dfm2)
+
+    const weekDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday2)
+      d.setDate(monday2.getDate() + i)
+      return d.toISOString().split('T')[0]
+    })
+
+    const minByDate:   Record<string, number> = {}
+    const pagesByDate: Record<string, number> = {}
+    sessions.forEach(s => {
+      minByDate[s.date]   = (minByDate[s.date]   ?? 0) + s.duration_minutes
+      pagesByDate[s.date] = (pagesByDate[s.date] ?? 0) + s.pages_read
+    })
+
+    const wDays           = weekDays.map(date => ({ date, minutes: minByDate[date] ?? 0 }))
+    const totalMinutes    = wDays.reduce((sum, d) => sum + d.minutes, 0)
+    const daysWithReading = wDays.filter(d => d.minutes > 0).length
+    const avgMinPerDay    = daysWithReading > 0 ? Math.round(totalMinutes / daysWithReading) : 0
+    const totalPages      = Object.values(pagesByDate).reduce((sum, p) => sum + p, 0)
+    const daysWPages      = Object.values(pagesByDate).filter(p => p > 0).length
+    const pagesPerDay     = daysWPages > 0 ? Math.round(totalPages / daysWPages) : 0
+
+    setWeeklyStats({ days: wDays, totalMinutes, daysWithReading, avgMinPerDay, pagesPerDay })
   }
 
   useEffect(() => {
@@ -178,6 +232,7 @@ export default function LeituraPage() {
         highlights={highlights}
         stats={stats}
         queue={queue}
+        weeklyStats={weeklyStats}
         onOpenBook={(id) => router.push(`/leitura/${id}`)}
         onAdd={() => setShowImport(true)}
         onLibrary={() => setShowBiblioteca(true)}

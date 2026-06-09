@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import Nav from '@/components/Nav'
@@ -20,6 +20,7 @@ import {
   saveBookNote,
   saveBookProgress,
   saveReadingPreference,
+  saveReadingSession,
 } from '@/lib/supabase'
 import type {
   Book,
@@ -68,6 +69,8 @@ export default function LeituraReaderPage() {
   const [bookmarks, setBookmarks] = useState<BookBookmark[]>([])
   const [prefs, setPrefs] = useState<ReadingPreference | null>(null)
   const [toast, setToast] = useState('')
+  const sessionStartRef = useRef<{ time: number; page: number } | null>(null)
+  const currentPageRef  = useRef(1)
 
   function showToast(message: string) {
     setToast(message)
@@ -142,6 +145,33 @@ export default function LeituraReaderPage() {
     }
     persistProgress()
   }, [userId, bookId, book, currentPage, pageCount])
+
+  useEffect(() => { currentPageRef.current = currentPage }, [currentPage])
+
+  useEffect(() => {
+    if (!userId || !bookId) return
+
+    sessionStartRef.current = { time: Date.now(), page: currentPageRef.current }
+
+    return () => {
+      const start = sessionStartRef.current
+      if (!start) return
+
+      const durationMs      = Date.now() - start.time
+      const durationMinutes = Math.min(Math.round(durationMs / 60000), 240)
+      if (durationMinutes < 1) return
+
+      const pagesRead = Math.max(0, currentPageRef.current - start.page)
+
+      void saveReadingSession({
+        user_id:          userId,
+        book_id:          bookId,
+        date:             new Date().toISOString().split('T')[0],
+        duration_minutes: durationMinutes,
+        pages_read:       pagesRead,
+      })
+    }
+  }, [userId, bookId])
 
   async function updatePrefs(next: Partial<ReadingPreference>) {
     if (!userId || !prefs) return

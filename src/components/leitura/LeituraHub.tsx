@@ -23,12 +23,21 @@ interface Stats {
   completed: number
 }
 
+interface WeeklyStats {
+  days: Array<{ date: string; minutes: number }>
+  totalMinutes: number
+  daysWithReading: number
+  avgMinPerDay: number
+  pagesPerDay: number
+}
+
 interface Props {
   currentBook: Book | null
   currentProgress: BookProgress | null
   highlights: BookHighlight[]
   stats: Stats
   queue: Book[]
+  weeklyStats: WeeklyStats
   onOpenBook: (bookId: string) => void
   onAdd: () => void
   onLibrary: () => void
@@ -61,6 +70,7 @@ export default function LeituraHub({
   highlights,
   stats,
   queue,
+  weeklyStats,
   onOpenBook,
   onAdd,
   onLibrary,
@@ -69,6 +79,8 @@ export default function LeituraHub({
   const pct       = currentProgress ? Math.round(currentProgress.progress_pct) : 0
   const curPage   = currentProgress?.current_page ?? 1
   const pageCount = currentBook?.raw_content?.pageCount ?? 0
+  const DAY_LABELS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM']
+  const todayStr   = new Date().toISOString().split('T')[0]
 
   return (
     <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100vh', padding: '0 22px 28px' }}>
@@ -147,6 +159,11 @@ export default function LeituraHub({
               <div style={{ height: '100%', width: `${pct}%`,
                 background: 'linear-gradient(90deg, #F5C842, #E07B2A)', borderRadius: 6 }} />
             </div>
+            {weeklyStats.pagesPerDay > 0 && pageCount > 0 && pct < 100 && (
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 7 }}>
+                Conclusão em ~{Math.ceil((pageCount - curPage) / weeklyStats.pagesPerDay)} dias no seu ritmo
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -163,23 +180,65 @@ export default function LeituraHub({
         </div>
       )}
 
-      {/* ── Estatísticas da biblioteca ── */}
-      <SectionLabel>Biblioteca</SectionLabel>
-      <div
-        onClick={onLibrary}
-        style={{ display: 'flex', gap: 10, cursor: 'pointer' }}
-      >
+      {/* ── Meta semanal ── */}
+      <SectionLabel style={{ marginTop: 18 }}>Meta semanal</SectionLabel>
+      <div style={{
+        background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 20, padding: '18px 20px',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Esta semana</div>
+          <div style={{
+            fontSize: 13, fontWeight: 700,
+            color: weeklyStats.daysWithReading >= 5 ? '#00C896'
+                 : weeklyStats.daysWithReading >= 3 ? '#F5C842'
+                 : 'rgba(255,255,255,0.4)',
+          }}>
+            {weeklyStats.daysWithReading}/7 dias
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {weeklyStats.days.map((d, i) => {
+            const isToday = d.date === todayStr
+            const isDone  = d.minutes > 0
+            const label   = DAY_LABELS[i]
+            let circleStyle: React.CSSProperties
+            if (isDone) {
+              circleStyle = { width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, background:'rgba(245,200,66,0.2)', color:'#F5C842', border:'1.5px solid rgba(245,200,66,0.4)' }
+            } else if (isToday) {
+              circleStyle = { width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, background:'#F5C842', color:'#0A0800', border:'none' }
+            } else {
+              circleStyle = { width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, background:'rgba(255,255,255,0.05)', color:'rgba(255,255,255,0.25)', border:'1px solid rgba(255,255,255,0.08)' }
+            }
+            return (
+              <div key={d.date} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
+                <div style={circleStyle}>{label.charAt(0)}</div>
+                <div style={{ fontSize:9, fontWeight:600, color: isToday ? '#F5C842' : 'rgba(255,255,255,0.3)', letterSpacing:'0.04em' }}>
+                  {label}
+                </div>
+                <div style={{ fontSize:9, color: isToday && !isDone ? '#F5C842' : 'rgba(255,255,255,0.25)' }}>
+                  {isDone ? `${d.minutes}m` : isToday ? 'hoje' : '—'}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ── Estatísticas ── */}
+      <SectionLabel style={{ marginTop: 18 }}>Estatísticas</SectionLabel>
+      <div style={{ display: 'flex', gap: 10 }}>
         {[
-          { label: 'Total',       value: stats.total,      color: '#fff'     },
-          { label: 'Em leitura',  value: stats.inProgress, color: '#F5C842'  },
-          { label: 'Concluídos',  value: stats.completed,  color: '#00C896'  },
+          { label: 'min esta semana',   value: weeklyStats.totalMinutes  || '—', color: '#fff'    },
+          { label: 'min / dia (média)', value: weeklyStats.avgMinPerDay  || '—', color: '#F5C842' },
+          { label: 'livros concluídos', value: stats.completed,                  color: '#00C896' },
         ].map(s => (
           <div key={s.label} style={{
-            flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 16, padding: '14px 12px', textAlign: 'center',
+            flex:1, background:'rgba(255,255,255,0.04)', border:'1px solid rgba(255,255,255,0.07)',
+            borderRadius:16, padding:'14px 12px', textAlign:'center',
           }}>
-            <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 500, marginTop: 3 }}>{s.label}</div>
+            <div style={{ fontSize:22, fontWeight:800, color:s.color }}>{s.value}</div>
+            <div style={{ fontSize:10, color:'rgba(255,255,255,0.4)', fontWeight:500, marginTop:3 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -255,23 +314,16 @@ export default function LeituraHub({
         </>
       )}
 
-      {/* ── CTA ver biblioteca ── */}
-      <button
+      {/* ── Acesso à biblioteca ── */}
+      <div
         onClick={onLibrary}
-        style={{
-          marginTop: 24, width: '100%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          padding: '13px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.07)',
-          background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.7)',
-          fontFamily: FONT, fontWeight: 600, fontSize: 13, cursor: 'pointer',
-        }}
+        style={{ marginTop:10, display:'flex', justifyContent:'center', alignItems:'center', gap:6, padding:'10px 0', cursor:'pointer' }}
       >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
-          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        <span style={{ fontSize:13, color:'rgba(255,255,255,0.35)', fontWeight:500 }}>Ver biblioteca completa</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="9 18 15 12 9 6"/>
         </svg>
-        Ver biblioteca completa
-      </button>
+      </div>
     </div>
   )
 }
