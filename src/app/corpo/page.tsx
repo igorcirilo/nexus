@@ -7,8 +7,8 @@ import WeightLog from '@/components/corpo/WeightLog'
 import BodyHub from '@/components/corpo/BodyHub'
 import CorpoLoading from '@/components/corpo/CorpoLoading'
 import Icon, { type IconName } from '@/components/ui/Icon'
-import { supabase, getTrainingPlans, getDietPlans } from '@/lib/supabase'
-import type { TrainingPlan, DietPlan } from '@/types'
+import { supabase, getTrainingPlans, getDietPlans, getProfile } from '@/lib/supabase'
+import type { TrainingPlan, DietPlan, Profile } from '@/types'
 
 type BodyTab = 'resumo' | 'treino' | 'dieta' | 'peso'
 
@@ -27,6 +27,7 @@ function getLocalDate() {
 export default function CorpoPage() {
   const [tab, setTab]                     = useState<BodyTab>('resumo')
   const [userId, setUserId]               = useState<string | null>(null)
+  const [profile, setProfile]             = useState<Profile | null>(null)
   const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([])
   const [dietPlans, setDietPlans]         = useState<DietPlan[]>([])
   const [loading, setLoading]             = useState(true)
@@ -38,12 +39,14 @@ export default function CorpoPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { window.location.href = '/auth'; return }
       if (!active) return
-      const [training, diet] = await Promise.all([
+      const [training, diet, prof] = await Promise.all([
         getTrainingPlans(user.id),
         getDietPlans(user.id),
+        getProfile(user.id),
       ])
       if (!active) return
       setUserId(user.id)
+      setProfile(prof)
       setTrainingPlans((training ?? []) as TrainingPlan[])
       setDietPlans((diet ?? []) as DietPlan[])
       setLoading(false)
@@ -119,7 +122,11 @@ export default function CorpoPage() {
           />
         )}
         {tab === 'peso' && (
-          <WeightLog userId={userId} />
+          <WeightLog
+            userId={userId}
+            heightCm={profile?.height_cm ?? null}
+            onHeightSave={cm => setProfile(p => p ? { ...p, height_cm: cm } : p)}
+          />
         )}
       </div>
 

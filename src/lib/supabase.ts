@@ -1121,3 +1121,33 @@ export async function getReadingSessionsThisWeek(userId: string) {
   if (error) reportError('getReadingSessionsThisWeek error', error.message)
   return (data ?? []) as Array<{ date: string; duration_minutes: number; pages_read: number }>
 }
+
+export async function getTrainingCount30d(userId: string): Promise<number> {
+  const since = new Date()
+  since.setDate(since.getDate() - 30)
+  const sinceStr = since.toISOString().split('T')[0]
+
+  const { count, error } = await supabase
+    .from('training_entries')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .gte('date', sinceStr)
+
+  if (error) reportError('getTrainingCount30d error', error.message)
+  return count ?? 0
+}
+
+export async function getReadingPages30d(userId: string): Promise<number> {
+  const since = new Date()
+  since.setDate(since.getDate() - 30)
+  const sinceStr = since.toISOString().split('T')[0]
+
+  const { data, error } = await supabase
+    .from('reading_sessions')
+    .select('pages_read')
+    .eq('user_id', userId)
+    .gte('date', sinceStr)
+
+  if (error) reportError('getReadingPages30d error', error.message)
+  return (data ?? []).reduce((sum, r) => sum + (r.pages_read ?? 0), 0)
+}

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Profile, UserBadge } from '@/types'
 
@@ -35,6 +36,7 @@ interface Props {
   email: string
   onEdit: (section?: Section) => void
   onLogout: () => void
+  journeyData?: { trainingCount30d: number; readingPages30d: number }
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -56,10 +58,14 @@ function hexAlpha(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
-export default function PerfilHub({ profile, badges, email, onEdit, onLogout }: Props) {
+export default function PerfilHub({ profile, badges, email, onEdit, onLogout, journeyData }: Props) {
   const earnedKeys = new Set(badges.map(b => b.badge_key))
   const earnedBadges = ALL_BADGES.filter(b => earnedKeys.has(b.key))
   const lockedBadges = ALL_BADGES.filter(b => !earnedKeys.has(b.key))
+  const [notifEnabled, setNotifEnabled] = useState<boolean>(() => {
+    if (typeof localStorage === 'undefined') return false
+    return localStorage.getItem('nexus-notif') === '1'
+  })
 
   const initial = (profile.username ?? email ?? 'U').charAt(0).toUpperCase()
   const xpToNextLevel = Math.max(0, (profile.level * 1000) - profile.xp_total)
@@ -104,9 +110,9 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout }: 
         }}>
           <div style={{
             width: 80, height: 80, borderRadius: '50%',
-            background: '#10102A',
+            background: 'linear-gradient(135deg, #F5C842 0%, #E07B2A 100%)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 32, fontWeight: 900, color: '#fff',
+            fontSize: 32, fontWeight: 900, color: '#0A0800',
           }}>
             {initial}
           </div>
@@ -150,10 +156,11 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout }: 
         </div>
 
         {/* Stats row */}
-        <div style={{ display: 'flex', gap: 12, width: '100%', maxWidth: 320 }}>
+        <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: 360 }}>
           {[
             { label: 'XP Total',  value: profile.xp_total,        color: '#F5C842' },
             { label: 'Sequência', value: profile.streak_current,   color: '#FF6B6B' },
+            { label: 'Ranking',   value: '#–',                     color: '#00D4C8' },
             { label: 'Badges',    value: earnedBadges.length,      color: '#9D5CF5' },
           ].map(s => (
             <div key={s.label} style={{
@@ -202,6 +209,41 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout }: 
               </div>
             </div>
           </div>
+        )}
+
+        {/* ── Sua jornada ── */}
+        {journeyData && (
+          <>
+            <SectionLabel>Sua jornada (30d)</SectionLabel>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{
+                flex: 1, background: 'rgba(0,200,150,0.07)',
+                border: '1px solid rgba(0,200,150,0.18)',
+                borderRadius: 16, padding: '14px 16px',
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(0,200,150,0.7)', marginBottom: 6 }}>
+                  Treinos
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: '#00C896', lineHeight: 1 }}>
+                  {journeyData.trainingCount30d}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>sessões</div>
+              </div>
+              <div style={{
+                flex: 1, background: 'rgba(157,92,245,0.07)',
+                border: '1px solid rgba(157,92,245,0.18)',
+                borderRadius: 16, padding: '14px 16px',
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(157,92,245,0.7)', marginBottom: 6 }}>
+                  Páginas lidas
+                </div>
+                <div style={{ fontSize: 28, fontWeight: 900, color: '#9D5CF5', lineHeight: 1 }}>
+                  {journeyData.readingPages30d}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>páginas</div>
+              </div>
+            </div>
+          </>
         )}
 
         {/* ── Conquistas ── */}
@@ -334,6 +376,89 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout }: 
               </svg>
             </button>
           ))}
+        </div>
+
+        {/* ── Preferências ── */}
+        <SectionLabel>Preferências</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {/* Dark mode — always ON */}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 14,
+            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: '14px 14px 4px 4px', padding: '14px 16px',
+          }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+              background: 'rgba(245,200,66,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5C842" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>Modo escuro</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Sempre ativo</div>
+            </div>
+            <div style={{
+              width: 44, height: 26, borderRadius: 13,
+              background: '#F5C842',
+              position: 'relative', flexShrink: 0,
+            }}>
+              <div style={{
+                position: 'absolute', top: 3, right: 3,
+                width: 20, height: 20, borderRadius: '50%', background: '#0A0800',
+              }} />
+            </div>
+          </div>
+
+          {/* Notifications toggle */}
+          <button
+            onClick={() => {
+              const next = !notifEnabled
+              if (next && typeof Notification !== 'undefined') {
+                Notification.requestPermission()
+              }
+              localStorage.setItem('nexus-notif', next ? '1' : '0')
+              setNotifEnabled(next)
+            }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'left',
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+              borderRadius: '4px 4px 14px 14px', padding: '14px 16px', cursor: 'pointer',
+              fontFamily: FONT,
+            } as CSSProperties}
+          >
+            <div style={{
+              width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+              background: 'rgba(0,212,200,0.12)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D4C8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>Notificações</div>
+              <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{notifEnabled ? 'Ativas' : 'Desativadas'}</div>
+            </div>
+            <div style={{
+              width: 44, height: 26, borderRadius: 13,
+              background: notifEnabled ? '#00D4C8' : 'rgba(255,255,255,0.1)',
+              position: 'relative', flexShrink: 0,
+              transition: 'background 0.2s',
+            }}>
+              <div style={{
+                position: 'absolute', top: 3,
+                left: notifEnabled ? 'auto' : 3,
+                right: notifEnabled ? 3 : 'auto',
+                width: 20, height: 20, borderRadius: '50%',
+                background: notifEnabled ? '#07070F' : 'rgba(255,255,255,0.4)',
+                transition: 'left 0.2s, right 0.2s',
+              }} />
+            </div>
+          </button>
         </div>
 
         {/* ── Logout ── */}

@@ -406,7 +406,7 @@ export default function FinancasPage() {
   }
 
   return (
-    <main style={{paddingBottom:100,minHeight:'100vh'}}>
+    <main style={{paddingBottom:100,minHeight:'100vh',background:'#07070F',fontFamily:'Inter, sans-serif'}}>
 
       {csvPreview && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>
@@ -504,28 +504,28 @@ export default function FinancasPage() {
       {/* Header */}
       <div style={{padding:'28px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div>
-          <h1 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:22,marginBottom:3}}>Finanças</h1>
-          <p style={{fontSize:12,color:'var(--text3)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
+          <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:28,marginBottom:3,color:'#fff',letterSpacing:'-0.5px'}}>Finanças</h1>
+          <p style={{fontSize:12,color:'rgba(255,255,255,0.4)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
         </div>
         <div style={{display:'flex',gap:8}}>
-          <button onClick={()=>csvRef.current?.click()} style={{background:'var(--bg2)',color:'var(--text2)',border:'0.5px solid var(--border)',borderRadius:12,padding:'9px 12px',fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:12,cursor:'pointer'}}>↑ CSV</button>
+          <button onClick={()=>csvRef.current?.click()} style={{background:'rgba(255,255,255,0.05)',color:'rgba(255,255,255,0.6)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'9px 12px',fontFamily:'Inter, sans-serif',fontWeight:600,fontSize:12,cursor:'pointer'}}>↑ CSV</button>
           <button
             onClick={() => pdfRef.current?.click()}
             disabled={pdfLoading}
-            style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '8px 14px', color: 'var(--text2)', fontFamily: 'DM Sans, sans-serif', fontSize: 13, cursor: 'pointer' }}
+            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 14px', color: 'rgba(255,255,255,0.6)', fontFamily: 'Inter, sans-serif', fontSize: 13, cursor: 'pointer' }}
           >
             {pdfLoading ? 'A ler...' : '📄 Importar PDF'}
           </button>
           <input ref={csvRef} type="file" accept=".csv" style={{display:'none'}} onChange={importCSV}/>
           <input ref={pdfRef} type="file" accept=".pdf" style={{ display: 'none' }} onChange={importPDF} />
-          <button onClick={()=>setShowForm(true)} style={{background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:12,padding:'9px 16px',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>+ Registar</button>
+          <button onClick={()=>setShowForm(true)} style={{background:'#F5C842',color:'#07070F',border:'none',borderRadius:12,padding:'9px 16px',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>+ Registar</button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{display:'flex',background:'var(--bg2)',borderRadius:14,padding:4,gap:3,margin:'14px 20px 0',border:'0.5px solid var(--border)'}}>
+      <div style={{display:'flex',background:'rgba(255,255,255,0.05)',borderRadius:14,padding:4,gap:3,margin:'14px 20px 0',border:'1px solid rgba(255,255,255,0.07)'}}>
         {TABS.map(t=>(
-          <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:'8px 3px',borderRadius:10,border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3,background:tab===t.key?'var(--bg1)':'transparent',color:tab===t.key?'var(--gold)':'var(--text3)',fontSize:9,fontFamily:'Syne, sans-serif',fontWeight:tab===t.key?600:400,transition:'all .15s'}}>
+          <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:'8px 3px',borderRadius:10,border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3,background:tab===t.key?'rgba(255,255,255,0.08)':'transparent',color:tab===t.key?'#F5C842':'rgba(255,255,255,0.35)',fontSize:9,fontFamily:'Inter, sans-serif',fontWeight:tab===t.key?600:400,transition:'all .15s'}}>
             <span style={{fontSize:15}}>{t.icon}</span>{t.label}
           </button>
         ))}
@@ -536,7 +536,7 @@ export default function FinancasPage() {
       {tab==='transacoes'&&(
         <div style={{padding:'14px 20px 0'}}>
           {txs.length===0&&(
-            <div style={{textAlign:'center',padding:'40px 0',color:'var(--text3)'}}>
+            <div style={{textAlign:'center',padding:'40px 0',color:'rgba(255,255,255,0.4)'}}>
               <div style={{fontSize:40,marginBottom:12}}>💸</div>
               <div style={{fontSize:14,marginBottom:6}}>Sem transações ainda.</div>
               <div style={{fontSize:12}}>Clica em + Registar ou importa um CSV.</div>
@@ -544,24 +544,24 @@ export default function FinancasPage() {
           )}
           <div style={{display:'flex',flexDirection:'column',gap:6}}>
             {txs.map(t=>(
-              <div key={t.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:13,background:'var(--bg2)',border:`0.5px solid ${t.type==='entrada'?'rgba(30,203,180,.15)':'rgba(226,75,74,.1)'}`}}>
+              <div key={t.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:13,background:'rgba(255,255,255,0.04)',border:`1px solid ${t.type==='entrada'?'rgba(30,203,180,.15)':'rgba(226,75,74,.1)'}`}}>
                 <div style={{width:38,height:38,borderRadius:11,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,background:t.type==='entrada'?'rgba(30,203,180,.1)':'rgba(226,75,74,.1)'}}>
                   {t.type==='entrada'?'↓':'↑'}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:14,fontWeight:500,color:'var(--text1)',marginBottom:2}}>{t.category}</div>
-                  <div style={{fontSize:11,color:'var(--text3)'}}>{t.description&&`${t.description} · `}{format(new Date(t.date+'T12:00:00'),'d MMM',{locale:pt})}</div>
+                  <div style={{fontSize:14,fontWeight:500,color:'#fff',marginBottom:2}}>{t.category}</div>
+                  <div style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>{t.description&&`${t.description} · `}{format(new Date(t.date+'T12:00:00'),'d MMM',{locale:pt})}</div>
                 </div>
-                <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,color:t.type==='entrada'?'var(--teal)':'#E24B4A',flexShrink:0}}>
+                <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:15,color:t.type==='entrada'?'#00C896':'#E24B4A',flexShrink:0}}>
                   {t.type==='entrada'?'+':'-'}{fmt(t.amount)}
                 </div>
-                <button onClick={()=>removeTx(t.id)} style={{width:26,height:26,borderRadius:8,background:'var(--bg3)',border:'none',cursor:'pointer',color:'var(--text3)',fontSize:14,flexShrink:0}}>×</button>
+                <button onClick={()=>removeTx(t.id)} style={{width:26,height:26,borderRadius:8,background:'rgba(255,255,255,0.06)',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.4)',fontSize:14,flexShrink:0}}>×</button>
               </div>
             ))}
           </div>
-          <div style={{margin:'16px 0',padding:'12px 14px',borderRadius:12,background:'var(--bg2)',border:'0.5px solid var(--border)',fontSize:12,color:'var(--text3)',lineHeight:1.6}}>
-            <strong style={{color:'var(--text2)'}}>Formato CSV:</strong> cabeçalho{' '}
-            <code style={{background:'var(--bg3)',padding:'1px 5px',borderRadius:4}}>data,tipo,categoria,valor,descricao</code>
+          <div style={{margin:'16px 0',padding:'12px 14px',borderRadius:12,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',fontSize:12,color:'rgba(255,255,255,0.4)',lineHeight:1.6}}>
+            <strong style={{color:'rgba(255,255,255,0.6)'}}>Formato CSV:</strong> cabeçalho{' '}
+            <code style={{background:'rgba(255,255,255,0.08)',padding:'1px 5px',borderRadius:4}}>data,tipo,categoria,valor,descricao</code>
             . Tipo: &quot;entrada&quot; ou &quot;saida&quot;.
           </div>
         </div>
@@ -570,7 +570,7 @@ export default function FinancasPage() {
       {/* ── TAB ORÇAMENTO ── */}
       {tab==='orcamento'&&(
         <div style={{padding:'14px 20px 0'}}>
-          <div style={{fontSize:12,color:'var(--text3)',marginBottom:12}}>Toca no valor para editar. Orçamentos guardados localmente.</div>
+          <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:12}}>Toca no valor para editar. Orçamentos guardados localmente.</div>
           {CATEGORIES_OUT.map((cat,ci)=>{
             const spent  = thisMonth.filter(t=>t.type==='saida'&&t.category===cat).reduce((a,t)=>a+t.amount,0)
             const budget = budgets[cat]??0
@@ -578,31 +578,31 @@ export default function FinancasPage() {
             const over   = spent>budget&&budget>0
             const isEdit = editBudget===cat
             return (
-              <div key={cat} style={{background:'var(--bg2)',border:`0.5px solid ${over?'rgba(226,75,74,.25)':'var(--border)'}`,borderRadius:14,padding:'12px 14px',marginBottom:8}}>
+              <div key={cat} style={{background:'rgba(255,255,255,0.04)',border:`1px solid ${over?'rgba(226,75,74,.25)':'rgba(255,255,255,0.07)'}`,borderRadius:14,padding:'12px 14px',marginBottom:8}}>
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                   <div style={{display:'flex',alignItems:'center',gap:8}}>
                     <div style={{width:8,height:8,borderRadius:'50%',background:CAT_COLORS[ci%CAT_COLORS.length]}}/>
-                    <span style={{fontSize:14,color:'var(--text1)',fontWeight:500}}>{cat}</span>
+                    <span style={{fontSize:14,color:'#fff',fontWeight:500}}>{cat}</span>
                     {over&&<span style={{fontSize:10,color:'#E24B4A',background:'rgba(226,75,74,.1)',padding:'2px 7px',borderRadius:6}}>acima</span>}
                   </div>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
-                    <span style={{fontSize:13,color:over?'#E24B4A':'var(--text2)',fontFamily:'Syne, sans-serif',fontWeight:600}}>{fmt(spent)}</span>
+                    <span style={{fontSize:13,color:over?'#E24B4A':'rgba(255,255,255,0.7)',fontFamily:'Inter, sans-serif',fontWeight:600}}>{fmt(spent)}</span>
                     {isEdit ? (
                       <div style={{display:'flex',gap:5}}>
                         <input autoFocus type="number" value={budgetVal} onChange={e=>setBudgetVal(e.target.value)}
-                          style={{width:70,padding:'4px 8px',borderRadius:8,background:'var(--bg3)',border:'0.5px solid var(--border)',color:'var(--text1)',fontSize:13,outline:'none',fontFamily:'DM Sans, sans-serif'}}
+                          style={{width:70,padding:'4px 8px',borderRadius:8,background:'rgba(255,255,255,0.08)',border:'1px solid rgba(255,255,255,0.12)',color:'#fff',fontSize:13,outline:'none',fontFamily:'Inter, sans-serif'}}
                           onKeyDown={e=>{if(e.key==='Enter')saveBudget(cat,budgetVal);if(e.key==='Escape')setEditBudget(null)}}/>
-                        <button onClick={()=>saveBudget(cat,budgetVal)} style={{padding:'4px 8px',borderRadius:8,background:'var(--gold)',border:'none',cursor:'pointer',fontSize:12,color:'var(--bg0)',fontWeight:600}}>✓</button>
+                        <button onClick={()=>saveBudget(cat,budgetVal)} style={{padding:'4px 8px',borderRadius:8,background:'#F5C842',border:'none',cursor:'pointer',fontSize:12,color:'#07070F',fontWeight:600}}>✓</button>
                       </div>
                     ):(
-                      <span onClick={()=>{setEditBudget(cat);setBudgetVal(String(budget))}} style={{fontSize:13,color:'var(--text3)',cursor:'pointer',textDecoration:'underline',textDecorationStyle:'dotted'}}>{fmt(budget)}</span>
+                      <span onClick={()=>{setEditBudget(cat);setBudgetVal(String(budget))}} style={{fontSize:13,color:'rgba(255,255,255,0.35)',cursor:'pointer',textDecoration:'underline',textDecorationStyle:'dotted'}}>{fmt(budget)}</span>
                     )}
                   </div>
                 </div>
-                <div style={{background:'var(--bg3)',borderRadius:100,height:5}}>
-                  <div style={{height:'100%',borderRadius:100,background:over?'#E24B4A':pct>80?'var(--gold)':CAT_COLORS[ci%CAT_COLORS.length],width:`${pct}%`,transition:'width .4s'}}/>
+                <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:5}}>
+                  <div style={{height:'100%',borderRadius:100,background:over?'#E24B4A':pct>80?'#F5C842':CAT_COLORS[ci%CAT_COLORS.length],width:`${pct}%`,transition:'width .4s'}}/>
                 </div>
-                {budget>0&&<div style={{fontSize:10,color:'var(--text3)',marginTop:4,textAlign:'right'}}>{pct}% · {fmt(Math.max(0,budget-spent))} restantes</div>}
+                {budget>0&&<div style={{fontSize:10,color:'rgba(255,255,255,0.35)',marginTop:4,textAlign:'right'}}>{pct}% · {fmt(Math.max(0,budget-spent))} restantes</div>}
               </div>
             )
           })}
@@ -613,57 +613,57 @@ export default function FinancasPage() {
       {tab==='metas'&&(
         <div style={{padding:'14px 20px 0'}}>
           {[
-            {label:'Meta de poupança mensal',icon:'💰',goal:savingsGoal,current:Math.max(0,balance),color:'var(--teal)',desc:'Quanto quero poupar por mês'},
-            {label:'Reserva de emergência',  icon:'🛡️',goal:reserveGoal,current:currentSavings,     color:'var(--accent)',desc:'Fundo de emergência (3–6× despesas)'},
+            {label:'Meta de poupança mensal',icon:'💰',goal:savingsGoal,current:Math.max(0,balance),color:'#00C896',desc:'Quanto quero poupar por mês'},
+            {label:'Reserva de emergência',  icon:'🛡️',goal:reserveGoal,current:currentSavings,     color:'#9D5CF5',desc:'Fundo de emergência (3–6× despesas)'},
           ].map(({label,icon,goal,current,color,desc})=>{
             const pct=goal>0?Math.min(100,Math.round(current/goal*100)):0
             const done=goal>0&&current>=goal
             return (
-              <div key={label} style={{background:'var(--bg2)',border:`0.5px solid ${done?'rgba(30,203,180,.25)':'var(--border)'}`,borderRadius:16,padding:'16px',marginBottom:12}}>
+              <div key={label} style={{background:'rgba(255,255,255,0.04)',border:`1px solid ${done?'rgba(0,200,150,.25)':'rgba(255,255,255,0.07)'}`,borderRadius:16,padding:'16px',marginBottom:12}}>
                 <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
                   <div style={{display:'flex',alignItems:'center',gap:10}}>
                     <span style={{fontSize:22}}>{icon}</span>
                     <div>
-                      <div style={{fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:14,color:'var(--text1)',marginBottom:2}}>{label}</div>
-                      <div style={{fontSize:11,color:'var(--text3)'}}>{desc}</div>
+                      <div style={{fontFamily:'Inter, sans-serif',fontWeight:600,fontSize:14,color:'#fff',marginBottom:2}}>{label}</div>
+                      <div style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>{desc}</div>
                     </div>
                   </div>
-                  {done&&<span style={{fontSize:11,color:'var(--teal)',background:'rgba(30,203,180,.1)',padding:'3px 9px',borderRadius:8}}>✓ Atingida</span>}
+                  {done&&<span style={{fontSize:11,color:'#00C896',background:'rgba(0,200,150,.1)',padding:'3px 9px',borderRadius:8}}>✓ Atingida</span>}
                 </div>
                 {goal>0?(
                   <>
                     <div style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:8}}>
-                      <span style={{color:'var(--text2)'}}>{fmt(current)}</span>
-                      <span style={{color,fontFamily:'Syne, sans-serif',fontWeight:600}}>{fmt(goal)}</span>
+                      <span style={{color:'rgba(255,255,255,0.7)'}}>{fmt(current)}</span>
+                      <span style={{color,fontFamily:'Inter, sans-serif',fontWeight:600}}>{fmt(goal)}</span>
                     </div>
-                    <div style={{background:'var(--bg3)',borderRadius:100,height:8}}>
-                      <div style={{height:'100%',borderRadius:100,background:done?'var(--teal)':color,width:`${pct}%`,transition:'width .5s'}}/>
+                    <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:8}}>
+                      <div style={{height:'100%',borderRadius:100,background:done?'#00C896':color,width:`${pct}%`,transition:'width .5s'}}/>
                     </div>
-                    <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'var(--text3)',marginTop:5}}>
+                    <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'rgba(255,255,255,0.4)',marginTop:5}}>
                       <span>{pct}% atingido</span>
                       <span>{goal>current?`faltam ${fmt(goal-current)}`:'meta atingida 🎉'}</span>
                     </div>
                   </>
                 ):(
-                  <div style={{fontSize:13,color:'var(--text3)',textAlign:'center',padding:'8px 0'}}>Meta não definida — clica em &quot;Editar metas&quot;</div>
+                  <div style={{fontSize:13,color:'rgba(255,255,255,0.4)',textAlign:'center',padding:'8px 0'}}>Meta não definida — clica em &quot;Editar metas&quot;</div>
                 )}
               </div>
             )
           })}
 
           {/* Histórico poupança */}
-          <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:14,padding:'13px 16px',marginBottom:14}}>
-            <div style={{fontSize:12,color:'var(--text3)',marginBottom:8}}>Poupança mensal — histórico</div>
+          <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'13px 16px',marginBottom:14}}>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:8}}>Poupança mensal — histórico</div>
             <div style={{height:110,overflow:'hidden'}}>
               {ready&&(
                 <ResponsiveContainer width="100%" height={110}>
                   <BarChart data={monthlyChart}>
                     <CartesianGrid vertical={false} stroke="rgba(255,255,255,.04)"/>
-                    <XAxis dataKey="label" tick={{fill:'#5A6070',fontSize:11}} axisLine={false} tickLine={false}/>
+                    <XAxis dataKey="label" tick={{fill:'rgba(255,255,255,0.3)',fontSize:11}} axisLine={false} tickLine={false}/>
                     <YAxis hide/>
                     <Tooltip contentStyle={TT} formatter={(v:number)=>fmt(v)}/>
                     <Bar dataKey="poupanca" radius={[5,5,0,0]}>
-                      {monthlyChart.map((m,i)=><Cell key={i} fill={m.poupanca>=0?'var(--teal)':'#E24B4A'}/>)}
+                      {monthlyChart.map((m,i)=><Cell key={i} fill={m.poupanca>=0?'#00C896':'#E24B4A'}/>)}
                     </Bar>
                   </BarChart>
                 </ResponsiveContainer>
@@ -672,7 +672,7 @@ export default function FinancasPage() {
           </div>
 
           <button onClick={()=>{setGSave(savingsGoal?String(savingsGoal):'');setGReserve(reserveGoal?String(reserveGoal):'');setGCurrent(currentSavings?String(currentSavings):'');setShowGoals(true)}}
-            style={{width:'100%',padding:'13px',border:'0.5px solid rgba(127,119,221,.3)',borderRadius:14,background:'rgba(127,119,221,.08)',color:'var(--accent)',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
+            style={{width:'100%',padding:'13px',border:'1px solid rgba(157,92,245,.3)',borderRadius:14,background:'rgba(157,92,245,.08)',color:'#9D5CF5',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
             ✏️ Editar metas
           </button>
         </div>

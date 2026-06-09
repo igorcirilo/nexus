@@ -2,7 +2,7 @@
 // src/app/perfil/page.tsx
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
-import { supabase, getProfile, updateFullProfile, getUserBadges } from '@/lib/supabase'
+import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { Profile, UserBadge } from '@/types'
 import PerfilHub from '@/components/perfil/PerfilHub'
@@ -73,6 +73,7 @@ const LOCKED_BADGES = [
 export default function PerfilPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [badges, setBadges] = useState<UserBadge[]>([])
+  const [journeyData, setJourneyData] = useState<{ trainingCount30d: number; readingPages30d: number } | undefined>(undefined)
   const [tab, setTab] = useState<AppTab>('resumo')
   const [section, setSection] = useState<Section>('corpo')
   const [saving, setSaving] = useState(false)
@@ -90,9 +91,15 @@ export default function PerfilPage() {
         return
       }
 
-      const [prof, userBadges] = await Promise.all([getProfile(user.id), getUserBadges(user.id)])
+      const [prof, userBadges, trainingCount, readingPages] = await Promise.all([
+        getProfile(user.id),
+        getUserBadges(user.id),
+        getTrainingCount30d(user.id),
+        getReadingPages30d(user.id),
+      ])
       setProfile(prof)
       setBadges((userBadges ?? []) as UserBadge[])
+      setJourneyData({ trainingCount30d: trainingCount, readingPages30d: readingPages })
       setEmail(user.email ?? '')
 
       setForm({
@@ -168,6 +175,7 @@ export default function PerfilPage() {
           email={email}
           onEdit={(sec) => { setSection(sec ?? 'corpo'); setTab('editar') }}
           onLogout={logout}
+          journeyData={journeyData}
         />
         <Nav />
       </main>
