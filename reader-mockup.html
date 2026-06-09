@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Nexus Reader — Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0 }
+
+  body {
+    background: #111;
+    display: flex;
+    gap: 32px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 24px;
+    font-family: -apple-system, sans-serif;
+    min-height: 100vh;
+    flex-wrap: wrap;
+  }
+
+  .label {
+    color: rgba(255,255,255,0.4);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    text-align: center;
+  }
+
+  /* ─── Phone Frame ──────────────────────────────── */
+  .phone {
+    width: 375px;
+    height: 780px;
+    border-radius: 44px;
+    border: 2px solid rgba(255,255,255,0.12);
+    overflow: hidden;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: 0 32px 80px rgba(0,0,0,0.7);
+  }
+
+  /* ─── SCREEN 1: Paginado (Sepia) ───────────────── */
+  .screen-1 { background: #F3E8D2; color: #3C2F22; }
+
+  .progress-bar {
+    height: 3px;
+    background: #E8A838;
+    width: 35%;
+    transition: width 0.3s;
+  }
+
+  /* Auto-hide header */
+  .reader-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    background: rgba(243,232,210,0.88);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(60,47,34,0.08);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  .reader-header-dark {
+    background: rgba(16,19,26,0.9);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .btn-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: none;
+    background: rgba(60,47,34,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #3C2F22;
+  }
+
+  .btn-icon-dark { background: rgba(255,255,255,0.08); color: #E8E3D7; }
+
+  .header-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+    padding: 0 10px;
+    overflow: hidden;
+  }
+
+  .header-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #3C2F22;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+  }
+
+  .header-title-dark { color: #E8E3D7; }
+
+  .header-meta {
+    font-size: 10px;
+    color: rgba(60,47,34,0.5);
+    margin-top: 1px;
+  }
+
+  .header-meta-dark { color: rgba(255,255,255,0.35); }
+
+  .header-actions {
+    display: flex;
+    gap: 6px;
+  }
+
+  /* Text content */
+  .reader-content {
+    padding: 28px 24px;
+    overflow: hidden;
+    height: 534px;
+  }
+
+  .chapter-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #E8A838;
+    margin-bottom: 14px;
+    opacity: 0.85;
+  }
+
+  .chapter-title {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #3C2F22;
+    margin-bottom: 20px;
+    line-height: 1.3;
+  }
+
+  .reader-text {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: 17px;
+    line-height: 1.8;
+    color: #3C2F22;
+  }
+
+  .reader-text p { margin-bottom: 16px; }
+
+  .reader-text .drop-cap::first-letter {
+    float: left;
+    font-size: 60px;
+    line-height: 0.75;
+    margin: 8px 8px 0 0;
+    font-weight: 700;
+    color: #E8A838;
+    font-family: Georgia, serif;
+  }
+
+  .highlight {
+    background: rgba(232,168,56,0.25);
+    border-radius: 3px;
+    padding: 1px 2px;
+  }
+
+  /* Bottom nav bar */
+  .reader-bottom {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 12px 18px 20px;
+    background: rgba(243,232,210,0.92);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(60,47,34,0.08);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .reader-bottom-dark {
+    background: rgba(16,19,26,0.92);
+    border-top: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .page-nav-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(60,47,34,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    color: #3C2F22;
+    flex-shrink: 0;
+  }
+
+  .page-nav-btn-dark { background: rgba(255,255,255,0.08); color: #E8E3D7; }
+
+  .page-progress {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .progress-track {
+    height: 4px;
+    background: rgba(60,47,34,0.12);
+    border-radius: 4px;
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: #E8A838;
+    border-radius: 4px;
+    width: 35%;
+    position: relative;
+  }
+
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: -1px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #E8A838;
+    box-shadow: 0 0 6px rgba(232,168,56,0.6);
+  }
+
+  .progress-fill-dark { background: #F5C842; }
+  .progress-fill-dark::after { background: #F5C842; }
+
+  .page-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: rgba(60,47,34,0.5);
+  }
+
+  .page-info-dark { color: rgba(255,255,255,0.35); }
+
+  .bookmark-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: none;
+    background: rgba(232,168,56,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+
+  /* ─── SCREEN 2: Settings Bottom Sheet ──────────── */
+  .screen-2 { background: #F3E8D2; color: #3C2F22; }
+
+  .sheet-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 20;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .bottom-sheet {
+    width: 100%;
+    background: #F7ECD9;
+    border-radius: 24px 24px 0 0;
+    padding: 8px 0 32px;
+    z-index: 21;
+  }
+
+  .bottom-sheet-dark {
+    background: #171B24;
+  }
+
+  .sheet-handle {
+    width: 36px;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(60,47,34,0.2);
+    margin: 8px auto 16px;
+  }
+
+  .sheet-handle-dark { background: rgba(255,255,255,0.15); }
+
+  .sheet-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #3C2F22;
+    padding: 0 20px;
+    margin-bottom: 18px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  .sheet-title-dark { color: #E8E3D7; }
+
+  .sheet-section { padding: 0 20px; margin-bottom: 20px; }
+
+  .sheet-row-label {
+    font-size: 11px;
+    color: rgba(60,47,34,0.5);
+    margin-bottom: 8px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .sheet-row-label-dark { color: rgba(255,255,255,0.35); }
+
+  .theme-swatches {
+    display: flex;
+    gap: 10px;
+  }
+
+  .swatch {
+    flex: 1;
+    height: 44px;
+    border-radius: 12px;
+    border: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  .swatch-claro  { background: #F7F3EA; color: #1E1C18; }
+  .swatch-sepia  { background: #F3E8D2; color: #3C2F22; border-color: #E8A838; }
+  .swatch-noturno { background: #10131A; color: #E8E3D7; }
+
+  .font-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .font-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    border: 1px solid rgba(60,47,34,0.14);
+    background: rgba(60,47,34,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-weight: 700;
+    color: #3C2F22;
+  }
+
+  .font-btn-dark { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.1); color: #E8E3D7; }
+
+  .font-preview {
+    flex: 1;
+    background: rgba(60,47,34,0.06);
+    border-radius: 12px;
+    padding: 8px 12px;
+    text-align: center;
+    font-family: Georgia, serif;
+    color: #3C2F22;
+  }
+
+  .font-preview-dark { background: rgba(255,255,255,0.06); color: #E8E3D7; }
+
+  .mode-toggle {
+    display: flex;
+    background: rgba(60,47,34,0.08);
+    border-radius: 12px;
+    padding: 4px;
+    gap: 4px;
+  }
+
+  .mode-toggle-dark { background: rgba(255,255,255,0.07); }
+
+  .mode-btn {
+    flex: 1;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .mode-btn.active-sepia { background: #F7ECD9; color: #3C2F22; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .mode-btn.active-dark  { background: #0D1018; color: #E8E3D7; }
+  .mode-btn.inactive { background: transparent; color: rgba(60,47,34,0.4); }
+  .mode-btn.inactive-dark { background: transparent; color: rgba(255,255,255,0.3); }
+
+  /* ─── SCREEN 3: Annotations ─────────────────────── */
+  .screen-3 { background: #10131A; color: #E8E3D7; }
+
+  .annotations-tray {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: #171B24;
+    border-radius: 24px 24px 0 0;
+    padding: 8px 0 20px;
+    z-index: 20;
+  }
+
+  .ann-tabs {
+    display: flex;
+    gap: 2px;
+    padding: 0 16px;
+    margin: 12px 0 16px;
+  }
+
+  .ann-tab {
+    flex: 1;
+    padding: 8px;
+    border-radius: 10px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .ann-tab.active { background: rgba(245,200,66,0.12); color: #F5C842; }
+  .ann-tab.inactive { background: transparent; color: rgba(255,255,255,0.3); }
+
+  .ann-item {
+    margin: 0 16px 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+
+  .ann-item-accent {
+    background: rgba(232,168,56,0.08);
+    border-color: rgba(232,168,56,0.18);
+  }
+
+  .ann-text { font-size: 13px; line-height: 1.55; color: rgba(255,255,255,0.85); font-family: Georgia, serif; }
+
+  .ann-meta {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    margin-top: 6px;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Floating annotate button */
+  .fab-annotate {
+    position: absolute;
+    bottom: 240px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    border-radius: 16px;
+    background: #E8A838;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 24px rgba(232,168,56,0.4);
+    cursor: pointer;
+    z-index: 10;
+    font-size: 20px;
+  }
+
+  /* ─── SCREEN 4: Dark paginado ───────────────────── */
+  .screen-4 { background: #10131A; color: #E8E3D7; }
+
+  .chapter-title-dark { color: #E8E3D7; }
+  .chapter-label-dark { color: #F5C842; }
+  .reader-text-dark { color: rgba(232,227,215,0.88); }
+
+  /* ─── Legend / annotations ──────────────────────── */
+  .legend {
+    width: 375px;
+    flex-shrink: 0;
+  }
+
+  .legend-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .legend-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #E8A838;
+    color: #111;
+    font-size: 11px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .legend-text { font-size: 13px; color: rgba(255,255,255,0.7); line-height: 1.5; }
+  .legend-bold { color: #fff; font-weight: 700; }
+
+  h2 { font-size: 18px; color: #fff; margin-bottom: 18px; font-weight: 800; }
+  h3 { font-size: 13px; color: #F5C842; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 12px; margin-top: 24px; }
+
+  .divider { width: 100%; height: 1px; background: rgba(255,255,255,0.06); margin: 32px 0; }
+
+  svg { display: block; }
+</style>
+</head>
+<body>
+
+<!-- ═══ SCREEN 1: Paginado + Sepia (main reader) ═════════════════ -->
+<div>
+  <div class="label">1 · Reader — Paginado (Sepia)</div>
+  <div class="phone screen-1">
+    <!-- Progress bar -->
+    <div class="progress-bar"></div>
+
+    <!-- Auto-hide header -->
+    <div class="reader-header">
+      <button class="btn-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3C2F22" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <div class="header-center">
+        <div class="header-title">Quem Pensa Enriquece</div>
+        <div class="header-meta">Cap. 2 · p. 34 de 141 · 24%</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon" style="font-size:13px;font-weight:700;color:#3C2F22;">Aa</button>
+        <button class="btn-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#3C2F22" stroke-width="2" stroke-linecap="round">
+            <line x1="3" y1="6" x2="21" y2="6"/>
+            <line x1="3" y1="12" x2="21" y2="12"/>
+            <line x1="3" y1="18" x2="15" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Reading content -->
+    <div class="reader-content">
+      <div class="chapter-label">Capítulo 2</div>
+      <div class="chapter-title">Fé — Visualização e Crença</div>
+      <div class="reader-text">
+        <p class="drop-cap">A fé é o elemento químico da mente que, quando misturado com a oração, dá ao pensamento um impulso espiritual.</p>
+        <p>A fé é um estado de espírito que pode ser induzido por afirmação, instrução ou repetição ao subconsciente, através do princípio da autosugestão.</p>
+        <p><span class="highlight">A repetição de afirmações de ordens ao teu subconsciente é o único método</span> conhecido de desenvolver voluntariamente a emoção da fé.</p>
+      </div>
+    </div>
+
+    <!-- Bottom navigation -->
+    <div class="reader-bottom">
+      <button class="page-nav-btn">←</button>
+      <div class="page-progress">
+        <div class="progress-track">
+          <div class="progress-fill"></div>
+        </div>
+        <div class="page-info">
+          <span>p. 34</span>
+          <span>~18 min restantes</span>
+          <span>24%</span>
+        </div>
+      </div>
+      <div class="bookmark-btn">🔖</div>
+      <button class="page-nav-btn">→</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN 2: Settings Bottom Sheet (Sepia) ══════════════════ -->
+<div>
+  <div class="label">2 · Definições (Bottom Sheet)</div>
+  <div class="phone screen-2">
+    <div class="progress-bar"></div>
+    <div class="reader-header">
+      <button class="btn-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3C2F22" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <div class="header-center">
+        <div class="header-title">Quem Pensa Enriquece</div>
+        <div class="header-meta">Cap. 2 · p. 34 de 141</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon" style="background:rgba(232,168,56,0.2);border:1px solid rgba(232,168,56,0.4);font-size:13px;font-weight:700;color:#E8A838;">Aa</button>
+      </div>
+    </div>
+
+    <!-- Dimmed content behind -->
+    <div style="padding:20px 24px;opacity:0.3">
+      <div class="reader-text">
+        <p>A fé é o elemento químico da mente que, quando misturado com a oração, dá ao pensamento um impulso espiritual.</p>
+      </div>
+    </div>
+
+    <!-- Sheet overlay -->
+    <div class="sheet-backdrop">
+      <div class="bottom-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-title">Aspecto</div>
+
+        <div class="sheet-section">
+          <div class="sheet-row-label">Tema</div>
+          <div class="theme-swatches">
+            <div class="swatch swatch-claro">Claro</div>
+            <div class="swatch swatch-sepia">Sépia</div>
+            <div class="swatch swatch-noturno">Noturno</div>
+          </div>
+        </div>
+
+        <div class="sheet-section">
+          <div class="sheet-row-label">Tamanho</div>
+          <div class="font-controls">
+            <button class="font-btn" style="font-size:13px;">A−</button>
+            <div class="font-preview" style="font-size:15px;">Texto de amostra</div>
+            <button class="font-btn" style="font-size:17px;">A+</button>
+          </div>
+        </div>
+
+        <div class="sheet-section">
+          <div class="sheet-row-label">Modo de leitura</div>
+          <div class="mode-toggle">
+            <button class="mode-btn inactive">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(60,47,34,0.4)" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+              Scroll
+            </button>
+            <button class="mode-btn active-sepia">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#3C2F22" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              Folheio
+            </button>
+          </div>
+        </div>
+
+        <div class="sheet-section">
+          <div class="sheet-row-label">Espaçamento entre linhas</div>
+          <input type="range" style="width:100%;accent-color:#E8A838;" min="1.4" max="2.2" step="0.1" value="1.7">
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN 3: Anotações Tray (Dark) ══════════════════════════ -->
+<div>
+  <div class="label">3 · Anotações (Dark, Tray)</div>
+  <div class="phone screen-3">
+    <div style="height:3px;background:#F5C842;width:35%;"></div>
+
+    <!-- Dark header -->
+    <div class="reader-header reader-header-dark">
+      <button class="btn-icon btn-icon-dark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8E3D7" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="header-center">
+        <div class="header-title header-title-dark">Quem Pensa Enriquece</div>
+        <div class="header-meta header-meta-dark">Cap. 2 · p. 34 de 141</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon btn-icon-dark" style="font-size:13px;font-weight:700;">Aa</button>
+        <button class="btn-icon btn-icon-dark">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8E3D7" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="15" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Content dimmed -->
+    <div style="padding:20px 24px;opacity:0.2">
+      <div class="chapter-label chapter-label-dark" style="color:#F5C842">Capítulo 2</div>
+      <div style="font-family:Georgia,serif;font-size:17px;line-height:1.8;color:#E8E3D7">
+        <p style="margin-bottom:14px">A fé é o elemento químico da mente que, quando misturado com a oração, dá ao pensamento um impulso espiritual.</p>
+      </div>
+    </div>
+
+    <!-- Floating annotate FAB -->
+    <div class="fab-annotate" style="bottom:310px">✏️</div>
+
+    <!-- Annotations tray -->
+    <div class="annotations-tray">
+      <div class="sheet-handle sheet-handle-dark"></div>
+      <div class="ann-tabs">
+        <button class="ann-tab active">✨ Destaques <span style="background:rgba(245,200,66,0.2);border-radius:6px;padding:1px 6px;font-size:10px;margin-left:2px">3</span></button>
+        <button class="ann-tab inactive">📝 Notas</button>
+        <button class="ann-tab inactive">🔖 Marcadores</button>
+      </div>
+      <div class="ann-item ann-item-accent">
+        <div class="ann-text">"A repetição de afirmações de ordens ao teu subconsciente é o único método conhecido..."</div>
+        <div class="ann-meta"><span>Página 34</span><span style="color:#E8A838">▲ Eliminar</span></div>
+      </div>
+      <div class="ann-item ann-item-accent">
+        <div class="ann-text">"A fé é um estado de espírito que pode ser induzido por afirmação ou instrução."</div>
+        <div class="ann-meta"><span>Página 31</span><span style="color:#E8A838">▲ Eliminar</span></div>
+      </div>
+      <div style="text-align:center;padding:8px 0;font-size:12px;color:rgba(255,255,255,0.2)">+ Adicionar novo destaque nesta página</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ SCREEN 4: Dark Theme Paginado ════════════════════════════ -->
+<div>
+  <div class="label">4 · Reader — Paginado (Dark)</div>
+  <div class="phone screen-4">
+    <div style="height:3px;background:#F5C842;width:35%;"></div>
+    <div class="reader-header reader-header-dark">
+      <button class="btn-icon btn-icon-dark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8E3D7" stroke-width="2.5" stroke-linecap="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <div class="header-center">
+        <div class="header-title header-title-dark">Quem Pensa Enriquece</div>
+        <div class="header-meta header-meta-dark">Cap. 2 · p. 34 de 141 · 24%</div>
+      </div>
+      <div class="header-actions">
+        <button class="btn-icon btn-icon-dark" style="font-size:13px;font-weight:700;">Aa</button>
+        <button class="btn-icon btn-icon-dark">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#E8E3D7" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="15" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="reader-content" style="height:545px">
+      <div class="chapter-label chapter-label-dark" style="color:#F5C842">Capítulo 2</div>
+      <div class="chapter-title chapter-title-dark">Fé — Visualização e Crença</div>
+      <div class="reader-text reader-text-dark">
+        <p class="drop-cap" style="color:rgba(232,227,215,0.88);font-family:Georgia,serif">A fé é o elemento químico da mente que, quando misturado com a oração, dá ao pensamento um impulso espiritual.</p>
+        <p style="font-family:Georgia,serif;font-size:17px;line-height:1.8;color:rgba(232,227,215,0.82)">A fé é um estado de espírito que pode ser induzido por afirmação, instrução ou repetição ao subconsciente, através do princípio da autosugestão.</p>
+        <p style="font-family:Georgia,serif;font-size:17px;line-height:1.8"><span style="background:rgba(245,200,66,0.15);border-radius:3px;padding:1px 2px;color:rgba(232,227,215,0.88);font-family:Georgia,serif">A repetição de afirmações de ordens ao teu subconsciente é o único método</span><span style="color:rgba(232,227,215,0.82);font-family:Georgia,serif"> conhecido de desenvolver voluntariamente a emoção da fé.</span></p>
+      </div>
+    </div>
+
+    <div class="reader-bottom reader-bottom-dark">
+      <button class="page-nav-btn page-nav-btn-dark">←</button>
+      <div class="page-progress">
+        <div class="progress-track" style="background:rgba(255,255,255,0.08)">
+          <div class="progress-fill progress-fill-dark"></div>
+        </div>
+        <div class="page-info page-info-dark">
+          <span>p. 34</span>
+          <span>~18 min restantes</span>
+          <span>24%</span>
+        </div>
+      </div>
+      <div class="bookmark-btn" style="background:rgba(245,200,66,0.1)">🔖</div>
+      <button class="page-nav-btn page-nav-btn-dark">→</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ LEGEND ═══════════════════════════════════════════════════ -->
+<div class="legend" style="padding-top:30px">
+  <h2>Novo Reader — Design</h2>
+
+  <h3>Ecrã 1 · Reader Principal</h3>
+  <div class="legend-item">
+    <div class="legend-num">1</div>
+    <div class="legend-text"><span class="legend-bold">Barra de progresso (3px)</span> — âmbar, no topo, mostra % do livro. Toque salta para página.</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">2</div>
+    <div class="legend-text"><span class="legend-bold">Header auto-hide</span> — blur glassmorphism, título + cap. + página + %. Desaparece ao scroll.</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">3</div>
+    <div class="legend-text"><span class="legend-bold">Fonte serif (Georgia)</span> — mais legível para leitura longa. Drop cap no início de capítulo.</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">4</div>
+    <div class="legend-text"><span class="legend-bold">Destaques inline</span> — fundo âmbar no próprio texto, natural como sublinhar.</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">5</div>
+    <div class="legend-text"><span class="legend-bold">Barra inferior</span> — ← slider com scrub → + ícone bookmark + "X min restantes".</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">6</div>
+    <div class="legend-text"><span class="legend-bold">Swipe táctil</span> (não visível) — deslizar esquerda/direita muda página em modo Folheio.</div>
+  </div>
+
+  <h3>Ecrã 2 · Definições</h3>
+  <div class="legend-item">
+    <div class="legend-num">7</div>
+    <div class="legend-text"><span class="legend-bold">Bottom Sheet</span> — slide-up, não inline. Backdrop blur atrás.</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">8</div>
+    <div class="legend-text"><span class="legend-bold">Swatches visuais</span> para tema em vez de botões de texto.</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">9</div>
+    <div class="legend-text"><span class="legend-bold">A− / A+ buttons</span> com preview ao vivo para tamanho de fonte.</div>
+  </div>
+
+  <h3>Ecrã 3 · Anotações</h3>
+  <div class="legend-item">
+    <div class="legend-num">10</div>
+    <div class="legend-text"><span class="legend-bold">FAB ✏️</span> — botão flutuante para anotar, abre tray. Sem secção enorme no fundo.</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">11</div>
+    <div class="legend-text"><span class="legend-bold">Tray unificado</span> — Destaques / Notas / Marcadores em tabs, não 3 secções separadas.</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">12</div>
+    <div class="legend-text"><span class="legend-bold">Badge com contagem</span> — ex. "Destaques 3" para saber rapidamente.</div>
+  </div>
+
+  <div class="divider"></div>
+
+  <h3>Melhorias adicionais sugeridas</h3>
+  <div class="legend-item">
+    <div class="legend-num">A</div>
+    <div class="legend-text"><span class="legend-bold">Modo foco</span> — duplo toque esconde header e footer, só o texto.</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">B</div>
+    <div class="legend-text"><span class="legend-bold">Tap zones Kindle</span> — 1/3 esquerdo = página atrás, 2/3 direitos = avançar (sem botões).</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">C</div>
+    <div class="legend-text"><span class="legend-bold">Salvar posição automático</span> — popup "Retomar na p. X?" ao reabrir o livro.</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-num">D</div>
+    <div class="legend-text"><span class="legend-bold">Seleção de texto → highlight</span> — ao selecionar texto no browser aparece mini-toolbar de destaque.</div>
+  </div>
+</div>
+
+</body>
+</html>
