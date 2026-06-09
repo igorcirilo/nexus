@@ -24,7 +24,9 @@
       "mcp__5002f499-cb0b-4806-b22d-44711e740b14__restore_project",
       "mcp__5002f499-cb0b-4806-b22d-44711e740b14__get_project",
       "mcp__5002f499-cb0b-4806-b22d-44711e740b14__execute_sql",
-      "mcp__5002f499-cb0b-4806-b22d-44711e740b14__apply_migration"
+      "mcp__5002f499-cb0b-4806-b22d-44711e740b14__apply_migration",
+      "mcp__Supabase__list_projects",
+      "mcp__Supabase__apply_migration"
     ]
   }
 }
