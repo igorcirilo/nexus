@@ -49,6 +49,15 @@ export default function LeituraReaderPage() {
   const [book, setBook] = useState<Book | null>(null)
   const [loading, setLoading] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
+
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search).get('page')
+    if (p) {
+      const n = parseInt(p, 10)
+      if (!isNaN(n) && n > 0) setCurrentPage(n)
+    }
+  }, [])
+
   const [tocOpen, setTocOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [noteText, setNoteText] = useState('')
@@ -89,7 +98,12 @@ export default function LeituraReaderPage() {
       margin_px: 20,
       updated_at: new Date().toISOString(),
     })
-    setCurrentPage(clamp(progress?.current_page ?? 1, 1, nextBook?.raw_content?.pageCount ?? 1))
+    const pageParam = new URLSearchParams(window.location.search).get('page')
+    const requestedPage = pageParam ? parseInt(pageParam, 10) : NaN
+    const initialPage = !isNaN(requestedPage) && requestedPage > 0
+      ? requestedPage
+      : progress?.current_page ?? 1
+    setCurrentPage(clamp(initialPage, 1, nextBook?.raw_content?.pageCount ?? 1))
   }
 
   useEffect(() => {
@@ -195,7 +209,7 @@ export default function LeituraReaderPage() {
 
       <div style={{ padding: '18px 16px 0', display: 'grid', gap: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
-          <Link href="/leitura" style={{ textDecoration: 'none', color: 'inherit', fontSize: 13 }}>← Biblioteca</Link>
+          <Link href="/leitura" style={{ textDecoration: 'none', color: 'inherit', fontSize: 13 }}>← Leitura</Link>
           <div style={{ display: 'flex', gap: 6 }}>
             <button onClick={() => setSettingsOpen((v) => !v)} style={{ border: '0.5px solid rgba(0,0,0,.12)', borderRadius: 10, background: settingsOpen ? 'var(--gold)' : palette.panel, padding: '8px 12px', cursor: 'pointer', color: settingsOpen ? '#111' : palette.text, fontSize: 13 }}>Aa</button>
             <button onClick={() => setTocOpen((v) => !v)} style={{ border: '0.5px solid rgba(0,0,0,.12)', borderRadius: 10, background: palette.panel, padding: '8px 12px', cursor: 'pointer', color: palette.text }}>Sumário</button>

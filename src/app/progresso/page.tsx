@@ -7,12 +7,13 @@ import {
   Tooltip, ResponsiveContainer,
 } from 'recharts'
 import Nav from '@/components/Nav'
+import ProgressoHub from '@/components/progresso/ProgressoHub'
 import { supabase, getProfile, getUserBadges, getWeeklyStats } from '@/lib/supabase'
 import { xpForLevel, AREA_META, TITLES } from '@/types'
 import { format, subDays } from 'date-fns'
 import type { Profile, UserBadge } from '@/types'
 
-type AppTab  = 'evolucao' | 'stats'
+type AppTab  = 'resumo' | 'evolucao' | 'stats'
 type HeatVal = 'none' | 'partial' | 'full'
 
 const DAYS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
@@ -34,7 +35,7 @@ type AreaProgress = {
 }
 
 export default function ProgressoPage() {
-  const [tab,         setTab]         = useState<AppTab>('evolucao')
+  const [tab,         setTab]         = useState<AppTab>('resumo')
   const [profile,     setProfile]     = useState<Profile | null>(null)
   const [badges,      setBadges]      = useState<UserBadge[]>([])
   const [areas,       setAreas]       = useState<AreaProgress[]>([])
@@ -196,6 +197,23 @@ export default function ProgressoPage() {
   const next  = xpForLevel(level)
   const pct   = Math.min(100, Math.round(((xp-prev)/(next-prev))*100))
 
+  if (tab === 'resumo') {
+    return (
+      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+        <ProgressoHub
+          profile={profile}
+          areas={areas}
+          badges={badges}
+          earnedKeys={earned}
+          consistency={stats.consistency}
+          xpData={xpData.map(d => ({ day: d.day, xp: d.xp }))}
+          onNavigate={setTab}
+        />
+        <Nav />
+      </main>
+    )
+  }
+
   function streakProg(key:string) {
     const s = profile!.streak_current
     if (key==='streak_7')  return { cur:Math.min(s,7),  max:7  }
@@ -210,6 +228,17 @@ export default function ProgressoPage() {
 
       {/* ── Header + tabs ──────────────────────────────────────────────── */}
       <div style={{padding:'28px 20px 0'}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:4}}>
+          <button onClick={()=>setTab('resumo')} style={{
+            background:'none',border:'none',cursor:'pointer',color:'var(--text3)',
+            display:'flex',alignItems:'center',gap:4,fontSize:13,padding:'4px 0',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Resumo
+          </button>
+        </div>
         <h1 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:22,marginBottom:4,lineHeight:1.2}}>
           Progresso
         </h1>

@@ -2,6 +2,7 @@
 import { supabase } from '@/lib/supabase'
 import { emitToast } from '@/lib/toast-events'
 import { format, subDays } from 'date-fns'
+import type { TrainingEntry } from '@/types'
 
 function reportErr(ctx: string, msg: string) {
   console.error(`[${ctx}]`, msg || 'erro desconhecido')
@@ -19,6 +20,23 @@ export async function getTrainingEntries(userId: string, date: string) {
     .order('created_at', { ascending: false })
   if (error) { reportErr('getTrainingEntries', error.message); return [] }
   return data ?? []
+}
+
+export async function getTrainingEntriesForRange(
+  userId: string,
+  startDate: string,
+  endDate: string
+): Promise<TrainingEntry[]> {
+  const { data, error } = await supabase
+    .from('training_entries')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', startDate)
+    .lte('date', endDate)
+    .order('date', { ascending: false })
+
+  if (error) { reportErr('getTrainingEntriesForRange', error.message); return [] }
+  return (data ?? []) as TrainingEntry[]
 }
 
 export async function getPrevTrainingEntry(userId: string, planId: string, date: string) {

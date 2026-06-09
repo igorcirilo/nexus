@@ -2,9 +2,17 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Nav from '@/components/Nav'
-import { supabase } from '@/lib/supabase'
+import HabitosHub from '@/components/habitos/HabitosHub'
+import { supabase, getHabitsWithLogs, toggleHabitLog } from '@/lib/supabase'
 import { AREA_META } from '@/types'
 import type { Habit, HabitArea } from '@/types'
+
+type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[] }
+
+function getLocalDate() {
+  const now = new Date()
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0]
+}
 
 const AREAS = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
 
@@ -100,6 +108,9 @@ export default function HabitosPage() {
   const [toast, setToast] = useState('')
   const [filterArea, setFilterArea] = useState<HabitArea | 'all'>('all')
   const [view, setView] = useState<'list' | 'grid'>('list')
+  const [mode, setMode] = useState<'tracker' | 'gerir'>('tracker')
+  const [todayHabits, setTodayHabits] = useState<HabitWithLog[]>([])
+  const today = getLocalDate()
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -108,10 +119,21 @@ export default function HabitosPage() {
         return
       }
       setUserId(user.id)
-      const { data } = await supabase.from('habits').select('*').eq('user_id', user.id).order('area').order('name')
+      const date = getLocalDate()
+      const [{ data }, todays] = await Promise.all([
+        supabase.from('habits').select('*').eq('user_id', user.id).order('area').order('name'),
+        getHabitsWithLogs(user.id, date),
+      ])
       setHabits(data ?? [])
+      setTodayHabits((todays ?? []) as HabitWithLog[])
     })
   }, [])
+
+  async function toggleToday(habitId: string, done: boolean) {
+    if (!userId) return
+    setTodayHabits((cur) => cur.map((h) => (h.id === habitId ? { ...h, habit_logs: [{ completed: done, date: today }] } : h)))
+    await toggleHabitLog(userId, habitId, today, done)
+  }
 
   function showToast(msg: string) {
     setToast(msg)
@@ -206,6 +228,40 @@ export default function HabitosPage() {
     items: filtered.filter((habit) => habit.area === key),
   })).filter((group) => group.items.length > 0)
 
+  // ── Dados do tracker diário (hub fiel ao mockup) ──
+  const todayList = todayHabits.map((h) => ({
+    id: h.id,
+    name: h.name,
+    area: h.area as string,
+    xp_reward: h.xp_reward,
+    time_window: h.time_window ?? null,
+    done: h.habit_logs?.[0]?.completed ?? false,
+  }))
+  const doneToday = todayList.filter((h) => h.done).length
+  const totalToday = todayList.length
+  const areasAgg = AREAS.map(([key, meta]) => {
+    const items = todayList.filter((h) => h.area === key)
+    const done = items.filter((h) => h.done).length
+    return { key: key as string, label: meta.label, color: meta.color, done, total: items.length, pct: items.length > 0 ? Math.round((done / items.length) * 100) : 0 }
+  }).filter((a) => a.total > 0)
+
+  // Modo tracker: hub full-bleed fiel ao mockup (check diário). "Gerir" abre o CRUD atual.
+  if (mode === 'tracker') {
+    return (
+      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+        <HabitosHub
+          habits={todayList}
+          areas={areasAgg}
+          doneToday={doneToday}
+          totalToday={totalToday}
+          onToggle={toggleToday}
+          onManage={() => setMode('gerir')}
+        />
+        <Nav />
+      </main>
+    )
+  }
+
   return (
     <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
       {toast && (
@@ -242,6 +298,13 @@ export default function HabitosPage() {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button
+            onClick={() => setMode('tracker')}
+            aria-label="Voltar ao tracker de hoje"
+            style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg2)', border: '0.5px solid var(--border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
           <button
             onClick={() => setView((current) => (current === 'list' ? 'grid' : 'list'))}
             style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--bg2)', border: '0.5px solid var(--border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text2)' }}

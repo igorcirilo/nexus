@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import FileImportModal from '@/components/FileImportModal'
 import PlanReviewModal from '@/components/PlanReviewModal'
 import PlanSelector from '@/components/corpo/PlanSelector'
+import EmptyState from '@/components/EmptyState'
+import Icon from '@/components/ui/Icon'
 import { useToast } from '@/components/Toast'
 import { getTrainingPlans, saveTrainingPlan } from '@/lib/supabase'
 import {
@@ -328,46 +330,19 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
 
       {/* ── No plan selected ──────────────────────────────────────────────── */}
       {!planId && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 20,
-            padding: '48px 24px',
+        <EmptyState
+          icon="dumbbell"
+          title={plans.length === 0 ? 'Adicione um plano de treino' : 'Escolha o treino de hoje'}
+          body={
+            plans.length === 0
+              ? 'Adicione um plano de treino para acompanhar sua evolução semana a semana.'
+              : 'Selecione uma sessão do seu plano para registrar séries, cargas e progresso.'
+          }
+          action={{
+            label: plans.length === 0 ? 'Importar plano' : 'Escolher treino',
+            onClick: () => (plans.length > 0 ? setShowSelector(true) : setShowImport(true)),
           }}
-        >
-          <p
-            style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: 15,
-              color: 'var(--text2)',
-              margin: 0,
-              textAlign: 'center',
-            }}
-          >
-            {plans.length === 0
-              ? 'Importa um plano de treino para comecar a registar.'
-              : 'Seleciona o treino de hoje para comecar.'}
-          </p>
-          <button
-            onClick={() => (plans.length > 0 ? setShowSelector(true) : setShowImport(true))}
-            style={{
-              background: 'var(--gold)',
-              color: '#111',
-              border: 'none',
-              borderRadius: 14,
-              padding: '14px 28px',
-              fontFamily: 'Syne, sans-serif',
-              fontSize: 16,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Comecar treino
-          </button>
-        </div>
+        />
       )}
 
       {/* ── Plan selected ─────────────────────────────────────────────────── */}
@@ -822,7 +797,8 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
           background: 'none',
           border: '1.5px dashed var(--border)',
           borderRadius: 12,
-          padding: '14px 16px',
+          minHeight: 44,
+          padding: '12px 16px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -832,18 +808,10 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
           fontFamily: 'DM Sans, sans-serif',
           fontSize: 14,
           width: '100%',
+          touchAction: 'manipulation',
         }}
       >
-        <span
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            lineHeight: 1,
-            color: 'var(--teal)',
-          }}
-        >
-          +
-        </span>
+        <Icon name="plus" size={18} color="var(--teal)" />
         Importar plano de treino
       </button>
 

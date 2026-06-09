@@ -7,6 +7,7 @@ import {
   ResponsiveContainer, Cell,
 } from 'recharts'
 import Nav from '@/components/Nav'
+import FinancasHub from '@/components/financas/FinancasHub'
 import {
   supabase, getProfile, getTransactions,
   getTransactionsByMonth, saveTransaction,
@@ -35,6 +36,12 @@ const inp: React.CSSProperties = {
   width:'100%', background:'var(--bg2)', border:'0.5px solid var(--border)',
   borderRadius:12, padding:'11px 14px', color:'var(--text1)',
   fontFamily:'DM Sans, sans-serif', fontSize:14, outline:'none',
+}
+const hubInp: React.CSSProperties = {
+  width: '100%', background: 'rgba(255,255,255,0.05)',
+  border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 12, padding: '11px 14px', color: '#fff',
+  fontFamily: 'Inter, sans-serif', fontSize: 14, outline: 'none',
 }
 const TT: React.CSSProperties = {
   background:'#1C2030', border:'0.5px solid rgba(255,255,255,.1)', borderRadius:10, color:'#F0EDE8', fontSize:12,
@@ -272,6 +279,132 @@ export default function FinancasPage() {
     </div>
   )
 
+  // ── Dados derivados para o hub (Resumo) ──
+  const monthLabel = (() => { const s = format(new Date(), 'MMMM yyyy', { locale: pt }); return s.charAt(0).toUpperCase() + s.slice(1) })()
+  const categoriesView = byCategory.slice(0, 5).map((c) => {
+    const idx = CATEGORIES_OUT.indexOf(c.name)
+    return { name: c.name, value: c.value, color: CAT_COLORS[(idx >= 0 ? idx : 0) % CAT_COLORS.length], pct: totalOut > 0 ? (c.value / totalOut) * 100 : 0 }
+  })
+  const flowView = monthlyChart.map((m, i) => ({ label: m.label.charAt(0).toUpperCase() + m.label.slice(1), entradas: m.entradas, saidas: m.saidas, current: i === monthlyChart.length - 1 }))
+  const goalsView = [
+    ...(savingsGoal > 0 ? [{ name: 'Meta de poupança mensal', current: Math.max(0, balance), goal: savingsGoal, gradient: '#F5C842, #E07B2A' }] : []),
+    ...(reserveGoal > 0 ? [{ name: 'Reserva de emergência', current: currentSavings, goal: reserveGoal, gradient: '#9D5CF5, #00D4C8' }] : []),
+  ]
+
+  // Resumo: hub full-bleed fiel ao mockup (navegação pelos cards + bottom nav)
+  if (tab === 'resumo') {
+    return (
+      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+        <FinancasHub
+          monthLabel={monthLabel}
+          balance={balance}
+          totalIn={totalIn}
+          totalOut={totalOut}
+          flow={flowView}
+          categories={categoriesView}
+          goals={goalsView}
+          onNavigate={setTab}
+          onAdd={() => setShowForm(true)}
+        />
+        <Nav />
+        {showForm && (
+          <div
+            style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'flex-end' }}
+            onClick={e => e.target === e.currentTarget && setShowForm(false)}
+          >
+            <div style={{ width:'100%', maxWidth:448, margin:'0 auto', background:'#0D0E20', borderRadius:'20px 20px 0 0', borderTop:'1px solid rgba(255,255,255,0.08)', display:'flex', flexDirection:'column', maxHeight:'90vh', fontFamily:'Inter, sans-serif' }}>
+              <div style={{ padding:'24px 24px 16px', overflowY:'auto', flex:1 }}>
+                {/* Título + fechar */}
+                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18 }}>
+                  <div style={{ fontWeight:800, fontSize:18, color:'#fff' }}>Nova transação</div>
+                  <button onClick={() => setShowForm(false)} style={{ width:30, height:30, borderRadius:9, background:'rgba(255,255,255,0.07)', border:'none', cursor:'pointer', fontSize:16, color:'rgba(255,255,255,0.6)' }}>×</button>
+                </div>
+
+                {/* Tipo: Entrada / Saída */}
+                <div style={{ display:'flex', gap:8, marginBottom:16 }}>
+                  {(['entrada','saida'] as const).map(t => (
+                    <button
+                      key={t}
+                      onClick={() => { setTxType(t); setFCat('') }}
+                      style={{
+                        flex:1, padding:'11px', borderRadius:12, border:'none', cursor:'pointer',
+                        fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:13,
+                        background: txType === t ? (t === 'entrada' ? '#00C896' : '#E24B4A') : 'rgba(255,255,255,0.04)',
+                        color: txType === t ? (t === 'entrada' ? '#001A10' : '#fff') : 'rgba(255,255,255,0.6)',
+                        transition: 'all .15s',
+                      }}
+                    >
+                      {t === 'entrada' ? '↓ Entrada' : '↑ Saída'}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Valor */}
+                <label style={{ fontSize:12, color:'rgba(255,255,255,0.4)', display:'block', marginBottom:6 }}>Valor (€)</label>
+                <input
+                  type="number" step="0.01" value={fAmount}
+                  onChange={e => setFAmount(e.target.value)}
+                  placeholder="0.00"
+                  style={{ ...hubInp, marginBottom:12, fontSize:18, fontWeight:600 }}
+                />
+
+                {/* Categoria */}
+                <label style={{ fontSize:12, color:'rgba(255,255,255,0.4)', display:'block', marginBottom:6 }}>Categoria</label>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
+                  {(txType === 'entrada' ? CATEGORIES_IN : CATEGORIES_OUT).map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => setFCat(cat)}
+                      style={{
+                        padding:'7px 12px', borderRadius:10, border:'none', cursor:'pointer',
+                        fontSize:12, fontFamily:'Inter, sans-serif',
+                        background: fCat === cat ? (txType === 'entrada' ? '#00C896' : '#E24B4A') : 'rgba(255,255,255,0.05)',
+                        color: fCat === cat ? (txType === 'entrada' ? '#001A10' : '#fff') : 'rgba(255,255,255,0.6)',
+                        transition: 'all .15s',
+                      }}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Descrição + Data */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:8 }}>
+                  <div>
+                    <label style={{ fontSize:12, color:'rgba(255,255,255,0.4)', display:'block', marginBottom:6 }}>Descrição</label>
+                    <input value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder="Opcional" style={hubInp} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize:12, color:'rgba(255,255,255,0.4)', display:'block', marginBottom:6 }}>Data</label>
+                    <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} style={hubInp} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Botão guardar (sticky) */}
+              <div style={{ padding:'12px 24px 48px', background:'#0D0E20', borderTop:'1px solid rgba(255,255,255,0.08)' }}>
+                <button
+                  onClick={addTx}
+                  disabled={saving || !fAmount || !fCat}
+                  style={{
+                    width:'100%', border:'none', borderRadius:14, padding:15,
+                    fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:15,
+                    cursor: (fAmount && fCat) ? 'pointer' : 'not-allowed',
+                    background: (fAmount && fCat) ? 'linear-gradient(135deg, #00C896, #00D4C8)' : 'rgba(0,200,150,0.2)',
+                    color: (fAmount && fCat) ? '#001A10' : 'rgba(0,200,150,0.4)',
+                    transition: 'all .15s',
+                  }}
+                >
+                  {saving ? 'A guardar…' : 'Guardar transação'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </main>
+    )
+  }
+
   return (
     <main style={{paddingBottom:100,minHeight:'100vh'}}>
 
@@ -398,99 +531,6 @@ export default function FinancasPage() {
         ))}
       </div>
 
-      {/* ── TAB RESUMO ── */}
-      {tab==='resumo'&&(
-        <div style={{padding:'14px 20px 0'}}>
-          {/* Métricas */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:12}}>
-            {[
-              {l:'Entradas',v:fmt(totalIn),c:'var(--teal)',b:'rgba(30,203,180,.2)'},
-              {l:'Saídas',v:fmt(totalOut),c:'#E24B4A',b:'rgba(226,75,74,.2)'},
-              {l:'Saldo',v:fmt(balance),c:balance>=0?'var(--gold)':'#E24B4A',b:balance>=0?'rgba(232,168,56,.2)':'rgba(226,75,74,.2)'},
-              {l:'Taxa poupança',v:`${savedPct}%`,c:savedPct>=20?'var(--teal)':savedPct>=10?'var(--gold)':'var(--text2)',b:'var(--border)'},
-            ].map(({l,v,c,b})=>(
-              <div key={l} style={{background:'var(--bg2)',border:`0.5px solid ${b}`,borderRadius:14,padding:14}}>
-                <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>{l}</div>
-                <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:19,color:c}}>{v}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Previsão */}
-          <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:14,padding:'13px 16px',marginBottom:12}}>
-            <div style={{display:'flex',justifyContent:'space-between',marginBottom:10}}>
-              <span style={{fontSize:12,color:'var(--text3)'}}>Previsão fim de mês</span>
-              <span style={{fontSize:11,color:'var(--text3)'}}>dia {dayOfMonth}/{daysInMonth}</span>
-            </div>
-            {!hasEnoughData ? (
-              <div style={{textAlign:'center',padding:'8px 0',fontSize:12,color:'var(--text3)'}}>
-                Projeção disponível a partir do dia 7 — dados insuficientes.
-              </div>
-            ) : (
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-                {[
-                  {l:'Saldo previsto', v:fmt(projectedBal), c:projectedBal>=0?'var(--teal)':'#E24B4A'},
-                  {l:'Ritmo líquido/dia', v:`${dailyNet>=0?'+':''}${fmt(Math.round(dailyNet))}`, c:dailyNet>=0?'var(--teal)':'#E24B4A'},
-                  {l:'Saídas/dia', v:fmt(Math.round(dailyBurn)), c:'var(--text2)'},
-                ].map(({l,v,c})=>(
-                  <div key={l} style={{textAlign:'center'}}>
-                    <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,color:c,marginBottom:2,lineHeight:1.2}}>{v}</div>
-                    <div style={{fontSize:10,color:'var(--text3)',lineHeight:1.3}}>{l}</div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Evolução 6 meses */}
-          <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:16,padding:'13px 16px',marginBottom:12}}>
-            <div style={{fontSize:12,color:'var(--text3)',marginBottom:8}}>Evolução — últimos 6 meses</div>
-            <div style={{display:'flex',gap:14,marginBottom:8}}>
-              {[['var(--teal)','Entradas'],['#E24B4A','Saídas'],['var(--gold)','Poupança']].map(([c,l])=>(
-                <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}>
-                  <div style={{width:10,height:10,borderRadius:2,background:c}}/>{l}
-                </div>
-              ))}
-            </div>
-            <div style={{height:140,overflow:'hidden'}}>
-              {ready&&(
-                <ResponsiveContainer width="100%" height={140}>
-                  <LineChart data={monthlyChart}>
-                    <CartesianGrid vertical={false} stroke="rgba(255,255,255,.04)"/>
-                    <XAxis dataKey="label" tick={{fill:'#5A6070',fontSize:11}} axisLine={false} tickLine={false}/>
-                    <YAxis hide/>
-                    <Tooltip contentStyle={TT} formatter={(v:number)=>fmt(v)}/>
-                    <Line type="monotone" dataKey="entradas" stroke="var(--teal)"   strokeWidth={2} dot={{r:3,fill:'var(--teal)'}} connectNulls/>
-                    <Line type="monotone" dataKey="saidas"   stroke="#E24B4A"        strokeWidth={2} dot={{r:3,fill:'#E24B4A'}} connectNulls/>
-                    <Line type="monotone" dataKey="poupanca" stroke="var(--gold)"   strokeWidth={2} dot={{r:3,fill:'var(--gold)'}} strokeDasharray="4 2" connectNulls/>
-                  </LineChart>
-                </ResponsiveContainer>
-              )}
-            </div>
-          </div>
-
-          {/* Por categoria */}
-          {byCategory.length>0&&(
-            <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:16,padding:'13px 16px'}}>
-              <div style={{fontSize:12,color:'var(--text3)',marginBottom:8}}>Saídas por categoria</div>
-              <div style={{height:Math.min(200,byCategory.length*34),overflow:'hidden'}}>
-                {ready&&(
-                  <ResponsiveContainer width="100%" height={Math.min(200,byCategory.length*34)}>
-                    <BarChart data={byCategory} layout="vertical" margin={{left:0,right:40}}>
-                      <XAxis type="number" hide/>
-                      <YAxis type="category" dataKey="name" tick={{fill:'#9BA0B0',fontSize:11}} width={90} axisLine={false} tickLine={false}/>
-                      <Tooltip contentStyle={TT} formatter={(v:number)=>fmt(v)}/>
-                      <Bar dataKey="value" radius={[0,5,5,0]}>
-                        {byCategory.map((_,i)=><Cell key={i} fill={CAT_COLORS[i%CAT_COLORS.length]}/>)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
 
       {/* ── TAB MOVIMENTOS ── */}
       {tab==='transacoes'&&(

@@ -1,8 +1,9 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { format } from 'date-fns'
 import { pt } from 'date-fns/locale'
+import EmptyState from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
 import { getWeightLogs, upsertWeightLog, deleteWeightLog, type WeightLog } from '@/lib/body'
 
@@ -22,6 +23,7 @@ export default function WeightLogComponent({ userId }: Props) {
   const [weightIn, setWeightIn] = useState('')
   const [dateIn, setDateIn] = useState(getLocalDateString())
   const [saving, setSaving] = useState(false)
+  const weightInputRef = useRef<HTMLInputElement | null>(null)
 
   useEffect(() => {
     getWeightLogs(userId, filter || undefined).then(setLogs)
@@ -91,6 +93,7 @@ export default function WeightLogComponent({ userId }: Props) {
             Peso (kg)
           </label>
           <input
+            ref={weightInputRef}
             type="number"
             inputMode="decimal"
             placeholder="75.4"
@@ -247,21 +250,15 @@ export default function WeightLogComponent({ userId }: Props) {
 
       {/* History list */}
       {logs.length === 0 ? (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 8,
-          padding: '32px 16px',
-          color: 'var(--text3)',
-          fontFamily: 'DM Sans, sans-serif',
-          textAlign: 'center',
-        }}>
-          <span style={{ fontSize: 32 }}>⚖️</span>
-          <span style={{ fontSize: 14 }}>
-            Sem registos ainda.<br />Regista o teu peso acima.
-          </span>
-        </div>
+        <EmptyState
+          icon="scale"
+          title="Registre seu peso hoje"
+          body="Registre seu peso hoje e acompanhe sua tendência ao longo do tempo."
+          action={{
+            label: 'Inserir peso',
+            onClick: () => weightInputRef.current?.focus(),
+          }}
+        />
       ) : (
         <div>
           <div style={{

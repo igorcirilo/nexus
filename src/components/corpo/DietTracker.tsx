@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import FileImportModal from '@/components/FileImportModal'
 import PlanReviewModal from '@/components/PlanReviewModal'
+import EmptyState from '@/components/EmptyState'
+import Icon, { type IconName } from '@/components/ui/Icon'
 import { useToast } from '@/components/Toast'
 import { getDietPlans, saveDietPlan } from '@/lib/supabase'
 import { getDietMeals, upsertDietMeal, deleteDietPlan } from '@/lib/body'
@@ -12,10 +14,10 @@ import type { DietPlan, DietMeal, DietMealKey, FileImportResult } from '@/types'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
 const MEALS = [
-  { key: 'pequeno_almoco', label: 'Pequeno-almoço', icon: '🍳' },
-  { key: 'almoco', label: 'Almoço', icon: '🍽️' },
-  { key: 'lanche', label: 'Lanche', icon: '🥤' },
-  { key: 'jantar', label: 'Jantar', icon: '🌙' },
+  { key: 'pequeno_almoco', label: 'Pequeno-almoço', icon: 'coffee' },
+  { key: 'almoco', label: 'Almoço', icon: 'utensils' },
+  { key: 'lanche', label: 'Lanche', icon: 'cup' },
+  { key: 'jantar', label: 'Jantar', icon: 'moon' },
 ] as const
 
 type MealNotesPayload = { freeText: string; items?: Record<string, boolean> }
@@ -657,7 +659,21 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                     {done ? '✓' : ''}
                   </button>
 
-                  <span style={{ fontSize: 18, lineHeight: 1 }}>{meal.icon}</span>
+                  <span
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 9,
+                      background: done ? 'rgba(30,203,180,.1)' : 'var(--bg2)',
+                      color: done ? 'var(--teal)' : 'var(--text3)',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <Icon name={meal.icon as IconName} size={16} />
+                  </span>
                   <span
                     style={{
                       fontFamily: 'Syne, sans-serif',
@@ -837,29 +853,12 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
           })}
         </div>
       ) : (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 12,
-            padding: '48px 24px',
-          }}
-        >
-          <span style={{ fontSize: 48 }}>🥗</span>
-          <p
-            style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: 15,
-              color: 'var(--text2)',
-              margin: 0,
-              textAlign: 'center',
-            }}
-          >
-            Nenhuma dieta importada.
-          </p>
-        </div>
+        <EmptyState
+          icon="salad"
+          title="Monte seu plano alimentar"
+          body="Monte ou importe um plano para registrar suas refeições."
+          action={{ label: 'Importar plano', onClick: () => setShowImport(true) }}
+        />
       )}
 
       {plans.length > 0 && (
@@ -939,7 +938,8 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
           background: 'none',
           border: '1.5px dashed var(--border)',
           borderRadius: 12,
-          padding: '14px 16px',
+          minHeight: 44,
+          padding: '12px 16px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -949,18 +949,10 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
           fontFamily: 'DM Sans, sans-serif',
           fontSize: 14,
           width: '100%',
+          touchAction: 'manipulation',
         }}
       >
-        <span
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            lineHeight: 1,
-            color: 'var(--teal)',
-          }}
-        >
-          +
-        </span>
+        <Icon name="plus" size={18} color="var(--teal)" />
         Importar plano de dieta
       </button>
 

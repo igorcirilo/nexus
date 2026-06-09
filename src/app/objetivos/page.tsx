@@ -1,13 +1,14 @@
 'use client'
-// src/app/objetivos/page.tsx
 import { useEffect, useState } from 'react'
 import { format, differenceInDays, addDays } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import Nav from '@/components/Nav'
-import { supabase, getProfile, getGoals90, saveGoal90, deleteGoal90, getMilestones, saveMilestone, toggleMilestone } from '@/lib/supabase'
+import ObjetivosHub from '@/components/objetivos/ObjetivosHub'
+import { supabase, getGoals90, saveGoal90, deleteGoal90, getMilestones, toggleMilestone } from '@/lib/supabase'
 import { AREA_META } from '@/types'
 import type { Goal90, HabitArea } from '@/types'
 
+type AppTab   = 'resumo' | 'detalhes'
 type Milestone = { id: string; goal_id: string; user_id: string; title: string; done: boolean; due_date: string | null }
 
 const CATEGORIES = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
@@ -19,6 +20,7 @@ const inp: React.CSSProperties = {
 }
 
 export default function ObjetivosPage() {
+  const [tab,       setTab]       = useState<AppTab>('resumo')
   const [userId,    setUserId]    = useState<string | null>(null)
   const [goals,     setGoals]     = useState<Goal90[]>([])
   const [milestones,setMilestones]= useState<Record<string, Milestone[]>>({})
@@ -128,6 +130,21 @@ export default function ObjetivosPage() {
 
   const today = new Date()
 
+  // ── Hub (tab resumo) ──────────────────────────────────────────────────────
+  if (tab === 'resumo') {
+    return (
+      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+        <ObjetivosHub
+          goals={goals}
+          milestones={milestones}
+          onDetails={() => setTab('detalhes')}
+          onAdd={() => { setTab('detalhes'); setTimeout(openNew, 50) }}
+        />
+        <Nav />
+      </main>
+    )
+  }
+
   return (
     <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
 
@@ -139,16 +156,24 @@ export default function ObjetivosPage() {
       )}
 
       {/* Header */}
-      <div style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-        <div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 3 }}>Objectivos</h1>
-          <p style={{ fontSize: 12, color: 'var(--text3)' }}>
-            {goals.length} activo{goals.length !== 1 ? 's' : ''} · plano de 90 dias
-          </p>
+      <div style={{ padding: '28px 20px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <button onClick={() => setTab('resumo')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '4px 0' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+            Resumo
+          </button>
         </div>
-        <button onClick={openNew} style={{ background: 'var(--gold)', color: 'var(--bg0)', border: 'none', borderRadius: 12, padding: '9px 16px', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-          + Novo
-        </button>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div>
+            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 3 }}>Objectivos</h1>
+            <p style={{ fontSize: 12, color: 'var(--text3)' }}>
+              {goals.length} activo{goals.length !== 1 ? 's' : ''} · plano de 90 dias
+            </p>
+          </div>
+          <button onClick={openNew} style={{ background: 'var(--gold)', color: 'var(--bg0)', border: 'none', borderRadius: 12, padding: '9px 16px', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+            + Novo
+          </button>
+        </div>
       </div>
 
       {/* Empty */}

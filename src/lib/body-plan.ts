@@ -1,4 +1,4 @@
-import type { DietMealKey, FileImportResult } from '@/types'
+import type { DietMeal, DietMealKey, FileImportResult } from '@/types'
 
 export type TrainingExercisePlan = {
   id: string
@@ -810,4 +810,277 @@ function parseDietPdf(result: Extract<FileImportResult, { kind: 'pdf' }>): Parse
 
 export function parseDietImport(result: FileImportResult): ParsedDietPlan {
   return result.kind === 'spreadsheet' ? parseDietSpreadsheet(result) : parseDietPdf(result)
+}
+
+// ── Diet display parsing + day summary (single source of truth) ──────────────
+// These pure helpers are shared by DietTracker (rendering) and BodyHub (resumo).
+
+export type MealNotesPayload = { freeText: string; items?: Record<string, boolean> }
+
+export type ParsedDietDisplayItem = {
+  title: string
+  quantity: string | null
+  kcal: string | null
+  macros: {
+    proteinas: string | null
+    carboidratos: string | null
+    gorduras: string | null
+  }
+  extras: string[]
+}
+
+export function itemCheckKey(item: string) {
+  return item
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '')
+}
+
+export function normalizeDisplayText(value: string) {
+  return value
+    .replace(/Â·/g, '·')
+    .replace(/â€¦/g, '...')
+    .replace(/âœ“/g, '✓')
+    .replace(/Ã§/g, 'ç')
+    .replace(/Ã£/g, 'ã')
+    .replace(/Ã¡/g, 'á')
+    .replace(/Ã¢/g, 'â')
+    .replace(/Ã©/g, 'é')
+    .replace(/Ãª/g, 'ê')
+    .replace(/Ã­/g, 'í')
+    .replace(/Ã³/g, 'ó')
+    .replace(/Ã´/g, 'ô')
+    .replace(/Ãº/g, 'ú')
+    .replace(/Ãµ/g, 'õ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+export function parseMealNotes(raw: string | null | undefined): MealNotesPayload {
+  if (!raw) return { freeText: '' }
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object' && 'freeText' in parsed) {
+      return parsed as MealNotesPayload
+    }
+    return { freeText: raw }
+  } catch {
+    return { freeText: raw }
+  }
+}
+
+export function isVisibleDietItem(item: string) {
+  const normalized = item
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+
+  return normalized !== 'total' && normalized !== 'totais'
+}
+
+export function parseGramsValue(value: string | null): number {
+  if (!value) return 0
+  const match = value.replace(',', '.').match(/(\d+(?:\.\d+)?)/)
+  return match ? parseFloat(match[1]) : 0
+}
+
+export function parseDietDisplayItem(item: string): ParsedDietDisplayItem {
+  const compactItem = normalizeDisplayText(item)
+  const pdfCompactMatch = compactItem.match(
+    /^(.*?)(\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l|unidades?|un|m[eé]dia|fatias?|colheres?(?:\s+de\s+\w+)?))(?:\s+(\d+(?:[.,]\d+)?))?(?:\s+(\d+(?:[.,]\d+)?))?(?:\s+(\d+(?:[.,]\d+)?))?(?:\s+(\d+(?:[.,]\d+)?))?$/i
+  )
+
+  if (pdfCompactMatch && !compactItem.includes('·')) {
+    const rawTitle = normalizeDisplayText(pdfCompactMatch[1])
+      .replace(/^(manha|manhã|tarde|noite|ceia)\s+/i, '')
+      .trim()
+
+    return {
+      title: rawTitle || compactItem,
+      quantity: pdfCompactMatch[2]?.trim() ?? null,
+      kcal: pdfCompactMatch[3] ? `${pdfCompactMatch[3].trim()} kcal` : null,
+      macros: {
+        proteinas: pdfCompactMatch[4] ? `${pdfCompactMatch[4].trim()} g` : null,
+        carboidratos: pdfCompactMatch[5] ? `${pdfCompactMatch[5].trim()} g` : null,
+        gorduras: pdfCompactMatch[6] ? `${pdfCompactMatch[6].trim()} g` : null,
+      },
+      extras: [],
+    }
+  }
+
+  const parts = compactItem
+    .split('·')
+    .map((part) => normalizeDisplayText(part))
+    .filter(Boolean)
+
+  const [titleRaw, ...rest] = parts
+  let title = titleRaw || compactItem
+  let quantity: string | null = null
+  let kcal: string | null = null
+  const macros = {
+    proteinas: null as string | null,
+    carboidratos: null as string | null,
+    gorduras: null as string | null,
+  }
+  const extras: string[] = []
+
+  const leadingQuantityMatch = title.match(
+    /^(\d+(?:[.,]\d+)?\s*(?:g|kg|ml|l|unidades?|un|m[eé]dia|fatias?|colheres?))\s+de\s+(.+)$/i
+  )
+  const leadingCountMatch = title.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/)
+  if (leadingQuantityMatch) {
+    quantity = leadingQuantityMatch[1]
+    title = leadingQuantityMatch[2]
+  } else if (leadingCountMatch && !/kcal/i.test(title)) {
+    quantity = leadingCountMatch[1]
+    title = leadingCountMatch[2]
+  }
+
+  rest.forEach((part) => {
+    const normalized = part
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .toLowerCase()
+
+    if (!kcal && /\bkcal\b/.test(normalized)) {
+      kcal = part
+      return
+    }
+
+    if (/^proteinas?\s*:/.test(normalized)) {
+      macros.proteinas = part.replace(/^(proteinas?\s*:)+\s*/i, '').trim()
+      return
+    }
+
+    if (/^carboidratos?\s*:/.test(normalized)) {
+      macros.carboidratos = part.replace(/^(carboidratos?\s*:)+\s*/i, '').trim()
+      return
+    }
+
+    if (/^gorduras?\s*:/.test(normalized)) {
+      macros.gorduras = part.replace(/^(gorduras?\s*:)+\s*/i, '').trim()
+      return
+    }
+
+    if (
+      !quantity &&
+      /(\bml\b|\bg\b|\bkg\b|\bun\b|\bmedia\b|\bmédia\b|\bfatias?\b|\bunidades?\b|\bcozido\b)/.test(normalized)
+    ) {
+      quantity = part
+      return
+    }
+
+    extras.push(part)
+  })
+
+  return {
+    title: normalizeDisplayText(title),
+    quantity: quantity ? normalizeDisplayText(quantity) : null,
+    kcal: kcal ? normalizeDisplayText(kcal) : null,
+    macros: {
+      proteinas: macros.proteinas
+        ? normalizeDisplayText(macros.proteinas).replace(/^proteínas:\s*/i, '')
+        : null,
+      carboidratos: macros.carboidratos
+        ? normalizeDisplayText(macros.carboidratos).replace(/^carboidratos:\s*/i, '')
+        : null,
+      gorduras: macros.gorduras
+        ? normalizeDisplayText(macros.gorduras).replace(/^gorduras:\s*/i, '')
+        : null,
+    },
+    extras: extras.map(normalizeDisplayText),
+  }
+}
+
+export type DietDaySummary = {
+  kcalSelected: number
+  kcalPlan: number
+  macrosSelected: { carboidratos: number; proteinas: number; gorduras: number }
+  macrosPlan: { carboidratos: number; proteinas: number; gorduras: number }
+  hasMacroData: boolean
+  doneMeals: number
+  totalMeals: number
+  doneItems: number
+  totalItems: number
+}
+
+/**
+ * Soma kcal/macros e progresso do dia, contando APENAS itens marcados.
+ * Mesma lógica do DietTracker, para o resumo (BodyHub) ficar 100% consistente.
+ */
+export function summarizeDietDay(
+  parsed: ParsedDietPlan | null,
+  meals: DietMeal[],
+  planId: string | null
+): DietDaySummary {
+  const macrosSelected = { carboidratos: 0, proteinas: 0, gorduras: 0 }
+  const macrosPlan = { carboidratos: 0, proteinas: 0, gorduras: 0 }
+  let kcalSelected = 0
+  let kcalPlan = 0
+  let doneMeals = 0
+  let totalMeals = 0
+  let doneItems = 0
+  let totalItems = 0
+
+  if (parsed) {
+    for (const meal of parsed.meals) {
+      const log = planId
+        ? meals.find((m) => m.diet_plan_id === planId && m.meal_key === meal.key)
+        : undefined
+      const payload = parseMealNotes(log?.notes)
+      const visibleItems = meal.items.filter(isVisibleDietItem)
+
+      totalMeals += 1
+      let checkedCount = 0
+
+      for (const item of visibleItems) {
+        const parsedItem = parseDietDisplayItem(item)
+        const c = parseGramsValue(parsedItem.macros.carboidratos)
+        const p = parseGramsValue(parsedItem.macros.proteinas)
+        const g = parseGramsValue(parsedItem.macros.gorduras)
+        const kcal = parseGramsValue(parsedItem.kcal)
+        macrosPlan.carboidratos += c
+        macrosPlan.proteinas += p
+        macrosPlan.gorduras += g
+        kcalPlan += kcal
+        totalItems += 1
+        if (payload.items?.[itemCheckKey(item)]) {
+          checkedCount += 1
+          doneItems += 1
+          macrosSelected.carboidratos += c
+          macrosSelected.proteinas += p
+          macrosSelected.gorduras += g
+          kcalSelected += kcal
+        }
+      }
+
+      const done = visibleItems.length > 0 ? checkedCount === visibleItems.length : (log?.completed ?? false)
+      if (done) doneMeals += 1
+    }
+  }
+
+  const macroPlanoTotal = macrosPlan.carboidratos + macrosPlan.proteinas + macrosPlan.gorduras
+
+  return {
+    kcalSelected: Math.round(kcalSelected),
+    kcalPlan: Math.round(kcalPlan),
+    macrosSelected: {
+      carboidratos: Math.round(macrosSelected.carboidratos),
+      proteinas: Math.round(macrosSelected.proteinas),
+      gorduras: Math.round(macrosSelected.gorduras),
+    },
+    macrosPlan: {
+      carboidratos: Math.round(macrosPlan.carboidratos),
+      proteinas: Math.round(macrosPlan.proteinas),
+      gorduras: Math.round(macrosPlan.gorduras),
+    },
+    hasMacroData: macroPlanoTotal > 0,
+    doneMeals,
+    totalMeals,
+    doneItems,
+    totalItems,
+  }
 }
