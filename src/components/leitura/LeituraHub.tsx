@@ -265,7 +265,7 @@ export default function LeituraHub({
                   fontSize: 13, fontWeight: 500, color: 'rgba(255,255,255,0.8)',
                   lineHeight: 1.6, fontStyle: 'italic', marginBottom: 8, paddingLeft: 10,
                 }}>
-                  "{h.excerpt}"
+                  &ldquo;{h.excerpt}&rdquo;
                 </div>
                 <div style={{
                   fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.3)',
