@@ -24,6 +24,15 @@
     width: 80px; height: 80px; border-radius: 50%;
     background: linear-gradient(135deg, #1C1E2E 0%, #11131C 100%);
     display: flex; align-items: center; justify-content: center; font-size: 42px;
+    overflow: hidden;
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .avatar-wrap { position: relative; margin-bottom: 13px; }
+  .avatar-wrap .avatar-ring { margin-bottom: 0; }
+  .cam-badge {
+    position: absolute; bottom: 0; right: 0; width: 30px; height: 30px; border-radius: 50%;
+    background: #F5C842; border: 3px solid #0B0B1A;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
   }
   .uname { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 4px; }
   .lvlrow { display: flex; align-items: center; gap: 6px; margin-bottom: 18px; font-size: 12px; color: var(--txt3); font-weight: 500; }
@@ -75,27 +84,49 @@
   .mail { font-size: 11px; color: rgba(255,255,255,0.2); text-align: center; margin-top: 8px; }
 
   /* sheet specifics */
-  .emogrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
-  .emo { aspect-ratio: 1; border-radius: 14px; border: 1px solid var(--line2); display: flex; align-items: center; justify-content: center; font-size: 26px; background: rgba(255,255,255,0.03); }
-  .emo.sel { border-color: rgba(245,200,66,0.55); background: rgba(245,200,66,0.12); box-shadow: 0 0 0 1px rgba(245,200,66,0.35); }
+  .photo-row { display: flex; align-items: center; gap: 16px; }
+  .photo-row .pv { width: 72px; height: 72px; border-radius: 50%; overflow: hidden; flex-shrink: 0; border: 2px solid rgba(245,200,66,0.5); }
+  .photo-row .pv img { width: 100%; height: 100%; object-fit: cover; }
+  .pbtn {
+    border: 1px solid var(--line2); border-radius: 12px; padding: 10px 12px;
+    font-size: 12.5px; font-weight: 700; color: var(--txt2);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .pbtn.gold { border-color: rgba(245,200,66,0.4); background: rgba(245,200,66,0.10); color: var(--gold); }
   .bgblur { filter: blur(2px); opacity: .55; }
+  .hoje-note {
+    margin-top: 34px; max-width: 824px;
+    border: 1px dashed rgba(245,200,66,0.35); border-radius: 20px; padding: 18px 22px;
+    background: rgba(245,200,66,0.04);
+  }
+  .hoje-note .nt { font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(245,200,66,0.8); margin-bottom: 12px; }
+  .hoje-strip {
+    width: 390px; background: var(--bg); border: 1px solid rgba(255,255,255,0.13); border-radius: 20px;
+    padding: 16px 20px; display: flex; align-items: center; gap: 14px;
+  }
+  .hoje-strip .pv { width: 48px; height: 48px; border-radius: 50%; overflow: hidden; flex-shrink: 0; margin-left: auto;
+    border: 2px solid rgba(245,200,66,0.6); }
+  .hoje-strip .pv img { width: 100%; height: 100%; object-fit: cover; }
   .scrollhint { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,0.25); text-align: center; padding: 10px 0 4px; }
 </style>
 </head>
 <body>
-<div class="canvas-title">Perfil — unificado com edição, configurações e emotes</div>
-<div class="canvas-sub">Uma única tela de perfil: emotes/ícones no lugar de letras, botão Editar visível, e o configurador antigo migrado para seções dentro do PerfilHub.</div>
+<div class="canvas-title">Perfil — unificado com foto de perfil, edição e configurações</div>
+<div class="canvas-sub">Uma única tela de perfil: foto real no hero (com input de foto), emotes/ícones no lugar de letras nos stats e seções, e o configurador antigo migrado para dentro do PerfilHub.</div>
 
 <div class="row">
 
   <!-- ════ PANEL A : perfil com emotes ════ -->
   <div>
-    <div class="panel-label"><span class="dot"></span>1 · Hero com emotes e botão Editar</div>
+    <div class="panel-label"><span class="dot"></span>1 · Hero com foto de perfil e botão Editar</div>
     <div class="phone">
       <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
       <div class="hero">
         <div class="editbtn"><span class="emoji" style="font-size:13px">✏️</span> Editar</div>
-        <div class="avatar-ring"><div class="avatar"><span class="emoji">🦁</span></div></div>
+        <div class="avatar-wrap">
+          <div class="avatar-ring"><div class="avatar"><img src="avatar.jpg" alt=""></div></div>
+          <div class="cam-badge"><span class="emoji">📷</span></div>
+        </div>
         <div class="uname">Igor</div>
         <div class="lvlrow">Estrategista · <span class="lvl">NÍVEL 7</span></div>
         <div class="xpbar">
@@ -161,13 +192,13 @@
 
   <!-- ════ PANEL B : editar perfil sheet ════ -->
   <div>
-    <div class="panel-label"><span class="dot"></span>2 · Editar perfil em bottom sheet</div>
+    <div class="panel-label"><span class="dot"></span>2 · Editar perfil com input de foto</div>
     <div class="phone">
       <div class="bgblur">
         <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
         <div class="hero">
           <div class="editbtn"><span class="emoji" style="font-size:13px">✏️</span> Editar</div>
-          <div class="avatar-ring"><div class="avatar"><span class="emoji">🦁</span></div></div>
+          <div class="avatar-ring"><div class="avatar"><img src="avatar.jpg" alt=""></div></div>
           <div class="uname">Igor</div>
           <div class="lvlrow">Estrategista · <span class="lvl">NÍVEL 7</span></div>
         </div>
@@ -181,19 +212,18 @@
           <div class="xbtn">✕</div>
         </div>
         <div class="sheet-body">
-          <div class="field-label" style="margin-top:2px">Avatar</div>
-          <div class="emogrid">
-            <div class="emo sel"><span class="emoji">🦁</span></div>
-            <div class="emo"><span class="emoji">🐺</span></div>
-            <div class="emo"><span class="emoji">🦅</span></div>
-            <div class="emo"><span class="emoji">🐉</span></div>
-            <div class="emo"><span class="emoji">🚀</span></div>
-            <div class="emo"><span class="emoji">⚡</span></div>
-            <div class="emo"><span class="emoji">🔱</span></div>
-            <div class="emo"><span class="emoji">🧠</span></div>
-            <div class="emo"><span class="emoji">🏔️</span></div>
-            <div class="emo" style="font-size:13px;font-weight:700;color:var(--txt3)">📷 foto</div>
+          <div class="field-label" style="margin-top:2px">Foto de perfil</div>
+          <div class="photo-row">
+            <div class="pv"><img src="avatar.jpg" alt=""></div>
+            <div style="display:flex;flex-direction:column;gap:8px;flex:1">
+              <div class="pbtn gold"><span class="emoji" style="font-size:14px">📷</span> Alterar foto</div>
+              <div style="display:flex;gap:8px">
+                <div class="pbtn" style="flex:1;justify-content:center"><span class="emoji" style="font-size:13px">🖼️</span> Galeria</div>
+                <div class="pbtn" style="flex:1;justify-content:center;color:rgba(226,75,74,0.85);border-color:rgba(226,75,74,0.3)">Remover</div>
+              </div>
+            </div>
           </div>
+          <div style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:8px">A mesma foto aparece no topo da página Hoje.</div>
 
           <div class="field-label">Nome</div>
           <div class="input">Igor</div>
@@ -253,7 +283,7 @@
         <div class="sec">Conta <span style="font-weight:500;text-transform:none;letter-spacing:0;color:rgba(245,200,66,0.55)">· migrado do configurador antigo</span></div>
         <div class="navrow r-top">
           <div class="ic emoji" style="background:rgba(255,255,255,0.07)">👤</div>
-          <div><div class="tt">Dados pessoais</div><div class="ss">Nome, email, avatar</div></div>
+          <div><div class="tt">Dados pessoais</div><div class="ss">Nome, email, foto de perfil</div></div>
           <div class="chev">›</div>
         </div>
         <div class="navrow r-mid">
@@ -294,6 +324,17 @@
     </div>
   </div>
 
+</div>
+
+<div class="hoje-note">
+  <div class="nt"><span class="emoji">📷</span> A mesma foto substitui o AvatarXP no header de /hoje</div>
+  <div class="hoje-strip">
+    <div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.35);font-weight:600;text-transform:uppercase;letter-spacing:.06em">Quarta, 10 de junho</div>
+      <div style="font-size:20px;font-weight:800;letter-spacing:-0.4px;margin-top:3px">Boa tarde, Igor</div>
+    </div>
+    <div class="pv"><img src="avatar.jpg" alt=""></div>
+  </div>
 </div>
 </body>
 </html>
