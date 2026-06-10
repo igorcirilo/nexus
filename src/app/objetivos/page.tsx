@@ -131,30 +131,106 @@ export default function ObjetivosPage() {
 
   const today = new Date()
 
+  // Toast partilhado entre o hub e a vista de detalhes
+  const toastEl = toast && (
+    <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: 'var(--teal)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 10000, whiteSpace: 'nowrap' }}>
+      ✓ {toast}
+    </div>
+  )
+
+  // ── Modal de criação/edição (acionável no hub e nos detalhes) ────────────
+  const formModal = showForm && (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
+      onClick={e => e.target === e.currentTarget && setShowForm(false)}>
+      <div style={{
+        width: '100%', maxWidth: 448, margin: '0 auto', background: '#0D0E20',
+        borderRadius: '24px 24px 0 0', borderTop: '1px solid rgba(255,255,255,0.12)',
+        display: 'flex', flexDirection: 'column', maxHeight: 'min(86dvh, 720px)',
+        boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
+      }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.18)', margin: '10px auto 0', flexShrink: 0 }} />
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+          <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 17, color: '#fff', letterSpacing: '-0.3px' }}>
+            {editGoal ? 'Editar objectivo' : 'Novo objectivo'}
+          </h2>
+          <button onClick={() => setShowForm(false)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>✕</button>
+        </div>
+
+        <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px' }}>
+          <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Objectivo</label>
+          <input value={fTitle} onChange={e => setFTitle(e.target.value)}
+            placeholder="Ex: Correr 5km sem parar" style={{ ...inp, marginBottom: 16, fontFamily: 'Inter, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 13, color: '#fff' }} />
+
+          <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Área</label>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
+            {CATEGORIES.map(([key, meta]) => (
+              <button key={key} onClick={() => setFArea(key)} style={{
+                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px',
+                borderRadius: 13, cursor: 'pointer', textAlign: 'left',
+                background: fArea === key ? `${meta.color}18` : 'rgba(255,255,255,0.03)',
+                border: fArea === key ? `1px solid ${meta.color}77` : '1px solid rgba(255,255,255,0.10)',
+                color: fArea === key ? meta.color : 'rgba(255,255,255,0.55)',
+                fontSize: 13, fontWeight: 600, fontFamily: 'Inter, sans-serif',
+              }}>
+                <span style={{ fontSize: 15 }}>{meta.icon}</span>{meta.label}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Início</label>
+              <input type="date" value={fStart} onChange={e => setFStart(e.target.value)} style={{ ...inp, fontFamily: 'Inter, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 13, color: '#fff' }} />
+            </div>
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Fim</label>
+              <input type="date" value={fEnd} onChange={e => setFEnd(e.target.value)} style={{ ...inp, fontFamily: 'Inter, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 13, color: '#fff' }} />
+            </div>
+          </div>
+
+          {editGoal && (
+            <div style={{ marginBottom: 4 }}>
+              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Progresso actual: {fProgress}%</label>
+              <input type="range" min={0} max={100} step={5} value={fProgress} onChange={e => setFProgress(+e.target.value)}
+                style={{ width: '100%', accentColor: '#F5C842' }} />
+            </div>
+          )}
+        </div>
+
+        <div style={{ padding: '12px 20px calc(20px + env(safe-area-inset-bottom))', background: '#0D0E20', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+          <button onClick={save} disabled={saving || !fTitle.trim()} style={{
+            width: '100%', background: fTitle.trim() ? 'linear-gradient(135deg, #F5C842, #E0A82A)' : 'rgba(255,255,255,0.06)',
+            color: fTitle.trim() ? '#1A1200' : 'rgba(255,255,255,0.35)', border: 'none',
+            borderRadius: 15, padding: 15, fontFamily: 'Inter, sans-serif', fontWeight: 800,
+            fontSize: 15, cursor: fTitle.trim() ? 'pointer' : 'not-allowed',
+          }}>{saving ? 'A guardar…' : editGoal ? 'Guardar alterações' : 'Criar objectivo'}</button>
+        </div>
+      </div>
+    </div>
+  )
+
   // ── Hub (tab resumo) ──────────────────────────────────────────────────────
   if (tab === 'resumo') {
     return (
-      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+      <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: '#07070F' }}>
+        {toastEl}
         <ObjetivosHub
           goals={goals}
           milestones={milestones}
           onDetails={() => setTab('detalhes')}
-          onAdd={() => { setTab('detalhes'); setTimeout(openNew, 50) }}
+          onAdd={openNew}
         />
+        {formModal}
         <Nav />
       </main>
     )
   }
 
   return (
-    <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
+    <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh' }}>
 
-      {/* Toast */}
-      {toast && (
-        <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: 'var(--teal)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 200, whiteSpace: 'nowrap' }}>
-          ✓ {toast}
-        </div>
-      )}
+      {toastEl}
 
       {/* Header */}
       <div style={{ padding: '28px 20px 0' }}>
@@ -338,67 +414,7 @@ export default function ObjetivosPage() {
         })}
       </div>
 
-      {/* ── FORM MODAL ── */}
-      {showForm && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 40, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
-          onClick={e => e.target === e.currentTarget && setShowForm(false)}>
-          <div style={{ width: '100%', maxWidth: 448, margin: '0 auto', background: '#0D0E20', borderRadius: '20px 20px 0 0', borderTop: '1px solid rgba(255,255,255,0.08)', padding: 24 }}>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 18, color: '#fff' }}>
-                {editGoal ? 'Editar objectivo' : 'Novo objectivo'}
-              </h2>
-              <button onClick={() => setShowForm(false)} style={{ width: 30, height: 30, borderRadius: 9, background: 'rgba(255,255,255,0.08)', border: 'none', cursor: 'pointer', fontSize: 16, color: 'rgba(255,255,255,0.6)' }}>×</button>
-            </div>
-
-            <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', display: 'block', marginBottom: 6, fontFamily: 'Inter, sans-serif' }}>Objectivo</label>
-            <input value={fTitle} onChange={e => setFTitle(e.target.value)}
-              placeholder="Ex: Correr 5km sem parar" style={{ ...inp, marginBottom: 14, fontFamily: 'Inter, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff' }} />
-
-            <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Área</label>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 14 }}>
-              {CATEGORIES.map(([key, meta]) => (
-                <button key={key} onClick={() => setFArea(key)} style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px',
-                  borderRadius: 10, border: 'none', cursor: 'pointer', textAlign: 'left',
-                  background: fArea === key ? `${meta.color}18` : 'rgba(255,255,255,0.05)',
-                  outline: fArea === key ? `1px solid ${meta.color}` : '1px solid rgba(255,255,255,0.08)',
-                  color: fArea === key ? meta.color : 'rgba(255,255,255,0.6)',
-                  fontSize: 13, fontFamily: 'Inter, sans-serif',
-                }}>
-                  <span style={{ fontSize: 15 }}>{meta.icon}</span>{meta.label}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-              <div>
-                <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', display: 'block', marginBottom: 6, fontFamily: 'Inter, sans-serif' }}>Data de início</label>
-                <input type="date" value={fStart} onChange={e => setFStart(e.target.value)} style={{ ...inp, fontFamily: 'Inter, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff' }} />
-              </div>
-              <div>
-                <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', display: 'block', marginBottom: 6, fontFamily: 'Inter, sans-serif' }}>Data de fim</label>
-                <input type="date" value={fEnd} onChange={e => setFEnd(e.target.value)} style={{ ...inp, fontFamily: 'Inter, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', color: '#fff' }} />
-              </div>
-            </div>
-
-            {editGoal && (
-              <div style={{ marginBottom: 14 }}>
-                <label style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', display: 'block', marginBottom: 6, fontFamily: 'Inter, sans-serif' }}>Progresso actual: {fProgress}%</label>
-                <input type="range" min={0} max={100} step={5} value={fProgress} onChange={e => setFProgress(+e.target.value)}
-                  style={{ width: '100%', accentColor: '#F5C842' }} />
-              </div>
-            )}
-
-            <button onClick={save} disabled={saving || !fTitle.trim()} style={{
-              width: '100%', background: fTitle.trim() ? '#F5C842' : 'rgba(255,255,255,0.08)',
-              color: fTitle.trim() ? '#07070F' : 'rgba(255,255,255,0.35)', border: 'none',
-              borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700,
-              fontSize: 14, cursor: fTitle.trim() ? 'pointer' : 'not-allowed',
-            }}>{saving ? 'A guardar…' : editGoal ? 'Guardar alterações' : 'Criar objectivo'}</button>
-          </div>
-        </div>
-      )}
+      {formModal}
 
       <Nav />
     </main>
