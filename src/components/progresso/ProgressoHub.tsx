@@ -20,6 +20,7 @@ const BADGE_DEFS = [
 export type HubAreaProgress = {
   key: string
   label: string
+  icon: string
   color: string
   pct: number
   done: number
@@ -33,7 +34,7 @@ interface Props {
   earnedKeys: Set<string>
   consistency: number
   xpData: { day: string; xp: number }[]
-  onNavigate: (tab: 'evolucao' | 'dashboard') => void
+  onDashboard: () => void
 }
 
 function SectionLabel({ children, style }: { children: React.ReactNode; style?: CSSProperties }) {
@@ -70,7 +71,7 @@ export default function ProgressoHub({
   earnedKeys,
   consistency,
   xpData,
-  onNavigate,
+  onDashboard,
 }: Props) {
   const level     = profile.level
   const xp        = profile.xp_total
@@ -94,7 +95,7 @@ export default function ProgressoHub({
   const displayBadges = [...earnedSorted.slice(0, 4), ...lockedDefs.slice(0, Math.max(1, 5 - earnedSorted.length))]
 
   return (
-    <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100vh', padding: '0 22px 28px' }}>
+    <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100dvh', padding: '0 22px 40px' }}>
 
       {/* Header */}
       <div style={{ padding: '20px 0 4px' }}>
@@ -106,7 +107,7 @@ export default function ProgressoHub({
 
       {/* ── Level Hero ── */}
       <div
-        onClick={() => onNavigate('evolucao')}
+        onClick={onDashboard}
         style={{
           background: 'linear-gradient(135deg, #130D2A 0%, #1A0E3A 50%, #0D1A2E 100%)',
           border: '1px solid rgba(157,92,245,0.25)',
@@ -192,7 +193,7 @@ export default function ProgressoHub({
       {/* ── Consistência semanal ── */}
       <SectionLabel>Consistência semanal</SectionLabel>
       <div
-        onClick={() => onNavigate('dashboard')}
+        onClick={onDashboard}
         style={{
           background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
           borderRadius: 20, padding: '18px 20px', marginBottom: 14, cursor: 'pointer',
@@ -233,7 +234,7 @@ export default function ProgressoHub({
       {/* ── Áreas da vida ── */}
       <SectionLabel>Áreas da vida</SectionLabel>
       <div
-        onClick={() => onNavigate('evolucao')}
+        onClick={onDashboard}
         style={{ display: 'flex', flexDirection: 'column', gap: 10, cursor: 'pointer', marginBottom: 4 }}
       >
         {areas.map(a => (
@@ -242,9 +243,9 @@ export default function ProgressoHub({
               width: 34, height: 34, borderRadius: 10, flexShrink: 0,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: hexAlpha(a.color, 0.12),
-              color: a.color, fontWeight: 800, fontSize: 14,
+              fontSize: 16,
             }}>
-              {a.label.charAt(0).toUpperCase()}
+              {a.icon}
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginBottom: 5 }}>
@@ -302,23 +303,14 @@ export default function ProgressoHub({
       </div>
 
       {/* ── CTA nav ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 24 }}>
-        <button onClick={() => onNavigate('evolucao')} style={ctaBtn}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-            <polyline points="17 6 23 6 23 12"/>
-          </svg>
-          Resumo
-        </button>
-        <button onClick={() => onNavigate('dashboard')} style={ctaBtn}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="18" y="3" width="4" height="18"/>
-            <rect x="10" y="8" width="4" height="13"/>
-            <rect x="2" y="13" width="4" height="8"/>
-          </svg>
-          Dashboard
-        </button>
-      </div>
+      <button onClick={onDashboard} style={{ ...ctaBtn, width: '100%', marginTop: 24 }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="18" y="3" width="4" height="18"/>
+          <rect x="10" y="8" width="4" height="13"/>
+          <rect x="2" y="13" width="4" height="8"/>
+        </svg>
+        Abrir dashboard completo
+      </button>
     </div>
   )
 }
