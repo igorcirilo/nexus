@@ -273,7 +273,7 @@ export default function HojePage() {
   }
 
   return (
-    <main style={{ paddingBottom: 100, minHeight: '100vh', animation: 'fadeUp .3s ease' }}>
+    <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', animation: 'fadeUp .3s ease' }}>
       <XPToast />
 
       {levelUpData && (
@@ -312,7 +312,7 @@ export default function HojePage() {
 
       <header style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          {profile && <AvatarXP level={profile.level} size={48} />}
+          {profile && <AvatarXP level={profile.level} size={48} avatarUrl={profile.avatar_url} />}
           <div style={{ minWidth: 0 }}>
             <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 2 }}>
               {greeting}, {profile?.username ?? 'Guerreiro'}

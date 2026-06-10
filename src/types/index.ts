@@ -3,6 +3,7 @@
 export interface Profile {
   id: string
   username: string | null
+  avatar_url?: string | null
   xp_total: number
   level: number
   title: string

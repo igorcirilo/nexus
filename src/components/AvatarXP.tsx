@@ -4,6 +4,7 @@
 interface AvatarXPProps {
   level: number
   size?: number
+  avatarUrl?: string | null
 }
 
 function tierColor(level: number) {
@@ -15,12 +16,47 @@ function tierColor(level: number) {
   return 'var(--text3)'
 }
 
-export default function AvatarXP({ level, size = 48 }: AvatarXPProps) {
+export default function AvatarXP({ level, size = 48, avatarUrl }: AvatarXPProps) {
   const color = tierColor(level)
   const showGlow = level >= 5
   const showAura = level >= 8
   const showCrown = level >= 11
   const animate = level >= 15
+
+  // Com foto de perfil: foto dentro do anel de nível (mantém a cor do tier)
+  if (avatarUrl) {
+    return (
+      <div
+        style={{
+          width: size,
+          height: size,
+          position: 'relative',
+          flexShrink: 0,
+          borderRadius: '50%',
+          padding: 2,
+          background: level >= 15
+            ? 'linear-gradient(135deg, var(--gold), var(--teal))'
+            : undefined,
+          border: level >= 15 ? 'none' : `2px solid ${level >= 11 ? 'var(--gold)' : level >= 8 ? 'var(--accent)' : level >= 5 ? 'var(--teal)' : 'var(--border)'}`,
+          boxShadow: showGlow ? '0 0 18px rgba(30,203,180,0.12)' : 'none',
+          animation: animate ? 'nexusAvatarPulse 2s ease-in-out infinite' : 'none',
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={avatarUrl}
+          alt="Foto de perfil"
+          style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', display: 'block' }}
+        />
+        <style jsx>{`
+          @keyframes nexusAvatarPulse {
+            0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0 rgba(232,168,56,0)); }
+            50% { transform: scale(1.04); filter: drop-shadow(0 0 10px rgba(30,203,180,0.22)); }
+          }
+        `}</style>
+      </div>
+    )
+  }
 
   return (
     <div
