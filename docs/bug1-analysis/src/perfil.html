@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="base.css">
+<style>
+  .hero {
+    background: linear-gradient(180deg, #10102A 0%, #07070F 100%);
+    padding: 8px 22px 24px; display: flex; flex-direction: column; align-items: center; position: relative;
+  }
+  .editbtn {
+    position: absolute; top: 8px; right: 20px;
+    height: 34px; border-radius: 11px; padding: 0 13px;
+    background: rgba(245,200,66,0.14); border: 1px solid rgba(245,200,66,0.4);
+    display: flex; align-items: center; gap: 7px; color: var(--gold);
+    font-size: 12.5px; font-weight: 700;
+  }
+  .avatar-ring {
+    width: 92px; height: 92px; border-radius: 50%;
+    background: conic-gradient(#F5C842 0deg, #9D5CF5 120deg, #00D4C8 240deg, #F5C842 360deg);
+    display: flex; align-items: center; justify-content: center; margin-bottom: 13px;
+  }
+  .avatar {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: linear-gradient(135deg, #1C1E2E 0%, #11131C 100%);
+    display: flex; align-items: center; justify-content: center; font-size: 42px;
+  }
+  .uname { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 4px; }
+  .lvlrow { display: flex; align-items: center; gap: 6px; margin-bottom: 18px; font-size: 12px; color: var(--txt3); font-weight: 500; }
+  .lvl { font-size: 11px; font-weight: 700; letter-spacing: .06em; background: rgba(245,200,66,0.12); color: var(--gold); border-radius: 7px; padding: 3px 10px; }
+  .xpbar { width: 100%; max-width: 320px; margin-bottom: 18px; }
+  .xpbar .meta { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 11px; color: var(--txt3); }
+  .xpbar .tr { height: 6px; background: rgba(255,255,255,0.07); border-radius: 6px; overflow: hidden; }
+  .xpbar .fi { height: 100%; width: 84%; background: linear-gradient(90deg, #9D5CF5, #00D4C8); border-radius: 6px; }
+  .stats { display: flex; gap: 8px; width: 100%; }
+  .stat { flex: 1; background: var(--card2); border: 1px solid var(--line); border-radius: 14px; padding: 11px 6px; text-align: center; }
+  .stat .e { font-size: 17px; margin-bottom: 3px; }
+  .stat .v { font-size: 17px; font-weight: 800; }
+  .stat .l { font-size: 9.5px; color: var(--txt3); font-weight: 500; margin-top: 3px; }
+
+  .body { padding: 0 22px; }
+  .streak {
+    background: linear-gradient(135deg, #1A1000 0%, #201600 100%);
+    border: 1px solid rgba(245,200,66,0.2); border-radius: 18px; padding: 14px 18px; margin-top: 16px;
+    display: flex; align-items: center; gap: 14px;
+  }
+  .streak .ic { width: 44px; height: 44px; border-radius: 14px; flex-shrink: 0; background: rgba(245,200,66,0.12); border: 1px solid rgba(245,200,66,0.2); display: flex; align-items: center; justify-content: center; font-size: 21px; }
+  .streak .k { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(245,200,66,0.6); margin-bottom: 2px; }
+  .streak .v { font-size: 21px; font-weight: 900; color: var(--gold); line-height: 1; }
+
+  .badges { display: flex; gap: 10px; }
+  .badge { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; width: 62px; }
+  .badge .bx { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+  .badge .bn { font-size: 9.5px; font-weight: 600; color: var(--txt2); text-align: center; line-height: 1.3; }
+  .badge.locked { opacity: .35; }
+
+  .navrow {
+    display: flex; align-items: center; gap: 13px; background: var(--card);
+    border: 1px solid rgba(255,255,255,0.06); padding: 13px 15px; margin-bottom: 2px;
+  }
+  .navrow .ic { width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+  .navrow .tt { font-size: 14px; font-weight: 700; margin-bottom: 1px; }
+  .navrow .ss { font-size: 11px; color: rgba(255,255,255,0.35); }
+  .navrow .chev { margin-left: auto; color: rgba(255,255,255,0.3); font-size: 14px; }
+  .r-top { border-radius: 14px 14px 4px 4px; }
+  .r-mid { border-radius: 4px; }
+  .r-bot { border-radius: 4px 4px 14px 14px; }
+
+  .toggle { width: 44px; height: 26px; border-radius: 13px; position: relative; flex-shrink: 0; margin-left: auto; }
+  .toggle .knob { position: absolute; top: 3px; width: 20px; height: 20px; border-radius: 50%; }
+  .toggle.on { background: var(--teal); } .toggle.on .knob { right: 3px; background: #07070F; }
+  .toggle.gold { background: var(--gold); } .toggle.gold .knob { right: 3px; background: #0A0800; }
+
+  .logout { margin-top: 18px; padding: 13px; border: 1px solid rgba(226,75,74,0.25); border-radius: 14px; color: var(--danger); font-weight: 700; font-size: 14px; text-align: center; }
+  .mail { font-size: 11px; color: rgba(255,255,255,0.2); text-align: center; margin-top: 8px; }
+
+  /* sheet specifics */
+  .emogrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .emo { aspect-ratio: 1; border-radius: 14px; border: 1px solid var(--line2); display: flex; align-items: center; justify-content: center; font-size: 26px; background: rgba(255,255,255,0.03); }
+  .emo.sel { border-color: rgba(245,200,66,0.55); background: rgba(245,200,66,0.12); box-shadow: 0 0 0 1px rgba(245,200,66,0.35); }
+  .bgblur { filter: blur(2px); opacity: .55; }
+  .scrollhint { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,0.25); text-align: center; padding: 10px 0 4px; }
+</style>
+</head>
+<body>
+<div class="canvas-title">Perfil — unificado com edição, configurações e emotes</div>
+<div class="canvas-sub">Uma única tela de perfil: emotes/ícones no lugar de letras, botão Editar visível, e o configurador antigo migrado para seções dentro do PerfilHub.</div>
+
+<div class="row">
+
+  <!-- ════ PANEL A : perfil com emotes ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>1 · Hero com emotes e botão Editar</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+      <div class="hero">
+        <div class="editbtn"><span class="emoji" style="font-size:13px">✏️</span> Editar</div>
+        <div class="avatar-ring"><div class="avatar"><span class="emoji">🦁</span></div></div>
+        <div class="uname">Igor</div>
+        <div class="lvlrow">Estrategista · <span class="lvl">NÍVEL 7</span></div>
+        <div class="xpbar">
+          <div class="meta"><span>6.840 XP total</span><span>160 XP até Nível 8</span></div>
+          <div class="tr"><div class="fi"></div></div>
+        </div>
+        <div class="stats">
+          <div class="stat"><div class="e emoji">⚡</div><div class="v" style="color:var(--gold)">6.840</div><div class="l">XP Total</div></div>
+          <div class="stat"><div class="e emoji">🔥</div><div class="v" style="color:var(--red)">12</div><div class="l">Sequência</div></div>
+          <div class="stat"><div class="e emoji">🏆</div><div class="v" style="color:var(--teal)">#3</div><div class="l">Ranking</div></div>
+          <div class="stat"><div class="e emoji">🎖️</div><div class="v" style="color:var(--purple)">4</div><div class="l">Badges</div></div>
+        </div>
+      </div>
+
+      <div class="body">
+        <div class="streak">
+          <div class="ic emoji">🔥</div>
+          <div style="flex:1">
+            <div class="k">Sequência activa</div>
+            <div class="v">12 dias</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:10px;color:rgba(255,255,255,0.3);margin-bottom:2px">Máximo</div>
+            <div style="font-size:16px;font-weight:800;color:rgba(255,255,255,0.6)">21d</div>
+          </div>
+        </div>
+
+        <div class="sec">Conquistas</div>
+        <div class="badges">
+          <div class="badge"><div class="bx" style="background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.3)"><span class="emoji">🌱</span></div><div class="bn">Primeira Vez</div></div>
+          <div class="badge"><div class="bx" style="background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.3)"><span class="emoji">📅</span></div><div class="bn">Uma Semana</div></div>
+          <div class="badge"><div class="bx" style="background:rgba(157,92,245,0.12);border:1px solid rgba(157,92,245,0.3)"><span class="emoji">🏅</span></div><div class="bn">Três Semanas</div></div>
+          <div class="badge"><div class="bx" style="background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.3)"><span class="emoji">💰</span></div><div class="bn">Mil Pontos</div></div>
+          <div class="badge locked"><div class="bx" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)"><span class="emoji">🔒</span></div><div class="bn">Centenário</div></div>
+        </div>
+
+        <div class="sec">Metas 90 dias</div>
+        <div class="navrow r-top">
+          <div class="ic emoji" style="background:rgba(157,92,245,0.12)">🧭</div>
+          <div><div class="tt" style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(157,92,245,0.85)">Pessoal</div>
+          <div style="font-size:12.5px;color:rgba(255,255,255,0.75);font-weight:500;margin-top:2px">Meditar todos os dias e dormir 8h</div></div>
+          <div class="chev">›</div>
+        </div>
+        <div class="navrow r-bot">
+          <div class="ic emoji" style="background:rgba(0,212,200,0.12)">💼</div>
+          <div><div class="tt" style="font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(0,212,200,0.85)">Carreira</div>
+          <div style="font-size:12.5px;color:rgba(255,255,255,0.75);font-weight:500;margin-top:2px">Lançar o produto e fechar 3 clientes</div></div>
+          <div class="chev">›</div>
+        </div>
+        <div class="scrollhint">▾ continua — ver painel 3</div>
+      </div>
+
+      <div class="nav">
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Hoje</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Hábitos</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0 1 13 0"/></svg>Corpo</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progresso</div>
+        <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais</div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- ════ PANEL B : editar perfil sheet ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>2 · Editar perfil em bottom sheet</div>
+    <div class="phone">
+      <div class="bgblur">
+        <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+        <div class="hero">
+          <div class="editbtn"><span class="emoji" style="font-size:13px">✏️</span> Editar</div>
+          <div class="avatar-ring"><div class="avatar"><span class="emoji">🦁</span></div></div>
+          <div class="uname">Igor</div>
+          <div class="lvlrow">Estrategista · <span class="lvl">NÍVEL 7</span></div>
+        </div>
+      </div>
+
+      <div class="dim"></div>
+      <div class="sheet" style="height:660px">
+        <div class="grab"></div>
+        <div class="sheet-head">
+          <div class="t">Editar perfil</div>
+          <div class="xbtn">✕</div>
+        </div>
+        <div class="sheet-body">
+          <div class="field-label" style="margin-top:2px">Avatar</div>
+          <div class="emogrid">
+            <div class="emo sel"><span class="emoji">🦁</span></div>
+            <div class="emo"><span class="emoji">🐺</span></div>
+            <div class="emo"><span class="emoji">🦅</span></div>
+            <div class="emo"><span class="emoji">🐉</span></div>
+            <div class="emo"><span class="emoji">🚀</span></div>
+            <div class="emo"><span class="emoji">⚡</span></div>
+            <div class="emo"><span class="emoji">🔱</span></div>
+            <div class="emo"><span class="emoji">🧠</span></div>
+            <div class="emo"><span class="emoji">🏔️</span></div>
+            <div class="emo" style="font-size:13px;font-weight:700;color:var(--txt3)">📷 foto</div>
+          </div>
+
+          <div class="field-label">Nome</div>
+          <div class="input">Igor</div>
+
+          <div class="field-label">Título</div>
+          <div class="opt-grid">
+            <div class="opt sel">Estrategista</div>
+            <div class="opt">Construtor</div>
+            <div class="opt">Veterano</div>
+          </div>
+
+          <div class="field-label">Dados pessoais</div>
+          <div class="input" style="margin-bottom:8px"><span style="color:rgba(255,255,255,0.5);font-weight:500">Idade</span><span>29</span></div>
+          <div class="input"><span style="color:rgba(255,255,255,0.5);font-weight:500">Email</span><span style="font-size:13px">igor•••@gmail.com</span></div>
+        </div>
+        <div class="sheet-foot">
+          <div class="cta">Guardar</div>
+        </div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- ════ PANEL C : configurações unificadas ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>3 · Configurações migradas para o hub (scroll)</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+      <div style="padding:6px 22px 0;display:flex;align-items:center;gap:10px">
+        <div style="font-size:17px;font-weight:800">Perfil</div>
+        <div style="font-size:11px;color:var(--txt4);font-weight:600;margin-left:auto">a rolar ↓</div>
+      </div>
+
+      <div class="body">
+        <div class="sec">Configurar perfil</div>
+        <div class="navrow r-top">
+          <div class="ic emoji" style="background:rgba(0,200,150,0.12)">💪</div>
+          <div><div class="tt">Corpo &amp; Físico</div><div class="ss">Peso, altura, idade, sexo</div></div>
+          <div class="chev">›</div>
+        </div>
+        <div class="navrow r-mid">
+          <div class="ic emoji" style="background:rgba(0,212,200,0.12)">🎯</div>
+          <div><div class="tt">Metas &amp; Hábitos</div><div class="ss">Água, treinos, sono, leitura</div></div>
+          <div class="chev">›</div>
+        </div>
+        <div class="navrow r-mid">
+          <div class="ic emoji" style="background:rgba(157,92,245,0.12)">🧭</div>
+          <div><div class="tt">Objetivos 90 Dias</div><div class="ss">Pessoal, carreira, saúde</div></div>
+          <div class="chev">›</div>
+        </div>
+        <div class="navrow r-bot">
+          <div class="ic emoji" style="background:rgba(245,200,66,0.12)">⚡</div>
+          <div><div class="tt">XP &amp; Desempenho</div><div class="ss">Meta semanal, taxa de conclusão</div></div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="sec">Conta <span style="font-weight:500;text-transform:none;letter-spacing:0;color:rgba(245,200,66,0.55)">· migrado do configurador antigo</span></div>
+        <div class="navrow r-top">
+          <div class="ic emoji" style="background:rgba(255,255,255,0.07)">👤</div>
+          <div><div class="tt">Dados pessoais</div><div class="ss">Nome, email, avatar</div></div>
+          <div class="chev">›</div>
+        </div>
+        <div class="navrow r-mid">
+          <div class="ic emoji" style="background:rgba(0,212,200,0.12)">🔔</div>
+          <div><div class="tt">Notificações</div><div class="ss">Lembretes de hábitos e check-in</div></div>
+          <div class="toggle on"><div class="knob"></div></div>
+        </div>
+        <div class="navrow r-bot">
+          <div class="ic emoji" style="background:rgba(255,107,107,0.10)">🔒</div>
+          <div><div class="tt">Conta &amp; privacidade</div><div class="ss">Password, exportar dados</div></div>
+          <div class="chev">›</div>
+        </div>
+
+        <div class="sec">Preferências</div>
+        <div class="navrow r-top">
+          <div class="ic emoji" style="background:rgba(245,200,66,0.12)">🌙</div>
+          <div><div class="tt">Modo escuro</div><div class="ss">Sempre ativo</div></div>
+          <div class="toggle gold"><div class="knob"></div></div>
+        </div>
+        <div class="navrow r-bot">
+          <div class="ic emoji" style="background:rgba(157,92,245,0.12)">✨</div>
+          <div><div class="tt">Emotes nas áreas</div><div class="ss">Substitui letras por ícones</div></div>
+          <div class="toggle on"><div class="knob"></div></div>
+        </div>
+
+        <div class="logout">Terminar sessão</div>
+        <div class="mail">igorromualdo.c@gmail.com</div>
+      </div>
+
+      <div class="nav">
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Hoje</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Hábitos</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0 1 13 0"/></svg>Corpo</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progresso</div>
+        <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais</div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
