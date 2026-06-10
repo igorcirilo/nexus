@@ -30,12 +30,12 @@ export default function MissionCard({ mission, progress = 0, onProgress }: Props
           <div style={{ fontSize: 10, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, marginBottom: 4 }}>
             Missão principal
           </div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)', lineHeight: 1.3 }}>
+          <div style={{ fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 500, fontSize: 15, color: 'var(--text1)', lineHeight: 1.42, letterSpacing: 0 }}>
             {mission}
           </div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, color: 'var(--gold)' }}>{pct}%</div>
+          <div style={{ fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 500, fontSize: 20, lineHeight: 1, color: 'var(--gold)', letterSpacing: 0 }}>{pct}%</div>
           <div style={{ fontSize: 10, color: 'var(--text3)' }}>concluído</div>
         </div>
       </div>

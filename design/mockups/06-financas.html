@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS – Finanças</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #040408; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', sans-serif; }
+.screen { width: 428px; min-height: 926px; background: #07070F; border-radius: 52px; overflow: hidden; position: relative; box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 40px 120px rgba(0,0,0,0.9); }
+.status-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 28px 0; font-size: 12px; font-weight: 600; color: #fff; }
+.status-right { display: flex; gap: 6px; align-items: center; }
+.content { padding: 0 22px; padding-bottom: 100px; }
+.page-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 14px; }
+.page-title { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+.header-sub { font-size: 13px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+.header-right { display: flex; gap: 8px; }
+.icon-btn { width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); }
+.section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 10px; margin-top: 18px; }
+
+/* Balance hero */
+.balance-hero {
+  background: linear-gradient(135deg, #0A1A08 0%, #0D2010 100%);
+  border: 1px solid rgba(0,200,150,0.2);
+  border-radius: 24px; padding: 24px 22px; margin-bottom: 14px;
+  position: relative; overflow: hidden;
+}
+.balance-hero::before {
+  content: ''; position: absolute; top: -50px; right: -30px;
+  width: 160px; height: 160px;
+  background: radial-gradient(circle, rgba(0,200,150,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.bal-month { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(0,200,150,0.6); margin-bottom: 6px; }
+.bal-amount { font-size: 42px; font-weight: 900; color: #fff; letter-spacing: -2px; line-height: 1; margin-bottom: 4px; }
+.bal-sub { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 18px; }
+.bal-row { display: flex; gap: 12px; }
+.bal-card {
+  flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px; padding: 12px 14px;
+}
+.bal-card-label { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 500; margin-bottom: 5px; display: flex; align-items: center; gap: 5px; }
+.bal-dot { width: 7px; height: 7px; border-radius: 50%; }
+.bal-card-val { font-size: 18px; font-weight: 800; color: #fff; }
+
+/* Flow chart */
+.flow-card {
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px; padding: 18px 20px; margin-bottom: 14px;
+}
+.flow-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.flow-title { font-size: 15px; font-weight: 700; color: #fff; }
+.flow-period { font-size: 12px; color: rgba(255,255,255,0.35); font-weight: 500; }
+.flow-bars { display: flex; gap: 6px; align-items: flex-end; height: 56px; padding: 0 2px; }
+.flow-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.flow-bar { width: 100%; border-radius: 4px 4px 0 0; }
+.flow-bar.income { background: rgba(0,200,150,0.3); }
+.flow-bar.income.cur { background: #00C896; }
+.flow-bar.expense { background: rgba(255,80,80,0.25); }
+.flow-bar.expense.cur { background: rgba(255,80,80,0.6); }
+.flow-month { font-size: 9px; font-weight: 600; color: rgba(255,255,255,0.3); }
+
+/* Categories */
+.cat-list { display: flex; flex-direction: column; gap: 10px; }
+.cat-row {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 12px 14px;
+}
+.cat-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 16px; }
+.cat-info { flex: 1; }
+.cat-name { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); margin-bottom: 4px; }
+.cat-bar-wrap { height: 4px; background: rgba(255,255,255,0.07); border-radius: 4px; overflow: hidden; }
+.cat-bar-fill { height: 100%; border-radius: 4px; }
+.cat-amount { text-align: right; }
+.cat-val { font-size: 14px; font-weight: 700; color: #fff; }
+.cat-pct { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 2px; font-weight: 500; }
+
+/* Goals */
+.goal-list { display: flex; flex-direction: column; gap: 10px; }
+.goal-row {
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px; padding: 14px 16px;
+}
+.goal-info { flex: 1; }
+.goal-name { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+.goal-bar-wrap { height: 5px; background: rgba(255,255,255,0.07); border-radius: 5px; overflow: hidden; margin-bottom: 5px; }
+.goal-bar-fill { height: 100%; border-radius: 5px; }
+.goal-meta { display: flex; justify-content: space-between; }
+.goal-cur { font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.7); }
+.goal-max { font-size: 11px; color: rgba(255,255,255,0.35); }
+
+/* FAB */
+.fab {
+  position: fixed; bottom: 108px; right: 36px;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: linear-gradient(135deg, #00C896, #00D4C8);
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 24px rgba(0,200,150,0.35);
+  color: #001A10; font-size: 22px; font-weight: 800;
+}
+
+/* Bottom Nav */
+.bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(10,10,20,0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.07); padding: 12px 0 28px; display: flex; justify-content: space-around; align-items: center; }
+.nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 60px; }
+.nav-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); }
+.nav-label { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.3); }
+.nav-item.active .nav-icon { color: #00C896; }
+.nav-item.active .nav-label { color: #00C896; font-weight: 700; }
+.nav-active-dot { width: 4px; height: 4px; background: #00C896; border-radius: 50%; margin-top: -2px; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="status-bar">
+    <span style="font-size:13px;font-weight:700;">9:41</span>
+    <div class="status-right">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="3" width="3" height="9" rx="1" fill="rgba(255,255,255,0.9)"/><rect x="4.5" y="2" width="3" height="10" rx="1" fill="rgba(255,255,255,0.9)"/><rect x="9" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.9)"/></svg>
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.35)"/><rect x="2" y="2" width="16" height="9" rx="2" fill="rgba(255,255,255,0.9)"/></svg>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Finanças</div>
+        <div class="header-sub">Junho 2026</div>
+      </div>
+      <div class="header-right">
+        <div class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Balance hero -->
+    <div class="balance-hero">
+      <div class="bal-month">Saldo disponível</div>
+      <div class="bal-amount">R$ 8.420</div>
+      <div class="bal-sub">Atualizado agora</div>
+      <div class="bal-row">
+        <div class="bal-card">
+          <div class="bal-card-label">
+            <div class="bal-dot" style="background:#00C896"></div>
+            Receitas
+          </div>
+          <div class="bal-card-val">R$ 14.200</div>
+        </div>
+        <div class="bal-card">
+          <div class="bal-card-label">
+            <div class="bal-dot" style="background:#FF6B6B"></div>
+            Despesas
+          </div>
+          <div class="bal-card-val">R$ 5.780</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flow chart -->
+    <div class="flow-card">
+      <div class="flow-header">
+        <div class="flow-title">Fluxo de caixa</div>
+        <div class="flow-period">Últimos 6 meses</div>
+      </div>
+      <div class="flow-bars">
+        <div class="flow-bar-wrap">
+          <div class="flow-bar income" style="height:65%"></div>
+          <div class="flow-bar expense" style="height:55%"></div>
+          <div class="flow-month">Jan</div>
+        </div>
+        <div class="flow-bar-wrap">
+          <div class="flow-bar income" style="height:70%"></div>
+          <div class="flow-bar expense" style="height:48%"></div>
+          <div class="flow-month">Fev</div>
+        </div>
+        <div class="flow-bar-wrap">
+          <div class="flow-bar income" style="height:75%"></div>
+          <div class="flow-bar expense" style="height:60%"></div>
+          <div class="flow-month">Mar</div>
+        </div>
+        <div class="flow-bar-wrap">
+          <div class="flow-bar income" style="height:68%"></div>
+          <div class="flow-bar expense" style="height:52%"></div>
+          <div class="flow-month">Abr</div>
+        </div>
+        <div class="flow-bar-wrap">
+          <div class="flow-bar income" style="height:72%"></div>
+          <div class="flow-bar expense" style="height:44%"></div>
+          <div class="flow-month">Mai</div>
+        </div>
+        <div class="flow-bar-wrap">
+          <div class="flow-bar income cur" style="height:80%"></div>
+          <div class="flow-bar expense cur" style="height:38%"></div>
+          <div class="flow-month" style="color:#00C896">Jun</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Categories -->
+    <div class="section-label">Categorias do mês</div>
+    <div class="cat-list">
+      <div class="cat-row">
+        <div class="cat-icon" style="background:rgba(245,200,66,0.12)">🏠</div>
+        <div class="cat-info">
+          <div class="cat-name">Moradia</div>
+          <div class="cat-bar-wrap"><div class="cat-bar-fill" style="width:60%;background:#F5C842"></div></div>
+        </div>
+        <div class="cat-amount"><div class="cat-val">R$ 2.200</div><div class="cat-pct">38%</div></div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-icon" style="background:rgba(0,200,150,0.12)">🥦</div>
+        <div class="cat-info">
+          <div class="cat-name">Alimentação</div>
+          <div class="cat-bar-wrap"><div class="cat-bar-fill" style="width:35%;background:#00C896"></div></div>
+        </div>
+        <div class="cat-amount"><div class="cat-val">R$ 980</div><div class="cat-pct">17%</div></div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-icon" style="background:rgba(157,92,245,0.12)">🎓</div>
+        <div class="cat-info">
+          <div class="cat-name">Educação</div>
+          <div class="cat-bar-wrap"><div class="cat-bar-fill" style="width:25%;background:#9D5CF5"></div></div>
+        </div>
+        <div class="cat-amount"><div class="cat-val">R$ 620</div><div class="cat-pct">11%</div></div>
+      </div>
+      <div class="cat-row">
+        <div class="cat-icon" style="background:rgba(0,180,220,0.12)">⚡</div>
+        <div class="cat-info">
+          <div class="cat-name">Serviços</div>
+          <div class="cat-bar-wrap"><div class="cat-bar-fill" style="width:20%;background:#00B4DC"></div></div>
+        </div>
+        <div class="cat-amount"><div class="cat-val">R$ 480</div><div class="cat-pct">8%</div></div>
+      </div>
+    </div>
+
+    <!-- Goals -->
+    <div class="section-label" style="margin-top:18px">Metas financeiras</div>
+    <div class="goal-list">
+      <div class="goal-row">
+        <div class="goal-info">
+          <div class="goal-name">Reserva de emergência</div>
+          <div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:72%;background:linear-gradient(90deg,#F5C842,#E07B2A)"></div></div>
+          <div class="goal-meta">
+            <span class="goal-cur">R$ 21.600</span>
+            <span class="goal-max">R$ 30.000</span>
+          </div>
+        </div>
+      </div>
+      <div class="goal-row">
+        <div class="goal-info">
+          <div class="goal-name">Viagem ao Japão</div>
+          <div class="goal-bar-wrap"><div class="goal-bar-fill" style="width:38%;background:linear-gradient(90deg,#9D5CF5,#00D4C8)"></div></div>
+          <div class="goal-meta">
+            <span class="goal-cur">R$ 5.700</span>
+            <span class="goal-max">R$ 15.000</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="fab">+</div>
+
+  <div class="bottom-nav">
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="nav-label">Hoje</div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="nav-label">Hábitos</div></div>
+    <div class="nav-item active"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div class="nav-label">Finanças</div><div class="nav-active-dot"></div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="nav-label">Agenda</div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nav-label">Perfil</div></div>
+  </div>
+</div>
+</body>
+</html>

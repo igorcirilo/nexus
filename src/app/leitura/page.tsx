@@ -1,11 +1,20 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
+import LeituraHub from '@/components/leitura/LeituraHub'
 import FileImportModal from '@/components/FileImportModal'
-import { supabase, getBooks, getBookProgress, saveBook } from '@/lib/supabase'
-import type { Book, BookProgress, FileImportResult } from '@/types'
+import { supabase, getBooks, getBookProgress, getBookHighlights, saveBook, getReadingSessionsThisWeek } from '@/lib/supabase'
+import type { Book, BookProgress, BookHighlight, FileImportResult } from '@/types'
+
+interface WeeklyStats {
+  days: Array<{ date: string; minutes: number }>
+  totalMinutes: number
+  daysWithReading: number
+  avgMinPerDay: number
+  pagesPerDay: number
+}
 
 function inferTitle(fileName: string) {
   return fileName.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim()
@@ -21,7 +30,7 @@ function buildToc(pages: Array<{ pageNumber: number; text: string }>) {
 
       const heading = lines.find(
         (line) =>
-          /^(cap[ií]tulo|chapter|parte|sec[cç][aã]o)\b/i.test(line) ||
+          /^(cap[íi]tulo|chapter|parte|sec[çc][ãa]o)\b/i.test(line) ||
           (line.length > 8 && line.length < 80 && line === line.toUpperCase())
       )
 
@@ -38,13 +47,40 @@ function buildToc(pages: Array<{ pageNumber: number; text: string }>) {
     .map((page) => ({ label: `Página ${page.pageNumber}`, page: page.pageNumber }))
 }
 
+const COVER_GRADS = [
+  'linear-gradient(135deg, #1a0533 0%, #3d0f7a 50%, #1a0533 100%)',
+  'linear-gradient(135deg, #0d2818 0%, #1a4a2a 100%)',
+  'linear-gradient(135deg, #1a0d2e 0%, #3a1a5a 100%)',
+  'linear-gradient(135deg, #1a1000 0%, #3a2800 100%)',
+  'linear-gradient(135deg, #001a1a 0%, #003a3a 100%)',
+  'linear-gradient(135deg, #1a0010 0%, #3a0030 100%)',
+]
+
 export default function LeituraPage() {
+  const router = useRouter()
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [showImport, setShowImport] = useState(false)
+  const [showBiblioteca, setShowBiblioteca] = useState(false)
   const [toast, setToast] = useState('')
   const [books, setBooks] = useState<Book[]>([])
   const [progressMap, setProgressMap] = useState<Record<string, BookProgress | null>>({})
+  const [highlights, setHighlights] = useState<BookHighlight[]>([])
+  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>(() => {
+    const now         = new Date()
+    const dayOfWeek   = now.getDay()
+    const daysFromMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+    const monday      = new Date(now)
+    monday.setDate(now.getDate() - daysFromMon)
+    return {
+      days: Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(monday)
+        d.setDate(monday.getDate() + i)
+        return { date: d.toISOString().split('T')[0], minutes: 0 }
+      }),
+      totalMinutes: 0, daysWithReading: 0, avgMinPerDay: 0, pagesPerDay: 0,
+    }
+  })
 
   function showToast(message: string) {
     setToast(message)
@@ -58,37 +94,69 @@ export default function LeituraPage() {
     const pairs = await Promise.all(
       nextBooks.map(async (book) => [book.id, await getBookProgress(book.id, uid)] as const)
     )
+    const pm = Object.fromEntries(pairs)
+    setProgressMap(pm)
 
-    setProgressMap(Object.fromEntries(pairs))
+    // Fetch highlights for the "current" book (highest in-progress).
+    const current = nextBooks
+      .filter(b => { const p = pm[b.id]; return p && p.progress_pct > 0 && p.progress_pct < 100 })
+      .sort((a, b) => (pm[b.id]?.progress_pct ?? 0) - (pm[a.id]?.progress_pct ?? 0))[0]
+      ?? nextBooks.find(b => (pm[b.id]?.progress_pct ?? 0) === 0)
+
+    if (current) {
+      const hl = await getBookHighlights(current.id, uid) as BookHighlight[]
+      setHighlights(hl ?? [])
+    } else {
+      setHighlights([])
+    }
+
+    const sessions = await getReadingSessionsThisWeek(uid)
+
+    const now2        = new Date()
+    const dow2        = now2.getDay()
+    const dfm2        = dow2 === 0 ? 6 : dow2 - 1
+    const monday2     = new Date(now2)
+    monday2.setDate(now2.getDate() - dfm2)
+
+    const weekDays = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday2)
+      d.setDate(monday2.getDate() + i)
+      return d.toISOString().split('T')[0]
+    })
+
+    const minByDate:   Record<string, number> = {}
+    const pagesByDate: Record<string, number> = {}
+    sessions.forEach(s => {
+      minByDate[s.date]   = (minByDate[s.date]   ?? 0) + s.duration_minutes
+      pagesByDate[s.date] = (pagesByDate[s.date] ?? 0) + s.pages_read
+    })
+
+    const wDays           = weekDays.map(date => ({ date, minutes: minByDate[date] ?? 0 }))
+    const totalMinutes    = wDays.reduce((sum, d) => sum + d.minutes, 0)
+    const daysWithReading = wDays.filter(d => d.minutes > 0).length
+    const avgMinPerDay    = daysWithReading > 0 ? Math.round(totalMinutes / daysWithReading) : 0
+    const totalPages      = Object.values(pagesByDate).reduce((sum, p) => sum + p, 0)
+    const daysWPages      = Object.values(pagesByDate).filter(p => p > 0).length
+    const pagesPerDay     = daysWPages > 0 ? Math.round(totalPages / daysWPages) : 0
+
+    setWeeklyStats({ days: wDays, totalMinutes, daysWithReading, avgMinPerDay, pagesPerDay })
   }
 
   useEffect(() => {
     let active = true
 
     async function bootstrap() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-
-      if (!user) {
-        window.location.href = '/auth'
-        return
-      }
-
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { window.location.href = '/auth'; return }
       if (!active) return
-
       setUserId(user.id)
       await loadData(user.id)
-
       if (!active) return
       setLoading(false)
     }
 
     bootstrap()
-
-    return () => {
-      active = false
-    }
+    return () => { active = false }
   }, [])
 
   async function handleImport(result: FileImportResult) {
@@ -111,10 +179,7 @@ export default function LeituraPage() {
       },
     })
 
-    if (error) {
-      showToast('Erro ao importar ebook.')
-      return
-    }
+    if (error) { showToast('Erro ao importar ebook.'); return }
 
     await loadData(userId)
     setShowImport(false)
@@ -123,230 +188,160 @@ export default function LeituraPage() {
 
   const stats = useMemo(() => {
     const total = books.length
-    const inProgress = books.filter((book) => {
-      const pct = progressMap[book.id]?.progress_pct ?? 0
-      return pct > 0 && pct < 100
-    }).length
-    const completed = books.filter((book) => (progressMap[book.id]?.progress_pct ?? 0) >= 100).length
-
+    const inProgress = books.filter(b => { const p = progressMap[b.id]?.progress_pct ?? 0; return p > 0 && p < 100 }).length
+    const completed = books.filter(b => (progressMap[b.id]?.progress_pct ?? 0) >= 100).length
     return { total, inProgress, completed }
   }, [books, progressMap])
 
+  const currentBook = useMemo(() => {
+    return books
+      .filter(b => { const p = progressMap[b.id]; return p && p.progress_pct > 0 && p.progress_pct < 100 })
+      .sort((a, b) => (progressMap[b.id]?.progress_pct ?? 0) - (progressMap[a.id]?.progress_pct ?? 0))[0]
+      ?? null
+  }, [books, progressMap])
+
+  const queue = useMemo(() =>
+    books.filter(b => (progressMap[b.id]?.progress_pct ?? 0) === 0),
+    [books, progressMap]
+  )
+
   if (loading) {
     return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'grid',
-          placeItems: 'center',
-          color: 'var(--text3)',
-        }}
-      >
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: 'var(--text3)' }}>
         a carregar…
       </div>
     )
   }
 
   return (
-    <main style={{ minHeight: '100vh', paddingBottom: 100 }}>
+    <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
       {toast && (
-        <div
-          style={{
-            position: 'fixed',
-            bottom: 88,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 200,
-            background: 'var(--bg2)',
-            border: '0.5px solid rgba(30,203,180,.35)',
-            borderRadius: 12,
-            padding: '10px 16px',
-            fontSize: 13,
-            color: 'var(--teal)',
-          }}
-        >
+        <div style={{
+          position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 200, background: '#0D0E20', border: '1px solid rgba(0,200,150,0.25)',
+          borderRadius: 12, padding: '10px 16px', fontSize: 13, color: '#00C896',
+          fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
+        }}>
           ✓ {toast}
         </div>
       )}
 
-      <div style={{ padding: '28px 20px 0' }}>
-        <h1
-          style={{
-            fontFamily: 'Syne, sans-serif',
-            fontWeight: 700,
-            fontSize: 22,
-            marginBottom: 4,
-          }}
+      <LeituraHub
+        currentBook={currentBook}
+        currentProgress={currentBook ? (progressMap[currentBook.id] ?? null) : null}
+        highlights={highlights}
+        stats={stats}
+        queue={queue}
+        weeklyStats={weeklyStats}
+        onOpenBook={(id) => router.push(`/leitura/${id}`)}
+        onAdd={() => setShowImport(true)}
+        onLibrary={() => setShowBiblioteca(true)}
+        onHighlightClick={(bookId, page) => router.push(`/leitura/${bookId}?page=${page}`)}
+      />
+      <Nav />
+
+      {showBiblioteca && (
+        <div
+          style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'flex-end' }}
+          onClick={e => e.target === e.currentTarget && setShowBiblioteca(false)}
         >
-          Leitura
-        </h1>
-        <p style={{ fontSize: 12, color: 'var(--text3)' }}>
-          Biblioteca pessoal com reader, progresso, notas, destaques e marcadores.
-        </p>
-      </div>
-
-      <div
-        style={{
-          padding: '14px 20px 0',
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3,1fr)',
-          gap: 10,
-        }}
-      >
-        {[
-          { label: 'Livros', value: stats.total, color: 'var(--gold)' },
-          { label: 'Em leitura', value: stats.inProgress, color: 'var(--teal)' },
-          { label: 'Concluídos', value: stats.completed, color: 'var(--text2)' },
-        ].map((item) => (
-          <div
-            key={item.label}
-            style={{
-              background: 'var(--bg2)',
-              border: '0.5px solid var(--border)',
-              borderRadius: 16,
-              padding: 14,
-            }}
-          >
-            <div style={{ fontSize: 11, color: 'var(--text3)' }}>{item.label}</div>
-            <div
-              style={{
-                fontFamily: 'Syne, sans-serif',
-                fontWeight: 700,
-                fontSize: 22,
-                marginTop: 6,
-                color: item.color,
-              }}
-            >
-              {item.value}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ padding: '14px 20px 0' }}>
-        <button
-          onClick={() => setShowImport(true)}
-          style={{
-            width: '100%',
-            border: 'none',
-            borderRadius: 14,
-            padding: '14px 16px',
-            background: 'var(--gold)',
-            color: 'var(--bg0)',
-            fontFamily: 'Syne, sans-serif',
-            fontWeight: 700,
-            cursor: 'pointer',
-          }}
-        >
-          Importar ebook PDF
-        </button>
-      </div>
-
-      <section style={{ padding: '14px 20px 0', display: 'grid', gap: 12 }}>
-        {books.length === 0 ? (
-          <div
-            style={{
-              background: 'var(--bg2)',
-              border: '0.5px solid var(--border)',
-              borderRadius: 16,
-              padding: 16,
-              color: 'var(--text2)',
-              fontSize: 13,
-            }}
-          >
-            Ainda não tens ebooks na biblioteca.
-          </div>
-        ) : (
-          books.map((book) => {
-            const progress = progressMap[book.id]
-            const pct = Math.round(progress?.progress_pct ?? 0)
-            const currentPage = progress?.current_page ?? 1
-
-            return (
-              <Link
-                key={book.id}
-                href={`/leitura/${book.id}`}
-                style={{
-                  textDecoration: 'none',
-                  color: 'inherit',
-                  background: 'var(--bg2)',
-                  border: '0.5px solid var(--border)',
-                  borderRadius: 18,
-                  padding: 14,
-                  display: 'grid',
-                  gridTemplateColumns: '56px 1fr',
-                  gap: 12,
-                }}
-              >
-                <div
+          <div style={{
+            width:'100%', maxWidth:480, margin:'0 auto',
+            background:'#07070F', borderRadius:'20px 20px 0 0',
+            borderTop:'1px solid rgba(255,255,255,0.08)',
+            display:'flex', flexDirection:'column', maxHeight:'85vh',
+            fontFamily:'Inter, sans-serif',
+          }}>
+            <div style={{ padding:'20px 20px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+              <div>
+                <div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>Biblioteca</div>
+                <div style={{ fontSize:12, color:'rgba(255,255,255,0.35)', marginTop:2 }}>
+                  {books.length} livro{books.length !== 1 ? 's' : ''}
+                </div>
+              </div>
+              <div style={{ display:'flex', gap:8 }}>
+                <button
+                  onClick={() => { setShowBiblioteca(false); setShowImport(true) }}
                   style={{
-                    background:
-                      'linear-gradient(180deg, rgba(232,168,56,.18), rgba(30,203,180,.14))',
-                    border: '0.5px solid rgba(255,255,255,.08)',
-                    borderRadius: 14,
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontFamily: 'Syne, sans-serif',
-                    fontWeight: 800,
-                    fontSize: 22,
-                    color: 'var(--gold)',
-                    minHeight: 74,
+                    padding:'8px 14px', borderRadius:10, border:'none', cursor:'pointer',
+                    background:'linear-gradient(135deg, #F5C842, #E07B2A)', color:'#07070F',
+                    fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:12,
                   }}
                 >
-                  {book.cover_label ?? book.title.slice(0, 1).toUpperCase()}
+                  + Importar
+                </button>
+                <button
+                  onClick={() => setShowBiblioteca(false)}
+                  style={{ width:32, height:32, borderRadius:9, background:'rgba(255,255,255,0.07)', border:'none', cursor:'pointer', fontSize:18, color:'rgba(255,255,255,0.6)' }}
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div style={{ overflowY:'auto', flex:1, padding:'12px 20px 24px', display:'flex', flexDirection:'column', gap:10 }}>
+              {books.length === 0 ? (
+                <div style={{ padding:'32px 0', textAlign:'center' }}>
+                  <div style={{ fontSize:13, color:'rgba(255,255,255,0.3)', marginBottom:10 }}>Ainda não tens ebooks na biblioteca.</div>
+                  <button
+                    onClick={() => { setShowBiblioteca(false); setShowImport(true) }}
+                    style={{ background:'none', border:'1px solid rgba(245,200,66,0.3)', borderRadius:10, padding:'9px 16px', color:'#F5C842', fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:13, cursor:'pointer' }}
+                  >
+                    Importar primeiro ebook
+                  </button>
                 </div>
+              ) : (
+                books.map((book, idx) => {
+                  const progress = progressMap[book.id]
+                  const pct = Math.round(progress?.progress_pct ?? 0)
+                  const curPage = progress?.current_page ?? 1
+                  const grad = COVER_GRADS[idx % COVER_GRADS.length]
+                  const isActive = pct > 0 && pct < 100
 
-                <div>
-                  <div
-                    style={{
-                      fontFamily: 'Syne, sans-serif',
-                      fontWeight: 700,
-                      fontSize: 15,
-                    }}
-                  >
-                    {book.title}
-                  </div>
-
-                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
-                    {book.source_file_name ?? 'PDF importado'}
-                  </div>
-
-                  <div
-                    style={{
-                      marginTop: 10,
-                      height: 8,
-                      background: 'var(--bg1)',
-                      borderRadius: 999,
-                      overflow: 'hidden',
-                    }}
-                  >
+                  return (
                     <div
+                      key={book.id}
+                      onClick={() => { setShowBiblioteca(false); router.push(`/leitura/${book.id}`) }}
                       style={{
-                        width: `${pct}%`,
-                        height: '100%',
-                        background: 'var(--gold)',
+                        display:'flex', gap:14, alignItems:'flex-start',
+                        background:'rgba(255,255,255,0.03)', border:`1px solid ${isActive ? 'rgba(245,200,66,0.15)' : 'rgba(255,255,255,0.07)'}`,
+                        borderRadius:16, padding:14, cursor:'pointer',
                       }}
-                    />
-                  </div>
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      marginTop: 6,
-                      fontSize: 11,
-                      color: 'var(--text3)',
-                    }}
-                  >
-                    <span>{pct}% lido</span>
-                    <span>Página {currentPage}</span>
-                  </div>
-                </div>
-              </Link>
-            )
-          })
-        )}
-      </section>
+                    >
+                      <div style={{
+                        width:52, height:70, borderRadius:8, flexShrink:0,
+                        background:grad, display:'flex', alignItems:'center', justifyContent:'center',
+                        color:'rgba(255,255,255,0.9)', fontWeight:900, fontSize:20,
+                        boxShadow:'0 4px 14px rgba(0,0,0,0.4)',
+                      }}>
+                        {(book.cover_label ?? book.title.charAt(0)).toUpperCase()}
+                      </div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:15, fontWeight:700, color:'#fff', marginBottom:3, lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                          {book.title}
+                        </div>
+                        <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginBottom:10 }}>
+                          {book.source_file_name ?? 'PDF importado'}
+                        </div>
+                        <div style={{ height:5, background:'rgba(255,255,255,0.07)', borderRadius:5, overflow:'hidden', marginBottom:5 }}>
+                          <div style={{
+                            height:'100%', borderRadius:5, width:`${pct}%`,
+                            background: pct >= 100 ? '#00C896' : 'linear-gradient(90deg, #F5C842, #E07B2A)',
+                          }} />
+                        </div>
+                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'rgba(255,255,255,0.35)' }}>
+                          <span>{pct >= 100 ? '✓ Concluído' : `${pct}% lido`}</span>
+                          <span>Página {curPage}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <FileImportModal
         open={showImport}
@@ -356,8 +351,6 @@ export default function LeituraPage() {
         onConfirm={handleImport}
         confirmLabel="Guardar ebook"
       />
-
-      <Nav />
     </main>
   )
 }

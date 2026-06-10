@@ -7,12 +7,13 @@ import {
   Tooltip, ResponsiveContainer,
 } from 'recharts'
 import Nav from '@/components/Nav'
+import ProgressoHub from '@/components/progresso/ProgressoHub'
 import { supabase, getProfile, getUserBadges, getWeeklyStats } from '@/lib/supabase'
 import { xpForLevel, AREA_META, TITLES } from '@/types'
 import { format, subDays } from 'date-fns'
 import type { Profile, UserBadge } from '@/types'
 
-type AppTab  = 'evolucao' | 'stats'
+type AppTab  = 'resumo' | 'evolucao' | 'dashboard'
 type HeatVal = 'none' | 'partial' | 'full'
 
 const DAYS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
@@ -34,7 +35,7 @@ type AreaProgress = {
 }
 
 export default function ProgressoPage() {
-  const [tab,         setTab]         = useState<AppTab>('evolucao')
+  const [tab,         setTab]         = useState<AppTab>('resumo')
   const [profile,     setProfile]     = useState<Profile | null>(null)
   const [badges,      setBadges]      = useState<UserBadge[]>([])
   const [areas,       setAreas]       = useState<AreaProgress[]>([])
@@ -196,6 +197,23 @@ export default function ProgressoPage() {
   const next  = xpForLevel(level)
   const pct   = Math.min(100, Math.round(((xp-prev)/(next-prev))*100))
 
+  if (tab === 'resumo') {
+    return (
+      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+        <ProgressoHub
+          profile={profile}
+          areas={areas}
+          badges={badges}
+          earnedKeys={earned}
+          consistency={stats.consistency}
+          xpData={xpData.map(d => ({ day: d.day, xp: d.xp }))}
+          onNavigate={setTab}
+        />
+        <Nav />
+      </main>
+    )
+  }
+
   function streakProg(key:string) {
     const s = profile!.streak_current
     if (key==='streak_7')  return { cur:Math.min(s,7),  max:7  }
@@ -206,24 +224,36 @@ export default function ProgressoPage() {
   }
 
   return (
-    <main style={{paddingBottom:100,minHeight:'100vh'}}>
+    <main style={{paddingBottom:100,minHeight:'100vh',background:'#07070F',fontFamily:'Inter, sans-serif'}}>
 
       {/* ── Header + tabs ──────────────────────────────────────────────── */}
       <div style={{padding:'28px 20px 0'}}>
-        <h1 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:22,marginBottom:4,lineHeight:1.2}}>
+        <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:4}}>
+          <button onClick={()=>setTab('resumo')} style={{
+            background:'none',border:'none',cursor:'pointer',color:'rgba(255,255,255,0.4)',
+            display:'flex',alignItems:'center',gap:4,fontSize:13,padding:'4px 0',
+            fontFamily:'Inter, sans-serif',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Resumo
+          </button>
+        </div>
+        <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:24,marginBottom:4,lineHeight:1.2,color:'#fff'}}>
           Progresso
         </h1>
-        <p style={{fontSize:12,color:'var(--text3)',marginBottom:16,lineHeight:1.4}}>
+        <p style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:16,lineHeight:1.4}}>
           Evolução semanal, consistência e comparação contigo mesmo.
         </p>
-        <div style={{display:'flex',background:'var(--bg2)',borderRadius:14,padding:4,gap:4,border:'0.5px solid var(--border)'}}>
-          {([{k:'evolucao',l:'Evolução',i:'⚡'},{k:'stats',l:'Dashboard',i:'📊'}] as const).map(({k,l,i}) => (
+        <div style={{display:'flex',background:'rgba(255,255,255,0.05)',borderRadius:14,padding:4,gap:4,border:'1px solid rgba(255,255,255,0.07)'}}>
+          {([{k:'evolucao',l:'Resumo',i:'⚡'},{k:'dashboard',l:'Dashboard',i:'📊'}] as const).map(({k,l,i}) => (
             <button key={k} onClick={()=>setTab(k)} style={{
               flex:1,padding:'11px 8px',borderRadius:10,border:'none',cursor:'pointer',
               display:'flex',alignItems:'center',justifyContent:'center',gap:7,
-              background:tab===k?'var(--bg1)':'transparent',
-              color:tab===k?'var(--gold)':'var(--text3)',
-              fontFamily:'Syne, sans-serif',fontWeight:tab===k?600:400,fontSize:14,
+              background:tab===k?'rgba(255,255,255,0.08)':'transparent',
+              color:tab===k?'#F5C842':'rgba(255,255,255,0.35)',
+              fontFamily:'Inter, sans-serif',fontWeight:tab===k?600:400,fontSize:14,
               transition:'all .15s',boxShadow:tab===k?'0 1px 3px rgba(0,0,0,.3)':'none',
             }}>
               <span style={{fontSize:16}}>{i}</span>{l}
@@ -240,40 +270,40 @@ export default function ProgressoPage() {
           {/* Level card */}
           <div style={{
             margin:'16px 20px 0',padding:'22px 20px',borderRadius:20,
-            background:'var(--bg2)',border:'0.5px solid rgba(232,168,56,.25)',
+            background:'rgba(255,255,255,0.04)',border:'1px solid rgba(245,200,66,0.2)',
             position:'relative',overflow:'hidden',
           }}>
             <div style={{position:'absolute',top:-40,right:-40,width:180,height:180,
-              borderRadius:'50%',background:'rgba(232,168,56,.06)',pointerEvents:'none'}}/>
+              borderRadius:'50%',background:'rgba(245,200,66,0.05)',pointerEvents:'none'}}/>
             <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:16}}>
               <div>
                 <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
                   <div style={{
-                    background:'rgba(232,168,56,.12)',border:'0.5px solid rgba(232,168,56,.3)',
-                    borderRadius:10,padding:'4px 12px',fontFamily:'Syne, sans-serif',
-                    fontWeight:800,fontSize:13,color:'var(--gold)',letterSpacing:'.5px',lineHeight:1.4,
+                    background:'rgba(245,200,66,0.12)',border:'1px solid rgba(245,200,66,0.25)',
+                    borderRadius:10,padding:'4px 12px',fontFamily:'Inter, sans-serif',
+                    fontWeight:800,fontSize:13,color:'#F5C842',letterSpacing:'.5px',lineHeight:1.4,
                   }}>
                     NÍV. {level}
                   </div>
-                  <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18,color:'var(--text1)',lineHeight:1.2}}>
+                  <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:18,color:'#fff',lineHeight:1.2}}>
                     {profile.title}
                   </div>
                 </div>
-                <div style={{fontSize:12,color:'var(--text3)',lineHeight:1.4}}>{TITLES[profile.title]??''}</div>
+                <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',lineHeight:1.4}}>{TITLES[profile.title]??''}</div>
               </div>
               <div style={{textAlign:'right'}}>
-                <div style={{fontFamily:'Syne, sans-serif',fontWeight:800,fontSize:30,color:'var(--text1)',lineHeight:1}}>
+                <div style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:30,color:'#fff',lineHeight:1}}>
                   {xp.toLocaleString('pt-PT')}
                 </div>
-                <div style={{fontSize:11,color:'var(--text3)',marginTop:4}}>XP total</div>
+                <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',marginTop:4}}>XP total</div>
               </div>
             </div>
-            <div style={{background:'var(--bg3)',borderRadius:100,height:8,marginBottom:6}}>
+            <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:8,marginBottom:6}}>
               <div style={{height:'100%',borderRadius:100,
-                background:'linear-gradient(90deg,var(--gold),#F0C060)',
+                background:'linear-gradient(90deg,#F5C842,#F0C060)',
                 width:`${pct}%`,transition:'width .8s ease'}}/>
             </div>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'var(--text3)'}}>
+            <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'rgba(255,255,255,0.4)'}}>
               <span>{pct}% para Nível {level+1}</span>
               <span>{(next-xp).toLocaleString('pt-PT')} XP em falta</span>
             </div>
@@ -282,23 +312,23 @@ export default function ProgressoPage() {
           {/* Streak pills */}
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,padding:'12px 20px 0'}}>
             {([
-              {l:'Streak',     v:`${profile.streak_current}`,u:'dias',c:'var(--gold)',   i:'🔥',flame:true},
-              {l:'Recorde',    v:`${profile.streak_best}`,   u:'dias',c:'var(--accent)', i:'🏅',flame:false},
-              {l:'Conquistas', v:`${earned.size}/${ALL_BADGES.length}`,u:'',c:'var(--teal)',i:'✨',flame:false},
+              {l:'Streak',     v:`${profile.streak_current}`,u:'dias',c:'#F5C842',  i:'🔥',flame:true},
+              {l:'Recorde',    v:`${profile.streak_best}`,   u:'dias',c:'#9D5CF5',  i:'🏅',flame:false},
+              {l:'Conquistas', v:`${earned.size}/${ALL_BADGES.length}`,u:'',c:'#00C896',i:'✨',flame:false},
             ] as const).map(({l,v,u,c,i,flame})=>(
               <div key={l} style={{
-                background:'var(--bg2)',border:'0.5px solid var(--border)',
+                background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',
                 borderRadius:14,padding:'14px 12px',textAlign:'center',
               }}>
                 <div style={{
                   fontSize:20,marginBottom:6,display:'inline-block',
                   ...(flame?{animation:'flame 1.8s ease-in-out infinite',transformOrigin:'bottom center'}:{}),
                 }}>{i}</div>
-                <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:20,color:c,lineHeight:1}}>
+                <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:20,color:c,lineHeight:1}}>
                   {v}
                 </div>
-                {u && <div style={{fontSize:10,color:'var(--text3)',marginTop:2}}>{u}</div>}
-                <div style={{fontSize:10,color:'var(--text3)',marginTop:4}}>{l}</div>
+                {u && <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:2}}>{u}</div>}
+                <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:4}}>{l}</div>
               </div>
             ))}
           </div>
@@ -306,17 +336,17 @@ export default function ProgressoPage() {
           {/* Radar chart — Roda da Vida */}
           <div style={{padding:'20px 20px 0'}}>
             <div style={{
-              fontFamily:'Syne, sans-serif',fontSize:12,fontWeight:600,
-              color:'var(--text3)',textTransform:'uppercase',letterSpacing:1,marginBottom:10,
+              fontFamily:'Inter, sans-serif',fontSize:11,fontWeight:700,
+              color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10,
             }}>
               Equilíbrio de vida
             </div>
-            <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:16,padding:'16px 8px'}}>
+            <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:'16px 8px'}}>
               <div style={{height:220,overflow:'hidden',position:'relative'}}>
                 <ResponsiveContainer width="100%" height={220}>
                   <RadarChart data={areas.map(a=>({subject:a.label.split(' ')[0],value:a.pct,fullMark:100}))}>
                     <PolarGrid stroke="rgba(255,255,255,.08)"/>
-                    <PolarAngleAxis dataKey="subject" tick={{fill:'#9BA0B0',fontSize:11}}/>
+                    <PolarAngleAxis dataKey="subject" tick={{fill:'rgba(255,255,255,0.4)',fontSize:11}}/>
                     <Radar name="Progresso" dataKey="value"
                       stroke="#7F77DD" fill="#7F77DD" fillOpacity={0.25} strokeWidth={2}/>
                   </RadarChart>
@@ -328,37 +358,37 @@ export default function ProgressoPage() {
           {/* Progresso por área */}
           <div style={{padding:'16px 20px 0'}}>
             <div style={{
-              fontFamily:'Syne, sans-serif',fontSize:12,fontWeight:600,
-              color:'var(--text3)',textTransform:'uppercase',letterSpacing:1,marginBottom:10,
+              fontFamily:'Inter, sans-serif',fontSize:11,fontWeight:700,
+              color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10,
             }}>
               Progresso por Área — 30 dias
             </div>
             <div style={{display:'flex',flexDirection:'column',gap:8}}>
               {areas.map(a=>(
                 <div key={a.key} style={{
-                  background:'var(--bg2)',border:'0.5px solid var(--border)',
+                  background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',
                   borderRadius:14,padding:'13px 16px',
                 }}>
                   <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
                     <div style={{display:'flex',alignItems:'center',gap:10}}>
                       <span style={{fontSize:18}}>{a.icon}</span>
-                      <span style={{fontSize:13,fontWeight:500,color:'var(--text1)'}}>{a.label}</span>
+                      <span style={{fontSize:13,fontWeight:500,color:'#fff'}}>{a.label}</span>
                     </div>
                     <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <span style={{fontSize:11,color:'var(--text3)'}}>{a.done}/{a.total>0?a.total:'—'}</span>
+                      <span style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>{a.done}/{a.total>0?a.total:'—'}</span>
                       <span style={{
-                        fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,lineHeight:1,
-                        color:a.pct>=70?'var(--teal)':a.pct>=40?'var(--gold)':'var(--text3)',
+                        fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,lineHeight:1,
+                        color:a.pct>=70?'#00C896':a.pct>=40?'#F5C842':'rgba(255,255,255,0.4)',
                         minWidth:36,textAlign:'right',
                       }}>
                         {a.total>0?`${a.pct}%`:'—'}
                       </span>
                     </div>
                   </div>
-                  <div style={{background:'var(--bg3)',borderRadius:100,height:5}}>
+                  <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:5}}>
                     <div style={{
                       height:'100%',borderRadius:100,width:`${a.pct}%`,
-                      background:a.pct>=70?'var(--teal)':a.pct>=40?'var(--gold)':a.color,
+                      background:a.pct>=70?'#00C896':a.pct>=40?'#F5C842':a.color,
                       transition:'width .8s ease',
                     }}/>
                   </div>
@@ -370,8 +400,8 @@ export default function ProgressoPage() {
           {/* Conquistas */}
           <div style={{padding:'20px 20px 0'}}>
             <div style={{
-              fontFamily:'Syne, sans-serif',fontSize:12,fontWeight:600,
-              color:'var(--text3)',textTransform:'uppercase',letterSpacing:1,marginBottom:10,
+              fontFamily:'Inter, sans-serif',fontSize:11,fontWeight:700,
+              color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10,
             }}>
               Conquistas
             </div>
@@ -382,31 +412,31 @@ export default function ProgressoPage() {
                 const sp  = streakProg(b.key)
                 return (
                   <button key={b.key} onClick={()=>setActiveBadge(isA?null:b.key)} style={{
-                    background:isA?(isE?'rgba(232,168,56,.08)':'var(--bg3)'):'var(--bg2)',
-                    border:isA?(isE?'1px solid rgba(232,168,56,.3)':'0.5px solid var(--accent)'):'0.5px solid var(--border)',
+                    background:isA?(isE?'rgba(245,200,66,0.08)':'rgba(255,255,255,0.08)'):'rgba(255,255,255,0.04)',
+                    border:isA?(isE?'1px solid rgba(245,200,66,0.3)':'1px solid rgba(157,92,245,0.4)'):'1px solid rgba(255,255,255,0.07)',
                     borderRadius:14,padding:'14px 8px',cursor:'pointer',
                     display:'flex',flexDirection:'column',alignItems:'center',gap:6,
                     filter:isE?'none':'grayscale(.8)',opacity:isE?1:0.55,
                     transform:isA?'scale(1.03)':'scale(1)',transition:'all .15s',
                   }}>
                     <span style={{fontSize:24}}>{b.icon}</span>
-                    <span style={{fontSize:10,color:isE?'var(--text1)':'var(--text3)',textAlign:'center',lineHeight:1.3}}>
+                    <span style={{fontSize:10,color:isE?'#fff':'rgba(255,255,255,0.4)',textAlign:'center',lineHeight:1.3}}>
                       {b.name}
                     </span>
-                    {isE && <span style={{fontSize:9,color:'var(--teal)'}}>+{b.xp} XP</span>}
+                    {isE && <span style={{fontSize:9,color:'#00C896'}}>+{b.xp} XP</span>}
                     {isA && !isE && sp && (
                       <div style={{width:'100%',marginTop:2}}>
-                        <div style={{background:'var(--bg3)',borderRadius:100,height:3}}>
-                          <div style={{height:'100%',borderRadius:100,background:'var(--gold)',
+                        <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:3}}>
+                          <div style={{height:'100%',borderRadius:100,background:'#F5C842',
                             width:`${Math.round(sp.cur/sp.max*100)}%`}}/>
                         </div>
-                        <div style={{fontSize:9,color:'var(--gold)',textAlign:'center',marginTop:3}}>
+                        <div style={{fontSize:9,color:'#F5C842',textAlign:'center',marginTop:3}}>
                           {sp.cur}/{sp.max}
                         </div>
                       </div>
                     )}
-                    {isA && isE  && <div style={{fontSize:9,color:'var(--teal)',textAlign:'center'}}>Conquistado ✓</div>}
-                    {isA && !isE && !sp && <div style={{fontSize:9,color:'var(--text3)',textAlign:'center',lineHeight:1.3}}>{b.desc}</div>}
+                    {isA && isE  && <div style={{fontSize:9,color:'#00C896',textAlign:'center'}}>Conquistado ✓</div>}
+                    {isA && !isE && !sp && <div style={{fontSize:9,color:'rgba(255,255,255,0.4)',textAlign:'center',lineHeight:1.3}}>{b.desc}</div>}
                   </button>
                 )
               })}
@@ -414,8 +444,8 @@ export default function ProgressoPage() {
           </div>
 
           {/* Percurso de títulos */}
-          <div style={{margin:'20px 20px 0',padding:'16px',borderRadius:14,background:'var(--bg2)',border:'0.5px solid var(--border)'}}>
-            <div style={{fontSize:12,color:'var(--text3)',marginBottom:10}}>Percurso de Títulos</div>
+          <div style={{margin:'20px 20px 0',padding:'16px',borderRadius:14,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)'}}>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(255,255,255,0.3)',marginBottom:10}}>Percurso de Títulos</div>
             {[
               {t:'Recruta',     min:1,  max:2 },
               {t:'Consistente', min:3,  max:4 },
@@ -429,13 +459,13 @@ export default function ProgressoPage() {
               return (
                 <div key={t.t} style={{display:'flex',alignItems:'center',gap:10,padding:'5px 0'}}>
                   <div style={{width:8,height:8,borderRadius:'50%',flexShrink:0,
-                    background:isPast?'var(--teal)':isCur?'var(--gold)':'var(--bg3)'}}/>
-                  <div style={{flex:1,fontSize:13,color:isCur?'var(--text1)':'var(--text3)',fontWeight:isCur?600:400}}>
+                    background:isPast?'#00C896':isCur?'#F5C842':'rgba(255,255,255,0.08)'}}/>
+                  <div style={{flex:1,fontSize:13,color:isCur?'#fff':'rgba(255,255,255,0.4)',fontWeight:isCur?600:400}}>
                     {t.t}
                   </div>
-                  <div style={{fontSize:11,color:'var(--text3)'}}>Nív. {t.min}–{t.max}</div>
-                  {isCur  && <div style={{fontSize:10,color:'var(--gold)',fontFamily:'Syne, sans-serif'}}>← aqui</div>}
-                  {isPast && <div style={{fontSize:10,color:'var(--teal)'}}>✓</div>}
+                  <div style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>Nív. {t.min}–{t.max}</div>
+                  {isCur  && <div style={{fontSize:10,color:'#F5C842',fontFamily:'Inter, sans-serif'}}>← aqui</div>}
+                  {isPast && <div style={{fontSize:10,color:'#00C896'}}>✓</div>}
                 </div>
               )
             })}
@@ -446,16 +476,16 @@ export default function ProgressoPage() {
       {/* ══════════════════════════════════════════════════════════════════
           TAB DASHBOARD
       ══════════════════════════════════════════════════════════════════ */}
-      {tab==='stats' && (
+      {tab==='dashboard' && (
         <>
           {/* Header check-ins */}
           <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',padding:'16px 20px 0'}}>
-            <div style={{fontSize:12,color:'var(--text3)'}}>Esta semana</div>
+            <div style={{fontSize:12,color:'rgba(255,255,255,0.4)'}}>Esta semana</div>
             <div style={{textAlign:'right'}}>
-              <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18,color:'var(--gold)',lineHeight:1}}>
+              <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:18,color:'#F5C842',lineHeight:1}}>
                 {stats.checkinsToday}/3
               </div>
-              <div style={{fontSize:11,color:'var(--text3)'}}>check-ins hoje</div>
+              <div style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>check-ins hoje</div>
             </div>
           </div>
 
@@ -463,33 +493,33 @@ export default function ProgressoPage() {
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,padding:'10px 20px 0'}}>
             {[
               {
-                l:'Consistência', v:`${stats.consistency}%`, c:'var(--teal)',
+                l:'Consistência', v:`${stats.consistency}%`, c:'#00C896',
                 trend:`${stats.consistency>=stats.prevConsistency?'↑':'↓'} vs semana passada`,
                 up:stats.consistency>=stats.prevConsistency,
               },
               {
-                l:'XP esta semana', v:`${stats.xpWeek}`, c:'var(--gold)',
+                l:'XP esta semana', v:`${stats.xpWeek}`, c:'#F5C842',
                 trend:`${stats.xpTrend>=0?'↑ +':'↓ '}${Math.abs(stats.xpTrend)} vs ant.`,
                 up:stats.xpTrend>=0,
               },
               {
                 l:'Energia média',
-                v:stats.energy>0?`${stats.energy}/10`:'—', c:'var(--accent)',
+                v:stats.energy>0?`${stats.energy}/10`:'—', c:'#9D5CF5',
                 sub:stats.energy>=7?'Boa semana ⚡':stats.energy>0?'Recupera o sono':'Sem dados',
               },
               {
                 l:'Sono médio',
-                v:stats.sleep>0?`${stats.sleep}h`:'—', c:'var(--text1)',
+                v:stats.sleep>0?`${stats.sleep}h`:'—', c:'#fff',
                 sub:stats.sleep>=7?'Dentro do ideal':stats.sleep>0?'Abaixo do ideal':'Sem dados',
               },
             ].map(({l,v,c,trend,sub,up})=>(
-              <div key={l} style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:14,padding:14}}>
-                <div style={{fontSize:11,color:'var(--text3)',marginBottom:4}}>{l}</div>
-                <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:22,color:c,marginBottom:3,lineHeight:1}}>
+              <div key={l} style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:14}}>
+                <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',marginBottom:4}}>{l}</div>
+                <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:22,color:c,marginBottom:3,lineHeight:1}}>
                   {v}
                 </div>
-                {trend && <div style={{fontSize:11,color:up?'var(--teal)':'#E24B4A'}}>{trend}</div>}
-                {sub   && <div style={{fontSize:11,color:'var(--text3)'}}>{sub}</div>}
+                {trend && <div style={{fontSize:11,color:up?'#00C896':'#E24B4A'}}>{trend}</div>}
+                {sub   && <div style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>{sub}</div>}
               </div>
             ))}
           </div>
@@ -497,14 +527,14 @@ export default function ProgressoPage() {
           {/* Mentor */}
           <div style={{
             margin:'10px 20px 0',padding:'14px 16px',borderRadius:14,
-            background:'var(--bg2)',border:'0.5px solid rgba(30,203,180,.18)',
-            fontSize:13,color:'var(--text2)',lineHeight:1.6,
+            background:'rgba(255,255,255,0.04)',border:'1px solid rgba(0,200,150,0.15)',
+            fontSize:13,color:'rgba(255,255,255,0.7)',lineHeight:1.6,
           }}>
-            <span style={{color:'var(--teal)',fontWeight:500}}>Mentor: </span>
+            <span style={{color:'#00C896',fontWeight:500}}>Mentor: </span>
             {stats.consistency>=80
               ? `Consistência de ${stats.consistency}% — execução real.`
               : `${stats.consistency}% esta semana. Foca num hábito de cada vez.`}
-            {' '}<span style={{color:'var(--gold)'}}>
+            {' '}<span style={{color:'#F5C842'}}>
               Próxima conquista:{' '}
               {profile.streak_current<7
                 ? `streak de 7 dias — faltam ${7-profile.streak_current}`
@@ -518,11 +548,11 @@ export default function ProgressoPage() {
           <div style={{padding:'12px 20px 0'}}>
 
             {/* XP diário */}
-            <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:16,padding:'16px',marginBottom:12}}>
-              <div style={{fontSize:12,color:'var(--text3)',marginBottom:8}}>XP diário — hábitos + check-ins</div>
+            <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
+              <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:8}}>XP diário — hábitos + check-ins</div>
               <div style={{display:'flex',gap:14,marginBottom:10}}>
                 {([['#534AB7','Hábitos'],['#E8A838','Check-ins']] as [string,string][]).map(([c,l])=>(
-                  <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}>
+                  <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'rgba(255,255,255,0.4)'}}>
                     <div style={{width:10,height:10,borderRadius:2,background:c}}/>{l}
                   </div>
                 ))}
@@ -532,7 +562,7 @@ export default function ProgressoPage() {
                   <ResponsiveContainer width="100%" height={150}>
                     <BarChart data={xpData} barGap={2} barCategoryGap="30%">
                       <CartesianGrid vertical={false} stroke="rgba(255,255,255,.04)"/>
-                      <XAxis dataKey="day" tick={{fill:'#5A6070',fontSize:11}} axisLine={false} tickLine={false}/>
+                      <XAxis dataKey="day" tick={{fill:'rgba(255,255,255,0.3)',fontSize:11}} axisLine={false} tickLine={false}/>
                       <YAxis hide/>
                       <Tooltip contentStyle={TT}
                         formatter={(v:number,n:string)=>[v,n==='hab'?'Hábitos XP':'Check-in XP']}/>
@@ -545,11 +575,11 @@ export default function ProgressoPage() {
             </div>
 
             {/* Energia + Sono */}
-            <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:16,padding:'16px',marginBottom:12}}>
-              <div style={{fontSize:12,color:'var(--text3)',marginBottom:8}}>Energia e Sono — 7 dias</div>
+            <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
+              <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:8}}>Energia e Sono — 7 dias</div>
               <div style={{display:'flex',gap:14,marginBottom:10}}>
-                {([['var(--teal)','Energia'],['var(--accent)','Sono (h)']] as [string,string][]).map(([c,l])=>(
-                  <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text3)'}}>
+                {([['#00C896','Energia'],['#9D5CF5','Sono (h)']] as [string,string][]).map(([c,l])=>(
+                  <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'rgba(255,255,255,0.4)'}}>
                     <div style={{width:10,height:10,borderRadius:2,background:c}}/>{l}
                   </div>
                 ))}
@@ -559,30 +589,30 @@ export default function ProgressoPage() {
                   <ResponsiveContainer width="100%" height={130}>
                     <LineChart data={esData}>
                       <CartesianGrid vertical={false} stroke="rgba(255,255,255,.04)"/>
-                      <XAxis dataKey="day" tick={{fill:'#5A6070',fontSize:11}} axisLine={false} tickLine={false}/>
+                      <XAxis dataKey="day" tick={{fill:'rgba(255,255,255,0.3)',fontSize:11}} axisLine={false} tickLine={false}/>
                       <YAxis hide domain={[0,12]}/>
                       <Tooltip contentStyle={TT}/>
-                      <Line type="monotone" dataKey="energia" stroke="var(--teal)"
-                        strokeWidth={2} dot={{fill:'var(--teal)',r:3}} connectNulls/>
-                      <Line type="monotone" dataKey="sono"    stroke="var(--accent)"
-                        strokeWidth={2} dot={{fill:'var(--accent)',r:3}} connectNulls/>
+                      <Line type="monotone" dataKey="energia" stroke="#00C896"
+                        strokeWidth={2} dot={{fill:'#00C896',r:3}} connectNulls/>
+                      <Line type="monotone" dataKey="sono"    stroke="#9D5CF5"
+                        strokeWidth={2} dot={{fill:'#9D5CF5',r:3}} connectNulls/>
                     </LineChart>
                   </ResponsiveContainer>
                 )}
               </div>
             </div>
 
-            {/* Heatmap — verde=completo · roxo=parcial · escuro=sem registo */}
-            <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:16,padding:16,marginBottom:12}}>
-              <div style={{fontFamily:'Syne, sans-serif',fontSize:13,fontWeight:600,color:'var(--text1)',marginBottom:2}}>
+            {/* Heatmap */}
+            <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:16,marginBottom:12}}>
+              <div style={{fontFamily:'Inter, sans-serif',fontSize:13,fontWeight:700,color:'#fff',marginBottom:2}}>
                 Heatmap de Consistência
               </div>
-              <div style={{fontSize:11,color:'var(--text3)',marginBottom:10}}>
+              <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',marginBottom:10}}>
                 Verde = dia completo · Roxo = parcial · Escuro = sem registo
               </div>
               <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:4}}>
                 {['S','T','Q','Q','S','S','D'].map((d,i)=>(
-                  <div key={i} style={{fontSize:9,color:'var(--text3)',textAlign:'center'}}>{d}</div>
+                  <div key={i} style={{fontSize:9,color:'rgba(255,255,255,0.3)',textAlign:'center'}}>{d}</div>
                 ))}
               </div>
               <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4}}>
@@ -594,24 +624,24 @@ export default function ProgressoPage() {
                 {([['#1C2030','Sem registo'],['#534AB7','Parcial'],['#1ECBB4','Completo']] as [string,string][]).map(([c,l])=>(
                   <div key={l} style={{display:'flex',alignItems:'center',gap:3}}>
                     <div style={{width:10,height:10,borderRadius:2,background:c}}/>
-                    <span style={{fontSize:9,color:'var(--text3)'}}>{l}</span>
+                    <span style={{fontSize:9,color:'rgba(255,255,255,0.4)'}}>{l}</span>
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Resumo da semana */}
-            <div style={{background:'var(--bg2)',border:'0.5px solid var(--border)',borderRadius:14,padding:'14px 16px',marginBottom:12}}>
-              <div style={{fontSize:12,color:'var(--text3)',marginBottom:10}}>Resumo da semana</div>
+            <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'14px 16px',marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(255,255,255,0.3)',marginBottom:10}}>Resumo da semana</div>
               {[
-                {l:'Hábitos concluídos', v:`${stats.thisDone} de ${stats.thisTotal}`, c:stats.consistency>=70?'var(--teal)':'var(--gold)'},
-                {l:'XP de hábitos',      v:`${xpData.reduce((a,d)=>a+d.hab,0)} XP`,  c:'var(--accent)'},
-                {l:'XP de check-ins',    v:`${xpData.reduce((a,d)=>a+d.ci,0)} XP`,   c:'var(--gold)'},
-                {l:'Streak actual',      v:`${profile.streak_current} dias 🔥`,        c:'var(--gold)'},
+                {l:'Hábitos concluídos', v:`${stats.thisDone} de ${stats.thisTotal}`, c:stats.consistency>=70?'#00C896':'#F5C842'},
+                {l:'XP de hábitos',      v:`${xpData.reduce((a,d)=>a+d.hab,0)} XP`,  c:'#9D5CF5'},
+                {l:'XP de check-ins',    v:`${xpData.reduce((a,d)=>a+d.ci,0)} XP`,   c:'#F5C842'},
+                {l:'Streak actual',      v:`${profile.streak_current} dias 🔥`,        c:'#F5C842'},
               ].map(({l,v,c})=>(
                 <div key={l} style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:6}}>
-                  <span style={{color:'var(--text2)'}}>{l}</span>
-                  <span style={{color:c,fontFamily:'Syne, sans-serif',fontWeight:600,lineHeight:1}}>{v}</span>
+                  <span style={{color:'rgba(255,255,255,0.6)'}}>{l}</span>
+                  <span style={{color:c,fontFamily:'Inter, sans-serif',fontWeight:600,lineHeight:1}}>{v}</span>
                 </div>
               ))}
             </div>

@@ -2,10 +2,12 @@
 // src/app/perfil/page.tsx
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
-import { supabase, getProfile, updateFullProfile, getUserBadges } from '@/lib/supabase'
+import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { Profile, UserBadge } from '@/types'
+import PerfilHub from '@/components/perfil/PerfilHub'
 
+type AppTab = 'resumo' | 'editar'
 type Section = 'corpo' | 'metas' | 'objetivos' | 'xp'
 
 function SectionTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
@@ -71,9 +73,13 @@ const LOCKED_BADGES = [
 export default function PerfilPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [badges, setBadges] = useState<UserBadge[]>([])
+  const [journeyData, setJourneyData] = useState<{ trainingCount30d: number; readingPages30d: number } | undefined>(undefined)
+  const [tab, setTab] = useState<AppTab>('resumo')
   const [section, setSection] = useState<Section>('corpo')
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [email, setEmail] = useState('')
   const [form, setForm] = useState<Record<string, string | number>>({})
   const router = useRouter()
 
@@ -85,9 +91,16 @@ export default function PerfilPage() {
         return
       }
 
-      const [prof, userBadges] = await Promise.all([getProfile(user.id), getUserBadges(user.id)])
+      const [prof, userBadges, trainingCount, readingPages] = await Promise.all([
+        getProfile(user.id),
+        getUserBadges(user.id),
+        getTrainingCount30d(user.id),
+        getReadingPages30d(user.id),
+      ])
       setProfile(prof)
       setBadges((userBadges ?? []) as UserBadge[])
+      setJourneyData({ trainingCount30d: trainingCount, readingPages30d: readingPages })
+      setEmail(user.email ?? '')
 
       setForm({
         username: prof?.username ?? '',
@@ -110,6 +123,7 @@ export default function PerfilPage() {
         xp_weekly_goal: prof?.xp_weekly_goal ?? 500,
         completion_pct_goal: prof?.completion_pct_goal ?? 80,
       })
+      setLoading(false)
     }
 
     load()
@@ -143,6 +157,32 @@ export default function PerfilPage() {
 
   const earnedKeys = new Set(badges.map((b) => b.badge_key))
 
+  if (loading) {
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: 'var(--text3)' }}>
+        a carregar…
+      </div>
+    )
+  }
+
+  // ── Hub (tab resumo) ────────────────────────────────────────────────────────
+  if (tab === 'resumo') {
+    return (
+      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+        <PerfilHub
+          profile={profile!}
+          badges={badges}
+          email={email}
+          onEdit={(sec) => { setSection(sec ?? 'corpo'); setTab('editar') }}
+          onLogout={logout}
+          journeyData={journeyData}
+        />
+        <Nav />
+      </main>
+    )
+  }
+
+  // ── Editar perfil ───────────────────────────────────────────────────────────
   return (
     <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
       {saved && (
@@ -169,7 +209,20 @@ export default function PerfilPage() {
         </div>
       )}
 
-      <div style={{ padding: '28px 20px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '28px 20px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <button onClick={() => setTab('resumo')} style={{
+            background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)',
+            display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '4px 0',
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6"/>
+            </svg>
+            Resumo
+          </button>
+        </div>
+      </div>
+      <div style={{ padding: '0 20px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 2 }}>Perfil</h1>
           <p style={{ fontSize: 12, color: 'var(--text3)' }}>{form.username || 'Utilizador'}</p>

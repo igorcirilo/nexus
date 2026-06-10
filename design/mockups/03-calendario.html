@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS – Calendário</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #040408; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', sans-serif; }
+.screen { width: 428px; min-height: 926px; background: #07070F; border-radius: 52px; overflow: hidden; position: relative; box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 40px 120px rgba(0,0,0,0.9); }
+.status-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 28px 0; font-size: 12px; font-weight: 600; color: #fff; }
+.status-right { display: flex; gap: 6px; align-items: center; }
+.content { padding: 0 22px; padding-bottom: 100px; }
+
+/* Header */
+.page-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 0 4px; }
+.page-title { font-size: 28px; font-weight: 800; color: #fff; letter-spacing: -0.5px; }
+.header-sub { font-size: 13px; color: rgba(255,255,255,0.4); font-weight: 500; margin-top: 2px; }
+.header-right { display: flex; gap: 8px; }
+.icon-btn { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.6); }
+.icon-btn.solid { background: linear-gradient(135deg, #00D4C8, #00A89E); color: #04201E; border: none; }
+.section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 10px; margin-top: 20px; display: flex; justify-content: space-between; align-items: center; }
+.section-link { font-size: 11px; font-weight: 600; color: #00D4C8; letter-spacing: 0; text-transform: none; }
+
+/* Calendar card */
+.cal-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 22px; padding: 18px 18px 16px; margin-top: 16px; }
+.month-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.month-name { font-size: 17px; font-weight: 700; color: #fff; }
+.month-year { font-size: 17px; font-weight: 400; color: rgba(255,255,255,0.4); }
+.month-arrows { display: flex; gap: 6px; }
+.arrow-btn { width: 32px; height: 32px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); }
+
+.day-headers { display: grid; grid-template-columns: repeat(7, 1fr); margin-bottom: 6px; }
+.day-header { text-align: center; font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.28); padding: 4px 0; }
+.days-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.day { width: 100%; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; border-radius: 12px; font-size: 13px; font-weight: 500; color: rgba(255,255,255,0.55); position: relative; gap: 3px; }
+.day.other { color: rgba(255,255,255,0.14); }
+.day.today { background: rgba(0,212,200,0.1); color: #00D4C8; font-weight: 700; border: 1.5px solid rgba(0,212,200,0.3); }
+.day.selected { background: linear-gradient(135deg, #00D4C8, #00A89E); color: #04201E; font-weight: 800; box-shadow: 0 6px 16px rgba(0,212,200,0.25); }
+.day-dots { display: flex; gap: 2px; position: absolute; bottom: 5px; }
+.dd { width: 4px; height: 4px; border-radius: 50%; }
+.dd.gold { background: #F5C842; } .dd.teal { background: #00D4C8; } .dd.purple { background: #9D5CF5; }
+.day.selected .dd { background: rgba(4,32,30,0.5); }
+/* check-in ring (full day done) */
+.day .ring { position: absolute; inset: 2px; border-radius: 11px; border: 1.5px solid rgba(245,200,66,0.35); pointer-events: none; }
+
+/* Selected-day check-in strip */
+.checkin-card { background: linear-gradient(135deg, #1A1300 0%, #160F00 100%); border: 1px solid rgba(245,200,66,0.2); border-radius: 18px; padding: 16px 18px; }
+.checkin-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.checkin-title { font-size: 14px; font-weight: 700; color: #fff; }
+.checkin-xp { font-size: 11px; font-weight: 700; color: #F5C842; background: rgba(245,200,66,0.12); border-radius: 8px; padding: 4px 9px; }
+.phase-row { display: flex; gap: 8px; }
+.phase { flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 11px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.phase.done { background: rgba(245,200,66,0.1); border-color: rgba(245,200,66,0.25); }
+.phase-ic { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.45); }
+.phase.done .phase-ic { background: rgba(245,200,66,0.15); color: #F5C842; }
+.phase-name { font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.6); }
+.phase.done .phase-name { color: #F5C842; }
+.phase-state { font-size: 9px; color: rgba(255,255,255,0.3); }
+
+/* Timeline */
+.timeline { display: flex; flex-direction: column; }
+.tl-row { display: flex; gap: 14px; align-items: flex-start; }
+.tl-time { min-width: 38px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35); padding-top: 13px; text-align: right; }
+.tl-rail { display: flex; flex-direction: column; align-items: center; padding-top: 14px; align-self: stretch; }
+.tl-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; border: 2px solid #07070F; }
+.tl-line { width: 2px; flex: 1; min-height: 30px; background: rgba(255,255,255,0.07); margin-top: 3px; }
+.tl-body { flex: 1; padding-bottom: 10px; padding-top: 8px; }
+.tl-event { border-radius: 14px; padding: 12px 14px; }
+.tl-event.gold { background: rgba(245,200,66,0.07); border: 1px solid rgba(245,200,66,0.16); }
+.tl-event.teal { background: rgba(0,212,200,0.06); border: 1px solid rgba(0,212,200,0.16); }
+.tl-event.purple { background: rgba(157,92,245,0.07); border: 1px solid rgba(157,92,245,0.16); }
+.tl-event.grey { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); }
+.tl-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tl-name { font-size: 14px; font-weight: 700; color: #fff; }
+.tl-plan { font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; padding: 2px 7px; border-radius: 6px; }
+.plan-gold { background: rgba(245,200,66,0.14); color: #F5C842; }
+.plan-teal { background: rgba(0,212,200,0.12); color: #00D4C8; }
+.plan-purple { background: rgba(157,92,245,0.14); color: #9D5CF5; }
+.tl-sub { font-size: 12px; color: rgba(255,255,255,0.42); margin-top: 4px; display: flex; align-items: center; gap: 6px; }
+.tl-check { width: 18px; height: 18px; border-radius: 50%; background: rgba(0,200,150,0.15); border: 1.5px solid #00C896; display: flex; align-items: center; justify-content: center; color: #00C896; font-size: 10px; font-weight: 800; }
+
+/* Reminders */
+.reminder-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 13px 15px; display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.reminder-ic { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.reminder-ic.gold { background: rgba(245,200,66,0.12); color: #F5C842; }
+.reminder-ic.purple { background: rgba(157,92,245,0.12); color: #9D5CF5; }
+.reminder-info { flex: 1; min-width: 0; }
+.reminder-text { font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.88); }
+.reminder-meta { font-size: 11px; color: rgba(255,255,255,0.38); margin-top: 2px; }
+.reminder-toggle { width: 40px; height: 24px; border-radius: 13px; background: rgba(245,200,66,0.9); position: relative; flex-shrink: 0; }
+.reminder-toggle::after { content: ''; position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; }
+
+/* Bottom Nav */
+.bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(10,10,20,0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.07); padding: 12px 0 28px; display: flex; justify-content: space-around; align-items: center; }
+.nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 60px; }
+.nav-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); }
+.nav-label { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.3); }
+.nav-item.active .nav-icon { color: #00D4C8; }
+.nav-item.active .nav-label { color: #00D4C8; font-weight: 700; }
+.nav-active-dot { width: 4px; height: 4px; background: #00D4C8; border-radius: 50%; margin-top: -2px; }
+svg { display: block; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="status-bar">
+    <span style="font-size:13px;font-weight:700;">9:41</span>
+    <div class="status-right">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="3" width="3" height="9" rx="1" fill="rgba(255,255,255,0.9)"/><rect x="4.5" y="2" width="3" height="10" rx="1" fill="rgba(255,255,255,0.9)"/><rect x="9" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.9)"/></svg>
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.35)"/><rect x="2" y="2" width="16" height="9" rx="2" fill="rgba(255,255,255,0.9)"/></svg>
+    </div>
+  </div>
+
+  <div class="content">
+    <div class="page-header">
+      <div>
+        <div class="page-title">Agenda</div>
+        <div class="header-sub">Junho 2026 · 4 eventos hoje</div>
+      </div>
+      <div class="header-right">
+        <div class="icon-btn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+        <div class="icon-btn solid"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+      </div>
+    </div>
+
+    <!-- Calendar -->
+    <div class="cal-card">
+      <div class="month-nav">
+        <div><span class="month-name">Junho </span><span class="month-year">2026</span></div>
+        <div class="month-arrows">
+          <div class="arrow-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg></div>
+          <div class="arrow-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg></div>
+        </div>
+      </div>
+      <div class="day-headers">
+        <div class="day-header">D</div><div class="day-header">S</div><div class="day-header">T</div>
+        <div class="day-header">Q</div><div class="day-header">Q</div><div class="day-header">S</div><div class="day-header">S</div>
+      </div>
+      <div class="days-grid">
+        <div class="day other">1</div><div class="day other">2</div><div class="day other">3</div>
+        <div class="day other">4</div><div class="day other">5</div>
+        <div class="day">6<div class="day-dots"><span class="dd gold"></span></div></div>
+        <div class="day selected">7<div class="day-dots"><span class="dd"></span><span class="dd"></span><span class="dd"></span></div></div>
+        <div class="day">8<div class="day-dots"><span class="dd teal"></span></div></div>
+        <div class="day">9<div class="day-dots"><span class="dd purple"></span><span class="dd gold"></span></div></div>
+        <div class="day">10</div>
+        <div class="day">11<div class="day-dots"><span class="dd gold"></span></div></div>
+        <div class="day">12</div><div class="day">13</div>
+        <div class="day">14<div class="ring"></div><div class="day-dots"><span class="dd teal"></span></div></div>
+        <div class="day">15</div><div class="day">16</div>
+        <div class="day">17<div class="day-dots"><span class="dd purple"></span></div></div>
+        <div class="day">18</div><div class="day">19</div><div class="day">20</div>
+        <div class="day">21<div class="day-dots"><span class="dd gold"></span><span class="dd teal"></span></div></div>
+        <div class="day">22</div><div class="day">23</div><div class="day">24</div>
+        <div class="day">25</div><div class="day">26</div>
+        <div class="day">27<div class="day-dots"><span class="dd purple"></span></div></div>
+        <div class="day">28</div><div class="day">29</div><div class="day">30</div>
+      </div>
+    </div>
+
+    <!-- Check-in do dia -->
+    <div class="section-label">Check-in de hoje</div>
+    <div class="checkin-card">
+      <div class="checkin-head">
+        <div class="checkin-title">Segunda, 7 de junho</div>
+        <div class="checkin-xp">+45 XP hoje</div>
+      </div>
+      <div class="phase-row">
+        <div class="phase done">
+          <div class="phase-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 18h18"/><path d="M5 22h14"/><path d="M12 2v5"/><path d="M5.6 10.8 8 13"/><path d="M18.4 10.8 16 13"/><path d="M7 18a5 5 0 0 1 10 0"/></svg></div>
+          <div class="phase-name">Manhã</div>
+          <div class="phase-state">Concluído</div>
+        </div>
+        <div class="phase done">
+          <div class="phase-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg></div>
+          <div class="phase-name">Tarde</div>
+          <div class="phase-state">Concluído</div>
+        </div>
+        <div class="phase">
+          <div class="phase-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 15.5A8 8 0 0 1 8.5 4 7 7 0 1 0 20 15.5Z"/></svg></div>
+          <div class="phase-name">Noite</div>
+          <div class="phase-state">19:00</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agenda timeline -->
+    <div class="section-label">Agenda do dia <span class="section-link">Ver tudo</span></div>
+    <div class="timeline">
+      <div class="tl-row">
+        <div class="tl-time">07h</div>
+        <div class="tl-rail"><div class="tl-dot" style="background:#F5C842"></div><div class="tl-line"></div></div>
+        <div class="tl-body">
+          <div class="tl-event gold">
+            <div class="tl-top">
+              <div class="tl-name">Treino — Upper Body A</div>
+              <div class="tl-check">✓</div>
+            </div>
+            <div class="tl-sub"><span class="tl-plan plan-gold">Corpo</span> 07:00 – 08:00 · Academia</div>
+          </div>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-time">14h</div>
+        <div class="tl-rail"><div class="tl-dot" style="background:#00D4C8"></div><div class="tl-line"></div></div>
+        <div class="tl-body">
+          <div class="tl-event teal">
+            <div class="tl-top"><div class="tl-name">Reunião de alinhamento</div></div>
+            <div class="tl-sub"><span class="tl-plan plan-teal">Trabalho</span> 14:00 – 15:30 · Meet</div>
+          </div>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-time">16h</div>
+        <div class="tl-rail"><div class="tl-dot" style="background:#9D5CF5"></div><div class="tl-line"></div></div>
+        <div class="tl-body">
+          <div class="tl-event purple">
+            <div class="tl-top"><div class="tl-name">Meditação guiada</div></div>
+            <div class="tl-sub"><span class="tl-plan plan-purple">Mente</span> 16:30 – 16:40 · Casa</div>
+          </div>
+        </div>
+      </div>
+      <div class="tl-row">
+        <div class="tl-time">19h</div>
+        <div class="tl-rail"><div class="tl-dot" style="background:rgba(255,255,255,0.3)"></div></div>
+        <div class="tl-body">
+          <div class="tl-event grey">
+            <div class="tl-top"><div class="tl-name">Review de metas semanais</div></div>
+            <div class="tl-sub">19:00 – 19:30 · Pessoal</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Lembretes -->
+    <div class="section-label">Lembretes</div>
+    <div class="reminder-card">
+      <div class="reminder-ic gold"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg></div>
+      <div class="reminder-info">
+        <div class="reminder-text">Consulta médica mensal</div>
+        <div class="reminder-meta">Amanhã, terça · 09:00</div>
+      </div>
+      <div class="reminder-toggle"></div>
+    </div>
+    <div class="reminder-card">
+      <div class="reminder-ic purple"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l3 2"/><circle cx="12" cy="12" r="9"/></svg></div>
+      <div class="reminder-info">
+        <div class="reminder-text">Ler 20 páginas — Atomic Habits</div>
+        <div class="reminder-meta">Diário · 21:00</div>
+      </div>
+      <div class="reminder-toggle"></div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="nav-label">Hoje</div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="nav-label">Hábitos</div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div class="nav-label">Corpo</div></div>
+    <div class="nav-item active"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="nav-label">Agenda</div><div class="nav-active-dot"></div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nav-label">Perfil</div></div>
+  </div>
+</div>
+</body>
+</html>

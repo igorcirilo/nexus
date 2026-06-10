@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS – Perfil</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #040408; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 20px; font-family: 'Inter', sans-serif; }
+.screen { width: 428px; min-height: 926px; background: #07070F; border-radius: 52px; overflow: hidden; position: relative; box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 40px 120px rgba(0,0,0,0.9); }
+.status-bar { display: flex; justify-content: space-between; align-items: center; padding: 16px 28px 0; font-size: 12px; font-weight: 600; color: #fff; }
+.status-right { display: flex; gap: 6px; align-items: center; }
+.content { padding: 0; padding-bottom: 100px; overflow-y: auto; }
+.section-label { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.3); margin-bottom: 10px; margin-top: 18px; padding: 0 22px; }
+
+/* Profile hero */
+.profile-hero {
+  background: linear-gradient(180deg, #10102A 0%, #07070F 100%);
+  padding: 24px 22px 28px; position: relative; overflow: hidden;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.profile-hero::before {
+  content: ''; position: absolute; top: -60px; left: 50%; transform: translateX(-50%);
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(157,92,245,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.hero-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; position: relative; z-index: 1; }
+.settings-btn { width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); }
+.share-btn { width: 38px; height: 38px; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.5); }
+.hero-center { text-align: center; position: relative; z-index: 1; }
+.avatar-wrap { position: relative; display: inline-block; margin-bottom: 14px; }
+.avatar-ring {
+  width: 84px; height: 84px; border-radius: 50%;
+  background: conic-gradient(#9D5CF5 0deg, #00D4C8 120deg, #F5C842 240deg, #9D5CF5 360deg);
+  padding: 3px; display: flex; align-items: center; justify-content: center;
+  margin: 0 auto;
+}
+.avatar-inner {
+  width: 78px; height: 78px; border-radius: 50%;
+  background: linear-gradient(135deg, #F5C842 0%, #E07B2A 100%);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 900; color: #0A0800;
+  border: 3px solid #07070F;
+}
+.level-badge {
+  position: absolute; bottom: -4px; right: -4px;
+  background: linear-gradient(135deg, #9D5CF5, #00D4C8);
+  border-radius: 20px; padding: 3px 8px;
+  font-size: 11px; font-weight: 800; color: #fff;
+  border: 2px solid #07070F;
+}
+.profile-name { font-size: 24px; font-weight: 800; color: #fff; letter-spacing: -0.5px; margin-bottom: 3px; }
+.profile-title { font-size: 14px; color: rgba(157,92,245,0.8); font-weight: 600; margin-bottom: 4px; }
+.profile-since { font-size: 12px; color: rgba(255,255,255,0.35); font-weight: 500; }
+.profile-stats { display: flex; justify-content: center; gap: 0; margin-top: 18px; padding: 0 20px; }
+.profile-stat { flex: 1; text-align: center; }
+.profile-stat + .profile-stat { border-left: 1px solid rgba(255,255,255,0.08); }
+.pstat-val { font-size: 22px; font-weight: 800; color: #fff; }
+.pstat-label { font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 500; margin-top: 3px; }
+
+/* Streak banner */
+.streak-banner {
+  margin: 0 22px; margin-top: 14px;
+  background: linear-gradient(135deg, #1A1000, #201600);
+  border: 1px solid rgba(245,200,66,0.2); border-radius: 18px;
+  padding: 14px 18px; display: flex; align-items: center; gap: 14px;
+}
+.streak-icon-big { font-size: 32px; line-height: 1; }
+.streak-info { flex: 1; }
+.streak-num-big { font-size: 28px; font-weight: 900; color: #F5C842; letter-spacing: -1px; line-height: 1; }
+.streak-desc { font-size: 12px; color: rgba(255,255,255,0.5); font-weight: 500; margin-top: 2px; }
+.streak-best { font-size: 11px; color: rgba(245,200,66,0.5); font-weight: 600; margin-top: 4px; }
+
+/* Badges */
+.badges-scroll { display: flex; gap: 10px; padding: 0 22px; overflow-x: auto; padding-bottom: 4px; }
+.badge-pill {
+  flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px; padding: 14px 12px; min-width: 72px;
+}
+.badge-pill.gold { border-color: rgba(245,200,66,0.2); background: rgba(245,200,66,0.05); }
+.badge-pill.teal { border-color: rgba(0,212,200,0.2); background: rgba(0,212,200,0.05); }
+.badge-pill.purple { border-color: rgba(157,92,245,0.2); background: rgba(157,92,245,0.05); }
+.badge-em { font-size: 22px; line-height: 1; }
+.badge-pill-name { font-size: 10px; font-weight: 600; color: rgba(255,255,255,0.5); text-align: center; line-height: 1.3; }
+
+/* Settings sections */
+.settings-section { padding: 0 22px; }
+.settings-group { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; overflow: hidden; margin-bottom: 10px; }
+.settings-row {
+  display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-icon { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.settings-text { flex: 1; }
+.settings-name { font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85); }
+.settings-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 1px; }
+.settings-action { color: rgba(255,255,255,0.25); }
+.settings-toggle {
+  width: 44px; height: 26px; border-radius: 13px; background: #00C896; position: relative;
+}
+.settings-toggle::after {
+  content: ''; position: absolute; top: 3px; right: 3px;
+  width: 20px; height: 20px; border-radius: 50%; background: #fff;
+}
+.settings-toggle.off { background: rgba(255,255,255,0.12); }
+.settings-toggle.off::after { right: auto; left: 3px; }
+
+/* Journey card */
+.journey-card {
+  margin: 0 22px; margin-top: 4px;
+  background: linear-gradient(135deg, #0D0D20, #151528);
+  border: 1px solid rgba(157,92,245,0.15); border-radius: 18px; padding: 16px 18px;
+}
+.journey-title { font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 10px; }
+.journey-row { display: flex; gap: 8px; align-items: center; margin-bottom: 6px; }
+.journey-icon { width: 28px; height: 28px; border-radius: 8px; background: rgba(157,92,245,0.12); display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 13px; }
+.journey-text { font-size: 12px; color: rgba(255,255,255,0.55); font-weight: 500; }
+.journey-text span { color: rgba(255,255,255,0.85); font-weight: 700; }
+
+/* Bottom Nav */
+.bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(10,10,20,0.95); backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.07); padding: 12px 0 28px; display: flex; justify-content: space-around; align-items: center; }
+.nav-item { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 60px; }
+.nav-icon { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.3); }
+.nav-label { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.3); }
+.nav-item.active .nav-icon { color: #9D5CF5; }
+.nav-item.active .nav-label { color: #9D5CF5; font-weight: 700; }
+.nav-active-dot { width: 4px; height: 4px; background: #9D5CF5; border-radius: 50%; margin-top: -2px; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="status-bar">
+    <span style="font-size:13px;font-weight:700;">9:41</span>
+    <div class="status-right">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none"><rect x="0" y="3" width="3" height="9" rx="1" fill="rgba(255,255,255,0.9)"/><rect x="4.5" y="2" width="3" height="10" rx="1" fill="rgba(255,255,255,0.9)"/><rect x="9" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.9)"/></svg>
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.35)"/><rect x="2" y="2" width="16" height="9" rx="2" fill="rgba(255,255,255,0.9)"/></svg>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Profile Hero -->
+    <div class="profile-hero">
+      <div class="hero-top">
+        <div class="settings-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </div>
+        <div class="share-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </div>
+      </div>
+      <div class="hero-center">
+        <div class="avatar-wrap">
+          <div class="avatar-ring">
+            <div class="avatar-inner">IG</div>
+          </div>
+          <div class="level-badge">Nv 12</div>
+        </div>
+        <div class="profile-name">Igor Cirilo</div>
+        <div class="profile-title">Guerreiro Consistente</div>
+        <div class="profile-since">NEXUS desde março 2026 · 97 dias</div>
+      </div>
+      <div class="profile-stats">
+        <div class="profile-stat">
+          <div class="pstat-val">2.340</div>
+          <div class="pstat-label">XP Total</div>
+        </div>
+        <div class="profile-stat">
+          <div class="pstat-val">47</div>
+          <div class="pstat-label">Sequência</div>
+        </div>
+        <div class="profile-stat">
+          <div class="pstat-val">#7</div>
+          <div class="pstat-label">Ranking</div>
+        </div>
+        <div class="profile-stat">
+          <div class="pstat-val">12</div>
+          <div class="pstat-label">Badges</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Streak -->
+    <div class="streak-banner" style="margin-top:18px">
+      <div class="streak-icon-big">🔥</div>
+      <div class="streak-info">
+        <div class="streak-num-big">47 dias</div>
+        <div class="streak-desc">Sequência ativa de check-ins diários</div>
+        <div class="streak-best">Recorde pessoal: 63 dias</div>
+      </div>
+    </div>
+
+    <!-- Badges -->
+    <div class="section-label">Conquistas</div>
+    <div class="badges-scroll">
+      <div class="badge-pill gold">
+        <div class="badge-em">🔥</div>
+        <div class="badge-pill-name">47 Dias</div>
+      </div>
+      <div class="badge-pill teal">
+        <div class="badge-em">⚡</div>
+        <div class="badge-pill-name">Veloz</div>
+      </div>
+      <div class="badge-pill gold">
+        <div class="badge-em">🏆</div>
+        <div class="badge-pill-name">Top 10</div>
+      </div>
+      <div class="badge-pill purple">
+        <div class="badge-em">💎</div>
+        <div class="badge-pill-name">Dedicado</div>
+      </div>
+      <div class="badge-pill teal">
+        <div class="badge-em">📚</div>
+        <div class="badge-pill-name">Leitor</div>
+      </div>
+      <div class="badge-pill gold">
+        <div class="badge-em">💪</div>
+        <div class="badge-pill-name">Atleta</div>
+      </div>
+    </div>
+
+    <!-- Journey summary -->
+    <div class="section-label">Sua jornada</div>
+    <div class="journey-card">
+      <div class="journey-title">Resumo dos últimos 30 dias</div>
+      <div class="journey-row">
+        <div class="journey-icon">🏋️</div>
+        <div class="journey-text"><span>24 treinos</span> completados</div>
+      </div>
+      <div class="journey-row">
+        <div class="journey-icon">📖</div>
+        <div class="journey-text"><span>148 páginas</span> lidas</div>
+      </div>
+      <div class="journey-row">
+        <div class="journey-icon">💧</div>
+        <div class="journey-text">Meta de água atingida <span>86% dos dias</span></div>
+      </div>
+      <div class="journey-row">
+        <div class="journey-icon">🧘</div>
+        <div class="journey-text"><span>22 sessões</span> de meditação</div>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="section-label">Preferências</div>
+    <div class="settings-section">
+      <div class="settings-group">
+        <div class="settings-row">
+          <div class="settings-icon" style="background:rgba(157,92,245,0.12)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9D5CF5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          <div class="settings-text">
+            <div class="settings-name">Notificações</div>
+            <div class="settings-sub">Check-in, hábitos, lembretes</div>
+          </div>
+          <div class="settings-toggle"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon" style="background:rgba(0,212,200,0.12)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D4C8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </div>
+          <div class="settings-text">
+            <div class="settings-name">Modo escuro</div>
+            <div class="settings-sub">Sempre ativo</div>
+          </div>
+          <div class="settings-toggle"></div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-icon" style="background:rgba(245,200,66,0.12)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#F5C842" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <div class="settings-text">
+            <div class="settings-name">Conta e privacidade</div>
+            <div class="settings-sub">igorromualdo.c@gmail.com</div>
+          </div>
+          <div class="settings-action">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom-nav">
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="nav-label">Hoje</div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2"/></svg></div><div class="nav-label">Hábitos</div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div class="nav-label">Corpo</div></div>
+    <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="nav-label">Agenda</div></div>
+    <div class="nav-item active"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4" fill="currentColor"/></svg></div><div class="nav-label">Perfil</div><div class="nav-active-dot"></div></div>
+  </div>
+</div>
+</body>
+</html>

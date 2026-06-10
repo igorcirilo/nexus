@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS – Mockups</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #020206; font-family: 'Inter', sans-serif; color: #fff; padding: 60px 40px; min-height: 100vh; }
+.hero { text-align: center; margin-bottom: 64px; }
+.hero-label { font-size: 11px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(157,92,245,0.7); margin-bottom: 14px; }
+.hero-title { font-size: 52px; font-weight: 900; letter-spacing: -2px; color: #fff; margin-bottom: 12px; }
+.hero-title span { background: linear-gradient(135deg, #F5C842, #9D5CF5, #00D4C8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero-sub { font-size: 16px; color: rgba(255,255,255,0.4); font-weight: 400; max-width: 480px; margin: 0 auto; line-height: 1.6; }
+.hero-meta { display: flex; justify-content: center; gap: 24px; margin-top: 28px; }
+.meta-pill { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; padding: 6px 14px; }
+.meta-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+.screens-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 40px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.screen-item { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.screen-num { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.25); }
+.screen-label { font-size: 15px; font-weight: 700; color: rgba(255,255,255,0.7); }
+.screen-frame {
+  width: 100%; max-width: 320px;
+  border-radius: 40px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 20px 80px rgba(0,0,0,0.8);
+  position: relative;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+.screen-frame:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 0 0 1px rgba(255,255,255,0.1), 0 30px 100px rgba(0,0,0,0.9); }
+.screen-frame iframe { width: 428px; height: 926px; border: none; transform-origin: top left; display: block; pointer-events: none; }
+.screen-link { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.3); text-decoration: none; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 6px 14px; transition: all 0.2s; }
+.screen-link:hover { color: #fff; border-color: rgba(255,255,255,0.3); }
+
+.footer { text-align: center; margin-top: 80px; padding-top: 40px; border-top: 1px solid rgba(255,255,255,0.06); }
+.footer-text { font-size: 12px; color: rgba(255,255,255,0.2); font-weight: 500; }
+
+/* Scale calculation: max-width 320px target, frame is 428px wide → scale = 320/428 ≈ 0.747 */
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="hero-label">Design System · Dark Premium UI</div>
+  <div class="hero-title">NEXUS <span>Mockups</span></div>
+  <div class="hero-sub">9 telas em alta fidelidade para avaliação da direção visual antes da implementação.</div>
+  <div class="hero-meta">
+    <div class="meta-pill"><div class="meta-dot" style="background:#F5C842"></div>Gold</div>
+    <div class="meta-pill"><div class="meta-dot" style="background:#00D4C8"></div>Teal</div>
+    <div class="meta-pill"><div class="meta-dot" style="background:#9D5CF5"></div>Purple</div>
+    <div class="meta-pill"><div class="meta-dot" style="background:rgba(255,255,255,0.3)"></div>428 × 926 px</div>
+    <div class="meta-pill"><div class="meta-dot" style="background:#00C896"></div>Inter Font</div>
+  </div>
+</div>
+
+<div class="screens-grid" id="grid"></div>
+
+<div class="footer">
+  <div class="footer-text">NEXUS · Proposta visual · Branch: design/nexus-mockups · Junho 2026</div>
+</div>
+
+<script>
+const screens = [
+  { num: '01', label: 'Hoje', file: '01-hoje.html', accent: '#F5C842' },
+  { num: '02', label: 'Corpo', file: '02-corpo.html', accent: '#00C896' },
+  { num: '03', label: 'Calendário', file: '03-calendario.html', accent: '#00D4C8' },
+  { num: '04', label: 'Hábitos', file: '04-habitos.html', accent: '#F5C842' },
+  { num: '05', label: 'Progresso', file: '05-progresso.html', accent: '#9D5CF5' },
+  { num: '06', label: 'Finanças', file: '06-financas.html', accent: '#00C896' },
+  { num: '07', label: 'Leitura', file: '07-leitura.html', accent: '#F5C842' },
+  { num: '08', label: 'Objetivos', file: '08-objetivos.html', accent: '#9D5CF5' },
+  { num: '09', label: 'Perfil', file: '09-perfil.html', accent: '#9D5CF5' },
+];
+
+const grid = document.getElementById('grid');
+const SCALE = 320 / 428;
+
+screens.forEach(s => {
+  const item = document.createElement('div');
+  item.className = 'screen-item';
+  item.innerHTML = `
+    <div class="screen-num">${s.num}</div>
+    <div class="screen-frame" style="aspect-ratio: 428/926; height: ${Math.round(320 * 926/428)}px" onclick="window.open('${s.file}','_blank')">
+      <iframe src="${s.file}" scrolling="no"
+        style="width:428px;height:926px;transform:scale(${SCALE.toFixed(4)});transform-origin:top left;"></iframe>
+    </div>
+    <div class="screen-label">${s.label}</div>
+    <a class="screen-link" href="${s.file}" target="_blank">Abrir tela completa →</a>
+  `;
+  grid.appendChild(item);
+});
+</script>
+</body>
+</html>

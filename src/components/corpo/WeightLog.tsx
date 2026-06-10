@@ -1,12 +1,18 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
 import { format } from 'date-fns'
 import { pt } from 'date-fns/locale'
+import EmptyState from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
 import { getWeightLogs, upsertWeightLog, deleteWeightLog, type WeightLog } from '@/lib/body'
+import { updateProfile } from '@/lib/supabase'
 
-interface Props { userId: string }
+interface Props {
+  userId: string
+  heightCm: number | null
+  onHeightSave: (cm: number) => void
+}
 
 type Filter = 30 | 90 | 0
 
@@ -15,13 +21,17 @@ function getLocalDateString(): string {
   return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0]
 }
 
-export default function WeightLogComponent({ userId }: Props) {
+export default function WeightLogComponent({ userId, heightCm, onHeightSave }: Props) {
   const toast = useToast()
   const [logs, setLogs] = useState<WeightLog[]>([])
   const [filter, setFilter] = useState<Filter>(30)
   const [weightIn, setWeightIn] = useState('')
   const [dateIn, setDateIn] = useState(getLocalDateString())
   const [saving, setSaving] = useState(false)
+  const weightInputRef = useRef<HTMLInputElement | null>(null)
+  const [heightVal, setHeightVal] = useState(heightCm ? String(heightCm) : '')
+  const [heightEditing, setHeightEditing] = useState(heightCm === null)
+  const [heightSaving, setHeightSaving] = useState(false)
 
   useEffect(() => {
     getWeightLogs(userId, filter || undefined).then(setLogs)
@@ -43,6 +53,17 @@ export default function WeightLogComponent({ userId }: Props) {
     setLogs(prev => prev.filter(l => l.id !== id))
   }
 
+  async function handleHeightSave() {
+    const cm = parseFloat(heightVal.replace(',', '.'))
+    if (isNaN(cm) || cm < 50 || cm > 250) { toast.error('Altura inválida'); return }
+    setHeightSaving(true)
+    await updateProfile(userId, { height_cm: cm })
+    setHeightSaving(false)
+    setHeightEditing(false)
+    onHeightSave(cm)
+    toast.success('Altura guardada!')
+  }
+
   const chartData = logs.map(l => ({
     date: format(new Date(l.date + 'T12:00:00'), 'd MMM', { locale: pt }),
     kg: Number(l.weight_kg),
@@ -62,6 +83,42 @@ export default function WeightLogComponent({ userId }: Props) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+      {/* Altura card */}
+      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: heightEditing ? 10 : 0 }}>
+          <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Altura
+          </div>
+          {!heightEditing && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Syne, sans-serif' }}>
+                {heightCm} cm
+              </span>
+              <button onClick={() => setHeightEditing(true)} style={{ fontSize: 12, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
+                editar
+              </button>
+            </div>
+          )}
+        </div>
+        {heightEditing && (
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <input
+              type="number"
+              inputMode="decimal"
+              placeholder="170"
+              value={heightVal}
+              onChange={e => setHeightVal(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') handleHeightSave() }}
+              style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text1)', fontFamily: 'DM Sans, sans-serif', fontSize: 14, padding: '8px 10px', outline: 'none', width: 90 }}
+            />
+            <span style={{ fontSize: 13, color: 'var(--text3)' }}>cm</span>
+            <button onClick={handleHeightSave} disabled={heightSaving || !heightVal} style={{ background: heightVal ? 'var(--gold)' : 'var(--bg3)', color: heightVal ? '#000' : 'var(--text3)', border: 'none', borderRadius: 8, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 14, padding: '8px 16px', cursor: heightVal ? 'pointer' : 'not-allowed' }}>
+              {heightSaving ? 'A guardar…' : 'Guardar'}
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Input row */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -91,6 +148,7 @@ export default function WeightLogComponent({ userId }: Props) {
             Peso (kg)
           </label>
           <input
+            ref={weightInputRef}
             type="number"
             inputMode="decimal"
             placeholder="75.4"
@@ -247,21 +305,15 @@ export default function WeightLogComponent({ userId }: Props) {
 
       {/* History list */}
       {logs.length === 0 ? (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: 8,
-          padding: '32px 16px',
-          color: 'var(--text3)',
-          fontFamily: 'DM Sans, sans-serif',
-          textAlign: 'center',
-        }}>
-          <span style={{ fontSize: 32 }}>⚖️</span>
-          <span style={{ fontSize: 14 }}>
-            Sem registos ainda.<br />Regista o teu peso acima.
-          </span>
-        </div>
+        <EmptyState
+          icon="scale"
+          title="Registre seu peso hoje"
+          body="Registre seu peso hoje e acompanhe sua tendência ao longo do tempo."
+          action={{
+            label: 'Inserir peso',
+            onClick: () => weightInputRef.current?.focus(),
+          }}
+        />
       ) : (
         <div>
           <div style={{

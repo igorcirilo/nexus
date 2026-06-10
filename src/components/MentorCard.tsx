@@ -1,5 +1,7 @@
 'use client'
 // src/components/MentorCard.tsx
+import Icon from '@/components/ui/Icon'
+
 interface Props { body: string; action: string }
 
 export default function MentorCard({ body, action }: Props) {
@@ -19,17 +21,22 @@ export default function MentorCard({ body, action }: Props) {
         borderRadius: 9,
         background: 'rgba(30,203,180,.08)',
         border: '0.5px solid rgba(30,203,180,.18)',
+        color: 'var(--teal)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 14, flexShrink: 0,
-      }}>🧠</div>
+        flexShrink: 0,
+      }}>
+        <Icon name="target" size={16} />
+      </div>
 
       <div style={{ flex: 1, minWidth: 0 }}>
         <p style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5, margin: '0 0 4px 0' }}>
           {body}
         </p>
-        <p style={{ fontSize: 11, color: 'var(--teal)', margin: 0, fontWeight: 600 }}>
-          {action}
-        </p>
+        {action && (
+          <p style={{ fontSize: 11, color: 'var(--teal)', margin: 0, fontWeight: 600 }}>
+            {action}
+          </p>
+        )}
       </div>
     </div>
   )

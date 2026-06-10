@@ -327,6 +327,16 @@ export interface BookNote {
   created_at: string
 }
 
+export interface ReadingSession {
+  id: string
+  user_id: string
+  book_id: string
+  date: string
+  duration_minutes: number
+  pages_read: number
+  created_at: string
+}
+
 export interface BookBookmark {
   id: string
   user_id: string

@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS – Hoje</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #040408;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  padding: 40px 20px;
+  font-family: 'Inter', sans-serif;
+}
+.screen {
+  width: 428px;
+  min-height: 926px;
+  background: #07070F;
+  border-radius: 52px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.06), 0 40px 120px rgba(0,0,0,0.9);
+}
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 28px 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+.status-right { display: flex; gap: 6px; align-items: center; }
+.content {
+  padding: 0 22px;
+  padding-bottom: 100px;
+  overflow-y: auto;
+  height: calc(926px - 44px);
+}
+
+/* Header */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 0 6px;
+}
+.header-left { display: flex; align-items: center; gap: 12px; }
+.avatar {
+  width: 42px; height: 42px; border-radius: 50%;
+  background: linear-gradient(135deg, #F5C842, #E07B2A);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px; font-weight: 800; color: #0A0A00;
+  border: 2px solid rgba(245,200,66,0.4);
+  flex-shrink: 0;
+}
+.greeting { }
+.greeting-sub { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 500; letter-spacing: 0.02em; }
+.greeting-name { font-size: 17px; font-weight: 700; color: #fff; line-height: 1.2; }
+.header-right { display: flex; gap: 10px; align-items: center; }
+.icon-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,0.6); font-size: 16px;
+}
+
+/* Date pill */
+.date-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 20px; padding: 6px 14px;
+  font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.5);
+  margin-bottom: 18px;
+  margin-top: 4px;
+}
+.date-dot { width: 6px; height: 6px; background: #00D4C8; border-radius: 50%; }
+
+/* XP + Streak Card */
+.xp-card {
+  background: linear-gradient(135deg, #12122A 0%, #1A1040 100%);
+  border: 1px solid rgba(157,92,245,0.2);
+  border-radius: 20px;
+  padding: 18px 20px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.xp-card::before {
+  content: '';
+  position: absolute; top: -30px; right: -20px;
+  width: 120px; height: 120px;
+  background: radial-gradient(circle, rgba(157,92,245,0.15) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.xp-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+.xp-left { }
+.xp-label { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; }
+.xp-level { font-size: 22px; font-weight: 800; color: #fff; line-height: 1.1; margin-top: 3px; }
+.xp-title { font-size: 12px; color: rgba(157,92,245,0.9); font-weight: 600; margin-top: 2px; }
+.streak-badge {
+  display: flex; flex-direction: column; align-items: center;
+  background: rgba(245,200,66,0.1); border: 1px solid rgba(245,200,66,0.2);
+  border-radius: 14px; padding: 10px 14px;
+}
+.streak-fire { font-size: 20px; line-height: 1; }
+.streak-num { font-size: 18px; font-weight: 800; color: #F5C842; line-height: 1.1; }
+.streak-label { font-size: 10px; color: rgba(245,200,66,0.6); font-weight: 500; margin-top: 1px; }
+.xp-bar-wrap { }
+.xp-bar-labels { display: flex; justify-content: space-between; margin-bottom: 6px; }
+.xp-bar-cur { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.9); }
+.xp-bar-max { font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.3); }
+.xp-bar {
+  height: 6px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden;
+}
+.xp-fill {
+  height: 100%; width: 78%;
+  background: linear-gradient(90deg, #9D5CF5, #00D4C8);
+  border-radius: 10px;
+}
+
+/* Mission Card */
+.mission-card {
+  background: linear-gradient(135deg, #1A1300 0%, #1E1600 100%);
+  border: 1px solid rgba(245,200,66,0.25);
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.mission-card::after {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,200,66,0.5), transparent);
+}
+.mission-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.mission-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: #F5C842; background: rgba(245,200,66,0.12); border-radius: 6px; padding: 4px 8px;
+}
+.mission-badge {
+  width: 30px; height: 30px; border-radius: 50%;
+  background: rgba(245,200,66,0.1); border: 1px solid rgba(245,200,66,0.2);
+  display: flex; align-items: center; justify-content: center; font-size: 14px;
+}
+.mission-title {
+  font-size: 17px; font-weight: 700; color: #fff; line-height: 1.3; margin-bottom: 8px;
+}
+.mission-desc {
+  font-size: 13px; color: rgba(255,255,255,0.5); line-height: 1.5; margin-bottom: 16px;
+}
+.mission-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  background: linear-gradient(135deg, #F5C842, #E07B2A);
+  border-radius: 14px; padding: 13px 20px;
+  font-size: 14px; font-weight: 700; color: #0A0800;
+  letter-spacing: 0.01em;
+}
+.btn-arrow { font-size: 16px; }
+
+/* Quick Metrics */
+.section-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: rgba(255,255,255,0.3); margin-bottom: 10px; margin-top: 18px;
+}
+.metrics-row { display: flex; gap: 10px; margin-bottom: 4px; }
+.metric-card {
+  flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 16px; padding: 14px 12px;
+}
+.metric-icon { font-size: 18px; margin-bottom: 6px; }
+.metric-val { font-size: 16px; font-weight: 700; color: #fff; line-height: 1; }
+.metric-unit { font-size: 10px; color: rgba(255,255,255,0.4); font-weight: 500; margin-top: 2px; }
+.metric-check {
+  width: 18px; height: 18px; border-radius: 50%;
+  background: rgba(0,200,150,0.15); border: 1.5px solid #00C896;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #00C896; margin-top: 4px;
+}
+
+/* Próximas Ações */
+.action-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.action-item {
+  display: flex; align-items: center; gap: 12px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 14px; padding: 13px 16px;
+}
+.action-time {
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.35); min-width: 36px;
+}
+.action-line { width: 1px; height: 20px; background: rgba(255,255,255,0.08); }
+.action-text { flex: 1; font-size: 14px; font-weight: 500; color: rgba(255,255,255,0.85); }
+.action-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+}
+.action-dot.gold { background: #F5C842; }
+.action-dot.teal { background: #00D4C8; }
+.action-dot.purple { background: #9D5CF5; }
+
+/* Desafio da semana */
+.challenge-card {
+  background: rgba(0,212,200,0.05); border: 1px solid rgba(0,212,200,0.15);
+  border-radius: 20px; padding: 18px 20px; margin-top: 4px;
+}
+.challenge-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+.challenge-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #00D4C8;
+}
+.challenge-days { font-size: 20px; font-weight: 800; color: #00D4C8; }
+.challenge-days-label { font-size: 10px; color: rgba(0,212,200,0.5); font-weight: 500; text-align: right; margin-top: 1px; }
+.challenge-title { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 10px; }
+.challenge-dots { display: flex; gap: 6px; }
+.day-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700;
+}
+.day-dot.done { background: #00D4C8; color: #001A1A; }
+.day-dot.today { background: rgba(0,212,200,0.2); border: 2px solid #00D4C8; color: #00D4C8; }
+.day-dot.todo { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.3); }
+
+/* Bottom Nav */
+.bottom-nav {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(10,10,20,0.95);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255,255,255,0.07);
+  padding: 12px 0 28px;
+  display: flex; justify-content: space-around; align-items: center;
+}
+.nav-item {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  min-width: 60px;
+}
+.nav-icon {
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; color: rgba(255,255,255,0.3);
+}
+.nav-label { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.3); }
+.nav-item.active .nav-icon { color: #F5C842; }
+.nav-item.active .nav-label { color: #F5C842; font-weight: 700; }
+.nav-active-dot {
+  width: 4px; height: 4px; background: #F5C842; border-radius: 50%; margin-top: -2px;
+}
+
+/* SVG icons */
+svg { display: block; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <!-- Status Bar -->
+  <div class="status-bar">
+    <span style="font-size:13px;font-weight:700;">9:41</span>
+    <div class="status-right">
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+        <rect x="0" y="3" width="3" height="9" rx="1" fill="rgba(255,255,255,0.9)"/>
+        <rect x="4.5" y="2" width="3" height="10" rx="1" fill="rgba(255,255,255,0.9)"/>
+        <rect x="9" y="0" width="3" height="12" rx="1" fill="rgba(255,255,255,0.9)"/>
+        <rect x="13.5" y="0" width="2.5" height="12" rx="1" fill="rgba(255,255,255,0.35)"/>
+      </svg>
+      <svg width="16" height="12" viewBox="0 0 16 12" fill="none">
+        <path d="M8 2.5C10.5 2.5 12.7 3.5 14.2 5.2L15.5 3.8C13.6 1.7 11 0.5 8 0.5C5 0.5 2.4 1.7 0.5 3.8L1.8 5.2C3.3 3.5 5.5 2.5 8 2.5Z" fill="rgba(255,255,255,0.9)"/>
+        <path d="M8 5.5C9.8 5.5 11.4 6.2 12.6 7.3L13.9 5.9C12.3 4.4 10.2 3.5 8 3.5C5.8 3.5 3.7 4.4 2.1 5.9L3.4 7.3C4.6 6.2 6.2 5.5 8 5.5Z" fill="rgba(255,255,255,0.9)"/>
+        <circle cx="8" cy="10" r="1.5" fill="rgba(255,255,255,0.9)"/>
+      </svg>
+      <svg width="26" height="13" viewBox="0 0 26 13" fill="none">
+        <rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(255,255,255,0.35)"/>
+        <rect x="2" y="2" width="16" height="9" rx="2" fill="rgba(255,255,255,0.9)"/>
+        <path d="M24 4.5V8.5C24.8 8.2 25.5 7.2 25.5 6.5C25.5 5.8 24.8 4.8 24 4.5Z" fill="rgba(255,255,255,0.35)"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="content">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-left">
+        <div class="avatar">IG</div>
+        <div class="greeting">
+          <div class="greeting-sub">Bom dia</div>
+          <div class="greeting-name">Igor Cirilo</div>
+        </div>
+      </div>
+      <div class="header-right">
+        <div class="icon-btn">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+            <circle cx="19" cy="5" r="3" fill="#F5C842" stroke="none"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <!-- Date pill -->
+    <div class="date-pill">
+      <div class="date-dot"></div>
+      Segunda-feira, 7 de junho
+    </div>
+
+    <!-- XP + Streak Card -->
+    <div class="xp-card">
+      <div class="xp-top">
+        <div class="xp-left">
+          <div class="xp-label">Seu nível</div>
+          <div class="xp-level">Nível 12</div>
+          <div class="xp-title">Guerreiro Consistente</div>
+        </div>
+        <div class="streak-badge">
+          <div class="streak-fire">🔥</div>
+          <div class="streak-num">47</div>
+          <div class="streak-label">dias</div>
+        </div>
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-bar-labels">
+          <span class="xp-bar-cur">2.340 XP</span>
+          <span class="xp-bar-max">3.000 XP</span>
+        </div>
+        <div class="xp-bar"><div class="xp-fill"></div></div>
+      </div>
+    </div>
+
+    <!-- Mission Card -->
+    <div class="mission-card">
+      <div class="mission-header">
+        <div class="mission-tag">Missão do Dia</div>
+        <div class="mission-badge">★</div>
+      </div>
+      <div class="mission-title">Treino de força + 30min de leitura</div>
+      <div class="mission-desc">Complete ambas as metas para ganhar +150 XP bônus e manter sua sequência ativa.</div>
+      <div class="mission-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Iniciar Check-in
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>
+
+    <!-- Quick Metrics -->
+    <div class="section-label">Hoje</div>
+    <div class="metrics-row">
+      <div class="metric-card">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00C896" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+        <div class="metric-val">Treino</div>
+        <div class="metric-unit">Concluído</div>
+        <div class="metric-check">✓</div>
+      </div>
+      <div class="metric-card">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#00D4C8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+        <div class="metric-val">2,1 L</div>
+        <div class="metric-unit">de 3,0 L água</div>
+      </div>
+      <div class="metric-card">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#F5C842" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:6px"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <div class="metric-val">1.840</div>
+        <div class="metric-unit">kcal consumidas</div>
+      </div>
+    </div>
+
+    <!-- Próximas Ações -->
+    <div class="section-label" style="margin-top:18px">Próximas ações</div>
+    <div class="action-list">
+      <div class="action-item">
+        <div class="action-time">14h00</div>
+        <div class="action-line"></div>
+        <div class="action-text">Reunião de alinhamento</div>
+        <div class="action-dot teal"></div>
+      </div>
+      <div class="action-item">
+        <div class="action-time">16h30</div>
+        <div class="action-line"></div>
+        <div class="action-text">Meditação · 10 minutos</div>
+        <div class="action-dot purple"></div>
+      </div>
+      <div class="action-item">
+        <div class="action-time">19h00</div>
+        <div class="action-line"></div>
+        <div class="action-text">Review de metas semanais</div>
+        <div class="action-dot gold"></div>
+      </div>
+    </div>
+
+    <!-- Desafio da semana -->
+    <div class="section-label" style="margin-top:18px">Desafio da semana</div>
+    <div class="challenge-card">
+      <div class="challenge-header">
+        <div>
+          <div class="challenge-tag">Desafio Ativo</div>
+          <div class="challenge-title">7 dias de treino consecutivos</div>
+        </div>
+        <div>
+          <div class="challenge-days">5/7</div>
+          <div class="challenge-days-label">dias</div>
+        </div>
+      </div>
+      <div class="challenge-dots">
+        <div class="day-dot done">S</div>
+        <div class="day-dot done">T</div>
+        <div class="day-dot done">Q</div>
+        <div class="day-dot done">Q</div>
+        <div class="day-dot done">S</div>
+        <div class="day-dot today">S</div>
+        <div class="day-dot todo">D</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="nav-item active">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      </div>
+      <div class="nav-label">Hoje</div>
+      <div class="nav-active-dot"></div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </div>
+      <div class="nav-label">Hábitos</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      </div>
+      <div class="nav-label">Corpo</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+      </div>
+      <div class="nav-label">Agenda</div>
+    </div>
+    <div class="nav-item">
+      <div class="nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <div class="nav-label">Perfil</div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

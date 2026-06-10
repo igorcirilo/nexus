@@ -4,15 +4,19 @@ import Nav from '@/components/Nav'
 import WorkoutTracker from '@/components/corpo/WorkoutTracker'
 import DietTracker from '@/components/corpo/DietTracker'
 import WeightLog from '@/components/corpo/WeightLog'
-import { supabase, getTrainingPlans, getDietPlans } from '@/lib/supabase'
-import type { TrainingPlan, DietPlan } from '@/types'
+import BodyHub from '@/components/corpo/BodyHub'
+import CorpoLoading from '@/components/corpo/CorpoLoading'
+import Icon, { type IconName } from '@/components/ui/Icon'
+import { supabase, getTrainingPlans, getDietPlans, getProfile } from '@/lib/supabase'
+import type { TrainingPlan, DietPlan, Profile } from '@/types'
 
-type BodyTab = 'treino' | 'dieta' | 'peso'
+type BodyTab = 'resumo' | 'treino' | 'dieta' | 'peso'
 
-const TABS: { key: BodyTab; label: string; icon: string }[] = [
-  { key: 'treino', label: 'Treino', icon: '🏋️' },
-  { key: 'dieta',  label: 'Dieta',  icon: '🥗' },
-  { key: 'peso',   label: 'Peso',   icon: '⚖️' },
+const TABS: { key: BodyTab; label: string; icon: IconName }[] = [
+  { key: 'resumo', label: 'Resumo', icon: 'list' },
+  { key: 'treino', label: 'Treino', icon: 'dumbbell' },
+  { key: 'dieta',  label: 'Dieta',  icon: 'salad' },
+  { key: 'peso',   label: 'Peso',   icon: 'scale' },
 ]
 
 function getLocalDate() {
@@ -21,8 +25,9 @@ function getLocalDate() {
 }
 
 export default function CorpoPage() {
-  const [tab, setTab]                     = useState<BodyTab>('treino')
+  const [tab, setTab]                     = useState<BodyTab>('resumo')
   const [userId, setUserId]               = useState<string | null>(null)
+  const [profile, setProfile]             = useState<Profile | null>(null)
   const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([])
   const [dietPlans, setDietPlans]         = useState<DietPlan[]>([])
   const [loading, setLoading]             = useState(true)
@@ -34,12 +39,14 @@ export default function CorpoPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { window.location.href = '/auth'; return }
       if (!active) return
-      const [training, diet] = await Promise.all([
+      const [training, diet, prof] = await Promise.all([
         getTrainingPlans(user.id),
         getDietPlans(user.id),
+        getProfile(user.id),
       ])
       if (!active) return
       setUserId(user.id)
+      setProfile(prof)
       setTrainingPlans((training ?? []) as TrainingPlan[])
       setDietPlans((diet ?? []) as DietPlan[])
       setLoading(false)
@@ -49,15 +56,28 @@ export default function CorpoPage() {
   }, [])
 
   if (loading) {
-    return (
-      <main style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: 'var(--text3)', fontSize: 13 }}>A carregar…</div>
-      </main>
-    )
+    return <CorpoLoading />
   }
 
   if (!userId) return null
 
+  // Resumo: tela full-bleed fiel ao mockup (sem h1/tab bar; navegação pelos cards + bottom nav)
+  if (tab === 'resumo') {
+    return (
+      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+        <BodyHub
+          userId={userId}
+          today={today}
+          trainingPlans={trainingPlans}
+          dietPlans={dietPlans}
+          onNavigate={setTab}
+        />
+        <Nav />
+      </main>
+    )
+  }
+
+  // Sub-páginas: chrome padrão (título + barra de abas, incluindo "Resumo" para voltar)
   return (
     <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
       <div style={{ padding: '28px 20px 0' }}>
@@ -72,14 +92,15 @@ export default function CorpoPage() {
         }}>
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)} style={{
-              flex: 1, padding: '9px 4px', borderRadius: 10, border: 'none', cursor: 'pointer',
+              flex: 1, minHeight: 54, padding: '8px 4px', borderRadius: 10, border: 'none', cursor: 'pointer',
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
               background: tab === t.key ? 'var(--bg1)' : 'transparent',
               color: tab === t.key ? 'var(--gold)' : 'var(--text3)',
               transition: 'all .15s', fontSize: 9,
               fontFamily: 'Syne, sans-serif', fontWeight: tab === t.key ? 600 : 400,
+              touchAction: 'manipulation',
             }}>
-              <span style={{ fontSize: 16 }}>{t.icon}</span>
+              <Icon name={t.icon} size={17} color="currentColor" />
               {t.label}
             </button>
           ))}
@@ -101,7 +122,11 @@ export default function CorpoPage() {
           />
         )}
         {tab === 'peso' && (
-          <WeightLog userId={userId} />
+          <WeightLog
+            userId={userId}
+            heightCm={profile?.height_cm ?? null}
+            onHeightSave={cm => setProfile(p => p ? { ...p, height_cm: cm } : p)}
+          />
         )}
       </div>
 

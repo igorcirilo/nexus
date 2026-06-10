@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import FileImportModal from '@/components/FileImportModal'
 import PlanReviewModal from '@/components/PlanReviewModal'
 import PlanSelector from '@/components/corpo/PlanSelector'
+import EmptyState from '@/components/EmptyState'
+import Icon from '@/components/ui/Icon'
 import { useToast } from '@/components/Toast'
 import { getTrainingPlans, saveTrainingPlan } from '@/lib/supabase'
 import {
@@ -12,7 +14,7 @@ import {
   upsertTrainingEntry,
   deleteTrainingPlan,
 } from '@/lib/body'
-import { parseTrainingImport, type ParsedTrainingPlan } from '@/lib/body-plan'
+import { parseTrainingImport, type ParsedTrainingPlan, type TrainingExercisePlan } from '@/lib/body-plan'
 import type { TrainingPlan, FileImportResult } from '@/types'
 
 // ── Internal Types ─────────────────────────────────────────────────────────────
@@ -93,6 +95,9 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
     parsed: ParsedTrainingPlan
   } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [extras, setExtras] = useState<TrainingExercisePlan[]>([])
+  const [addingExtra, setAddingExtra] = useState(false)
+  const [newExtraName, setNewExtraName] = useState('')
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -328,46 +333,19 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
 
       {/* ── No plan selected ──────────────────────────────────────────────── */}
       {!planId && (
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 20,
-            padding: '48px 24px',
+        <EmptyState
+          icon="dumbbell"
+          title={plans.length === 0 ? 'Adicione um plano de treino' : 'Escolha o treino de hoje'}
+          body={
+            plans.length === 0
+              ? 'Adicione um plano de treino para acompanhar sua evolução semana a semana.'
+              : 'Selecione uma sessão do seu plano para registrar séries, cargas e progresso.'
+          }
+          action={{
+            label: plans.length === 0 ? 'Importar plano' : 'Escolher treino',
+            onClick: () => (plans.length > 0 ? setShowSelector(true) : setShowImport(true)),
           }}
-        >
-          <p
-            style={{
-              fontFamily: 'DM Sans, sans-serif',
-              fontSize: 15,
-              color: 'var(--text2)',
-              margin: 0,
-              textAlign: 'center',
-            }}
-          >
-            {plans.length === 0
-              ? 'Importa um plano de treino para comecar a registar.'
-              : 'Seleciona o treino de hoje para comecar.'}
-          </p>
-          <button
-            onClick={() => (plans.length > 0 ? setShowSelector(true) : setShowImport(true))}
-            style={{
-              background: 'var(--gold)',
-              color: '#111',
-              border: 'none',
-              borderRadius: 14,
-              padding: '14px 28px',
-              fontFamily: 'Syne, sans-serif',
-              fontSize: 16,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Comecar treino
-          </button>
-        </div>
+        />
       )}
 
       {/* ── Plan selected ─────────────────────────────────────────────────── */}
@@ -744,6 +722,164 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                 </div>
               )
             })}
+
+            {/* Extra exercises added at runtime */}
+            {extras.map(ex => {
+              const save = getSave(ex.id)
+              const isExpanded = expandedId === ex.id
+              const label = setLabel(save)
+              return (
+                <div
+                  key={ex.id}
+                  style={{
+                    background: 'var(--bg1)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 12,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
+                    <button
+                      onClick={() => toggleDone(ex.id)}
+                      aria-label={save.done ? 'Marcar como nao feito' : 'Marcar como feito'}
+                      style={{
+                        width: 22, height: 22, borderRadius: 6,
+                        border: save.done ? 'none' : '2px solid var(--border)',
+                        background: save.done ? 'var(--teal)' : 'transparent',
+                        cursor: 'pointer', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: '#fff', fontSize: 13, fontWeight: 700, padding: 0,
+                      }}
+                    >
+                      {save.done ? '✓' : ''}
+                    </button>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{
+                        fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 600,
+                        color: 'var(--text1)', margin: 0,
+                        textDecoration: save.done ? 'line-through' : 'none',
+                        opacity: save.done ? 0.6 : 1,
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      }}>
+                        {ex.name}
+                      </p>
+                      {label && (
+                        <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, color: 'var(--teal)', margin: '2px 0 0' }}>
+                          {label}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setExtras(prev => prev.filter(e => e.id !== ex.id))}
+                      aria-label="Remover exercício"
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', fontSize: 16, padding: 4, flexShrink: 0 }}
+                    >
+                      ×
+                    </button>
+                    <button
+                      onClick={() => setExpandedId(isExpanded ? null : ex.id)}
+                      aria-label={isExpanded ? 'Colapsar' : 'Expandir'}
+                      style={{
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        color: 'var(--text2)', fontSize: 16, padding: 4, flexShrink: 0,
+                        transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                        transition: 'transform 0.2s ease',
+                      }}
+                    >
+                      ▾
+                    </button>
+                  </div>
+                  {isExpanded && (
+                    <div style={{ borderTop: '1px solid var(--border)', padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {save.sets.map((s, si) => (
+                        <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text3)', width: 52, flexShrink: 0 }}>
+                            Serie {si + 1}
+                          </span>
+                          <input type="number" inputMode="decimal" value={s.weight}
+                            onChange={e => updateSet(ex.id, si, 'weight', e.target.value)}
+                            placeholder="0"
+                            style={{ width: 56, height: 34, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text1)', fontFamily: 'DM Sans, sans-serif', fontSize: 14, textAlign: 'center', outline: 'none', padding: '0 4px' }}
+                          />
+                          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text3)' }}>kg x</span>
+                          <input type="number" inputMode="numeric" value={s.reps}
+                            onChange={e => updateSet(ex.id, si, 'reps', e.target.value)}
+                            placeholder="0"
+                            style={{ width: 48, height: 34, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text1)', fontFamily: 'DM Sans, sans-serif', fontSize: 14, textAlign: 'center', outline: 'none', padding: '0 4px' }}
+                          />
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
+                        <button onClick={() => addSet(ex.id)} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
+                          + Serie
+                        </button>
+                        <button onClick={() => removeSet(ex.id)} disabled={save.sets.length <= 1} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: save.sets.length <= 1 ? 'var(--text3)' : 'var(--text2)', cursor: save.sets.length <= 1 ? 'not-allowed' : 'pointer', opacity: save.sets.length <= 1 ? 0.5 : 1 }}>
+                          - Serie
+                        </button>
+                        <div style={{ flex: 1 }} />
+                        <button onClick={() => collapseAndSave(ex.id)} style={{ background: 'var(--gold)', border: 'none', borderRadius: 8, padding: '7px 16px', fontFamily: 'Syne, sans-serif', fontSize: 13, fontWeight: 700, color: '#111', cursor: 'pointer' }}>
+                          Guardar ✓
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            {/* Add extra exercise */}
+            {addingExtra ? (
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  autoFocus
+                  type="text"
+                  placeholder="Nome do exercício"
+                  value={newExtraName}
+                  onChange={e => setNewExtraName(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newExtraName.trim()) {
+                      setExtras(prev => [...prev, { id: 'extra-' + Date.now(), name: newExtraName.trim() }])
+                      setNewExtraName('')
+                      setAddingExtra(false)
+                    }
+                    if (e.key === 'Escape') { setAddingExtra(false); setNewExtraName('') }
+                  }}
+                  style={{ flex: 1, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text1)', fontFamily: 'DM Sans, sans-serif', fontSize: 14, padding: '8px 12px', outline: 'none' }}
+                />
+                <button
+                  onClick={() => {
+                    if (newExtraName.trim()) {
+                      setExtras(prev => [...prev, { id: 'extra-' + Date.now(), name: newExtraName.trim() }])
+                      setNewExtraName('')
+                      setAddingExtra(false)
+                    }
+                  }}
+                  style={{ background: 'var(--gold)', border: 'none', borderRadius: 8, padding: '8px 16px', fontFamily: 'DM Sans, sans-serif', fontSize: 14, fontWeight: 600, color: '#111', cursor: 'pointer' }}
+                >
+                  OK
+                </button>
+                <button
+                  onClick={() => { setAddingExtra(false); setNewExtraName('') }}
+                  style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: 'var(--text3)', cursor: 'pointer' }}
+                >
+                  ×
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => setAddingExtra(true)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  width: '100%', padding: '10px',
+                  background: 'transparent', border: '1.5px dashed var(--border)',
+                  borderRadius: 12, cursor: 'pointer',
+                  fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--text3)',
+                  transition: 'border-color 0.15s, color 0.15s',
+                }}
+              >
+                + Adicionar exercício
+              </button>
+            )}
           </div>
         </>
       )}
@@ -822,7 +958,8 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
           background: 'none',
           border: '1.5px dashed var(--border)',
           borderRadius: 12,
-          padding: '14px 16px',
+          minHeight: 44,
+          padding: '12px 16px',
           cursor: 'pointer',
           display: 'flex',
           alignItems: 'center',
@@ -832,18 +969,10 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
           fontFamily: 'DM Sans, sans-serif',
           fontSize: 14,
           width: '100%',
+          touchAction: 'manipulation',
         }}
       >
-        <span
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            lineHeight: 1,
-            color: 'var(--teal)',
-          }}
-        >
-          +
-        </span>
+        <Icon name="plus" size={18} color="var(--teal)" />
         Importar plano de treino
       </button>
 
