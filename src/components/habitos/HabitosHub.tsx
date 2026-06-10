@@ -16,6 +16,7 @@ export interface HubHabit {
 export interface HubArea {
   key: string
   label: string
+  icon: string
   color: string
   done: number
   total: number
@@ -28,17 +29,23 @@ interface Props {
   doneToday: number
   totalToday: number
   onToggle: (habitId: string, done: boolean) => void
-  onManage: () => void
+  onAdd: () => void
+  onEdit: (habitId: string) => void
+  onDelete: (habitId: string) => void
 }
 
-export default function HabitosHub({ habits, areas, doneToday, totalToday, onToggle, onManage }: Props) {
+export default function HabitosHub({ habits, areas, doneToday, totalToday, onToggle, onAdd, onEdit, onDelete }: Props) {
   const [filter, setFilter] = useState<string>('all')
+  const [menuFor, setMenuFor] = useState<string | null>(null)
 
   const rings = [...areas].sort((a, b) => b.total - a.total).slice(0, 3)
   const visibleAreas = areas.filter((a) => filter === 'all' || a.key === filter)
 
   return (
-    <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100vh', padding: '0 22px 28px' }}>
+    <div
+      style={{ fontFamily: FONT, background: '#07070F', minHeight: '100dvh', padding: '0 22px 40px' }}
+      onClick={() => menuFor && setMenuFor(null)}
+    >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 6px' }}>
         <div>
@@ -47,7 +54,7 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
             {totalToday > 0 ? `${doneToday} de ${totalToday} concluídos hoje` : 'Sem hábitos ativos'}
           </div>
         </div>
-        <button onClick={onManage} aria-label="Gerir hábitos" style={iconBtn}>
+        <button onClick={onAdd} aria-label="Novo hábito" style={plusBtn}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <line x1="12" y1="5" x2="12" y2="19" />
             <line x1="5" y1="12" x2="19" y2="12" />
@@ -71,7 +78,7 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
         <Chip label="Todos" active={filter === 'all'} onClick={() => setFilter('all')} />
         {areas.map((a) => (
-          <Chip key={a.key} label={a.label} active={filter === a.key} onClick={() => setFilter(a.key)} />
+          <Chip key={a.key} label={`${a.icon} ${a.label}`} active={filter === a.key} onClick={() => setFilter(a.key)} />
         ))}
       </div>
 
@@ -93,7 +100,16 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 6 }}>
                 {items.map((h) => (
-                  <HabitItem key={h.id} habit={h} areaLabel={a.label} onToggle={onToggle} />
+                  <HabitItem
+                    key={h.id}
+                    habit={h}
+                    areaLabel={a.label}
+                    menuOpen={menuFor === h.id}
+                    onToggle={onToggle}
+                    onMenu={() => setMenuFor(menuFor === h.id ? null : h.id)}
+                    onEdit={() => { setMenuFor(null); onEdit(h.id) }}
+                    onDelete={() => { setMenuFor(null); onDelete(h.id) }}
+                  />
                 ))}
               </div>
             </div>
@@ -126,7 +142,15 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
 
 // ── subcomponents ────────────────────────────────────────────────
 
-function HabitItem({ habit, areaLabel, onToggle }: { habit: HubHabit; areaLabel: string; onToggle: (id: string, done: boolean) => void }) {
+function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDelete }: {
+  habit: HubHabit
+  areaLabel: string
+  menuOpen: boolean
+  onToggle: (id: string, done: boolean) => void
+  onMenu: () => void
+  onEdit: () => void
+  onDelete: () => void
+}) {
   const done = habit.done
   return (
     <div
@@ -137,8 +161,10 @@ function HabitItem({ habit, areaLabel, onToggle }: { habit: HubHabit; areaLabel:
         background: done ? 'rgba(0,200,150,0.05)' : 'rgba(255,255,255,0.03)',
         border: `1px solid ${done ? 'rgba(0,200,150,0.15)' : 'rgba(255,255,255,0.07)'}`,
         borderRadius: 16,
-        padding: '14px 16px',
+        padding: '14px 12px 14px 16px',
         transition: 'all .2s',
+        position: 'relative',
+        zIndex: menuOpen ? 5 : 'auto',
       }}
     >
       <button
@@ -184,6 +210,63 @@ function HabitItem({ habit, areaLabel, onToggle }: { habit: HubHabit; areaLabel:
           <span style={{ color: '#F5C842', fontWeight: 700, flexShrink: 0 }}>+{habit.xp_reward} XP</span>
         </div>
       </div>
+
+      {/* Ações secundárias: menu discreto (área de toque 44px com padding invisível) */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onMenu() }}
+        aria-label={`Mais ações para ${habit.name}`}
+        aria-expanded={menuOpen}
+        style={{
+          width: 44,
+          height: 44,
+          margin: '-7px -7px -7px 0',
+          flexShrink: 0,
+          border: 'none',
+          background: 'transparent',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          padding: 0,
+        }}
+      >
+        <span style={{
+          width: 30, height: 30, borderRadius: 10,
+          background: menuOpen ? 'rgba(245,200,66,0.10)' : 'rgba(255,255,255,0.04)',
+          border: `1px solid ${menuOpen ? 'rgba(245,200,66,0.4)' : 'rgba(255,255,255,0.06)'}`,
+          color: menuOpen ? '#F5C842' : 'rgba(255,255,255,0.35)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/>
+          </svg>
+        </span>
+      </button>
+
+      {menuOpen && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute', right: 10, top: 'calc(100% - 6px)', zIndex: 10, width: 190,
+            background: '#161825', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16,
+            boxShadow: '0 18px 50px rgba(0,0,0,0.65)', overflow: 'hidden',
+          }}
+        >
+          <button onClick={onEdit} style={menuItem}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Editar hábito
+          </button>
+          <button onClick={onDelete} style={{ ...menuItem, color: '#E24B4A', borderBottom: 'none' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
+            </svg>
+            Apagar
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -225,15 +308,32 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
   )
 }
 
-const iconBtn: CSSProperties = {
+const plusBtn: CSSProperties = {
   width: 38,
   height: 38,
   borderRadius: 12,
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'rgba(245,200,66,0.14)',
+  border: '1px solid rgba(245,200,66,0.35)',
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: 'rgba(255,255,255,0.6)',
+  color: '#F5C842',
   cursor: 'pointer',
+}
+
+const menuItem: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 11,
+  width: '100%',
+  padding: '13px 14px',
+  fontSize: 13.5,
+  fontWeight: 600,
+  fontFamily: FONT,
+  color: 'rgba(255,255,255,0.9)',
+  background: 'transparent',
+  border: 'none',
+  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  cursor: 'pointer',
+  textAlign: 'left',
 }
