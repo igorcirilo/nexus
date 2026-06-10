@@ -130,8 +130,10 @@ export default function TodayTaskList({
                         textDecoration: task.status === 'completed' ? 'line-through' : 'none',
                         marginBottom: 5,
                         overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflowWrap: 'anywhere',
                       }}
                     >
                       {title}
@@ -146,23 +148,26 @@ export default function TodayTaskList({
               </button>
 
               {task.status === 'pending' && (
-                <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end', flexShrink: 0 }}>
                   <button
                     type="button"
                     aria-label={`Pular tarefa ${title}`}
                     onClick={() => onSkipTask(task)}
-                    style={taskButtonStyle('ghost')}
+                    style={compactActionStyle('ghost')}
                   >
-                    Pular
+                    <span style={compactIconStyle('ghost')}>
+                      <Icon name="chevron-right" size={16} color="currentColor" />
+                    </span>
                   </button>
                   <button
                     type="button"
                     aria-label={`Concluir tarefa ${title}`}
                     onClick={() => onCompleteTask(task)}
-                    style={taskButtonStyle('primary')}
+                    style={compactActionStyle('primary')}
                   >
-                    Feito
-                    <Icon name="check" size={14} color="currentColor" />
+                    <span style={compactIconStyle('primary')}>
+                      <Icon name="check" size={16} color="currentColor" />
+                    </span>
                   </button>
                 </div>
               )}
@@ -207,23 +212,33 @@ function areaColor(area: string) {
   return 'var(--teal)'
 }
 
-function taskButtonStyle(kind: 'ghost' | 'primary') {
+// Controlo compacto: ícone de 34px com área de toque de 44px (padding invisível)
+// para o texto da tarefa manter pelo menos ~65% da largura útil do card.
+function compactActionStyle(kind: 'ghost' | 'primary') {
   return {
-    minHeight: 44,
-    minWidth: kind === 'primary' ? 96 : 82,
-    border: kind === 'primary' ? 'none' : '0.5px solid rgba(255,255,255,.18)',
-    borderRadius: 12,
-    background: kind === 'primary' ? 'linear-gradient(135deg, var(--teal), color-mix(in srgb, var(--teal) 72%, var(--accent)))' : 'rgba(255,255,255,.03)',
-    color: kind === 'primary' ? 'var(--text1)' : 'var(--text2)',
+    width: 44,
+    height: 44,
+    border: 'none',
+    background: 'transparent',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 6,
-    padding: '0 14px',
-    fontFamily: 'var(--font-dm), "DM Sans", sans-serif',
-    fontWeight: 700,
-    fontSize: 13,
+    padding: 0,
     cursor: 'pointer',
     touchAction: 'manipulation',
+    color: kind === 'primary' ? 'var(--teal)' : 'var(--text3)',
+  } as const
+}
+
+function compactIconStyle(kind: 'ghost' | 'primary') {
+  return {
+    width: 34,
+    height: 34,
+    borderRadius: 11,
+    border: kind === 'primary' ? '1.5px solid rgba(30,203,180,.5)' : '0.5px solid rgba(255,255,255,.18)',
+    background: kind === 'primary' ? 'rgba(30,203,180,.12)' : 'rgba(255,255,255,.03)',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
   } as const
 }
