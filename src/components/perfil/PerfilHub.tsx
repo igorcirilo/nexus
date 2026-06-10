@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Profile, UserBadge } from '@/types'
 
@@ -9,25 +9,25 @@ const FONT = 'Inter, sans-serif'
 type Section = 'corpo' | 'metas' | 'objetivos' | 'xp'
 
 const ALL_BADGES = [
-  { key: 'primeiro_checkin', name: 'Primeira Vez', color: '#F5C842' },
-  { key: 'streak_7',         name: 'Uma Semana',   color: '#F5C842' },
-  { key: 'streak_21',        name: 'Três Semanas', color: '#9D5CF5' },
-  { key: 'streak_100',       name: 'Centenário',   color: '#00D4C8' },
-  { key: 'xp_1000',          name: 'Mil Pontos',   color: '#F5C842' },
-  { key: 'xp_5000',          name: 'Veterano',     color: '#9D5CF5' },
+  { key: 'primeiro_checkin', name: 'Primeira Vez', icon: '🌅', color: '#F5C842' },
+  { key: 'streak_7',         name: 'Uma Semana',   icon: '🔥', color: '#F5C842' },
+  { key: 'streak_21',        name: 'Três Semanas', icon: '⚡', color: '#9D5CF5' },
+  { key: 'streak_100',       name: 'Centenário',   icon: '💎', color: '#00D4C8' },
+  { key: 'xp_1000',          name: 'Mil Pontos',   icon: '⭐', color: '#F5C842' },
+  { key: 'xp_5000',          name: 'Veterano',     icon: '🏆', color: '#9D5CF5' },
 ]
 
 const METAS_90 = [
-  { key: 'goal_90_personal' as const, label: 'Pessoal', color: '#9D5CF5' },
-  { key: 'goal_90_career'   as const, label: 'Carreira', color: '#00D4C8' },
-  { key: 'goal_90_health'   as const, label: 'Saúde',    color: '#00C896' },
+  { key: 'goal_90_personal' as const, label: 'Pessoal', icon: '🧭', color: '#9D5CF5' },
+  { key: 'goal_90_career'   as const, label: 'Carreira', icon: '💼', color: '#00D4C8' },
+  { key: 'goal_90_health'   as const, label: 'Saúde',    icon: '💪', color: '#00C896' },
 ]
 
-const NAV_SECTIONS: { section: Section; label: string; sub: string; color: string }[] = [
-  { section: 'corpo',     label: 'Corpo & Físico',      sub: 'Peso, altura, idade, sexo', color: '#00C896' },
-  { section: 'metas',     label: 'Metas & Hábitos',     sub: 'Água, treinos, sono, leitura', color: '#00D4C8' },
-  { section: 'objetivos', label: 'Objetivos 90 Dias',   sub: 'Pessoal, carreira, saúde',  color: '#9D5CF5' },
-  { section: 'xp',        label: 'XP & Desempenho',     sub: 'Meta semanal, taxa de conclusão', color: '#F5C842' },
+const NAV_SECTIONS: { section: Section; label: string; sub: string; icon: string; color: string }[] = [
+  { section: 'corpo',     label: 'Corpo & Físico',      sub: 'Peso, altura, idade, sexo', icon: '💪', color: '#00C896' },
+  { section: 'metas',     label: 'Metas & Hábitos',     sub: 'Água, treinos, sono, leitura', icon: '🎯', color: '#00D4C8' },
+  { section: 'objetivos', label: 'Objetivos 90 Dias',   sub: 'Pessoal, carreira, saúde',  icon: '🧭', color: '#9D5CF5' },
+  { section: 'xp',        label: 'XP & Desempenho',     sub: 'Meta semanal, taxa de conclusão', icon: '⚡', color: '#F5C842' },
 ]
 
 interface Props {
@@ -36,6 +36,8 @@ interface Props {
   email: string
   onEdit: (section?: Section) => void
   onLogout: () => void
+  onPhotoSelect?: (file: File) => void
+  photoUploading?: boolean
   journeyData?: { trainingCount30d: number; readingPages30d: number }
 }
 
@@ -58,10 +60,11 @@ function hexAlpha(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
-export default function PerfilHub({ profile, badges, email, onEdit, onLogout, journeyData }: Props) {
+export default function PerfilHub({ profile, badges, email, onEdit, onLogout, onPhotoSelect, photoUploading, journeyData }: Props) {
   const earnedKeys = new Set(badges.map(b => b.badge_key))
   const earnedBadges = ALL_BADGES.filter(b => earnedKeys.has(b.key))
   const lockedBadges = ALL_BADGES.filter(b => !earnedKeys.has(b.key))
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [notifEnabled, setNotifEnabled] = useState<boolean>(() => {
     if (typeof localStorage === 'undefined') return false
     return localStorage.getItem('nexus-notif') === '1'
@@ -74,7 +77,7 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout, jo
   const activeMetas = METAS_90.filter(m => (profile[m.key] as string | null | undefined))
 
   return (
-    <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100vh', paddingBottom: 28 }}>
+    <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100dvh', paddingBottom: 40 }}>
 
       {/* ── Hero Section ── */}
       <div style={{
@@ -88,34 +91,78 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout, jo
           onClick={() => onEdit()}
           style={{
             position: 'absolute', top: 20, right: 20,
-            width: 36, height: 36, borderRadius: 10,
-            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
+            height: 34, borderRadius: 11, padding: '0 13px',
+            background: 'rgba(245,200,66,0.14)', border: '1px solid rgba(245,200,66,0.4)',
+            display: 'flex', alignItems: 'center', gap: 7,
+            color: '#F5C842', cursor: 'pointer',
+            fontFamily: FONT, fontSize: 12.5, fontWeight: 700,
           }}
           aria-label="Editar perfil"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
           </svg>
+          Editar
         </button>
 
-        {/* Avatar with conic ring */}
-        <div style={{
-          width: 92, height: 92, borderRadius: '50%',
-          background: 'conic-gradient(#F5C842 0deg, #9D5CF5 120deg, #00D4C8 240deg, #F5C842 360deg)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          marginBottom: 14,
-        }}>
+        {/* Foto de perfil com anel cónico + input de foto */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          style={{ display: 'none' }}
+          onChange={e => {
+            const file = e.target.files?.[0]
+            if (file && onPhotoSelect) onPhotoSelect(file)
+            e.target.value = ''
+          }}
+        />
+        <div style={{ position: 'relative', marginBottom: 14 }}>
           <div style={{
-            width: 80, height: 80, borderRadius: '50%',
-            background: 'linear-gradient(135deg, #F5C842 0%, #E07B2A 100%)',
+            width: 92, height: 92, borderRadius: '50%',
+            background: 'conic-gradient(#F5C842 0deg, #9D5CF5 120deg, #00D4C8 240deg, #F5C842 360deg)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 32, fontWeight: 900, color: '#0A0800',
           }}>
-            {initial}
+            {profile.avatar_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={profile.avatar_url}
+                alt="Foto de perfil"
+                style={{
+                  width: 80, height: 80, borderRadius: '50%',
+                  objectFit: 'cover', display: 'block',
+                  opacity: photoUploading ? 0.5 : 1,
+                }}
+              />
+            ) : (
+              <div style={{
+                width: 80, height: 80, borderRadius: '50%',
+                background: 'linear-gradient(135deg, #F5C842 0%, #E07B2A 100%)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 32, fontWeight: 900, color: '#0A0800',
+                opacity: photoUploading ? 0.5 : 1,
+              }}>
+                {initial}
+              </div>
+            )}
           </div>
+          {onPhotoSelect && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={photoUploading}
+              aria-label="Alterar foto de perfil"
+              style={{
+                position: 'absolute', bottom: -2, right: -2,
+                width: 30, height: 30, borderRadius: '50%',
+                background: '#F5C842', border: '3px solid #0B0B1A',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                cursor: photoUploading ? 'wait' : 'pointer', fontSize: 13, padding: 0,
+              }}
+            >
+              📷
+            </button>
+          )}
         </div>
 
         {/* Username */}
@@ -158,17 +205,18 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout, jo
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: 360 }}>
           {[
-            { label: 'XP Total',  value: profile.xp_total,        color: '#F5C842' },
-            { label: 'Sequência', value: profile.streak_current,   color: '#FF6B6B' },
-            { label: 'Ranking',   value: '#–',                     color: '#00D4C8' },
-            { label: 'Badges',    value: earnedBadges.length,      color: '#9D5CF5' },
+            { label: 'XP Total',  value: profile.xp_total,        icon: '⚡', color: '#F5C842' },
+            { label: 'Sequência', value: profile.streak_current,   icon: '🔥', color: '#FF6B6B' },
+            { label: 'Recorde',   value: profile.streak_best,      icon: '🏆', color: '#00D4C8' },
+            { label: 'Badges',    value: earnedBadges.length,      icon: '🎖️', color: '#9D5CF5' },
           ].map(s => (
             <div key={s.label} style={{
               flex: 1, background: 'rgba(255,255,255,0.04)',
               border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 14, padding: '12px 10px', textAlign: 'center',
+              borderRadius: 14, padding: '11px 6px', textAlign: 'center',
             }}>
-              <div style={{ fontSize: 20, fontWeight: 800, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: 16, lineHeight: 1, marginBottom: 4 }}>{s.icon}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
               <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 500, marginTop: 3 }}>{s.label}</div>
             </div>
           ))}
@@ -258,9 +306,9 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout, jo
                   width: 52, height: 52, borderRadius: 16,
                   background: hexAlpha(b.color, 0.12), border: `1px solid ${hexAlpha(b.color, 0.3)}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 13, fontWeight: 900, color: b.color,
+                  fontSize: 24,
                 }}>
-                  {b.name.charAt(0)}
+                  {b.icon}
                 </div>
                 <div style={{
                   fontSize: 10, fontWeight: 600, color: 'rgba(255,255,255,0.6)',
@@ -320,9 +368,9 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout, jo
                     width: 28, height: 28, borderRadius: 8, flexShrink: 0, marginTop: 1,
                     background: hexAlpha(m.color, 0.12),
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 10, fontWeight: 800, color: m.color,
+                    fontSize: 14,
                   }}>
-                    {m.label.charAt(0)}
+                    {m.icon}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: hexAlpha(m.color, 0.8), marginBottom: 4 }}>
@@ -359,9 +407,9 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout, jo
                 width: 34, height: 34, borderRadius: 10, flexShrink: 0,
                 background: hexAlpha(item.color, 0.12),
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 12, fontWeight: 900, color: item.color,
+                fontSize: 17,
               }}>
-                {item.label.charAt(0)}
+                {item.icon}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>

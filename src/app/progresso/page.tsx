@@ -1,33 +1,22 @@
 'use client'
-// src/app/progresso/page.tsx — Evolução + Dashboard — layout original + heatmap verde/roxo/escuro
+// src/app/progresso/page.tsx — hub de progresso + dashboard detalhado
 import { useEffect, useState } from 'react'
 import {
-  BarChart, Bar, LineChart, Line, RadarChart, Radar,
-  PolarGrid, PolarAngleAxis, XAxis, YAxis, CartesianGrid,
+  BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer,
 } from 'recharts'
 import Nav from '@/components/Nav'
 import ProgressoHub from '@/components/progresso/ProgressoHub'
 import { supabase, getProfile, getUserBadges, getWeeklyStats } from '@/lib/supabase'
-import { xpForLevel, AREA_META, TITLES } from '@/types'
+import { AREA_META } from '@/types'
 import { format, subDays } from 'date-fns'
 import type { Profile, UserBadge } from '@/types'
 
-type AppTab  = 'resumo' | 'evolucao' | 'dashboard'
+type AppTab  = 'resumo' | 'dashboard'
 type HeatVal = 'none' | 'partial' | 'full'
 
 const DAYS_PT = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
-
-const ALL_BADGES = [
-  { key:'streak_7',    icon:'🔥', name:'7 dias',        xp:100,  desc:'7 dias consecutivos'    },
-  { key:'streak_14',   icon:'🔥', name:'14 dias',       xp:150,  desc:'Duas semanas seguidas'  },
-  { key:'streak_30',   icon:'🏆', name:'30 dias',       xp:500,  desc:'Um mês de consistência' },
-  { key:'streak_90',   icon:'💎', name:'90 dias',       xp:2000, desc:'Antifrágil — 3 meses'  },
-  { key:'energy_max',  icon:'⚡', name:'Energia máx',  xp:50,   desc:'Energia 10/10'          },
-  { key:'mission_done',icon:'🎯', name:'Missão feita', xp:75,   desc:'Missão 100% concluída'  },
-  { key:'focus_10',    icon:'🧠', name:'Foco x10',     xp:200,  desc:'10 sessões Pomodoro'    },
-  { key:'all_habits',  icon:'✨', name:'Dia perfeito', xp:150,  desc:'Todos os hábitos'       },
-]
 
 type AreaProgress = {
   key:string; label:string; icon:string; color:string
@@ -39,7 +28,6 @@ export default function ProgressoPage() {
   const [profile,     setProfile]     = useState<Profile | null>(null)
   const [badges,      setBadges]      = useState<UserBadge[]>([])
   const [areas,       setAreas]       = useState<AreaProgress[]>([])
-  const [activeBadge, setActiveBadge] = useState<string | null>(null)
   const [loading,     setLoading]     = useState(true)
 
   const [xpData,  setXpData]  = useState<{day:string;xp:number;hab:number;ci:number}[]>([])
@@ -191,15 +179,9 @@ export default function ProgressoPage() {
     </div>
   )
 
-  const level = profile.level
-  const xp    = profile.xp_total
-  const prev  = xpForLevel(level-1)
-  const next  = xpForLevel(level)
-  const pct   = Math.min(100, Math.round(((xp-prev)/(next-prev))*100))
-
   if (tab === 'resumo') {
     return (
-      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+      <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: '#07070F' }}>
         <ProgressoHub
           profile={profile}
           areas={areas}
@@ -207,26 +189,17 @@ export default function ProgressoPage() {
           earnedKeys={earned}
           consistency={stats.consistency}
           xpData={xpData.map(d => ({ day: d.day, xp: d.xp }))}
-          onNavigate={setTab}
+          onDashboard={() => setTab('dashboard')}
         />
         <Nav />
       </main>
     )
   }
 
-  function streakProg(key:string) {
-    const s = profile!.streak_current
-    if (key==='streak_7')  return { cur:Math.min(s,7),  max:7  }
-    if (key==='streak_14') return { cur:Math.min(s,14), max:14 }
-    if (key==='streak_30') return { cur:Math.min(s,30), max:30 }
-    if (key==='streak_90') return { cur:Math.min(s,90), max:90 }
-    return null
-  }
-
   return (
-    <main style={{paddingBottom:100,minHeight:'100vh',background:'#07070F',fontFamily:'Inter, sans-serif'}}>
+    <main style={{paddingBottom:'calc(150px + env(safe-area-inset-bottom))',minHeight:'100dvh',background:'#07070F',fontFamily:'Inter, sans-serif'}}>
 
-      {/* ── Header + tabs ──────────────────────────────────────────────── */}
+      {/* ── Header ─────────────────────────────────────────────────────── */}
       <div style={{padding:'28px 20px 0'}}>
         <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:4}}>
           <button onClick={()=>setTab('resumo')} style={{
@@ -237,241 +210,16 @@ export default function ProgressoPage() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6"/>
             </svg>
-            Resumo
+            Progresso
           </button>
         </div>
         <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:24,marginBottom:4,lineHeight:1.2,color:'#fff'}}>
-          Progresso
+          Dashboard
         </h1>
-        <p style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:16,lineHeight:1.4}}>
+        <p style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:4,lineHeight:1.4}}>
           Evolução semanal, consistência e comparação contigo mesmo.
         </p>
-        <div style={{display:'flex',background:'rgba(255,255,255,0.05)',borderRadius:14,padding:4,gap:4,border:'1px solid rgba(255,255,255,0.07)'}}>
-          {([{k:'evolucao',l:'Resumo',i:'⚡'},{k:'dashboard',l:'Dashboard',i:'📊'}] as const).map(({k,l,i}) => (
-            <button key={k} onClick={()=>setTab(k)} style={{
-              flex:1,padding:'11px 8px',borderRadius:10,border:'none',cursor:'pointer',
-              display:'flex',alignItems:'center',justifyContent:'center',gap:7,
-              background:tab===k?'rgba(255,255,255,0.08)':'transparent',
-              color:tab===k?'#F5C842':'rgba(255,255,255,0.35)',
-              fontFamily:'Inter, sans-serif',fontWeight:tab===k?600:400,fontSize:14,
-              transition:'all .15s',boxShadow:tab===k?'0 1px 3px rgba(0,0,0,.3)':'none',
-            }}>
-              <span style={{fontSize:16}}>{i}</span>{l}
-            </button>
-          ))}
-        </div>
       </div>
-
-      {/* ══════════════════════════════════════════════════════════════════
-          TAB EVOLUÇÃO
-      ══════════════════════════════════════════════════════════════════ */}
-      {tab==='evolucao' && (
-        <>
-          {/* Level card */}
-          <div style={{
-            margin:'16px 20px 0',padding:'22px 20px',borderRadius:20,
-            background:'rgba(255,255,255,0.04)',border:'1px solid rgba(245,200,66,0.2)',
-            position:'relative',overflow:'hidden',
-          }}>
-            <div style={{position:'absolute',top:-40,right:-40,width:180,height:180,
-              borderRadius:'50%',background:'rgba(245,200,66,0.05)',pointerEvents:'none'}}/>
-            <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:16}}>
-              <div>
-                <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:6}}>
-                  <div style={{
-                    background:'rgba(245,200,66,0.12)',border:'1px solid rgba(245,200,66,0.25)',
-                    borderRadius:10,padding:'4px 12px',fontFamily:'Inter, sans-serif',
-                    fontWeight:800,fontSize:13,color:'#F5C842',letterSpacing:'.5px',lineHeight:1.4,
-                  }}>
-                    NÍV. {level}
-                  </div>
-                  <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:18,color:'#fff',lineHeight:1.2}}>
-                    {profile.title}
-                  </div>
-                </div>
-                <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',lineHeight:1.4}}>{TITLES[profile.title]??''}</div>
-              </div>
-              <div style={{textAlign:'right'}}>
-                <div style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:30,color:'#fff',lineHeight:1}}>
-                  {xp.toLocaleString('pt-PT')}
-                </div>
-                <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',marginTop:4}}>XP total</div>
-              </div>
-            </div>
-            <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:8,marginBottom:6}}>
-              <div style={{height:'100%',borderRadius:100,
-                background:'linear-gradient(90deg,#F5C842,#F0C060)',
-                width:`${pct}%`,transition:'width .8s ease'}}/>
-            </div>
-            <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'rgba(255,255,255,0.4)'}}>
-              <span>{pct}% para Nível {level+1}</span>
-              <span>{(next-xp).toLocaleString('pt-PT')} XP em falta</span>
-            </div>
-          </div>
-
-          {/* Streak pills */}
-          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8,padding:'12px 20px 0'}}>
-            {([
-              {l:'Streak',     v:`${profile.streak_current}`,u:'dias',c:'#F5C842',  i:'🔥',flame:true},
-              {l:'Recorde',    v:`${profile.streak_best}`,   u:'dias',c:'#9D5CF5',  i:'🏅',flame:false},
-              {l:'Conquistas', v:`${earned.size}/${ALL_BADGES.length}`,u:'',c:'#00C896',i:'✨',flame:false},
-            ] as const).map(({l,v,u,c,i,flame})=>(
-              <div key={l} style={{
-                background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',
-                borderRadius:14,padding:'14px 12px',textAlign:'center',
-              }}>
-                <div style={{
-                  fontSize:20,marginBottom:6,display:'inline-block',
-                  ...(flame?{animation:'flame 1.8s ease-in-out infinite',transformOrigin:'bottom center'}:{}),
-                }}>{i}</div>
-                <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:20,color:c,lineHeight:1}}>
-                  {v}
-                </div>
-                {u && <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:2}}>{u}</div>}
-                <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:4}}>{l}</div>
-              </div>
-            ))}
-          </div>
-
-          {/* Radar chart — Roda da Vida */}
-          <div style={{padding:'20px 20px 0'}}>
-            <div style={{
-              fontFamily:'Inter, sans-serif',fontSize:11,fontWeight:700,
-              color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10,
-            }}>
-              Equilíbrio de vida
-            </div>
-            <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:'16px 8px'}}>
-              <div style={{height:220,overflow:'hidden',position:'relative'}}>
-                <ResponsiveContainer width="100%" height={220}>
-                  <RadarChart data={areas.map(a=>({subject:a.label.split(' ')[0],value:a.pct,fullMark:100}))}>
-                    <PolarGrid stroke="rgba(255,255,255,.08)"/>
-                    <PolarAngleAxis dataKey="subject" tick={{fill:'rgba(255,255,255,0.4)',fontSize:11}}/>
-                    <Radar name="Progresso" dataKey="value"
-                      stroke="#7F77DD" fill="#7F77DD" fillOpacity={0.25} strokeWidth={2}/>
-                  </RadarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-
-          {/* Progresso por área */}
-          <div style={{padding:'16px 20px 0'}}>
-            <div style={{
-              fontFamily:'Inter, sans-serif',fontSize:11,fontWeight:700,
-              color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10,
-            }}>
-              Progresso por Área — 30 dias
-            </div>
-            <div style={{display:'flex',flexDirection:'column',gap:8}}>
-              {areas.map(a=>(
-                <div key={a.key} style={{
-                  background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',
-                  borderRadius:14,padding:'13px 16px',
-                }}>
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                    <div style={{display:'flex',alignItems:'center',gap:10}}>
-                      <span style={{fontSize:18}}>{a.icon}</span>
-                      <span style={{fontSize:13,fontWeight:500,color:'#fff'}}>{a.label}</span>
-                    </div>
-                    <div style={{display:'flex',alignItems:'center',gap:8}}>
-                      <span style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>{a.done}/{a.total>0?a.total:'—'}</span>
-                      <span style={{
-                        fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,lineHeight:1,
-                        color:a.pct>=70?'#00C896':a.pct>=40?'#F5C842':'rgba(255,255,255,0.4)',
-                        minWidth:36,textAlign:'right',
-                      }}>
-                        {a.total>0?`${a.pct}%`:'—'}
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:5}}>
-                    <div style={{
-                      height:'100%',borderRadius:100,width:`${a.pct}%`,
-                      background:a.pct>=70?'#00C896':a.pct>=40?'#F5C842':a.color,
-                      transition:'width .8s ease',
-                    }}/>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Conquistas */}
-          <div style={{padding:'20px 20px 0'}}>
-            <div style={{
-              fontFamily:'Inter, sans-serif',fontSize:11,fontWeight:700,
-              color:'rgba(255,255,255,0.3)',textTransform:'uppercase',letterSpacing:'0.1em',marginBottom:10,
-            }}>
-              Conquistas
-            </div>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:10}}>
-              {ALL_BADGES.map(b => {
-                const isE = earned.has(b.key)
-                const isA = activeBadge===b.key
-                const sp  = streakProg(b.key)
-                return (
-                  <button key={b.key} onClick={()=>setActiveBadge(isA?null:b.key)} style={{
-                    background:isA?(isE?'rgba(245,200,66,0.08)':'rgba(255,255,255,0.08)'):'rgba(255,255,255,0.04)',
-                    border:isA?(isE?'1px solid rgba(245,200,66,0.3)':'1px solid rgba(157,92,245,0.4)'):'1px solid rgba(255,255,255,0.07)',
-                    borderRadius:14,padding:'14px 8px',cursor:'pointer',
-                    display:'flex',flexDirection:'column',alignItems:'center',gap:6,
-                    filter:isE?'none':'grayscale(.8)',opacity:isE?1:0.55,
-                    transform:isA?'scale(1.03)':'scale(1)',transition:'all .15s',
-                  }}>
-                    <span style={{fontSize:24}}>{b.icon}</span>
-                    <span style={{fontSize:10,color:isE?'#fff':'rgba(255,255,255,0.4)',textAlign:'center',lineHeight:1.3}}>
-                      {b.name}
-                    </span>
-                    {isE && <span style={{fontSize:9,color:'#00C896'}}>+{b.xp} XP</span>}
-                    {isA && !isE && sp && (
-                      <div style={{width:'100%',marginTop:2}}>
-                        <div style={{background:'rgba(255,255,255,0.08)',borderRadius:100,height:3}}>
-                          <div style={{height:'100%',borderRadius:100,background:'#F5C842',
-                            width:`${Math.round(sp.cur/sp.max*100)}%`}}/>
-                        </div>
-                        <div style={{fontSize:9,color:'#F5C842',textAlign:'center',marginTop:3}}>
-                          {sp.cur}/{sp.max}
-                        </div>
-                      </div>
-                    )}
-                    {isA && isE  && <div style={{fontSize:9,color:'#00C896',textAlign:'center'}}>Conquistado ✓</div>}
-                    {isA && !isE && !sp && <div style={{fontSize:9,color:'rgba(255,255,255,0.4)',textAlign:'center',lineHeight:1.3}}>{b.desc}</div>}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-
-          {/* Percurso de títulos */}
-          <div style={{margin:'20px 20px 0',padding:'16px',borderRadius:14,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)'}}>
-            <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(255,255,255,0.3)',marginBottom:10}}>Percurso de Títulos</div>
-            {[
-              {t:'Recruta',     min:1,  max:2 },
-              {t:'Consistente', min:3,  max:4 },
-              {t:'Focado',      min:5,  max:7 },
-              {t:'Estrategista',min:8,  max:10},
-              {t:'Imparável',   min:11, max:14},
-              {t:'Antifrágil',  min:15, max:20},
-            ].map(t => {
-              const isCur  = level >= t.min && level <= t.max
-              const isPast = level > t.max
-              return (
-                <div key={t.t} style={{display:'flex',alignItems:'center',gap:10,padding:'5px 0'}}>
-                  <div style={{width:8,height:8,borderRadius:'50%',flexShrink:0,
-                    background:isPast?'#00C896':isCur?'#F5C842':'rgba(255,255,255,0.08)'}}/>
-                  <div style={{flex:1,fontSize:13,color:isCur?'#fff':'rgba(255,255,255,0.4)',fontWeight:isCur?600:400}}>
-                    {t.t}
-                  </div>
-                  <div style={{fontSize:11,color:'rgba(255,255,255,0.4)'}}>Nív. {t.min}–{t.max}</div>
-                  {isCur  && <div style={{fontSize:10,color:'#F5C842',fontFamily:'Inter, sans-serif'}}>← aqui</div>}
-                  {isPast && <div style={{fontSize:10,color:'#00C896'}}>✓</div>}
-                </div>
-              )
-            })}
-          </div>
-        </>
-      )}
 
       {/* ══════════════════════════════════════════════════════════════════
           TAB DASHBOARD

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="base.css">
+<style>
+  .hub { padding: 0 22px; }
+  .hub-head { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 6px; }
+  .hub-head h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.5px; }
+  .hub-head .sub { font-size: 13px; color: var(--txt3); font-weight: 500; margin-top: 2px; }
+  .plus {
+    width: 38px; height: 38px; border-radius: 12px;
+    background: rgba(245,200,66,0.14); border: 1px solid rgba(245,200,66,0.35);
+    display: flex; align-items: center; justify-content: center; color: var(--gold);
+    font-size: 20px; font-weight: 600;
+  }
+  .rings { display: flex; gap: 10px; margin: 12px 0 18px; }
+  .ringcard { flex: 1; background: var(--card2); border: 1px solid var(--line); border-radius: 16px; padding: 14px 12px; text-align: center; }
+  .ringcard .lab { font-size: 10px; color: var(--txt3); font-weight: 500; margin-top: 8px; white-space: nowrap; }
+  .ringwrap { width: 54px; height: 54px; margin: 0 auto; position: relative; }
+  .ringwrap .pct { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); font-size: 13px; font-weight: 800; color: #fff; }
+
+  .grp { display: flex; align-items: center; gap: 8px; margin: 16px 0 10px; }
+  .grp .d { width: 8px; height: 8px; border-radius: 50%; }
+  .grp .n { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.7); }
+  .grp .c { font-size: 12px; color: var(--txt4); margin-left: auto; }
+
+  .hitem {
+    display: flex; align-items: center; gap: 13px;
+    background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+    padding: 13px 14px; margin-bottom: 8px; position: relative;
+  }
+  .hitem.done { background: rgba(0,200,150,0.05); border-color: rgba(0,200,150,0.15); }
+  .ck {
+    width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+    border: 2px solid rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center;
+    font-size: 13px; font-weight: 800; color: transparent;
+  }
+  .hitem.done .ck { border-color: var(--green); background: var(--green); color: #001A10; }
+  .hbody { flex: 1; min-width: 0; }
+  .hname { font-size: 14px; font-weight: 600; color: var(--txt); margin-bottom: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hitem.done .hname { color: rgba(255,255,255,0.55); text-decoration: line-through; text-decoration-color: rgba(255,255,255,0.2); }
+  .hmeta { font-size: 11px; color: var(--txt4); display: flex; gap: 8px; align-items: center; }
+  .hmeta .xp { color: var(--gold); font-weight: 700; }
+  .dots {
+    width: 30px; height: 30px; border-radius: 10px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; color: rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    font-size: 15px; font-weight: 800; letter-spacing: 1px; line-height: 0; padding-bottom: 7px;
+  }
+  .dots.hot { border-color: rgba(245,200,66,0.4); color: var(--gold); background: rgba(245,200,66,0.10); }
+
+  .menu {
+    position: absolute; right: 10px; top: 52px; z-index: 9; width: 198px;
+    background: #161825; border: 1px solid rgba(255,255,255,0.12); border-radius: 16px;
+    box-shadow: 0 18px 50px rgba(0,0,0,0.65); overflow: hidden;
+  }
+  .menu .mi { display: flex; align-items: center; gap: 11px; padding: 12px 14px; font-size: 13.5px; font-weight: 600; color: var(--txt); border-bottom: 1px solid rgba(255,255,255,0.06); }
+  .menu .mi:last-child { border-bottom: 0; color: var(--danger); }
+  .menu .mi .e { font-size: 15px; }
+
+  .bars .b { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .bars .bl { font-size: 12px; font-weight: 600; color: var(--txt2); min-width: 92px; }
+  .bars .tr { flex: 1; height: 6px; background: rgba(255,255,255,0.07); border-radius: 10px; overflow: hidden; }
+  .bars .fi { height: 100%; border-radius: 10px; }
+  .bars .bp { font-size: 11px; font-weight: 700; color: var(--txt3); min-width: 30px; text-align: right; }
+
+  .bgblur { filter: blur(2px); opacity: .55; }
+</style>
+</head>
+<body>
+<div class="canvas-title">Hábitos — experiência unificada no hub novo</div>
+<div class="canvas-sub">CRUD integrado ao hub: concluir, editar nome/área/horário e apagar sem sair da estética nova. O botão + abre bottom sheet no mesmo design.</div>
+
+<div class="row">
+
+  <!-- ════ PANEL A : hub com menu contextual ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>1 · Hub único com ações por hábito</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+      <div class="hub">
+        <div class="hub-head">
+          <div>
+            <h1>Hábitos</h1>
+            <div class="sub">5 de 8 concluídos hoje</div>
+          </div>
+          <div class="plus">+</div>
+        </div>
+
+        <div class="rings">
+          <div class="ringcard">
+            <div class="ringwrap">
+              <svg width="54" height="54" viewBox="0 0 54 54" style="transform:rotate(-90deg)">
+                <circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+                <circle cx="27" cy="27" r="22" fill="none" stroke="#00C896" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="34.6"/>
+              </svg>
+              <div class="pct">75%</div>
+            </div>
+            <div class="lab">Saúde</div>
+          </div>
+          <div class="ringcard">
+            <div class="ringwrap">
+              <svg width="54" height="54" viewBox="0 0 54 54" style="transform:rotate(-90deg)">
+                <circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+                <circle cx="27" cy="27" r="22" fill="none" stroke="#9D5CF5" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="69.1"/>
+              </svg>
+              <div class="pct">50%</div>
+            </div>
+            <div class="lab">Conhecimento</div>
+          </div>
+          <div class="ringcard">
+            <div class="ringwrap">
+              <svg width="54" height="54" viewBox="0 0 54 54" style="transform:rotate(-90deg)">
+                <circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
+                <circle cx="27" cy="27" r="22" fill="none" stroke="#00D4C8" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="0"/>
+              </svg>
+              <div class="pct">100%</div>
+            </div>
+            <div class="lab">Carreira</div>
+          </div>
+        </div>
+
+        <div class="chips">
+          <div class="chip active">Todos</div>
+          <div class="chip"><span class="emoji">💪</span> Saúde</div>
+          <div class="chip"><span class="emoji">📚</span> Conhecimento</div>
+          <div class="chip"><span class="emoji">💼</span> Carreira</div>
+        </div>
+
+        <div class="grp"><span class="d" style="background:#00C896"></span><span class="n">Saúde</span><span class="c">3/4</span></div>
+
+        <div class="hitem done">
+          <div class="ck">✓</div>
+          <div class="hbody">
+            <div class="hname">Beber 2L de água</div>
+            <div class="hmeta"><span>Durante o dia</span><span class="xp">+10 XP</span></div>
+          </div>
+          <div class="dots">…</div>
+        </div>
+
+        <div class="hitem" style="z-index:8">
+          <div class="ck">✓</div>
+          <div class="hbody">
+            <div class="hname">Treino de força</div>
+            <div class="hmeta"><span>18:00 – 19:30</span><span class="xp">+50 XP</span></div>
+          </div>
+          <div class="dots hot">…</div>
+          <div class="menu">
+            <div class="mi"><span class="e emoji">✏️</span> Editar hábito</div>
+            <div class="mi"><span class="e emoji">🕐</span> Ajustar horário</div>
+            <div class="mi"><span class="e emoji">🗑️</span> Apagar</div>
+          </div>
+        </div>
+
+        <div class="hitem done">
+          <div class="ck">✓</div>
+          <div class="hbody">
+            <div class="hname">Dormir antes das 23h</div>
+            <div class="hmeta"><span>Noite</span><span class="xp">+25 XP</span></div>
+          </div>
+          <div class="dots">…</div>
+        </div>
+
+        <div class="grp"><span class="d" style="background:#9D5CF5"></span><span class="n">Conhecimento</span><span class="c">1/2</span></div>
+
+        <div class="hitem">
+          <div class="ck">✓</div>
+          <div class="hbody">
+            <div class="hname">Ler 20 páginas</div>
+            <div class="hmeta"><span>21:00 – 22:00</span><span class="xp">+25 XP</span></div>
+          </div>
+          <div class="dots">…</div>
+        </div>
+
+        <div class="sec">Progresso por área</div>
+        <div class="bars">
+          <div class="b"><span class="bl">Saúde</span><span class="tr"><span class="fi" style="width:75%;background:#00C896;display:block"></span></span><span class="bp">75%</span></div>
+          <div class="b"><span class="bl">Conhecimento</span><span class="tr"><span class="fi" style="width:50%;background:#9D5CF5;display:block"></span></span><span class="bp">50%</span></div>
+          <div class="b"><span class="bl">Carreira</span><span class="tr"><span class="fi" style="width:100%;background:#00D4C8;display:block"></span></span><span class="bp">100%</span></div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Hoje</div>
+        <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Hábitos</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0 1 13 0"/></svg>Corpo</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progresso</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais</div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- ════ PANEL B : novo hábito sheet ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>2 · "+" abre Novo hábito no mesmo design</div>
+    <div class="phone">
+      <div class="bgblur">
+        <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+        <div class="hub">
+          <div class="hub-head">
+            <div><h1>Hábitos</h1><div class="sub">5 de 8 concluídos hoje</div></div>
+            <div class="plus">+</div>
+          </div>
+          <div class="rings">
+            <div class="ringcard"><div class="ringwrap"><svg width="54" height="54" viewBox="0 0 54 54" style="transform:rotate(-90deg)"><circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="27" cy="27" r="22" fill="none" stroke="#00C896" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="34.6"/></svg><div class="pct">75%</div></div><div class="lab">Saúde</div></div>
+            <div class="ringcard"><div class="ringwrap"><svg width="54" height="54" viewBox="0 0 54 54" style="transform:rotate(-90deg)"><circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="27" cy="27" r="22" fill="none" stroke="#9D5CF5" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="69.1"/></svg><div class="pct">50%</div></div><div class="lab">Conhecimento</div></div>
+            <div class="ringcard"><div class="ringwrap"><svg width="54" height="54" viewBox="0 0 54 54" style="transform:rotate(-90deg)"><circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="27" cy="27" r="22" fill="none" stroke="#00D4C8" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg><div class="pct">100%</div></div><div class="lab">Carreira</div></div>
+          </div>
+          <div class="chips">
+            <div class="chip active">Todos</div>
+            <div class="chip"><span class="emoji">💪</span> Saúde</div>
+            <div class="chip"><span class="emoji">📚</span> Conhecimento</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dim"></div>
+      <div class="sheet" style="height:640px">
+        <div class="grab"></div>
+        <div class="sheet-head">
+          <div class="t">Novo hábito</div>
+          <div class="xbtn">✕</div>
+        </div>
+        <div class="sheet-body">
+          <div class="field-label" style="margin-top:2px">Nome do hábito</div>
+          <div class="input">Meditar 10 minutos</div>
+
+          <div class="field-label">Área</div>
+          <div class="opt-grid">
+            <div class="opt sel"><span class="e emoji">🧘</span>Pessoal</div>
+            <div class="opt"><span class="e emoji">💪</span>Saúde</div>
+            <div class="opt"><span class="e emoji">📚</span>Conhec.</div>
+            <div class="opt"><span class="e emoji">💼</span>Carreira</div>
+          </div>
+
+          <div class="field-label">Horário</div>
+          <div class="opt-grid">
+            <div class="opt sel"><span class="e emoji">🌅</span>Manhã</div>
+            <div class="opt"><span class="e emoji">☀️</span>Tarde</div>
+            <div class="opt"><span class="e emoji">🌙</span>Noite</div>
+            <div class="opt"><span class="e emoji">🕐</span>Definir</div>
+          </div>
+          <div class="input" style="margin-top:8px"><span>07:00 – 07:15</span><span style="color:rgba(245,200,66,0.9);font-size:12px;font-weight:700">alterar</span></div>
+
+          <div class="field-label">Dificuldade</div>
+          <div class="opt-grid">
+            <div class="opt">Fácil<span style="color:var(--gold);font-size:10.5px;font-weight:700">+10 XP</span></div>
+            <div class="opt sel">Média<span style="color:var(--gold);font-size:10.5px;font-weight:700">+25 XP</span></div>
+            <div class="opt">Difícil<span style="color:var(--gold);font-size:10.5px;font-weight:700">+50 XP</span></div>
+          </div>
+        </div>
+        <div class="sheet-foot">
+          <div class="cta">Criar hábito</div>
+        </div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- ════ PANEL C : editar hábito sheet ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>3 · Editar: horário e apagar no mesmo sheet</div>
+    <div class="phone">
+      <div class="bgblur">
+        <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+        <div class="hub">
+          <div class="hub-head">
+            <div><h1>Hábitos</h1><div class="sub">5 de 8 concluídos hoje</div></div>
+            <div class="plus">+</div>
+          </div>
+          <div class="rings">
+            <div class="ringcard"><div class="ringwrap"><svg width="54" height="54" viewBox="0 0 54 54" style="transform:rotate(-90deg)"><circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="27" cy="27" r="22" fill="none" stroke="#00C896" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="34.6"/></svg><div class="pct">75%</div></div><div class="lab">Saúde</div></div>
+            <div class="ringcard"><div class="ringwrap"><svg width="54" height="54" viewBox="0 0 54 54" style="transform:rotate(-90deg)"><circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="27" cy="27" r="22" fill="none" stroke="#9D5CF5" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="69.1"/></svg><div class="pct">50%</div></div><div class="lab">Conhecimento</div></div>
+            <div class="ringcard"><div class="ringwrap"><svg width="54" height="54" viewBox="0 0 54 54" style="transform:rotate(-90deg)"><circle cx="27" cy="27" r="22" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/><circle cx="27" cy="27" r="22" fill="none" stroke="#00D4C8" stroke-width="4" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="0"/></svg><div class="pct">100%</div></div><div class="lab">Carreira</div></div>
+          </div>
+          <div class="chips">
+            <div class="chip active">Todos</div>
+            <div class="chip"><span class="emoji">💪</span> Saúde</div>
+            <div class="chip"><span class="emoji">📚</span> Conhecimento</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dim"></div>
+      <div class="sheet" style="height:700px">
+        <div class="grab"></div>
+        <div class="sheet-head">
+          <div class="t">Editar hábito</div>
+          <div class="xbtn">✕</div>
+        </div>
+        <div class="sheet-body">
+          <div class="field-label" style="margin-top:2px">Nome do hábito</div>
+          <div class="input">Treino de força</div>
+
+          <div class="field-label">Área</div>
+          <div class="opt-grid">
+            <div class="opt"><span class="e emoji">🧘</span>Pessoal</div>
+            <div class="opt sel" style="border-color:rgba(0,200,150,0.5);background:rgba(0,200,150,0.10);color:#00C896"><span class="e emoji">💪</span>Saúde</div>
+            <div class="opt"><span class="e emoji">📚</span>Conhec.</div>
+            <div class="opt"><span class="e emoji">💼</span>Carreira</div>
+          </div>
+
+          <div class="field-label">Horário</div>
+          <div class="opt-grid">
+            <div class="opt"><span class="e emoji">🌅</span>Manhã</div>
+            <div class="opt"><span class="e emoji">☀️</span>Tarde</div>
+            <div class="opt sel"><span class="e emoji">🌙</span>Noite</div>
+            <div class="opt"><span class="e emoji">🕐</span>Definir</div>
+          </div>
+          <div class="input" style="margin-top:8px"><span>18:00 – 19:30</span><span style="color:rgba(245,200,66,0.9);font-size:12px;font-weight:700">alterar</span></div>
+
+          <div class="field-label">Dificuldade</div>
+          <div class="opt-grid">
+            <div class="opt">Fácil<span style="color:var(--gold);font-size:10.5px;font-weight:700">+10 XP</span></div>
+            <div class="opt">Média<span style="color:var(--gold);font-size:10.5px;font-weight:700">+25 XP</span></div>
+            <div class="opt sel">Difícil<span style="color:var(--gold);font-size:10.5px;font-weight:700">+50 XP</span></div>
+          </div>
+
+          <div style="margin-top:18px;border:1px solid rgba(226,75,74,0.25);border-radius:13px;padding:13px 14px;display:flex;align-items:center;gap:10px;color:var(--danger);font-size:13.5px;font-weight:700">
+            <span class="emoji" style="font-size:15px">🗑️</span> Apagar hábito
+            <span style="margin-left:auto;font-size:11px;font-weight:500;color:rgba(226,75,74,0.6)">pede confirmação</span>
+          </div>
+        </div>
+        <div class="sheet-foot">
+          <div class="cta">Guardar alterações</div>
+        </div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

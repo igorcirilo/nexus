@@ -551,13 +551,16 @@ export default function LeituraReaderPage() {
           onClick={() => setSettingsOpen(false)}
         >
           <div
-            style={{ width: '100%', background: sheetBg, borderRadius: '24px 24px 0 0', padding: '8px 0 40px', border: `1px solid ${palette.border}`, borderBottom: 'none' }}
+            style={{ width: '100%', background: sheetBg, borderRadius: '24px 24px 0 0', border: `1px solid ${palette.border}`, borderBottom: 'none', display: 'flex', flexDirection: 'column', maxHeight: 'min(86dvh, 720px)', overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}
           >
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: palette.border, margin: '8px auto 20px' }} />
-            <div style={{ padding: '0 20px 18px', fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: `${palette.text}55`, fontFamily: 'Inter, sans-serif' }}>
-              Aspecto
+            <div style={{ flexShrink: 0, padding: '8px 0 0' }}>
+              <div style={{ width: 36, height: 4, borderRadius: 2, background: palette.border, margin: '8px auto 20px' }} />
+              <div style={{ padding: '0 20px 14px', fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: `${palette.text}55`, fontFamily: 'Inter, sans-serif' }}>
+                Aspecto
+              </div>
             </div>
+            <div style={{ overflowY: 'auto', flex: 1, paddingBottom: 'calc(24px + env(safe-area-inset-bottom))' }}>
 
             {/* Theme */}
             <div style={{ padding: '0 20px', marginBottom: 22 }}>
@@ -653,6 +656,7 @@ export default function LeituraReaderPage() {
                 style={{ width: '100%', accentColor: palette.accent }}
               />
             </div>
+            </div>
           </div>
         </div>
       )}
@@ -664,7 +668,7 @@ export default function LeituraReaderPage() {
           onClick={() => setTocOpen(false)}
         >
           <div
-            style={{ width: '100%', maxHeight: '70vh', background: sheetBg, borderRadius: '24px 24px 0 0', border: `1px solid ${palette.border}`, borderBottom: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+            style={{ width: '100%', maxHeight: '70dvh', background: sheetBg, borderRadius: '24px 24px 0 0', border: `1px solid ${palette.border}`, borderBottom: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ padding: '8px 20px 14px', flexShrink: 0 }}>
@@ -709,7 +713,7 @@ export default function LeituraReaderPage() {
           onClick={() => setAnnOpen(false)}
         >
           <div
-            style={{ width: '100%', maxHeight: '72vh', background: sheetBg, borderRadius: '24px 24px 0 0', border: `1px solid ${palette.border}`, borderBottom: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
+            style={{ width: '100%', maxHeight: '72dvh', background: sheetBg, borderRadius: '24px 24px 0 0', border: `1px solid ${palette.border}`, borderBottom: 'none', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
             onClick={e => e.stopPropagation()}
           >
             {/* Handle + tabs */}

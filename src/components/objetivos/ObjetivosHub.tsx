@@ -76,7 +76,7 @@ export default function ObjetivosHub({ goals, milestones, onDetails, onAdd }: Pr
     .slice(0, 4)
 
   return (
-    <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100vh', padding: '0 22px 28px' }}>
+    <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100dvh', padding: '0 22px 40px' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 6px' }}>
@@ -185,9 +185,9 @@ export default function ObjetivosHub({ goals, milestones, onDetails, onAdd }: Pr
                       width: 40, height: 40, borderRadius: 12, flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: hexAlpha(color, 0.12),
-                      color: color, fontWeight: 800, fontSize: 15,
+                      fontSize: 18,
                     }}>
-                      {(area?.label ?? g.area).charAt(0).toUpperCase()}
+                      {area?.icon ?? '🎯'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0, paddingRight: isPriority ? 52 : 0 }}>
                       <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 3, lineHeight: 1.2 }}>

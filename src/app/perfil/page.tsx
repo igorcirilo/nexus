@@ -81,6 +81,8 @@ export default function PerfilPage() {
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
   const [form, setForm] = useState<Record<string, string | number>>({})
+  const [photoUploading, setPhotoUploading] = useState(false)
+  const [photoError, setPhotoError] = useState('')
   const router = useRouter()
 
   useEffect(() => {
@@ -147,6 +149,39 @@ export default function PerfilPage() {
     router.push('/auth')
   }
 
+  async function handlePhotoSelect(file: File) {
+    if (!profile) return
+    if (file.size > 5 * 1024 * 1024) {
+      setPhotoError('A foto deve ter no máximo 5MB.')
+      setTimeout(() => setPhotoError(''), 3000)
+      return
+    }
+    setPhotoUploading(true)
+    setPhotoError('')
+    try {
+      const ext = file.name.split('.').pop()?.toLowerCase() || 'jpg'
+      const path = `${profile.id}/avatar-${Date.now()}.${ext}`
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(path, file, { upsert: true, contentType: file.type })
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path)
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', profile.id)
+      if (updateError) throw updateError
+
+      setProfile(p => (p ? { ...p, avatar_url: publicUrl } : p))
+    } catch {
+      setPhotoError('Não foi possível carregar a foto. Tenta novamente.')
+      setTimeout(() => setPhotoError(''), 3000)
+    } finally {
+      setPhotoUploading(false)
+    }
+  }
+
   const sections: Section[] = ['corpo', 'metas', 'objetivos', 'xp']
   const sectionLabels: Record<Section, string> = {
     corpo: 'Corpo',
@@ -168,13 +203,24 @@ export default function PerfilPage() {
   // ── Hub (tab resumo) ────────────────────────────────────────────────────────
   if (tab === 'resumo') {
     return (
-      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+      <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: '#07070F' }}>
+        {photoError && (
+          <div style={{
+            position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)',
+            background: '#161825', border: '1px solid rgba(226,75,74,.38)', borderRadius: 12,
+            padding: '10px 18px', fontSize: 13, color: '#E24B4A', zIndex: 10000, whiteSpace: 'nowrap',
+          }}>
+            {photoError}
+          </div>
+        )}
         <PerfilHub
           profile={profile!}
           badges={badges}
           email={email}
           onEdit={(sec) => { setSection(sec ?? 'corpo'); setTab('editar') }}
           onLogout={logout}
+          onPhotoSelect={handlePhotoSelect}
+          photoUploading={photoUploading}
           journeyData={journeyData}
         />
         <Nav />
