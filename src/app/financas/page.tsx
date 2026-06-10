@@ -718,8 +718,8 @@ export default function FinancasPage() {
 
       {/* MODAL: Metas */}
       {showGoals&&(
-        <div style={{position:'fixed',inset:0,zIndex:40,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowGoals(false)}>
-          <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',padding:24}}>
+        <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowGoals(false)}>
+          <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',padding:'24px 24px calc(24px + env(safe-area-inset-bottom))',maxHeight:'min(86dvh, 720px)',overflowY:'auto'}}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
               <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Metas financeiras</h2>
               <button onClick={()=>setShowGoals(false)} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>
