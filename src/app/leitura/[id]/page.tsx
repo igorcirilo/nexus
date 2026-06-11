@@ -308,7 +308,9 @@ export default function LeituraReaderPage() {
 
   return (
     <main
-      style={{ minHeight: '100dvh', background: palette.bg, color: palette.text, paddingBottom: readingMode === 'paginado' ? 150 : 100, overflowX: 'hidden' }}
+      // overflow-x clip (e não hidden): corta o vazamento horizontal sem criar
+      // scroll container, o que quebraria o position:sticky do header.
+      style={{ minHeight: '100dvh', background: palette.bg, color: palette.text, paddingBottom: readingMode === 'paginado' ? 150 : 100, overflowX: 'clip' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -456,6 +458,28 @@ export default function LeituraReaderPage() {
           </button>
         </div>
       )}
+
+      {/* ── Aspect (Aa) FAB — acesso às ferramentas sem voltar ao topo ────── */}
+      <button
+        onClick={() => { setSettingsOpen(v => !v); setTocOpen(false); setAnnOpen(false) }}
+        aria-label="Aspecto do texto"
+        style={{
+          position: 'fixed',
+          bottom: readingMode === 'paginado' ? 196 : 136,
+          right: 18, zIndex: 35,
+          width: 48, height: 48, borderRadius: 16,
+          background: settingsOpen ? palette.accent : (isDark ? '#1E2330' : palette.panel),
+          color: settingsOpen ? '#111' : palette.text,
+          border: `1px solid ${palette.border}`,
+          boxShadow: isDark ? '0 6px 24px rgba(0,0,0,0.5)' : '0 4px 18px rgba(0,0,0,0.14)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+          fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: 700, fontSize: 17,
+          transition: 'background 0.2s, color 0.2s',
+        }}
+      >
+        Aa
+      </button>
 
       {/* ── Annotations FAB ───────────────────────────────────────────────── */}
       <button
