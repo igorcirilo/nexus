@@ -16,7 +16,7 @@ export type HubMilestone = {
 interface Props {
   goals: Goal90[]
   milestones: Record<string, HubMilestone[]>
-  onDetails: () => void
+  onOpenGoal: (goalId: string) => void
   onAdd: () => void
 }
 
@@ -58,7 +58,7 @@ function daysLeft(endDate: string): number {
   return Math.max(0, Math.round((end.getTime() - today.getTime()) / 86400000))
 }
 
-export default function ObjetivosHub({ goals, milestones, onDetails, onAdd }: Props) {
+export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd }: Props) {
   const active   = goals.filter(g => g.status === 'active')
   const focusGoal = active[0] ?? null
   const nextDeadline = active.length > 0
@@ -98,7 +98,7 @@ export default function ObjetivosHub({ goals, milestones, onDetails, onAdd }: Pr
       {/* ── Focus banner ── */}
       {focusGoal ? (
         <div
-          onClick={onDetails}
+          onClick={() => onOpenGoal(focusGoal.id)}
           style={{
             background: 'linear-gradient(135deg, #1A0E00 0%, #201200 100%)',
             border: '1px solid rgba(245,200,66,0.2)',
@@ -160,7 +160,7 @@ export default function ObjetivosHub({ goals, milestones, onDetails, onAdd }: Pr
               return (
                 <div
                   key={g.id}
-                  onClick={onDetails}
+                  onClick={() => onOpenGoal(g.id)}
                   style={{
                     background: isPriority ? hexAlpha('#F5C842', 0.04) : 'rgba(255,255,255,0.03)',
                     border: `1px solid ${isPriority ? 'rgba(245,200,66,0.2)' : 'rgba(255,255,255,0.07)'}`,
@@ -270,7 +270,7 @@ export default function ObjetivosHub({ goals, milestones, onDetails, onAdd }: Pr
               return (
                 <div
                   key={milestone.id}
-                  onClick={onDetails}
+                  onClick={() => onOpenGoal(goal.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
                     background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
@@ -290,25 +290,6 @@ export default function ObjetivosHub({ goals, milestones, onDetails, onAdd }: Pr
           </div>
         </>
       )}
-
-      {/* CTA */}
-      <button
-        onClick={onDetails}
-        style={{
-          marginTop: 24, width: '100%',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-          padding: '13px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.07)',
-          background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.7)',
-          fontFamily: FONT, fontWeight: 600, fontSize: 13, cursor: 'pointer',
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10"/>
-          <circle cx="12" cy="12" r="6"/>
-          <circle cx="12" cy="12" r="2"/>
-        </svg>
-        Gerir objetivos
-      </button>
     </div>
   )
 }

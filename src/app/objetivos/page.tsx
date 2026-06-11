@@ -1,30 +1,40 @@
 'use client'
 import { useEffect, useState } from 'react'
-import { format, differenceInDays, addDays } from 'date-fns'
-import { pt } from 'date-fns/locale'
+import { format, addDays } from 'date-fns'
 import Nav from '@/components/Nav'
 import ObjetivosHub from '@/components/objetivos/ObjetivosHub'
 import { supabase, getGoals90, saveGoal90, deleteGoal90, getMilestones, toggleMilestone } from '@/lib/supabase'
 import { AREA_META } from '@/types'
 import type { Goal90, HabitArea } from '@/types'
 
-type AppTab   = 'resumo' | 'detalhes'
 type Milestone = { id: string; goal_id: string; user_id: string; title: string; done: boolean; due_date: string | null }
+
+const FONT = 'Inter, sans-serif'
 
 const CATEGORIES = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
 
 const inp: React.CSSProperties = {
-  width: '100%', background: 'var(--bg2)', border: '0.5px solid var(--border)',
-  borderRadius: 12, padding: '12px 14px', color: 'var(--text1)',
-  fontFamily: 'DM Sans, sans-serif', fontSize: 14, outline: 'none',
+  width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)',
+  borderRadius: 13, padding: '12px 14px', color: '#fff',
+  fontFamily: FONT, fontSize: 14, outline: 'none',
+}
+
+const fieldLabel: React.CSSProperties = {
+  fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
+  color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: FONT,
+}
+
+function daysLeftOf(endDate: string): number {
+  const end = new Date(endDate + 'T12:00:00')
+  return Math.max(0, Math.round((end.getTime() - Date.now()) / 86400000))
 }
 
 export default function ObjetivosPage() {
-  const [tab,       setTab]       = useState<AppTab>('resumo')
   const [userId,    setUserId]    = useState<string | null>(null)
   const [goals,     setGoals]     = useState<Goal90[]>([])
   const [milestones,setMilestones]= useState<Record<string, Milestone[]>>({})
-  const [expanded,  setExpanded]  = useState<string | null>(null)
+  const [openGoalId,setOpenGoalId]= useState<string | null>(null)
+  const [confirmDelete, setConfirmDelete] = useState<Goal90 | null>(null)
   const [showForm,  setShowForm]  = useState(false)
   const [editGoal,  setEditGoal]  = useState<Goal90 | null>(null)
   const [saving,    setSaving]    = useState(false)
@@ -88,13 +98,14 @@ export default function ObjetivosPage() {
     setShowForm(false)
     showToast(editGoal ? 'Objectivo actualizado!' : 'Objectivo criado!')
     setSaving(false)
-    if (!editGoal) setTab('resumo')
   }
 
   async function remove(id: string) {
     if (!userId) return
     await deleteGoal90(id)
     setGoals(g => g.filter(x => x.id !== id))
+    setConfirmDelete(null)
+    setOpenGoalId(null)
     showToast('Objectivo removido.')
   }
 
@@ -129,16 +140,15 @@ export default function ObjetivosPage() {
     if (goal) updateProgress(goal, pct)
   }
 
-  const today = new Date()
+  const openGoal = openGoalId ? goals.find(g => g.id === openGoalId) ?? null : null
 
-  // Toast partilhado entre o hub e a vista de detalhes
   const toastEl = toast && (
-    <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: 'var(--teal)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 10000, whiteSpace: 'nowrap' }}>
+    <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: '#161825', border: '1px solid rgba(0,200,150,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, fontFamily: FONT, color: '#00C896', display: 'flex', alignItems: 'center', gap: 8, zIndex: 10000, whiteSpace: 'nowrap' }}>
       ✓ {toast}
     </div>
   )
 
-  // ── Modal de criação/edição (acionável no hub e nos detalhes) ────────────
+  // ── Modal de criação/edição ───────────────────────────────────────────────
   const formModal = showForm && (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
       onClick={e => e.target === e.currentTarget && setShowForm(false)}>
@@ -151,18 +161,18 @@ export default function ObjetivosPage() {
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.18)', margin: '10px auto 0', flexShrink: 0 }} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
-          <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 17, color: '#fff', letterSpacing: '-0.3px' }}>
+          <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 17, color: '#fff', letterSpacing: '-0.3px' }}>
             {editGoal ? 'Editar objectivo' : 'Novo objectivo'}
           </h2>
           <button onClick={() => setShowForm(false)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,0.6)' }}>✕</button>
         </div>
 
         <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px' }}>
-          <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Objectivo</label>
+          <label style={fieldLabel}>Objectivo</label>
           <input value={fTitle} onChange={e => setFTitle(e.target.value)}
-            placeholder="Ex: Correr 5km sem parar" style={{ ...inp, marginBottom: 16, fontFamily: 'Inter, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 13, color: '#fff' }} />
+            placeholder="Ex: Correr 5km sem parar" style={{ ...inp, marginBottom: 16 }} />
 
-          <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Área</label>
+          <label style={fieldLabel}>Área</label>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 16 }}>
             {CATEGORIES.map(([key, meta]) => (
               <button key={key} onClick={() => setFArea(key)} style={{
@@ -171,7 +181,7 @@ export default function ObjetivosPage() {
                 background: fArea === key ? `${meta.color}18` : 'rgba(255,255,255,0.03)',
                 border: fArea === key ? `1px solid ${meta.color}77` : '1px solid rgba(255,255,255,0.10)',
                 color: fArea === key ? meta.color : 'rgba(255,255,255,0.55)',
-                fontSize: 13, fontWeight: 600, fontFamily: 'Inter, sans-serif',
+                fontSize: 13, fontWeight: 600, fontFamily: FONT,
               }}>
                 <span style={{ fontSize: 15 }}>{meta.icon}</span>{meta.label}
               </button>
@@ -180,18 +190,18 @@ export default function ObjetivosPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Início</label>
-              <input type="date" value={fStart} onChange={e => setFStart(e.target.value)} style={{ ...inp, fontFamily: 'Inter, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 13, color: '#fff' }} />
+              <label style={fieldLabel}>Início</label>
+              <input type="date" value={fStart} onChange={e => setFStart(e.target.value)} style={inp} />
             </div>
             <div>
-              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Fim</label>
-              <input type="date" value={fEnd} onChange={e => setFEnd(e.target.value)} style={{ ...inp, fontFamily: 'Inter, sans-serif', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 13, color: '#fff' }} />
+              <label style={fieldLabel}>Fim</label>
+              <input type="date" value={fEnd} onChange={e => setFEnd(e.target.value)} style={inp} />
             </div>
           </div>
 
           {editGoal && (
             <div style={{ marginBottom: 4 }}>
-              <label style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8, fontFamily: 'Inter, sans-serif' }}>Progresso actual: {fProgress}%</label>
+              <label style={fieldLabel}>Progresso actual: {fProgress}%</label>
               <input type="range" min={0} max={100} step={5} value={fProgress} onChange={e => setFProgress(+e.target.value)}
                 style={{ width: '100%', accentColor: '#F5C842' }} />
             </div>
@@ -202,7 +212,7 @@ export default function ObjetivosPage() {
           <button onClick={save} disabled={saving || !fTitle.trim()} style={{
             width: '100%', background: fTitle.trim() ? 'linear-gradient(135deg, #F5C842, #E0A82A)' : 'rgba(255,255,255,0.06)',
             color: fTitle.trim() ? '#1A1200' : 'rgba(255,255,255,0.35)', border: 'none',
-            borderRadius: 15, padding: 15, fontFamily: 'Inter, sans-serif', fontWeight: 800,
+            borderRadius: 15, padding: 15, fontFamily: FONT, fontWeight: 800,
             fontSize: 15, cursor: fTitle.trim() ? 'pointer' : 'not-allowed',
           }}>{saving ? 'A guardar…' : editGoal ? 'Guardar alterações' : 'Criar objectivo'}</button>
         </div>
@@ -210,212 +220,189 @@ export default function ObjetivosPage() {
     </div>
   )
 
-  // ── Hub (tab resumo) ──────────────────────────────────────────────────────
-  if (tab === 'resumo') {
-    return (
-      <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: '#07070F' }}>
-        {toastEl}
-        <ObjetivosHub
-          goals={goals}
-          milestones={milestones}
-          onDetails={() => setTab('detalhes')}
-          onAdd={openNew}
-        />
-        {formModal}
-        <Nav />
-      </main>
-    )
-  }
-
   return (
-    <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh' }}>
-
+    <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: '#07070F' }}>
       {toastEl}
+      <ObjetivosHub
+        goals={goals}
+        milestones={milestones}
+        onOpenGoal={setOpenGoalId}
+        onAdd={openNew}
+      />
 
-      {/* Header */}
-      <div style={{ padding: '28px 20px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-          <button onClick={() => setTab('resumo')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 4, fontSize: 13, padding: '4px 0' }}>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            Resumo
-          </button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <div>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 3 }}>Objectivos</h1>
-            <p style={{ fontSize: 12, color: 'var(--text3)' }}>
-              {goals.length} activo{goals.length !== 1 ? 's' : ''} · plano de 90 dias
-            </p>
+      {/* ── Bottom sheet: detalhe do objetivo ── */}
+      {openGoal && !showForm && (() => {
+        const area   = AREA_META[openGoal.area as HabitArea]
+        const color  = area?.color ?? '#9D5CF5'
+        const msList = milestones[openGoal.id] ?? []
+        const msDone = msList.filter(m => m.done).length
+        const dl     = daysLeftOf(openGoal.end_date)
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
+            onClick={e => e.target === e.currentTarget && setOpenGoalId(null)}>
+            <div style={{
+              width: '100%', maxWidth: 448, margin: '0 auto', background: '#11131C',
+              borderRadius: '24px 24px 0 0', borderTop: '1px solid rgba(255,255,255,0.12)',
+              display: 'flex', flexDirection: 'column', maxHeight: 'min(86dvh, 720px)',
+              fontFamily: FONT, boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
+            }}>
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.18)', margin: '10px auto 0', flexShrink: 0 }} />
+
+              {/* Header fixo */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: `${color}1F`, fontSize: 18,
+                }}>
+                  {area?.icon ?? '🎯'}
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: '#fff', letterSpacing: '-0.3px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>
+                    {openGoal.title}
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+                    {area?.label ?? openGoal.area} · {dl > 0 ? `${dl} dias restantes` : 'Terminou'}
+                  </div>
+                </div>
+                <button onClick={() => setOpenGoalId(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}>✕</button>
+              </div>
+
+              {/* Corpo scrollável */}
+              <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px' }}>
+                {/* Progresso */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>Progresso</span>
+                  <span style={{ fontWeight: 800, fontSize: 18, color: openGoal.progress >= 100 ? '#00C896' : '#F5C842' }}>{openGoal.progress}%</span>
+                </div>
+                <div style={{ height: 7, background: 'rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
+                  <div style={{ height: '100%', borderRadius: 10, width: `${openGoal.progress}%`, background: `linear-gradient(90deg, ${color}, ${color}BB)`, transition: 'width .4s' }} />
+                </div>
+                <input type="range" min={0} max={100} step={5} value={openGoal.progress}
+                  onChange={e => updateProgress(openGoal, +e.target.value)}
+                  aria-label="Ajustar progresso"
+                  style={{ width: '100%', accentColor: color }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
+                  <span>{format(new Date(openGoal.start_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                  <span>{format(new Date(openGoal.end_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                </div>
+
+                {/* Marcos */}
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', margin: '20px 0 10px' }}>
+                  Marcos {msList.length > 0 && <span style={{ color: 'rgba(255,255,255,0.45)' }}>· {msDone}/{msList.length}</span>}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {msList.map(m => (
+                    <button
+                      key={m.id}
+                      onClick={() => tickMilestone(openGoal.id, m)}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
+                        background: m.done ? 'rgba(0,200,150,0.05)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${m.done ? 'rgba(0,200,150,0.15)' : 'rgba(255,255,255,0.08)'}`,
+                        borderRadius: 13, padding: '11px 13px', cursor: 'pointer', fontFamily: FONT,
+                      }}
+                    >
+                      <span style={{
+                        width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+                        border: `2px solid ${m.done ? '#00C896' : 'rgba(255,255,255,0.2)'}`,
+                        background: m.done ? '#00C896' : 'transparent',
+                        color: m.done ? '#001A10' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 11, fontWeight: 800,
+                      }}>✓</span>
+                      <span style={{
+                        flex: 1, fontSize: 13.5, fontWeight: 600,
+                        color: m.done ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.85)',
+                        textDecoration: m.done ? 'line-through' : 'none',
+                        textDecorationColor: 'rgba(255,255,255,0.2)',
+                        overflowWrap: 'anywhere',
+                      }}>{m.title}</span>
+                    </button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: 8, marginTop: msList.length > 0 ? 10 : 0 }}>
+                  <input
+                    value={newMs} onChange={e => setNewMs(e.target.value)}
+                    placeholder="Novo marco…"
+                    onKeyDown={e => e.key === 'Enter' && addMilestone(openGoal.id)}
+                    style={{ ...inp, flex: 1, padding: '10px 13px', fontSize: 13 }}
+                  />
+                  <button onClick={() => addMilestone(openGoal.id)} disabled={!newMs.trim()} style={{
+                    padding: '10px 14px', borderRadius: 13,
+                    background: newMs.trim() ? 'rgba(245,200,66,0.12)' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${newMs.trim() ? 'rgba(245,200,66,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                    color: newMs.trim() ? '#F5C842' : 'rgba(255,255,255,0.3)',
+                    fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: newMs.trim() ? 'pointer' : 'default',
+                  }}>+ Adicionar</button>
+                </div>
+
+                {/* Apagar */}
+                <button
+                  onClick={() => setConfirmDelete(openGoal)}
+                  style={{
+                    marginTop: 20, width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                    border: '1px solid rgba(226,75,74,0.25)', borderRadius: 13, padding: '13px 14px',
+                    background: 'transparent', color: '#E24B4A', fontSize: 13.5, fontWeight: 700,
+                    fontFamily: FONT, cursor: 'pointer',
+                  }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/>
+                  </svg>
+                  Apagar objetivo
+                  <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 500, color: 'rgba(226,75,74,0.6)' }}>pede confirmação</span>
+                </button>
+              </div>
+
+              {/* Footer fixo */}
+              <div style={{ padding: '12px 20px calc(20px + env(safe-area-inset-bottom))', background: '#11131C', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+                <button
+                  onClick={() => { setOpenGoalId(null); openEdit(openGoal) }}
+                  style={{
+                    width: '100%', background: 'linear-gradient(135deg, #F5C842, #E0A82A)', color: '#1A1200',
+                    border: 'none', borderRadius: 15, padding: 15, fontFamily: FONT, fontWeight: 800,
+                    fontSize: 15, cursor: 'pointer',
+                  }}
+                >
+                  Editar objetivo
+                </button>
+              </div>
+            </div>
           </div>
-          <button onClick={openNew} style={{ background: 'var(--gold)', color: 'var(--bg0)', border: 'none', borderRadius: 12, padding: '9px 16px', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-            + Novo
-          </button>
-        </div>
-      </div>
+        )
+      })()}
 
-      {/* Empty */}
-      {goals.length === 0 && (
-        <div style={{ margin: '20px', padding: 28, borderRadius: 18, background: 'var(--bg2)', border: '0.5px solid var(--border)', textAlign: 'center' }}>
-          <div style={{ fontSize: 44, marginBottom: 12 }}>🎯</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, marginBottom: 8 }}>Sem objectivos ainda</div>
-          <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 24, lineHeight: 1.6 }}>
-            Define o que queres alcançar nos próximos 90 dias. Um objectivo por área da vida.
-          </p>
-          <button onClick={openNew} style={{ width: '100%', background: 'var(--gold)', color: 'var(--bg0)', border: 'none', borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            Criar primeiro objectivo
-          </button>
+      {/* ── Confirmação de apagar ── */}
+      {confirmDelete && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.7)', padding: 24 }}
+          onClick={e => e.target === e.currentTarget && setConfirmDelete(null)}
+        >
+          <div style={{ width: '100%', maxWidth: 340, background: '#161825', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '22px 20px', fontFamily: FONT }}>
+            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Apagar objetivo?</div>
+            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, marginBottom: 18, overflowWrap: 'anywhere' }}>
+              “{confirmDelete.title}” e os seus marcos vão ser removidos. Esta ação é irreversível.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => remove(confirmDelete.id)}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: 'none', background: '#E24B4A', color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+              >
+                Apagar
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Goals list */}
-      <div style={{ padding: '16px 20px 0', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {goals.map(g => {
-          const area      = AREA_META[g.area as HabitArea]
-          const start     = new Date(g.start_date + 'T12:00:00')
-          const end       = new Date(g.end_date   + 'T12:00:00')
-          const total     = differenceInDays(end, start)
-          const elapsed   = Math.min(total, Math.max(0, differenceInDays(today, start)))
-          const timePct   = Math.round(elapsed / total * 100)
-          const daysLeft  = Math.max(0, differenceInDays(end, today))
-          const isExpanded = expanded === g.id
-          const msList    = milestones[g.id] ?? []
-          const msDone    = msList.filter(m => m.done).length
-
-          return (
-            <div key={g.id} style={{ background: 'var(--bg2)', border: `0.5px solid ${area?.color}30`, borderRadius: 18, overflow: 'hidden' }}>
-
-              {/* Card header */}
-              <div style={{ padding: '16px 16px 14px', cursor: 'pointer' }} onClick={() => setExpanded(isExpanded ? null : g.id)}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, background: `${area?.color}18` }}>
-                    {area?.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)', marginBottom: 3, lineHeight: 1.3 }}>{g.title}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 11, color: area?.color }}>{area?.label}</span>
-                      <span style={{ fontSize: 11, color: 'var(--text3)' }}>·</span>
-                      <span style={{ fontSize: 11, color: daysLeft <= 7 ? '#E24B4A' : 'var(--text3)' }}>
-                        {daysLeft > 0 ? `${daysLeft} dias restantes` : 'Terminou'}
-                      </span>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: g.progress >= 100 ? 'var(--teal)' : 'var(--text1)', lineHeight: 1 }}>
-                      {g.progress}%
-                    </div>
-                    <div style={{ fontSize: 10, color: 'var(--text3)', marginTop: 2 }}>concluído</div>
-                  </div>
-                </div>
-
-                {/* Dual progress bar: tempo + progresso */}
-                <div style={{ marginBottom: 6 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text3)', marginBottom: 4 }}>
-                    <span>Progresso</span><span>Tempo decorrido</span>
-                  </div>
-                  {/* Progresso real */}
-                  <div style={{ background: 'var(--bg3)', borderRadius: 100, height: 7, marginBottom: 4, position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${g.progress}%`, background: area?.color, borderRadius: 100, transition: 'width .5s' }} />
-                  </div>
-                  {/* Tempo */}
-                  <div style={{ background: 'var(--bg3)', borderRadius: 100, height: 4, position: 'relative', overflow: 'hidden' }}>
-                    <div style={{ position: 'absolute', top: 0, left: 0, height: '100%', width: `${timePct}%`, background: 'rgba(255,255,255,.15)', borderRadius: 100 }} />
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, color: 'var(--text3)', marginTop: 3 }}>
-                    <span>{format(start, 'd MMM', { locale: pt })}</span>
-                    <span>{format(end, 'd MMM yyyy', { locale: pt })}</span>
-                  </div>
-                </div>
-
-                {/* Marcos mini */}
-                {msList.length > 0 && (
-                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>
-                    {msDone}/{msList.length} marcos ·{' '}
-                    <span style={{ color: isExpanded ? 'var(--teal)' : 'var(--text3)' }}>
-                      {isExpanded ? 'fechar ▲' : 'ver detalhes ▼'}
-                    </span>
-                  </div>
-                )}
-                {msList.length === 0 && (
-                  <div style={{ fontSize: 11, color: 'var(--text3)' }}>
-                    {isExpanded ? 'fechar ▲' : 'ver detalhes ▼'}
-                  </div>
-                )}
-              </div>
-
-              {/* Expanded section */}
-              {isExpanded && (
-                <div style={{ borderTop: '0.5px solid var(--border)', padding: '14px 16px' }}>
-
-                  {/* Ajustar progresso */}
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                      <span style={{ fontSize: 12, color: 'var(--text3)' }}>Ajustar progresso manualmente</span>
-                      <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: area?.color }}>{g.progress}%</span>
-                    </div>
-                    <input type="range" min={0} max={100} step={5} value={g.progress}
-                      onChange={e => updateProgress(g, +e.target.value)}
-                      style={{ width: '100%', accentColor: area?.color }} />
-                  </div>
-
-                  {/* Marcos */}
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 8 }}>Marcos de progresso</div>
-                    {msList.map(m => (
-                      <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0', borderBottom: '0.5px solid var(--border)' }}
-                        onClick={() => tickMilestone(g.id, m)}>
-                        <div style={{
-                          width: 20, height: 20, borderRadius: 6, flexShrink: 0, cursor: 'pointer',
-                          background: m.done ? 'var(--teal)' : 'var(--bg3)',
-                          border: m.done ? 'none' : '1.5px solid var(--text3)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        }}>
-                          {m.done && <svg width="10" height="8" viewBox="0 0 10 8" fill="none" stroke="var(--bg0)" strokeWidth="2.5"><polyline points="1,4 4,7 9,1"/></svg>}
-                        </div>
-                        <span style={{ fontSize: 13, color: m.done ? 'var(--text3)' : 'var(--text1)', textDecoration: m.done ? 'line-through' : 'none', cursor: 'pointer' }}>
-                          {m.title}
-                        </span>
-                      </div>
-                    ))}
-
-                    {/* Adicionar marco */}
-                    <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-                      <input
-                        value={newMs} onChange={e => setNewMs(e.target.value)}
-                        placeholder="Novo marco…"
-                        onKeyDown={e => e.key === 'Enter' && addMilestone(g.id)}
-                        style={{ ...inp, flex: 1, padding: '9px 12px', fontSize: 13 }}
-                      />
-                      <button onClick={() => addMilestone(g.id)} style={{
-                        padding: '9px 14px', borderRadius: 10, background: 'var(--bg3)',
-                        border: '0.5px solid var(--border)', color: 'var(--text2)',
-                        fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                      }}>+ Adicionar</button>
-                    </div>
-                  </div>
-
-                  {/* Acções */}
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={() => openEdit(g)} style={{
-                      flex: 1, padding: '9px', borderRadius: 10, background: 'var(--bg3)',
-                      border: '0.5px solid var(--border)', color: 'var(--text2)',
-                      fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 12, cursor: 'pointer',
-                    }}>✏️ Editar</button>
-                    <button onClick={() => remove(g.id)} style={{
-                      padding: '9px 14px', borderRadius: 10, background: 'transparent',
-                      border: '0.5px solid rgba(226,75,74,.3)', color: '#E24B4A',
-                      fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 12, cursor: 'pointer',
-                    }}>🗑 Remover</button>
-                  </div>
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
-
       {formModal}
-
       <Nav />
     </main>
   )
