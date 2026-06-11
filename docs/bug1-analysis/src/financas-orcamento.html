@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="base.css">
+<style>
+  .page { padding: 0 20px; }
+  .page-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 4px; }
+  .page-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .page-head .sub { font-size: 12px; color: var(--txt3); font-weight: 500; margin-top: 2px; }
+  .tabs { display: flex; background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 14px; padding: 4px; gap: 4px; margin: 14px 0 14px; }
+  .tabs .t { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 3px; border-radius: 10px; font-size: 9px; font-weight: 500; color: rgba(255,255,255,0.35); }
+  .tabs .t .e { font-size: 15px; }
+  .tabs .t.on { background: rgba(255,255,255,0.08); color: var(--gold); font-weight: 600; }
+
+  /* gauge global */
+  .gauge {
+    background: linear-gradient(135deg, #0E1A14 0%, #0D1F1A 60%, #0E1626 100%);
+    border: 1px solid rgba(0,200,150,0.22); border-radius: 22px; padding: 18px;
+    display: flex; gap: 16px; align-items: center; margin-bottom: 14px;
+  }
+  .ringwrap { width: 92px; height: 92px; position: relative; flex-shrink: 0; }
+  .ringwrap .c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ringwrap .pct { font-size: 18px; font-weight: 800; }
+  .ringwrap .pl { font-size: 8.5px; color: var(--txt3); font-weight: 600; }
+  .g-k { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(0,200,150,0.85); display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .g-v { font-size: 21px; font-weight: 900; letter-spacing: -0.5px; }
+  .g-v small { font-size: 13px; font-weight: 600; color: var(--txt3); }
+  .g-note { font-size: 11.5px; color: rgba(255,255,255,0.55); margin-top: 5px; line-height: 1.45; }
+
+  /* categoria */
+  .bcard { background: var(--card2); border: 1px solid var(--line); border-radius: 15px; padding: 12px 14px; margin-bottom: 8px; }
+  .bcard.over { border-color: rgba(226,75,74,0.3); background: rgba(226,75,74,0.04); }
+  .bcard .top { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+  .bcard .ic { width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+  .bcard .tt { font-size: 13px; font-weight: 700; }
+  .bcard .amt { margin-left: auto; font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.75); flex-shrink: 0; }
+  .bcard .amt small { color: var(--txt4); font-weight: 600; }
+  .bcard .chev { color: rgba(255,255,255,0.25); font-size: 14px; margin-left: 7px; }
+  .badge { font-size: 9.5px; font-weight: 800; border-radius: 7px; padding: 3px 7px; flex-shrink: 0; }
+  .bar { height: 6px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+  .bar .fi { height: 100%; border-radius: 10px; }
+  .bfoot { display: flex; justify-content: space-between; font-size: 10px; color: var(--txt4); margin-top: 5px; }
+
+  .nobudget { display: flex; align-items: center; gap: 10px; background: var(--card); border: 1px dashed rgba(255,255,255,0.12); border-radius: 13px; padding: 10px 13px; margin-bottom: 7px; }
+  .nobudget .tt { font-size: 12.5px; font-weight: 600; color: rgba(255,255,255,0.55); }
+  .nobudget .go { margin-left: auto; font-size: 11px; font-weight: 800; color: var(--gold); }
+
+  /* sheet edição */
+  .bigval { text-align: center; margin: 6px 0 2px; }
+  .bigval .v { font-size: 38px; font-weight: 900; letter-spacing: -1px; }
+  .bigval .l { font-size: 11px; color: var(--txt3); font-weight: 600; margin-top: 2px; }
+  .quick { display: flex; gap: 8px; margin-top: 12px; }
+  .qchip { flex: 1; text-align: center; padding: 10px 0; border-radius: 12px; border: 1px solid var(--line2); font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.6); }
+  .qchip.on { border-color: rgba(245,200,66,0.45); background: rgba(245,200,66,0.10); color: var(--gold); }
+  .ctx { margin-top: 16px; background: rgba(0,200,150,0.06); border: 1px solid rgba(0,200,150,0.18); border-radius: 13px; padding: 12px 14px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,0.65); }
+  .ctx b { color: var(--green); font-weight: 700; }
+  .spark { display: flex; align-items: flex-end; gap: 5px; height: 42px; margin-top: 10px; }
+  .spark .b { flex: 1; border-radius: 3px 3px 0 0; background: rgba(0,200,150,0.5); }
+  .spark .b.cur { background: var(--gold); }
+
+  .magic {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+    background: rgba(245,200,66,0.05); border: 1px dashed rgba(245,200,66,0.35);
+    border-radius: 16px; padding: 13px 15px;
+  }
+  .magic .tt { font-size: 13px; font-weight: 700; color: var(--gold); }
+  .magic .ss { font-size: 11px; color: rgba(255,255,255,0.5); margin-top: 2px; line-height: 1.45; }
+  .bgblur { filter: blur(2px); opacity: .55; }
+</style>
+</head>
+<body>
+<div class="canvas-title">Finanças › Orçamento — proposta de redesenho</div>
+<div class="canvas-sub">Gauge global do mês com ritmo, categorias ordenadas por uso com emotes e edição em bottom sheet com média dos últimos meses — substitui a lista plana com edição inline minúscula. Bónus: sugestão automática de orçamentos.</div>
+
+<div class="row">
+
+  <!-- ════ PANEL 1: tab orçamento redesenhada ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>1 · Gauge global + categorias por uso</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+      <div class="page">
+        <div class="page-head">
+          <div><h1>Finanças</h1><div class="sub">junho 2026</div></div>
+        </div>
+        <div class="tabs">
+          <div class="t"><span class="e emoji">📊</span>Resumo</div>
+          <div class="t"><span class="e emoji">💸</span>Movimentos</div>
+          <div class="t on"><span class="e emoji">📋</span>Orçamento</div>
+          <div class="t"><span class="e emoji">🎯</span>Metas</div>
+        </div>
+
+        <div class="gauge">
+          <div class="ringwrap">
+            <svg width="92" height="92" viewBox="0 0 92 92" style="transform:rotate(-90deg)">
+              <circle cx="46" cy="46" r="38" fill="none" stroke="rgba(0,200,150,0.15)" stroke-width="8"/>
+              <circle cx="46" cy="46" r="38" fill="none" stroke="#00C896" stroke-width="8" stroke-linecap="round" stroke-dasharray="238.8" stroke-dashoffset="88.4"/>
+            </svg>
+            <div class="c"><div class="pct">63%</div><div class="pl">USADO</div></div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="g-k"><span class="emoji" style="font-size:13px">📋</span> Orçamento de junho</div>
+            <div class="g-v">€940 <small>de €1.490</small></div>
+            <div class="g-note">Restam <b style="color:#fff">€550</b> para 9 dias · <b style="color:#00C896">dentro do ritmo</b></div>
+          </div>
+        </div>
+
+        <div class="bcard over">
+          <div class="top">
+            <div class="ic emoji" style="background:rgba(226,75,74,0.12)">🎮</div>
+            <div class="tt">Lazer</div>
+            <div class="badge" style="background:rgba(226,75,74,0.12);color:var(--danger)">+€18 acima</div>
+            <div class="amt">€138 <small>/ €120</small></div>
+            <span class="chev">›</span>
+          </div>
+          <div class="bar"><div class="fi" style="width:100%;background:#E24B4A"></div></div>
+          <div class="bfoot"><span>115% usado</span><span>excedeu há 3 dias</span></div>
+        </div>
+
+        <div class="bcard">
+          <div class="top">
+            <div class="ic emoji" style="background:rgba(245,200,66,0.12)">🍔</div>
+            <div class="tt">Alimentação</div>
+            <div class="badge" style="background:rgba(245,200,66,0.12);color:var(--gold)">atenção</div>
+            <div class="amt">€312 <small>/ €350</small></div>
+            <span class="chev">›</span>
+          </div>
+          <div class="bar"><div class="fi" style="width:89%;background:#F5C842"></div></div>
+          <div class="bfoot"><span>89% usado</span><span>€38 restantes</span></div>
+        </div>
+
+        <div class="bcard">
+          <div class="top">
+            <div class="ic emoji" style="background:rgba(0,200,150,0.12)">🏠</div>
+            <div class="tt">Habitação</div>
+            <div class="amt">€450 <small>/ €600</small></div>
+            <span class="chev">›</span>
+          </div>
+          <div class="bar"><div class="fi" style="width:75%;background:#00C896"></div></div>
+          <div class="bfoot"><span>75% usado</span><span>€150 restantes</span></div>
+        </div>
+
+        <div class="bcard">
+          <div class="top">
+            <div class="ic emoji" style="background:rgba(0,212,200,0.12)">🚗</div>
+            <div class="tt">Transporte</div>
+            <div class="amt">€40 <small>/ €120</small></div>
+            <span class="chev">›</span>
+          </div>
+          <div class="bar"><div class="fi" style="width:33%;background:#00D4C8"></div></div>
+          <div class="bfoot"><span>33% usado</span><span>€80 restantes</span></div>
+        </div>
+
+        <div class="sec">Sem orçamento</div>
+        <div class="nobudget"><span class="emoji" style="font-size:15px">💊</span><span class="tt">Saúde · €14 este mês</span><span class="go">Definir</span></div>
+        <div class="nobudget"><span class="emoji" style="font-size:15px">📺</span><span class="tt">Assinaturas · €20 este mês</span><span class="go">Definir</span></div>
+      </div>
+
+      <div class="nav">
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Hoje</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Hábitos</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0 1 13 0"/></svg>Corpo</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progresso</div>
+        <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais</div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- ════ PANEL 2: sheet editar orçamento ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>2 · Editar orçamento com média mensal</div>
+    <div class="phone">
+      <div class="bgblur">
+        <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+        <div class="page">
+          <div class="page-head">
+            <div><h1>Finanças</h1><div class="sub">junho 2026</div></div>
+          </div>
+          <div class="tabs">
+            <div class="t"><span class="e emoji">📊</span>Resumo</div>
+            <div class="t"><span class="e emoji">💸</span>Movimentos</div>
+            <div class="t on"><span class="e emoji">📋</span>Orçamento</div>
+            <div class="t"><span class="e emoji">🎯</span>Metas</div>
+          </div>
+          <div class="bcard">
+            <div class="top">
+              <div class="ic emoji" style="background:rgba(245,200,66,0.12)">🍔</div>
+              <div class="tt">Alimentação</div>
+              <div class="amt">€312 <small>/ €350</small></div>
+            </div>
+            <div class="bar"><div class="fi" style="width:89%;background:#F5C842"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dim"></div>
+      <div class="sheet" style="height:580px">
+        <div class="grab"></div>
+        <div class="sheet-head">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="emoji" style="font-size:20px">🍔</span>
+            <div class="t">Orçamento · Alimentação</div>
+          </div>
+          <div class="xbtn">✕</div>
+        </div>
+        <div class="sheet-body">
+          <div class="bigval">
+            <div class="v">€350</div>
+            <div class="l">por mês</div>
+          </div>
+          <div class="quick">
+            <div class="qchip">−€50</div>
+            <div class="qchip">−€10</div>
+            <div class="qchip on">+€10</div>
+            <div class="qchip">+€50</div>
+          </div>
+
+          <div class="ctx">
+            <span class="emoji">💡</span> Gastaste em média <b>€335/mês</b> em Alimentação nos últimos 3 meses. O orçamento atual dá uma folga de <b>€15</b>.
+          </div>
+          <div class="spark">
+            <div class="b" style="height:30px"></div>
+            <div class="b" style="height:38px"></div>
+            <div class="b" style="height:33px"></div>
+            <div class="b cur" style="height:36px"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:9.5px;color:var(--txt4);margin-top:4px;padding:0 2px">
+            <span>mar</span><span>abr</span><span>mai</span><span style="color:var(--gold);font-weight:700">jun</span>
+          </div>
+
+          <div style="margin-top:16px;display:flex;align-items:center;gap:10px;border:1px solid rgba(255,255,255,0.10);border-radius:13px;padding:12px 14px;font-size:12.5px;font-weight:600;color:rgba(255,255,255,0.55)">
+            Remover orçamento desta categoria
+            <span style="margin-left:auto;font-size:11px;font-weight:700;color:rgba(226,75,74,0.8)">Remover</span>
+          </div>
+        </div>
+        <div class="sheet-foot">
+          <div class="cta">Guardar orçamento</div>
+        </div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- ════ PANEL 3: setup automático ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>3 · Estado vazio: sugestão automática</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+      <div class="page">
+        <div class="page-head">
+          <div><h1>Finanças</h1><div class="sub">junho 2026</div></div>
+        </div>
+        <div class="tabs">
+          <div class="t"><span class="e emoji">📊</span>Resumo</div>
+          <div class="t"><span class="e emoji">💸</span>Movimentos</div>
+          <div class="t on"><span class="e emoji">📋</span>Orçamento</div>
+          <div class="t"><span class="e emoji">🎯</span>Metas</div>
+        </div>
+
+        <div class="magic">
+          <span class="emoji" style="font-size:24px">✨</span>
+          <div style="flex:1">
+            <div class="tt">Sugerir orçamentos automaticamente</div>
+            <div class="ss">Com base na média dos teus últimos 3 meses de movimentos, por categoria.</div>
+          </div>
+        </div>
+
+        <div class="sec">Sugestões prontas a aplicar</div>
+
+        <div class="bcard">
+          <div class="top">
+            <div class="ic emoji" style="background:rgba(245,200,66,0.12)">🍔</div>
+            <div class="tt">Alimentação</div>
+            <div class="amt"><small>média €335 →</small> €350</div>
+            <div class="badge" style="background:rgba(0,200,150,0.12);color:var(--green)">Aplicar</div>
+          </div>
+        </div>
+        <div class="bcard">
+          <div class="top">
+            <div class="ic emoji" style="background:rgba(0,200,150,0.12)">🏠</div>
+            <div class="tt">Habitação</div>
+            <div class="amt"><small>média €590 →</small> €600</div>
+            <div class="badge" style="background:rgba(0,200,150,0.12);color:var(--green)">Aplicar</div>
+          </div>
+        </div>
+        <div class="bcard">
+          <div class="top">
+            <div class="ic emoji" style="background:rgba(0,212,200,0.12)">🚗</div>
+            <div class="tt">Transporte</div>
+            <div class="amt"><small>média €98 →</small> €120</div>
+            <div class="badge" style="background:rgba(0,200,150,0.12);color:var(--green)">Aplicar</div>
+          </div>
+        </div>
+        <div class="bcard">
+          <div class="top">
+            <div class="ic emoji" style="background:rgba(226,75,74,0.12)">🎮</div>
+            <div class="tt">Lazer</div>
+            <div class="amt"><small>média €112 →</small> €120</div>
+            <div class="badge" style="background:rgba(0,200,150,0.12);color:var(--green)">Aplicar</div>
+          </div>
+        </div>
+
+        <div style="margin-top:14px">
+          <div class="cta">Aplicar todos (4)</div>
+        </div>
+        <div style="text-align:center;font-size:11.5px;color:var(--txt4);margin-top:10px">ou define manualmente categoria a categoria</div>
+      </div>
+
+      <div class="nav">
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Hoje</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Hábitos</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0 1 13 0"/></svg>Corpo</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progresso</div>
+        <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais</div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
