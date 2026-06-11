@@ -441,6 +441,17 @@ export async function saveTransactionsBulk(payloads: Record<string, unknown>[]) 
   return { data: data ?? [], error }
 }
 
+export async function updateTransaction(id: string, payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) reportError('updateTransaction error', error.message)
+  return { data, error }
+}
+
 export async function deleteTransaction(id: string) {
   const { error } = await supabase.from('transactions').delete().eq('id', id)
   if (error) reportError('deleteTransaction error', error.message)
