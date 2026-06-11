@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="base.css">
+<style>
+  .page { padding: 0 20px; }
+  .page-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 6px; }
+  .page-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .page-head .sub { font-size: 12px; color: var(--txt3); font-weight: 500; margin-top: 2px; }
+  .plus {
+    width: 38px; height: 38px; border-radius: 12px;
+    background: rgba(245,200,66,0.14); border: 1px solid rgba(245,200,66,0.35);
+    display: flex; align-items: center; justify-content: center; color: var(--gold);
+    font-size: 20px; font-weight: 600;
+  }
+
+  /* navegação de mês + toggle */
+  .mnav { display: flex; align-items: center; gap: 10px; margin: 10px 0 4px; }
+  .mnav .arr { width: 32px; height: 32px; border-radius: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--line2); display: flex; align-items: center; justify-content: center; color: var(--txt2); font-size: 14px; }
+  .mnav .m { flex: 1; text-align: center; font-size: 14.5px; font-weight: 800; }
+  .seg { display: flex; background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 11px; padding: 3px; gap: 3px; }
+  .seg .s { padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; color: var(--txt4); }
+  .seg .s.on { background: rgba(255,255,255,0.08); color: var(--gold); }
+
+  /* grid */
+  .cal { background: var(--card2); border: 1px solid var(--line); border-radius: 18px; padding: 12px 10px 10px; margin-top: 10px; }
+  .wd { display: grid; grid-template-columns: repeat(7,1fr); margin-bottom: 6px; }
+  .wd span { text-align: center; font-size: 9.5px; font-weight: 700; color: var(--txt4); letter-spacing: .06em; }
+  .days { display: grid; grid-template-columns: repeat(7,1fr); gap: 3px; }
+  .d { position: relative; height: 42px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.6); }
+  .d.dim { color: rgba(255,255,255,0.18); }
+  .d .dots { display: flex; gap: 2.5px; }
+  .d .dots i { width: 4.5px; height: 4.5px; border-radius: 50%; display: block; }
+  .d.full { background: rgba(0,200,150,0.85); color: #04140E; font-weight: 800; }
+  .d.h3 { background: rgba(0,200,150,0.40); }
+  .d.h2 { background: rgba(0,200,150,0.22); }
+  .d.h1 { background: rgba(0,200,150,0.10); }
+  .d.today { box-shadow: inset 0 0 0 1.5px var(--gold); color: var(--gold); font-weight: 800; }
+  .d.sel { box-shadow: inset 0 0 0 1.5px rgba(157,92,245,0.8); }
+  .d .stk { position: absolute; bottom: 2px; left: 0; right: 0; height: 3px; background: rgba(0,200,150,0.8); }
+  .d .stk.s { left: 5px; border-radius: 3px 0 0 3px; }
+  .d .stk.e { right: 5px; border-radius: 0 3px 3px 0; }
+  .legend { display: flex; gap: 12px; justify-content: center; margin-top: 10px; font-size: 9.5px; color: var(--txt4); }
+  .legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; margin-right: 4px; vertical-align: -1px; }
+
+  /* check-ins de hoje */
+  .ci-row { display: flex; gap: 8px; }
+  .ci { flex: 1; display: flex; align-items: center; gap: 8px; border-radius: 13px; padding: 10px 11px; font-size: 11.5px; font-weight: 700; }
+  .ci.done { background: rgba(0,200,150,0.08); border: 1px solid rgba(0,200,150,0.25); color: var(--green); }
+  .ci.todo { background: var(--card); border: 1px dashed rgba(255,255,255,0.14); color: var(--txt3); }
+  .ci .e { font-size: 16px; }
+  .ci .xp { margin-left: auto; font-size: 10px; color: var(--gold); }
+
+  /* timeline do dia */
+  .tl { display: flex; gap: 12px; padding: 4px 2px; }
+  .tl .hr { width: 38px; flex-shrink: 0; text-align: right; font-size: 10.5px; font-weight: 700; color: var(--txt4); padding-top: 12px; }
+  .ev { flex: 1; display: flex; align-items: center; gap: 11px; border-radius: 14px; padding: 11px 13px; margin-bottom: 7px; background: var(--card2); border: 1px solid var(--line); border-left-width: 3px; }
+  .ev .tt { font-size: 13px; font-weight: 700; }
+  .ev .ss { font-size: 10.5px; color: var(--txt3); margin-top: 1px; }
+  .ev .tag { margin-left: auto; font-size: 9.5px; font-weight: 800; border-radius: 7px; padding: 3px 7px; flex-shrink: 0; }
+
+  .mentor { margin-top: 12px; background: rgba(0,200,150,0.05); border: 1px solid rgba(0,200,150,0.15); border-radius: 14px; padding: 12px 14px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,0.7); }
+  .mentor b { color: var(--green); }
+
+  /* day sheet */
+  .prog { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+  .prog .bar { flex: 1; height: 7px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; }
+  .prog .fi { height: 100%; border-radius: 10px; background: linear-gradient(90deg,#00C896,#00D4C8); }
+  .hb { display: flex; align-items: center; gap: 11px; border-radius: 13px; padding: 10px 12px; margin-bottom: 7px; background: var(--card); border: 1px solid var(--line); }
+  .hb.done { background: rgba(0,200,150,0.05); border-color: rgba(0,200,150,0.18); }
+  .hb .ck { width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0; border: 2px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: transparent; }
+  .hb.done .ck { border-color: var(--green); background: var(--green); color: #001A10; }
+  .hb .nm { flex: 1; font-size: 13px; font-weight: 600; color: rgba(255,255,255,0.85); }
+  .hb.done .nm { color: rgba(255,255,255,0.5); text-decoration: line-through; }
+  .bgblur { filter: blur(2px); opacity: .55; }
+</style>
+</head>
+<body>
+<div class="canvas-title">Calendário — proposta de redesenho</div>
+<div class="canvas-sub">De 4 tabs internas para um hub único: grid com heatmap + check-ins de hoje + timeline do dia (eventos e alertas juntos). Tocar num dia abre o detalhe em bottom sheet; o + cria evento ou alerta no mesmo sheet.</div>
+
+<div class="row">
+
+  <!-- ════ PANEL 1: hub ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>1 · Hub único: grid + hoje + timeline</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+      <div class="page">
+        <div class="page-head">
+          <div><h1>Calendário</h1><div class="sub">🔥 12 dias de sequência</div></div>
+          <div class="plus">+</div>
+        </div>
+
+        <div class="mnav">
+          <div class="arr">‹</div>
+          <div class="m">Junho 2026</div>
+          <div class="arr">›</div>
+          <div class="seg"><div class="s on">Mês</div><div class="s">Semana</div></div>
+        </div>
+
+        <div class="cal">
+          <div class="wd"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div>
+          <div class="days">
+            <div class="d dim">31</div>
+            <div class="d h2">1<span class="dots"><i style="background:#F5C842"></i></span></div>
+            <div class="d full">2</div>
+            <div class="d h3">3<span class="dots"><i style="background:#9D5CF5"></i></span></div>
+            <div class="d h1">4</div>
+            <div class="d full">5<span class="stk s"></span></div>
+            <div class="d full">6<span class="stk"></span></div>
+            <div class="d h3">7<span class="stk"></span></div>
+            <div class="d full">8<span class="dots"><i style="background:#00D4C8"></i><i style="background:#F5C842"></i></span><span class="stk"></span></div>
+            <div class="d h2">9<span class="stk"></span></div>
+            <div class="d h3">10<span class="stk"></span></div>
+            <div class="d today">11<span class="dots"><i style="background:#9D5CF5"></i></span><span class="stk e"></span></div>
+            <div class="d">12<span class="dots"><i style="background:#F5C842"></i></span></div>
+            <div class="d">13</div>
+            <div class="d">14</div><div class="d">15</div><div class="d">16<span class="dots"><i style="background:#00D4C8"></i></span></div><div class="d">17</div><div class="d">18</div><div class="d">19</div><div class="d">20</div>
+            <div class="d">21</div><div class="d">22</div><div class="d">23</div><div class="d">24</div><div class="d">25<span class="dots"><i style="background:#E24B4A"></i></span></div><div class="d">26</div><div class="d">27</div>
+            <div class="d">28</div><div class="d">29</div><div class="d">30</div><div class="d dim">1</div><div class="d dim">2</div><div class="d dim">3</div><div class="d dim">4</div>
+          </div>
+          <div class="legend">
+            <span><i style="background:rgba(0,200,150,0.85)"></i>completo</span>
+            <span><i style="background:rgba(0,200,150,0.30)"></i>parcial</span>
+            <span><i style="background:transparent;border:1.5px solid var(--gold)"></i>hoje</span>
+            <span><i style="background:#9D5CF5;border-radius:50%"></i>evento</span>
+          </div>
+        </div>
+
+        <div class="sec">Check-ins de hoje</div>
+        <div class="ci-row">
+          <div class="ci done"><span class="e emoji">🌅</span>Manhã<span class="xp">+15</span></div>
+          <div class="ci done"><span class="e emoji">☀️</span>Tarde<span class="xp">+10</span></div>
+          <div class="ci todo"><span class="e emoji">🌙</span>Noite<span class="xp" style="color:rgba(255,255,255,0.25)">+20</span></div>
+        </div>
+
+        <div class="sec">Hoje · Qui, 11 jun</div>
+        <div class="ev" style="border-left-color:#9D5CF5">
+          <span class="emoji" style="font-size:16px">📅</span>
+          <div><div class="tt">Reunião de projeto</div><div class="ss">14:00 – 15:00</div></div>
+          <span class="tag" style="background:rgba(157,92,245,0.12);color:var(--purple)">evento</span>
+        </div>
+        <div class="ev" style="border-left-color:#F5C842">
+          <span class="emoji" style="font-size:16px">🔔</span>
+          <div><div class="tt">Treino de força</div><div class="ss">18:00 · seg, qua, qui</div></div>
+          <span class="tag" style="background:rgba(245,200,66,0.12);color:var(--gold)">alerta</span>
+        </div>
+
+        <div class="mentor"><b>Mentor:</b> às segundas és 84% consistente — o teu melhor dia. Às sextas costumas falhar mais (41%).</div>
+      </div>
+
+      <div class="nav">
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Hoje</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Hábitos</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0 1 13 0"/></svg>Corpo</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progresso</div>
+        <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais</div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- ════ PANEL 2: day sheet ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>2 · Tocar num dia abre o detalhe</div>
+    <div class="phone">
+      <div class="bgblur">
+        <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+        <div class="page">
+          <div class="page-head">
+            <div><h1>Calendário</h1><div class="sub">🔥 12 dias de sequência</div></div>
+            <div class="plus">+</div>
+          </div>
+          <div class="mnav"><div class="arr">‹</div><div class="m">Junho 2026</div><div class="arr">›</div><div class="seg"><div class="s on">Mês</div><div class="s">Semana</div></div></div>
+          <div class="cal">
+            <div class="wd"><span>D</span><span>S</span><span>T</span><span>Q</span><span>Q</span><span>S</span><span>S</span></div>
+            <div class="days">
+              <div class="d dim">31</div><div class="d h2">1</div><div class="d full">2</div><div class="d h3">3</div><div class="d h1">4</div><div class="d full">5</div><div class="d full">6</div>
+              <div class="d h3">7</div><div class="d full sel">8</div><div class="d h2">9</div><div class="d h3">10</div><div class="d today">11</div><div class="d">12</div><div class="d">13</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dim"></div>
+      <div class="sheet" style="height:640px">
+        <div class="grab"></div>
+        <div class="sheet-head">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="emoji" style="font-size:20px">📆</span>
+            <div>
+              <div class="t">Seg, 8 de junho</div>
+              <div style="font-size:11px;color:var(--txt3);margin-top:1px">dia completo · +45 XP</div>
+            </div>
+          </div>
+          <div class="xbtn">✕</div>
+        </div>
+        <div class="sheet-body">
+          <div class="field-label" style="margin-top:2px">Hábitos · 4/4</div>
+          <div class="prog" style="margin-bottom:10px"><div class="bar"><div class="fi" style="width:100%"></div></div><span style="font-size:11px;font-weight:800;color:var(--green)">100%</span></div>
+          <div class="hb done"><span class="ck">✓</span><span class="emoji" style="font-size:14px">💪</span><span class="nm">Treino de força</span><span style="font-size:10.5px;color:var(--gold);font-weight:700">+20</span></div>
+          <div class="hb done"><span class="ck">✓</span><span class="emoji" style="font-size:14px">💪</span><span class="nm">Água · 2L</span><span style="font-size:10.5px;color:var(--gold);font-weight:700">+8</span></div>
+          <div class="hb done"><span class="ck">✓</span><span class="emoji" style="font-size:14px">📚</span><span class="nm">Leitura · 15 min</span><span style="font-size:10.5px;color:var(--gold);font-weight:700">+10</span></div>
+
+          <div class="field-label">Check-ins</div>
+          <div class="ci-row">
+            <div class="ci done"><span class="e emoji">🌅</span>Manhã<span class="xp">+15</span></div>
+            <div class="ci done"><span class="e emoji">🌙</span>Noite<span class="xp">+20</span></div>
+          </div>
+
+          <div class="field-label">Agenda</div>
+          <div class="ev" style="border-left-color:#00D4C8;margin-bottom:0">
+            <span class="emoji" style="font-size:16px">📅</span>
+            <div><div class="tt">Dentista</div><div class="ss">10:30</div></div>
+            <span class="tag" style="background:rgba(0,212,200,0.12);color:var(--teal)">evento</span>
+          </div>
+        </div>
+        <div class="sheet-foot">
+          <div class="cta">+ Adicionar a este dia</div>
+        </div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- ════ PANEL 3: sheet novo evento/alerta ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>3 · Criar evento ou alerta num só sheet</div>
+    <div class="phone">
+      <div class="bgblur">
+        <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+        <div class="page">
+          <div class="page-head">
+            <div><h1>Calendário</h1><div class="sub">🔥 12 dias de sequência</div></div>
+            <div class="plus">+</div>
+          </div>
+          <div class="mnav"><div class="arr">‹</div><div class="m">Junho 2026</div><div class="arr">›</div><div class="seg"><div class="s on">Mês</div><div class="s">Semana</div></div></div>
+        </div>
+      </div>
+
+      <div class="dim"></div>
+      <div class="sheet" style="height:660px">
+        <div class="grab"></div>
+        <div class="sheet-head">
+          <div class="t">Novo</div>
+          <div class="xbtn">✕</div>
+        </div>
+        <div class="sheet-body">
+          <div style="display:flex;gap:8;gap:8px;margin-top:4px">
+            <div style="flex:1;text-align:center;padding:11px 0;border-radius:13px;border:1px solid rgba(157,92,245,0.5);background:rgba(157,92,245,0.10);color:var(--purple);font-size:13px;font-weight:700"><span class="emoji">📅</span> Evento</div>
+            <div style="flex:1;text-align:center;padding:11px 0;border-radius:13px;border:1px solid var(--line2);color:rgba(255,255,255,0.5);font-size:13px;font-weight:700"><span class="emoji">🔔</span> Alerta</div>
+          </div>
+
+          <div class="field-label">Título</div>
+          <div class="input">Reunião de projeto</div>
+
+          <div style="display:flex;gap:10px">
+            <div style="flex:1">
+              <div class="field-label">Data</div>
+              <div class="input" style="font-size:13px">11 / 06 / 2026</div>
+            </div>
+            <div style="flex:1">
+              <div class="field-label">Hora</div>
+              <div class="input" style="font-size:13px">14:00</div>
+            </div>
+          </div>
+
+          <div class="field-label">Cor</div>
+          <div style="display:flex;gap:9px">
+            <span style="width:30px;height:30px;border-radius:50%;background:#F5C842"></span>
+            <span style="width:30px;height:30px;border-radius:50%;background:#00D4C8"></span>
+            <span style="width:30px;height:30px;border-radius:50%;background:#9D5CF5;box-shadow:0 0 0 2.5px #11131C,0 0 0 4.5px #9D5CF5"></span>
+            <span style="width:30px;height:30px;border-radius:50%;background:#E24B4A"></span>
+            <span style="width:30px;height:30px;border-radius:50%;background:#00C896"></span>
+            <span style="width:30px;height:30px;border-radius:50%;background:#D4537E"></span>
+          </div>
+
+          <div class="field-label">Repetir</div>
+          <div class="opt-grid">
+            <div class="opt sel">Não repete</div>
+            <div class="opt">Diário</div>
+            <div class="opt">Semanal</div>
+            <div class="opt">Mensal</div>
+          </div>
+
+          <div style="margin-top:14px;background:rgba(245,200,66,0.05);border:1px solid rgba(245,200,66,0.18);border-radius:13px;padding:11px 13px;font-size:11.5px;line-height:1.5;color:rgba(255,255,255,0.55)">
+            <span class="emoji">💡</span> No modo <b style="color:var(--gold)">Alerta</b>, escolhes os dias da semana (S T Q Q S S D) e recebes notificação à hora marcada.
+          </div>
+        </div>
+        <div class="sheet-foot">
+          <div class="cta">Criar evento</div>
+        </div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
