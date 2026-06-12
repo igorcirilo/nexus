@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="base.css">
+<style>
+  .page { padding: 0 20px; }
+  .page-head { display: flex; justify-content: space-between; align-items: center; padding: 12px 0 4px; }
+  .page-head h1 { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; }
+  .page-head .sub { font-size: 12px; color: var(--txt3); font-weight: 500; margin-top: 2px; }
+
+  .tabs { display: flex; background: rgba(255,255,255,0.05); border: 1px solid var(--line); border-radius: 14px; padding: 4px; gap: 4px; margin: 14px 0 16px; }
+  .tabs .t { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 8px 3px; border-radius: 10px; font-size: 9px; font-weight: 500; color: rgba(255,255,255,0.35); }
+  .tabs .t .e { font-size: 15px; }
+  .tabs .t.on { background: rgba(255,255,255,0.08); color: var(--gold); font-weight: 600; }
+
+  /* hero reserva */
+  .hero-meta {
+    background: linear-gradient(135deg, #140E26 0%, #1A1030 60%, #0E1626 100%);
+    border: 1px solid rgba(157,92,245,0.25); border-radius: 22px; padding: 18px;
+    display: flex; gap: 16px; align-items: center; margin-bottom: 12px;
+  }
+  .ringwrap { width: 96px; height: 96px; position: relative; flex-shrink: 0; }
+  .ringwrap .c { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .ringwrap .pct { font-size: 19px; font-weight: 800; }
+  .ringwrap .pl { font-size: 8.5px; color: var(--txt3); font-weight: 600; }
+
+  .hm-k { font-size: 10px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(157,92,245,0.85); display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .hm-v { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; }
+  .hm-v small { font-size: 13px; font-weight: 600; color: var(--txt3); }
+  .hm-note { font-size: 11.5px; color: rgba(255,255,255,0.55); margin-top: 5px; line-height: 1.45; }
+  .hm-edit { margin-top: 9px; display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; color: var(--gold); }
+
+  /* card poupança mensal */
+  .mcard { background: var(--card2); border: 1px solid var(--line); border-radius: 18px; padding: 15px 16px; margin-bottom: 12px; }
+  .mcard .top { display: flex; align-items: center; gap: 11px; margin-bottom: 12px; }
+  .mcard .ic { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .mcard .tt { font-size: 13.5px; font-weight: 700; }
+  .mcard .ss { font-size: 10.5px; color: var(--txt3); margin-top: 1px; }
+  .badge { margin-left: auto; font-size: 10.5px; font-weight: 800; border-radius: 8px; padding: 4px 9px; flex-shrink: 0; }
+  .bar { height: 8px; background: rgba(255,255,255,0.08); border-radius: 10px; overflow: hidden; margin-bottom: 7px; }
+  .bar .fi { height: 100%; border-radius: 10px; }
+  .bmeta { display: flex; justify-content: space-between; font-size: 11px; color: var(--txt3); }
+  .bmeta b { color: rgba(255,255,255,0.75); font-weight: 700; }
+  .chev { color: rgba(255,255,255,0.3); font-size: 15px; margin-left: 8px; }
+
+  /* histórico */
+  .hist { background: var(--card2); border: 1px solid var(--line); border-radius: 18px; padding: 15px 16px; }
+  .hist .hd { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .hist .hd .tt { font-size: 12.5px; font-weight: 700; }
+  .legend { display: flex; gap: 10px; font-size: 9.5px; color: var(--txt3); align-items: center; }
+  .legend .sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: -1px; }
+  .chart { position: relative; height: 110px; display: flex; align-items: flex-end; gap: 9px; padding: 0 2px; }
+  .chart .goal-line { position: absolute; left: 0; right: 0; top: 28px; border-top: 2px dashed rgba(245,200,66,0.5); }
+  .chart .goal-tag { position: absolute; right: 0; top: 14px; font-size: 9px; font-weight: 700; color: var(--gold); }
+  .cb { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px; }
+  .cb .b { width: 100%; border-radius: 5px 5px 0 0; }
+  .cb .l { font-size: 9px; color: var(--txt4); font-weight: 600; }
+
+  .mentor { margin-top: 12px; background: rgba(0,200,150,0.05); border: 1px solid rgba(0,200,150,0.15); border-radius: 14px; padding: 12px 14px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,0.7); }
+  .mentor b { color: var(--green); font-weight: 700; }
+
+  /* sheet edição */
+  .bigval { text-align: center; margin: 6px 0 2px; }
+  .bigval .v { font-size: 38px; font-weight: 900; letter-spacing: -1px; }
+  .bigval .l { font-size: 11px; color: var(--txt3); font-weight: 600; margin-top: 2px; }
+  .quick { display: flex; gap: 8px; margin-top: 12px; }
+  .qchip { flex: 1; text-align: center; padding: 10px 0; border-radius: 12px; border: 1px solid var(--line2); font-size: 12.5px; font-weight: 700; color: rgba(255,255,255,0.6); }
+  .qchip.on { border-color: rgba(245,200,66,0.45); background: rgba(245,200,66,0.10); color: var(--gold); }
+  .ctx { margin-top: 16px; background: rgba(157,92,245,0.07); border: 1px solid rgba(157,92,245,0.2); border-radius: 13px; padding: 12px 14px; font-size: 12px; line-height: 1.55; color: rgba(255,255,255,0.65); }
+  .ctx b { color: var(--purple); font-weight: 700; }
+  .seg { display: flex; gap: 6px; margin-bottom: 4px; }
+  .seg .s { flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.08); }
+  .seg .s.on { background: var(--purple); }
+
+  /* empty state */
+  .empty-hero { background: var(--card2); border: 1px dashed rgba(245,200,66,0.3); border-radius: 20px; padding: 24px 18px; text-align: center; margin-bottom: 14px; }
+  .empty-hero .e { font-size: 38px; margin-bottom: 10px; }
+  .empty-hero .tt { font-size: 16px; font-weight: 800; margin-bottom: 6px; }
+  .empty-hero .ss { font-size: 12.5px; color: var(--txt3); line-height: 1.55; }
+  .setup { display: flex; align-items: center; gap: 12px; background: var(--card2); border: 1px solid var(--line); border-radius: 16px; padding: 14px; margin-bottom: 10px; }
+  .setup .ic { width: 42px; height: 42px; border-radius: 13px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .setup .tt { font-size: 13.5px; font-weight: 700; }
+  .setup .ss { font-size: 11px; color: var(--txt3); margin-top: 2px; line-height: 1.4; }
+  .setup .go { margin-left: auto; flex-shrink: 0; font-size: 11.5px; font-weight: 800; color: #1A1200; background: linear-gradient(135deg, #F5C842, #E0A82A); border-radius: 10px; padding: 8px 13px; }
+  .bgblur { filter: blur(2px); opacity: .55; }
+</style>
+</head>
+<body>
+<div class="canvas-title">Finanças › Metas — proposta de redesenho</div>
+<div class="canvas-sub">Reserva de emergência como hero com anel de progresso e contexto real (meses cobertos), edição por card em bottom sheet com atalhos, e setup guiado no estado vazio — substitui os cards "meta não definida" + botão único "Editar metas".</div>
+
+<div class="row">
+
+  <!-- ════ PANEL 1: tab Metas redesenhada ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>1 · Tab Metas com hero e edição por card</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+      <div class="page">
+        <div class="page-head">
+          <div><h1>Finanças</h1><div class="sub">junho 2026</div></div>
+        </div>
+        <div class="tabs">
+          <div class="t"><span class="e emoji">📊</span>Resumo</div>
+          <div class="t"><span class="e emoji">💸</span>Movimentos</div>
+          <div class="t"><span class="e emoji">📋</span>Orçamento</div>
+          <div class="t on"><span class="e emoji">🎯</span>Metas</div>
+        </div>
+
+        <!-- Hero: reserva de emergência -->
+        <div class="hero-meta">
+          <div class="ringwrap">
+            <svg width="96" height="96" viewBox="0 0 96 96" style="transform:rotate(-90deg)">
+              <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(157,92,245,0.15)" stroke-width="8"/>
+              <circle cx="48" cy="48" r="40" fill="none" stroke="#9D5CF5" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="70.4"/>
+            </svg>
+            <div class="c"><div class="pct">72%</div><div class="pl">DA META</div></div>
+          </div>
+          <div style="flex:1;min-width:0">
+            <div class="hm-k"><span class="emoji" style="font-size:13px">🛡️</span> Reserva de emergência</div>
+            <div class="hm-v">€3.600 <small>de €5.000</small></div>
+            <div class="hm-note">≈ <b style="color:#fff">4,3 meses</b> de despesas cobertos · faltam €1.400</div>
+            <div class="hm-edit"><span class="emoji" style="font-size:12px">✏️</span> Ajustar meta</div>
+          </div>
+        </div>
+
+        <!-- Poupança deste mês -->
+        <div class="mcard">
+          <div class="top">
+            <div class="ic emoji" style="background:rgba(0,200,150,0.12)">💰</div>
+            <div>
+              <div class="tt">Poupança deste mês</div>
+              <div class="ss">Meta mensal: €300</div>
+            </div>
+            <div class="badge" style="background:rgba(0,200,150,0.12);color:var(--green)">no ritmo</div>
+            <span class="chev">›</span>
+          </div>
+          <div class="bar"><div class="fi" style="width:80%;background:linear-gradient(90deg,#00C896,#00D4C8)"></div></div>
+          <div class="bmeta"><span><b>€240</b> poupados</span><span>faltam €60 · 9 dias</span></div>
+        </div>
+
+        <!-- Histórico -->
+        <div class="hist">
+          <div class="hd">
+            <div class="tt">Histórico de poupança</div>
+            <div class="legend"><span><span class="sw" style="background:#00C896"></span>poupado</span><span><span class="sw" style="background:rgba(245,200,66,0.6)"></span>meta</span></div>
+          </div>
+          <div class="chart">
+            <div class="goal-line"></div><div class="goal-tag">€300</div>
+            <div class="cb"><div class="b" style="height:46px;background:#00C896"></div><div class="l">jan</div></div>
+            <div class="cb"><div class="b" style="height:30px;background:#00C896"></div><div class="l">fev</div></div>
+            <div class="cb"><div class="b" style="height:14px;background:#E24B4A"></div><div class="l">mar</div></div>
+            <div class="cb"><div class="b" style="height:92px;background:#00C896"></div><div class="l">abr</div></div>
+            <div class="cb"><div class="b" style="height:58px;background:#00C896"></div><div class="l">mai</div></div>
+            <div class="cb"><div class="b" style="height:74px;background:rgba(0,212,200,0.55);border:1.5px solid #00D4C8"></div><div class="l">jun</div></div>
+          </div>
+          <div class="mentor"><b>Mentor:</b> 4 dos últimos 6 meses acima da meta. Ao ritmo atual, a reserva fica completa em <b>nov 2026</b>.</div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Hoje</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Hábitos</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0 1 13 0"/></svg>Corpo</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progresso</div>
+        <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais</div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- ════ PANEL 2: sheet editar meta ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>2 · Editar meta com atalhos e contexto</div>
+    <div class="phone">
+      <div class="bgblur">
+        <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+        <div class="page">
+          <div class="page-head">
+            <div><h1>Finanças</h1><div class="sub">junho 2026</div></div>
+          </div>
+          <div class="tabs">
+            <div class="t"><span class="e emoji">📊</span>Resumo</div>
+            <div class="t"><span class="e emoji">💸</span>Movimentos</div>
+            <div class="t"><span class="e emoji">📋</span>Orçamento</div>
+            <div class="t on"><span class="e emoji">🎯</span>Metas</div>
+          </div>
+          <div class="hero-meta">
+            <div class="ringwrap">
+              <svg width="96" height="96" viewBox="0 0 96 96" style="transform:rotate(-90deg)">
+                <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(157,92,245,0.15)" stroke-width="8"/>
+                <circle cx="48" cy="48" r="40" fill="none" stroke="#9D5CF5" stroke-width="8" stroke-linecap="round" stroke-dasharray="251.3" stroke-dashoffset="70.4"/>
+              </svg>
+              <div class="c"><div class="pct">72%</div><div class="pl">DA META</div></div>
+            </div>
+            <div style="flex:1">
+              <div class="hm-k"><span class="emoji" style="font-size:13px">🛡️</span> Reserva de emergência</div>
+              <div class="hm-v">€3.600 <small>de €5.000</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dim"></div>
+      <div class="sheet" style="height:560px">
+        <div class="grab"></div>
+        <div class="sheet-head">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="emoji" style="font-size:20px">🛡️</span>
+            <div class="t">Reserva de emergência</div>
+          </div>
+          <div class="xbtn">✕</div>
+        </div>
+        <div class="sheet-body">
+          <div class="bigval">
+            <div class="v">€5.000</div>
+            <div class="l">objetivo da reserva</div>
+          </div>
+          <div class="quick">
+            <div class="qchip">−€500</div>
+            <div class="qchip">−€100</div>
+            <div class="qchip on">+€100</div>
+            <div class="qchip">+€500</div>
+          </div>
+
+          <div class="field-label">Poupança atual acumulada</div>
+          <div class="input"><span>€3.600</span><span style="color:rgba(245,200,66,0.9);font-size:12px;font-weight:700">alterar</span></div>
+
+          <div class="ctx">
+            <span class="emoji">💡</span> As tuas despesas médias são <b>€840/mês</b>. Uma reserva de 3–6 meses fica entre <b>€2.520 e €5.040</b> — a tua meta está dentro do recomendado.
+          </div>
+        </div>
+        <div class="sheet-foot">
+          <div class="cta">Guardar meta</div>
+        </div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+  <!-- ════ PANEL 3: estado vazio com setup guiado ════ -->
+  <div>
+    <div class="panel-label"><span class="dot"></span>3 · Estado vazio: setup guiado por meta</div>
+    <div class="phone">
+      <div class="status"><span>9:41</span><span class="pills">●●●&nbsp; ᯤ &nbsp;▮▮▮</span></div>
+      <div class="page">
+        <div class="page-head">
+          <div><h1>Finanças</h1><div class="sub">junho 2026</div></div>
+        </div>
+        <div class="tabs">
+          <div class="t"><span class="e emoji">📊</span>Resumo</div>
+          <div class="t"><span class="e emoji">💸</span>Movimentos</div>
+          <div class="t"><span class="e emoji">📋</span>Orçamento</div>
+          <div class="t on"><span class="e emoji">🎯</span>Metas</div>
+        </div>
+
+        <div class="empty-hero">
+          <div class="e emoji">🎯</div>
+          <div class="tt">Define as tuas metas financeiras</div>
+          <div class="ss">Duas metas simples guiam tudo: quanto poupar por mês e o tamanho da tua reserva de emergência.</div>
+        </div>
+
+        <div class="setup">
+          <div class="ic emoji" style="background:rgba(0,200,150,0.12)">💰</div>
+          <div>
+            <div class="tt">Poupança mensal</div>
+            <div class="ss">Sugestão: 10–20% do que entra · ≈ €150–€300</div>
+          </div>
+          <div class="go">Definir</div>
+        </div>
+
+        <div class="setup">
+          <div class="ic emoji" style="background:rgba(157,92,245,0.12)">🛡️</div>
+          <div>
+            <div class="tt">Reserva de emergência</div>
+            <div class="ss">3–6× despesas mensais · ≈ €2.520–€5.040</div>
+          </div>
+          <div class="go">Definir</div>
+        </div>
+
+        <div class="hist" style="margin-top:14px;opacity:.5">
+          <div class="hd"><div class="tt">Histórico de poupança</div></div>
+          <div style="font-size:12px;color:var(--txt4);text-align:center;padding:18px 0">Aparece depois de definires a meta mensal</div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>Hoje</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Hábitos</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="7" r="4"/><path d="M5.5 21a7.5 7.5 0 0 1 13 0"/></svg>Corpo</div>
+        <div class="item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Progresso</div>
+        <div class="item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>Mais</div>
+      </div>
+      <div class="home-bar"></div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

@@ -308,7 +308,9 @@ export default function LeituraReaderPage() {
 
   return (
     <main
-      style={{ minHeight: '100vh', background: palette.bg, color: palette.text, paddingBottom: readingMode === 'paginado' ? 150 : 100 }}
+      // overflow-x clip (e não hidden): corta o vazamento horizontal sem criar
+      // scroll container, o que quebraria o position:sticky do header.
+      style={{ minHeight: '100dvh', background: palette.bg, color: palette.text, paddingBottom: readingMode === 'paginado' ? 150 : 100, overflowX: 'clip' }}
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
@@ -381,6 +383,11 @@ export default function LeituraReaderPage() {
         lineHeight: prefs?.line_height ?? 1.8,
         fontFamily: "Georgia, 'Times New Roman', serif",
         color: palette.text,
+        maxWidth: '100%',
+        // PDFs trazem sequências longas sem espaços (ex.: pontilhado de sumário
+        // "......02") que não quebram com pre-wrap e estouram o enquadramento.
+        overflowWrap: 'anywhere',
+        wordBreak: 'break-word',
       }}>
         {readingMode === 'scroll'
           ? pages.map(page => (
@@ -452,6 +459,28 @@ export default function LeituraReaderPage() {
         </div>
       )}
 
+      {/* ── Aspect (Aa) FAB — acesso às ferramentas sem voltar ao topo ────── */}
+      <button
+        onClick={() => { setSettingsOpen(v => !v); setTocOpen(false); setAnnOpen(false) }}
+        aria-label="Aspecto do texto"
+        style={{
+          position: 'fixed',
+          bottom: readingMode === 'paginado' ? 196 : 136,
+          right: 18, zIndex: 35,
+          width: 48, height: 48, borderRadius: 16,
+          background: settingsOpen ? palette.accent : (isDark ? '#1E2330' : palette.panel),
+          color: settingsOpen ? '#111' : palette.text,
+          border: `1px solid ${palette.border}`,
+          boxShadow: isDark ? '0 6px 24px rgba(0,0,0,0.5)' : '0 4px 18px rgba(0,0,0,0.14)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          cursor: 'pointer',
+          fontFamily: "Georgia, 'Times New Roman', serif", fontWeight: 700, fontSize: 17,
+          transition: 'background 0.2s, color 0.2s',
+        }}
+      >
+        Aa
+      </button>
+
       {/* ── Annotations FAB ───────────────────────────────────────────────── */}
       <button
         onClick={() => { setAnnOpen(v => !v); setSettingsOpen(false); setTocOpen(false) }}
@@ -490,13 +519,13 @@ export default function LeituraReaderPage() {
       {/* ── Resume prompt — Extra C ────────────────────────────────────────── */}
       {resumePrompt !== null && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 100,
+          position: 'fixed', inset: 0, zIndex: 9999,
           background: 'rgba(0,0,0,0.55)',
           display: 'flex', alignItems: 'flex-end',
         }}>
           <div style={{
             width: '100%', background: sheetBg, borderRadius: '24px 24px 0 0',
-            padding: '8px 22px 40px',
+            padding: '8px 22px calc(28px + env(safe-area-inset-bottom))',
             border: `1px solid ${palette.border}`, borderBottom: 'none',
           }}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: palette.border, margin: '8px auto 22px' }} />
@@ -547,7 +576,7 @@ export default function LeituraReaderPage() {
       {/* ── Settings bottom sheet ─────────────────────────────────────────── */}
       {settingsOpen && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'flex-end' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'flex-end' }}
           onClick={() => setSettingsOpen(false)}
         >
           <div
@@ -664,7 +693,7 @@ export default function LeituraReaderPage() {
       {/* ── TOC bottom sheet ──────────────────────────────────────────────── */}
       {tocOpen && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'flex-end' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'flex-end' }}
           onClick={() => setTocOpen(false)}
         >
           <div
@@ -709,7 +738,7 @@ export default function LeituraReaderPage() {
       {/* ── Annotations bottom sheet ──────────────────────────────────────── */}
       {annOpen && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'flex-end' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,0.38)', display: 'flex', alignItems: 'flex-end' }}
           onClick={() => setAnnOpen(false)}
         >
           <div

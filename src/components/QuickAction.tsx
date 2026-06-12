@@ -349,7 +349,9 @@ export default function QuickAction() {
       )}
 
       {/* ── Botão flutuante ── */}
-      <div data-quickaction style={{position:'fixed',bottom:88,right:20,zIndex:200,display:'flex',flexDirection:'column',alignItems:'flex-end',gap:10}}>
+      {/* zIndex abaixo de Nav (100) e dos overlays (9000+): o FAB nunca deve
+          flutuar por cima de modais/bottom sheets abertos. */}
+      <div data-quickaction style={{position:'fixed',bottom:88,right:20,zIndex:90,display:'flex',flexDirection:'column',alignItems:'flex-end',gap:10}}>
         {open && (
           <div style={{display:'flex',flexDirection:'column',gap:8,animation:'qaMenuIn .18s ease'}}>
             {actions.map(a=>(

@@ -418,11 +418,11 @@ export default function HojePage() {
 
       {selectedTask && (
         <div
-          style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,.5)' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,.5)' }}
           onClick={() => setSelectedTask(null)}
         >
           <div
-            style={{ width: '100%', maxWidth: 512, margin: '0 auto', background: 'var(--bg2)', borderRadius: '20px 20px 0 0', padding: '20px 24px 32px' }}
+            style={{ width: '100%', maxWidth: 512, margin: '0 auto', background: 'var(--bg2)', borderRadius: '20px 20px 0 0', padding: '20px 24px calc(28px + env(safe-area-inset-bottom))', maxHeight: 'min(86dvh, 720px)', overflowY: 'auto' }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{ width: 32, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />

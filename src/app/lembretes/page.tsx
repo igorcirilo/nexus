@@ -225,13 +225,15 @@ export default function LembretesPage() {
       {/* Formulário modal */}
       {showForm && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 40,
+          position: 'fixed', inset: 0, zIndex: 9999,
           background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end',
         }} onClick={e => e.target === e.currentTarget && setShowForm(false)}>
           <div style={{
             width: '100%', maxWidth: 448, margin: '0 auto',
             background: 'var(--bg1)', borderRadius: '20px 20px 0 0',
-            borderTop: '0.5px solid var(--border)', padding: 24,
+            borderTop: '0.5px solid var(--border)',
+            padding: '24px 24px calc(24px + env(safe-area-inset-bottom))',
+            maxHeight: 'min(86dvh, 720px)', overflowY: 'auto',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>
