@@ -24,7 +24,6 @@ import {
   PHASE_LABELS,
   PHASE_XP,
   type AgendaEvent,
-  type CalendarTab,
   type Checkin,
   type DayStatus,
   type HabitRow,
@@ -36,7 +35,6 @@ import {
 
 export function useCalendarioController() {
   const [userId, setUserId] = useState<string | null>(null)
-  const [tab, setTab] = useState<CalendarTab>('calendario')
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [current, setCurrent] = useState(new Date())
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
@@ -246,37 +244,28 @@ export function useCalendarioController() {
     showToast('Evento removido!')
   }
 
-  void (patternsLoaded ? getPatternInsights(patterns) : [])
+  const insights = patternsLoaded ? getPatternInsights(patterns) : []
 
   return {
-    loading, toast, tab, setTab, events,
-    calendarGridProps: {
-      viewMode, current, weekStart, dayMap, selected, events, today,
-      currentStreak: computeCurrentStreak(dayMap),
-      onViewModeChange: setViewMode, onChangeMonth: changeMonth, onChangeWeek: changeWeek, onSelectDay: selectDay,
-      dayPanelProps: {
-        today, dayMap, selCheckins, selEvents, selHabits, panelLoad,
-        quickPhase, quickEnergy, quickMission, quickWin, quickSaving,
-        onQuickPhaseChange: setQuickPhase, onQuickEnergyChange: setQuickEnergy,
-        onQuickMissionChange: setQuickMission, onQuickWinChange: setQuickWin,
-        onQuickCheckin: doQuickCheckin, onToggleRetroHabit: toggleRetroHabit, onRemoveEvent: removeEvent,
-        onNewEventInDay: (dateStr: string) => { setEvDate(dateStr); setShowEvForm(true); setTab('agenda') },
-      },
-    },
-    checkinTabProps: { todayCI },
-    remindersTabProps: {
-      reminders, showForm: showRmForm, title: rmTitle, time: rmTime, days: rmDays, type: rmType, saving: rmSaving,
-      onOpenForm: () => setShowRmForm(true), onCloseForm: () => setShowRmForm(false),
-      onTitleChange: setRmTitle, onTimeChange: setRmTime, onDaysChange: (updater: (days: number[]) => number[]) => setRmDays(updater),
-      onTypeChange: setRmType, onSave: saveRm, onToggle: toggleRm, onRemove: removeRm,
-    },
-    agendaTabProps: {
-      events, current, showForm: showEvForm, title: evTitle, description: evDesc, date: evDate, time: evTime,
-      endTime: evEndTime, color: evColor, allDay: evAllDay, recurrence: evRecurrence, saving: evSaving,
-      onOpenForm: () => setShowEvForm(true), onCloseForm: () => setShowEvForm(false),
-      onTitleChange: setEvTitle, onDescriptionChange: setEvDesc, onDateChange: setEvDate, onTimeChange: setEvTime,
-      onEndTimeChange: setEvEndTime, onColorChange: setEvColor, onAllDayChange: setEvAllDay,
-      onRecurrenceChange: setEvRecurrence, onSave: saveEv, onRemoveEvent: removeEvent,
-    },
+    loading, toast, today, insights,
+    // grelha
+    viewMode, setViewMode, current, weekStart, dayMap, events, selected,
+    currentStreak: computeCurrentStreak(dayMap),
+    changeMonth, changeWeek, selectDay,
+    closeDay: () => setSelected(null),
+    // detalhe do dia
+    selCheckins, selEvents, selHabits, panelLoad,
+    quickPhase, setQuickPhase, quickEnergy, setQuickEnergy,
+    quickMission, setQuickMission, quickWin, setQuickWin,
+    quickSaving, doQuickCheckin, toggleRetroHabit, removeEvent,
+    // check-ins de hoje
+    todayCI,
+    // alertas (lembretes)
+    reminders, rmTitle, setRmTitle, rmTime, setRmTime, rmDays, setRmDays, rmSaving,
+    saveRm, toggleRm, removeRm,
+    // eventos
+    evTitle, setEvTitle, evDesc, setEvDesc, evDate, setEvDate, evTime, setEvTime,
+    evEndTime, setEvEndTime, evColor, setEvColor, evAllDay, setEvAllDay,
+    evRecurrence, setEvRecurrence, evSaving, saveEv,
   }
 }
