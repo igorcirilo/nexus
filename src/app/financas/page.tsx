@@ -7,7 +7,6 @@ import {
   ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
 import Nav from '@/components/Nav'
-import FinancasHub from '@/components/financas/FinancasHub'
 import {
   supabase, getProfile, getTransactions,
   getTransactionsByMonth, saveTransaction, updateTransaction,
@@ -53,10 +52,10 @@ const sheetInp: React.CSSProperties = {
   fontFamily:'Inter, sans-serif', fontSize:14, fontWeight:600, outline:'none',
 }
 
-// Concha de bottom sheet partilhada pelas 3 tabs (design do hub)
-function Sheet({ icon, title, onClose, children, footer }: {
+// Concha de bottom sheet partilhada (design do hub)
+function Sheet({ icon, title, onClose, children, footer, tall }: {
   icon?: string; title: string; onClose: () => void
-  children: React.ReactNode; footer: React.ReactNode
+  children: React.ReactNode; footer?: React.ReactNode; tall?: boolean
 }) {
   return (
     <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,.65)', display:'flex', alignItems:'flex-end' }}
@@ -64,7 +63,9 @@ function Sheet({ icon, title, onClose, children, footer }: {
       <div style={{
         width:'100%', maxWidth:448, margin:'0 auto', background:'#11131C',
         borderRadius:'24px 24px 0 0', borderTop:'1px solid rgba(255,255,255,0.12)',
-        display:'flex', flexDirection:'column', maxHeight:'min(86dvh, 720px)',
+        display:'flex', flexDirection:'column',
+        maxHeight: tall ? '92dvh' : 'min(86dvh, 720px)',
+        ...(tall ? { height:'92dvh' } : {}),
         fontFamily:'Inter, sans-serif', boxShadow:'0 -20px 60px rgba(0,0,0,0.6)',
       }}>
         <div style={{ width:40, height:4, borderRadius:2, background:'rgba(255,255,255,0.18)', margin:'10px auto 0', flexShrink:0 }} />
@@ -74,9 +75,11 @@ function Sheet({ icon, title, onClose, children, footer }: {
           <button onClick={onClose} aria-label="Fechar" style={{ width:30, height:30, borderRadius:10, background:'rgba(255,255,255,0.06)', border:'none', cursor:'pointer', fontSize:14, color:'rgba(255,255,255,0.6)' }}>✕</button>
         </div>
         <div style={{ overflowY:'auto', flex:1, padding:'4px 20px 16px' }}>{children}</div>
-        <div style={{ padding:'12px 20px calc(20px + env(safe-area-inset-bottom))', background:'#11131C', borderTop:'1px solid rgba(255,255,255,0.06)', flexShrink:0 }}>
-          {footer}
-        </div>
+        {footer && (
+          <div style={{ padding:'12px 20px calc(20px + env(safe-area-inset-bottom))', background:'#11131C', borderTop:'1px solid rgba(255,255,255,0.06)', flexShrink:0 }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   )
@@ -102,7 +105,7 @@ const DEFAULT_BUDGETS: Record<string,number> = {
   Alimentação:400, Transporte:150, Habitação:800, Saúde:100,
   Lazer:200, Roupa:100, Educação:100, Assinaturas:50, Poupança:300, Outro:100,
 }
-type AppTab = 'resumo' | 'transacoes' | 'orcamento' | 'metas'
+
 const inp: React.CSSProperties = {
   width:'100%', background:'var(--bg2)', border:'0.5px solid var(--border)',
   borderRadius:12, padding:'11px 14px', color:'var(--text1)',
@@ -124,9 +127,10 @@ export default function FinancasPage() {
   const [txs,        setTxs]       = useState<Transaction[]>([])
   const [history,    setHistory]   = useState<Transaction[]>([])
   const [userId,     setUserId]    = useState<string|null>(null)
-  const [tab,        setTab]       = useState<AppTab>('resumo')
+  const [moreOpen,   setMoreOpen] = useState(false)
+  const [showMovimentos, setShowMovimentos] = useState(false)
+  const [showOrcamento,  setShowOrcamento]  = useState(false)
   const [loading,    setLoading]   = useState(true)
-  const [ready,      setReady]     = useState(false)
   const [budgets,    setBudgets]   = useState<Record<string,number>>(DEFAULT_BUDGETS)
   // Form transação
   const [showForm,   setShowForm]  = useState(false)
@@ -186,7 +190,7 @@ export default function FinancasPage() {
         if (saved) setBudgets({...DEFAULT_BUDGETS,...JSON.parse(saved)})
       } catch {}
       setLoading(false)
-      setTimeout(()=>setReady(true), 60)
+
     })
   }, [])
 
@@ -197,25 +201,10 @@ export default function FinancasPage() {
   const totalIn    = useMemo(()=>thisMonth.filter(t=>t.type==='entrada').reduce((a,t)=>a+t.amount,0),[thisMonth])
   const totalOut   = useMemo(()=>thisMonth.filter(t=>t.type==='saida').reduce((a,t)=>a+t.amount,0),[thisMonth])
   const balance    = totalIn - totalOut
-  const savedPct   = totalIn>0 ? Math.round(balance/totalIn*100) : 0
 
-  // Previsão — mínimo 7 dias para dados estáveis; baseada no saldo líquido diário
-  const dayOfMonth    = getDate(new Date())
-  const daysInMonth   = getDaysInMonth(new Date())
-  const daysLeft      = daysInMonth - dayOfMonth
-  const hasEnoughData = dayOfMonth >= 7
-  // Taxa diária de saídas (info)
-  const dailyBurn     = dayOfMonth > 0 ? totalOut / dayOfMonth : 0
-  // Projeção: saldo atual + (ritmo líquido diário × dias restantes)
-  const dailyNet      = hasEnoughData ? balance / dayOfMonth : 0
-  const projectedBal  = hasEnoughData ? Math.round(balance + dailyNet * daysLeft) : 0
-
-  // Por categoria
-  const byCategory = useMemo(()=>{
-    const map:Record<string,number>={}
-    thisMonth.filter(t=>t.type==='saida').forEach(t=>{map[t.category]=(map[t.category]??0)+t.amount})
-    return Object.entries(map).map(([name,value])=>({name,value:Math.round(value)})).sort((a,b)=>b.value-a.value)
-  },[thisMonth])
+  const dayOfMonth  = getDate(new Date())
+  const daysInMonth = getDaysInMonth(new Date())
+  const daysLeft    = daysInMonth - dayOfMonth
 
   // Gráfico 6 meses
   const monthlyChart = useMemo(()=>Array.from({length:6},(_,i)=>{
@@ -465,147 +454,15 @@ export default function FinancasPage() {
   const reserveGoal    = profile?.fin_reserve_goal    ?? 0
   const currentSavings = profile?.fin_current_savings ?? 0
 
-  const TABS:{key:AppTab;label:string;icon:string}[] = [
-    {key:'resumo',     label:'Resumo',    icon:'📊'},
-    {key:'transacoes', label:'Movimentos',icon:'💸'},
-    {key:'orcamento',  label:'Orçamento', icon:'📋'},
-    {key:'metas',      label:'Metas',     icon:'🎯'},
-  ]
-
   if (loading) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh'}}>
       <div style={{fontFamily:'Syne, sans-serif',color:'var(--text3)'}}>a carregar…</div>
     </div>
   )
 
-  // ── Dados derivados para o hub (Resumo) ──
-  const monthLabel = (() => { const s = format(new Date(), 'MMMM yyyy', { locale: pt }); return s.charAt(0).toUpperCase() + s.slice(1) })()
-  const categoriesView = byCategory.slice(0, 5).map((c) => {
-    const idx = CATEGORIES_OUT.indexOf(c.name)
-    return { name: c.name, value: c.value, color: CAT_COLORS[(idx >= 0 ? idx : 0) % CAT_COLORS.length], pct: totalOut > 0 ? (c.value / totalOut) * 100 : 0 }
-  })
-  const flowView = monthlyChart.map((m, i) => ({ label: m.label.charAt(0).toUpperCase() + m.label.slice(1), entradas: m.entradas, saidas: m.saidas, current: i === monthlyChart.length - 1 }))
-  const goalsView = [
-    ...(savingsGoal > 0 ? [{ name: 'Meta de poupança mensal', current: Math.max(0, balance), goal: savingsGoal, gradient: '#F5C842, #E07B2A' }] : []),
-    ...(reserveGoal > 0 ? [{ name: 'Reserva de emergência', current: currentSavings, goal: reserveGoal, gradient: '#9D5CF5, #00D4C8' }] : []),
-  ]
-
-  // Resumo: hub full-bleed fiel ao mockup (navegação pelos cards + bottom nav)
-  if (tab === 'resumo') {
-    return (
-      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
-        <FinancasHub
-          monthLabel={monthLabel}
-          balance={balance}
-          totalIn={totalIn}
-          totalOut={totalOut}
-          flow={flowView}
-          categories={categoriesView}
-          goals={goalsView}
-          onNavigate={setTab}
-          onAdd={() => setShowForm(true)}
-        />
-        <Nav />
-        {showForm && (
-          <div
-            style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,0.75)', display:'flex', alignItems:'flex-end' }}
-            onClick={e => e.target === e.currentTarget && setShowForm(false)}
-          >
-            <div style={{ width:'100%', maxWidth:448, margin:'0 auto', background:'#0D0E20', borderRadius:'20px 20px 0 0', borderTop:'1px solid rgba(255,255,255,0.08)', display:'flex', flexDirection:'column', maxHeight:'90vh', fontFamily:'Inter, sans-serif' }}>
-              <div style={{ padding:'24px 24px 16px', overflowY:'auto', flex:1 }}>
-                {/* Título + fechar */}
-                <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:18 }}>
-                  <div style={{ fontWeight:800, fontSize:18, color:'#fff' }}>Nova transação</div>
-                  <button onClick={() => setShowForm(false)} style={{ width:30, height:30, borderRadius:9, background:'rgba(255,255,255,0.07)', border:'none', cursor:'pointer', fontSize:16, color:'rgba(255,255,255,0.6)' }}>×</button>
-                </div>
-
-                {/* Tipo: Entrada / Saída */}
-                <div style={{ display:'flex', gap:8, marginBottom:16 }}>
-                  {(['entrada','saida'] as const).map(t => (
-                    <button
-                      key={t}
-                      onClick={() => { setTxType(t); setFCat('') }}
-                      style={{
-                        flex:1, padding:'11px', borderRadius:12, border:'none', cursor:'pointer',
-                        fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:13,
-                        background: txType === t ? (t === 'entrada' ? '#00C896' : '#E24B4A') : 'rgba(255,255,255,0.04)',
-                        color: txType === t ? (t === 'entrada' ? '#001A10' : '#fff') : 'rgba(255,255,255,0.6)',
-                        transition: 'all .15s',
-                      }}
-                    >
-                      {t === 'entrada' ? '↓ Entrada' : '↑ Saída'}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Valor */}
-                <label style={{ fontSize:12, color:'rgba(255,255,255,0.4)', display:'block', marginBottom:6 }}>Valor (€)</label>
-                <input
-                  type="number" step="0.01" value={fAmount}
-                  onChange={e => setFAmount(e.target.value)}
-                  placeholder="0.00"
-                  style={{ ...hubInp, marginBottom:12, fontSize:18, fontWeight:600 }}
-                />
-
-                {/* Categoria */}
-                <label style={{ fontSize:12, color:'rgba(255,255,255,0.4)', display:'block', marginBottom:6 }}>Categoria</label>
-                <div style={{ display:'flex', flexWrap:'wrap', gap:6, marginBottom:12 }}>
-                  {(txType === 'entrada' ? CATEGORIES_IN : CATEGORIES_OUT).map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setFCat(cat)}
-                      style={{
-                        padding:'7px 12px', borderRadius:10, border:'none', cursor:'pointer',
-                        fontSize:12, fontFamily:'Inter, sans-serif',
-                        background: fCat === cat ? (txType === 'entrada' ? '#00C896' : '#E24B4A') : 'rgba(255,255,255,0.05)',
-                        color: fCat === cat ? (txType === 'entrada' ? '#001A10' : '#fff') : 'rgba(255,255,255,0.6)',
-                        transition: 'all .15s',
-                      }}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Descrição + Data */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:8 }}>
-                  <div>
-                    <label style={{ fontSize:12, color:'rgba(255,255,255,0.4)', display:'block', marginBottom:6 }}>Descrição</label>
-                    <input value={fDesc} onChange={e => setFDesc(e.target.value)} placeholder="Opcional" style={hubInp} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize:12, color:'rgba(255,255,255,0.4)', display:'block', marginBottom:6 }}>Data</label>
-                    <input type="date" value={fDate} onChange={e => setFDate(e.target.value)} style={hubInp} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Botão guardar (sticky) */}
-              <div style={{ padding:'12px 24px 48px', background:'#0D0E20', borderTop:'1px solid rgba(255,255,255,0.08)' }}>
-                <button
-                  onClick={addTx}
-                  disabled={saving || !fAmount || !fCat}
-                  style={{
-                    width:'100%', border:'none', borderRadius:14, padding:15,
-                    fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:15,
-                    cursor: (fAmount && fCat) ? 'pointer' : 'not-allowed',
-                    background: (fAmount && fCat) ? 'linear-gradient(135deg, #00C896, #00D4C8)' : 'rgba(0,200,150,0.2)',
-                    color: (fAmount && fCat) ? '#001A10' : 'rgba(0,200,150,0.4)',
-                    transition: 'all .15s',
-                  }}
-                >
-                  {saving ? 'A guardar…' : 'Guardar transação'}
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </main>
-    )
-  }
 
   return (
-    <main style={{paddingBottom:100,minHeight:'100vh',background:'#07070F',fontFamily:'Inter, sans-serif'}}>
+    <main style={{paddingBottom:'calc(150px + env(safe-area-inset-bottom))',minHeight:'100dvh',background:'#07070F',fontFamily:'Inter, sans-serif'}}>
 
       {csvPreview && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>
@@ -700,53 +557,222 @@ export default function FinancasPage() {
         </div>
       )}
 
-      {/* Header */}
+      {/* ── Header: título + menu de importação + registar ── */}
       <div style={{padding:'28px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div>
           <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:28,marginBottom:3,color:'#fff',letterSpacing:'-0.5px'}}>Finanças</h1>
           <p style={{fontSize:12,color:'rgba(255,255,255,0.4)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
         </div>
-        <div style={{display:'flex',gap:8}}>
-          <button onClick={()=>csvRef.current?.click()} style={{background:'rgba(255,255,255,0.05)',color:'rgba(255,255,255,0.6)',border:'1px solid rgba(255,255,255,0.08)',borderRadius:12,padding:'9px 12px',fontFamily:'Inter, sans-serif',fontWeight:600,fontSize:12,cursor:'pointer'}}>↑ CSV</button>
+        <div style={{display:'flex',gap:8,position:'relative'}}>
           <button
-            onClick={() => pdfRef.current?.click()}
-            disabled={pdfLoading}
-            style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '8px 14px', color: 'rgba(255,255,255,0.6)', fontFamily: 'Inter, sans-serif', fontSize: 13, cursor: 'pointer' }}
+            onClick={()=>setMoreOpen(v=>!v)}
+            aria-label="Mais opções"
+            aria-expanded={moreOpen}
+            style={{width:38,height:38,borderRadius:12,background:moreOpen?'rgba(245,200,66,0.10)':'rgba(255,255,255,0.05)',border:`1px solid ${moreOpen?'rgba(245,200,66,0.4)':'rgba(255,255,255,0.08)'}`,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:moreOpen?'#F5C842':'rgba(255,255,255,0.6)'}}
           >
-            {pdfLoading ? 'A ler...' : '📄 Importar PDF'}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+          </button>
+          <button
+            onClick={()=>setShowForm(true)}
+            aria-label="Registar movimento"
+            style={{width:38,height:38,borderRadius:12,background:'rgba(245,200,66,0.14)',border:'1px solid rgba(245,200,66,0.35)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'#F5C842'}}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>
           <input ref={csvRef} type="file" accept=".csv" style={{display:'none'}} onChange={importCSV}/>
           <input ref={pdfRef} type="file" accept=".pdf" style={{ display: 'none' }} onChange={importPDF} />
-          <button onClick={()=>setShowForm(true)} style={{background:'#F5C842',color:'#07070F',border:'none',borderRadius:12,padding:'9px 16px',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>+ Registar</button>
+
+          {moreOpen && (
+            <div style={{position:'absolute',right:0,top:46,zIndex:50,width:200,background:'#161825',border:'1px solid rgba(255,255,255,0.12)',borderRadius:16,boxShadow:'0 18px 50px rgba(0,0,0,0.65)',overflow:'hidden'}}>
+              <button onClick={()=>{setMoreOpen(false);csvRef.current?.click()}} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'rgba(255,255,255,0.9)',background:'transparent',border:'none',borderBottom:'1px solid rgba(255,255,255,0.06)',cursor:'pointer',textAlign:'left'}}>
+                ↑ Importar CSV
+              </button>
+              <button onClick={()=>{setMoreOpen(false);pdfRef.current?.click()}} disabled={pdfLoading} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'rgba(255,255,255,0.9)',background:'transparent',border:'none',cursor:'pointer',textAlign:'left'}}>
+                📄 {pdfLoading ? 'A ler PDF…' : 'Importar PDF'}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{display:'flex',background:'rgba(255,255,255,0.05)',borderRadius:14,padding:4,gap:3,margin:'14px 20px 0',border:'1px solid rgba(255,255,255,0.07)'}}>
-        {TABS.map(t=>(
-          <button key={t.key} onClick={()=>setTab(t.key)} style={{flex:1,padding:'8px 3px',borderRadius:10,border:'none',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',gap:3,background:tab===t.key?'rgba(255,255,255,0.08)':'transparent',color:tab===t.key?'#F5C842':'rgba(255,255,255,0.35)',fontSize:9,fontFamily:'Inter, sans-serif',fontWeight:tab===t.key?600:400,transition:'all .15s'}}>
-            <span style={{fontSize:15}}>{t.icon}</span>{t.label}
-          </button>
-        ))}
+      {/* ── Hero: saldo do mês ── */}
+      <div style={{margin:'14px 20px 0',background:'linear-gradient(135deg, #131022 0%, #0E1A26 100%)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:22,padding:18}} onClick={()=>moreOpen&&setMoreOpen(false)}>
+        <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,212,200,0.85)',marginBottom:6}}>💎 Saldo do mês</div>
+        <div style={{fontSize:32,fontWeight:900,letterSpacing:'-1px',color:balance>=0?'#00D4C8':'#E24B4A'}}>{fmt(balance)}</div>
+        <div style={{display:'flex',gap:8,marginTop:12}}>
+          <div style={{flex:1,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'9px 10px'}}>
+            <div style={{fontSize:9.5,color:'rgba(255,255,255,0.4)',fontWeight:600}}>Entradas</div>
+            <div style={{fontSize:14,fontWeight:800,color:'#00C896',marginTop:2}}>+{fmt(totalIn)}</div>
+          </div>
+          <div style={{flex:1,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'9px 10px'}}>
+            <div style={{fontSize:9.5,color:'rgba(255,255,255,0.4)',fontWeight:600}}>Saídas</div>
+            <div style={{fontSize:14,fontWeight:800,color:'#E24B4A',marginTop:2}}>−{fmt(totalOut)}</div>
+          </div>
+        </div>
       </div>
 
-      {/* ── TAB MOVIMENTOS ── */}
-      {tab==='transacoes'&&(
-        <div style={{padding:'14px 20px 0'}}>
-          {/* Resumo do mês */}
-          <div style={{display:'flex',gap:8,marginBottom:14}}>
-            {[
-              {v:`+${fmt(totalIn)}`,  l:'Entradas', c:'#00C896'},
-              {v:`−${fmt(totalOut)}`, l:'Saídas',   c:'#E24B4A'},
-              {v:fmt(balance),        l:'Saldo',    c:'#F5C842'},
-            ].map(s=>(
-              <div key={s.l} style={{flex:1,background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:14,padding:'10px 6px',textAlign:'center'}}>
-                <div style={{fontSize:14,fontWeight:800,color:s.c,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{s.v}</div>
-                <div style={{fontSize:9.5,color:'rgba(255,255,255,0.4)',fontWeight:600,marginTop:3}}>{s.l}</div>
+      <div style={{padding:'0 20px'}} onClick={()=>moreOpen&&setMoreOpen(false)}>
+        {/* ── Orçamento (resumo) ── */}
+        <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',margin:'20px 0 10px'}}>
+          <span style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(255,255,255,0.3)'}}>Orçamento</span>
+          <button onClick={()=>setShowOrcamento(true)} style={{background:'none',border:'none',cursor:'pointer',fontSize:11.5,fontWeight:700,color:'#F5C842',fontFamily:'Inter, sans-serif',padding:0}}>Gerir ›</button>
+        </div>
+        <button onClick={()=>setShowOrcamento(true)} style={{width:'100%',textAlign:'left',cursor:'pointer',fontFamily:'Inter, sans-serif',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:'13px 15px'}}>
+          {budgetedCats.length>0 ? (
+            <>
+              <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:9}}>
+                <span style={{fontSize:15}}>📋</span>
+                <span style={{fontSize:13,fontWeight:700,color:'#fff'}}>{format(new Date(),'MMMM',{locale:pt}).replace(/^./,c=>c.toUpperCase())}</span>
+                <span style={{marginLeft:'auto',fontSize:13,fontWeight:800,color:budgetPct>=100?'#E24B4A':budgetOnPace?'#00C896':'#F5C842'}}>{budgetPct}% usado</span>
               </div>
-            ))}
-          </div>
+              <div style={{height:7,background:'rgba(255,255,255,0.08)',borderRadius:10,overflow:'hidden'}}>
+                <div style={{height:'100%',borderRadius:10,width:`${Math.min(100,budgetPct)}%`,background:budgetPct>=100?'#E24B4A':budgetOnPace?'#00C896':'#F5C842'}}/>
+              </div>
+              <div style={{display:'flex',justifyContent:'space-between',fontSize:10.5,color:'rgba(255,255,255,0.4)',marginTop:6}}>
+                <span>{fmt(totalSpentBudgeted)} de {fmt(totalBudget)}</span>
+                <span style={{color:budgetOnPace?'#00C896':'#F5C842',fontWeight:700}}>{budgetOnPace?'dentro do ritmo':'acima do ritmo'}</span>
+              </div>
+              {budgetedCats.some(b=>b.spent>b.budget||b.pct>=85)&&(
+                <div style={{display:'flex',gap:7,marginTop:10,flexWrap:'wrap'}}>
+                  {budgetedCats.filter(b=>b.spent>b.budget).slice(0,2).map(b=>(
+                    <span key={b.cat} style={{display:'flex',alignItems:'center',gap:6,fontSize:10.5,fontWeight:700,borderRadius:9,padding:'6px 10px',background:'rgba(226,75,74,0.10)',color:'#E24B4A'}}>{catEmoji(b.cat)} {b.cat} +{fmt(b.spent-b.budget)}</span>
+                  ))}
+                  {budgetedCats.filter(b=>b.spent<=b.budget&&b.pct>=85).slice(0,2).map(b=>(
+                    <span key={b.cat} style={{display:'flex',alignItems:'center',gap:6,fontSize:10.5,fontWeight:700,borderRadius:9,padding:'6px 10px',background:'rgba(245,200,66,0.10)',color:'#F5C842'}}>{catEmoji(b.cat)} {b.cat} {b.pct}%</span>
+                  ))}
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <span style={{fontSize:18}}>✨</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:'#F5C842'}}>Definir orçamentos</div>
+                <div style={{fontSize:11,color:'rgba(255,255,255,0.45)',marginTop:2}}>Sugestões automáticas com base nos teus últimos 3 meses.</div>
+              </div>
+              <span style={{color:'rgba(255,255,255,0.25)',fontSize:14}}>›</span>
+            </div>
+          )}
+        </button>
 
+        {/* ── Metas (resumo) ── */}
+        <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(255,255,255,0.3)',margin:'20px 0 10px'}}>Metas</div>
+        <div style={{display:'flex',gap:9}}>
+          {/* Reserva */}
+          <button
+            onClick={()=>{setGReserve(reserveGoal?String(reserveGoal):'');setGCurrent(currentSavings?String(currentSavings):'');setMetaSheet('reserva')}}
+            style={{flex:1,textAlign:'center',cursor:'pointer',fontFamily:'Inter, sans-serif',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:13}}
+          >
+            <div style={{fontSize:9.5,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'rgba(157,92,245,0.85)',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>🛡️ Reserva</div>
+            {reserveGoal>0 ? (() => {
+              const pct = Math.min(100,Math.round(currentSavings/reserveGoal*100))
+              const monthsCovered = avgExpenses3m>0 ? currentSavings/avgExpenses3m : null
+              return (
+                <>
+                  <div style={{width:58,height:58,position:'relative',margin:'0 auto 6px'}}>
+                    <svg width="58" height="58" viewBox="0 0 58 58" style={{transform:'rotate(-90deg)'}}>
+                      <circle cx="29" cy="29" r="24" fill="none" stroke="rgba(157,92,245,0.15)" strokeWidth="6"/>
+                      <circle cx="29" cy="29" r="24" fill="none" stroke="#9D5CF5" strokeWidth="6" strokeLinecap="round" strokeDasharray={2*Math.PI*24} strokeDashoffset={2*Math.PI*24*(1-pct/100)}/>
+                    </svg>
+                    <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff'}}>{pct}%</div>
+                  </div>
+                  <div style={{fontSize:13,fontWeight:800,color:'#fff'}}>{fmt(currentSavings)}</div>
+                  <div style={{fontSize:9.5,color:'rgba(255,255,255,0.4)',marginTop:2}}>
+                    {monthsCovered!==null?`≈ ${monthsCovered.toLocaleString('pt-PT',{maximumFractionDigits:1})} meses cobertos`:`de ${fmt(reserveGoal)}`}
+                  </div>
+                </>
+              )
+            })() : (
+              <>
+                <div style={{fontSize:26,margin:'10px 0 8px'}}>🛡️</div>
+                <div style={{display:'inline-block',fontSize:11,fontWeight:800,color:'#1A1200',background:'linear-gradient(135deg, #F5C842, #E0A82A)',borderRadius:9,padding:'7px 14px'}}>Definir</div>
+                <div style={{fontSize:9.5,color:'rgba(255,255,255,0.4)',marginTop:8}}>3–6× despesas mensais</div>
+              </>
+            )}
+          </button>
+
+          {/* Poupança mensal */}
+          <button
+            onClick={()=>{setGSave(savingsGoal?String(savingsGoal):'');setMetaSheet('poupanca')}}
+            style={{flex:1,textAlign:'center',cursor:'pointer',fontFamily:'Inter, sans-serif',background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:13}}
+          >
+            <div style={{fontSize:9.5,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'rgba(0,200,150,0.85)',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>💰 Poupança · {format(new Date(),'MMM',{locale:pt})}</div>
+            {savingsGoal>0 ? (() => {
+              const cur  = Math.max(0,balance)
+              const pct  = Math.min(100,Math.round(cur/savingsGoal*100))
+              const pace = cur >= savingsGoal*(dayOfMonth/daysInMonth)
+              const done = cur>=savingsGoal
+              return (
+                <>
+                  <div style={{height:58,display:'flex',flexDirection:'column',justifyContent:'center',gap:7,marginBottom:6}}>
+                    <div style={{height:8,background:'rgba(255,255,255,0.08)',borderRadius:10,overflow:'hidden'}}>
+                      <div style={{height:'100%',borderRadius:10,width:`${pct}%`,background:'linear-gradient(90deg,#00C896,#00D4C8)'}}/>
+                    </div>
+                    <div style={{fontSize:9.5,color:'rgba(255,255,255,0.4)'}}>{done?'meta atingida 🎉':`faltam ${fmt(savingsGoal-cur)} · ${daysLeft} dias`}</div>
+                  </div>
+                  <div style={{fontSize:13,fontWeight:800,color:'#fff'}}>{fmt(cur)} <span style={{color:'rgba(255,255,255,0.3)',fontSize:10}}>/ {fmt(savingsGoal)}</span></div>
+                  <div style={{fontSize:9.5,fontWeight:700,marginTop:2,color:done||pace?'#00C896':'#F5C842'}}>{done?'✓ atingida':pace?'no ritmo':'abaixo do ritmo'}</div>
+                </>
+              )
+            })() : (
+              <>
+                <div style={{fontSize:26,margin:'10px 0 8px'}}>💰</div>
+                <div style={{display:'inline-block',fontSize:11,fontWeight:800,color:'#1A1200',background:'linear-gradient(135deg, #F5C842, #E0A82A)',borderRadius:9,padding:'7px 14px'}}>Definir</div>
+                <div style={{fontSize:9.5,color:'rgba(255,255,255,0.4)',marginTop:8}}>10–20% do que entra</div>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* ── Movimentos recentes ── */}
+        <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',margin:'20px 0 10px'}}>
+          <span style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(255,255,255,0.3)'}}>Movimentos recentes</span>
+          <button onClick={()=>setShowMovimentos(true)} style={{background:'none',border:'none',cursor:'pointer',fontSize:11.5,fontWeight:700,color:'#F5C842',fontFamily:'Inter, sans-serif',padding:0}}>Ver todos ›</button>
+        </div>
+        {txs.length===0 ? (
+          <div style={{textAlign:'center',padding:'26px 0',color:'rgba(255,255,255,0.4)',background:'rgba(255,255,255,0.03)',border:'1px dashed rgba(255,255,255,0.10)',borderRadius:16}}>
+            <div style={{fontSize:32,marginBottom:8}}>💸</div>
+            <div style={{fontSize:13,marginBottom:4}}>Sem movimentos ainda.</div>
+            <div style={{fontSize:11.5}}>Toca em + para registar, ou importa CSV/PDF no menu ⋯</div>
+          </div>
+        ) : (
+          <>
+            {txs.slice(0,5).map(t=>(
+              <button key={t.id} onClick={()=>openTxSheet(t)} style={{
+                display:'flex',alignItems:'center',gap:11,padding:'10px 12px',borderRadius:14,cursor:'pointer',
+                background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',
+                fontFamily:'Inter, sans-serif',textAlign:'left',width:'100%',marginBottom:6,
+              }}>
+                <div style={{width:34,height:34,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,background:t.type==='entrada'?'rgba(0,200,150,.10)':'rgba(226,75,74,.10)'}}>
+                  {catEmoji(t.category)}
+                </div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12.5,fontWeight:600,color:'#fff'}}>{t.category}</div>
+                  <div style={{fontSize:10,color:'rgba(255,255,255,0.4)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{dayLabel(t.date)}{t.description?` · ${t.description}`:''}</div>
+                </div>
+                <div style={{fontWeight:800,fontSize:13,color:t.type==='entrada'?'#00C896':'#E24B4A',flexShrink:0}}>
+                  {t.type==='entrada'?'+':'−'}{fmt(t.amount)}
+                </div>
+              </button>
+            ))}
+            {txs.length>5&&(
+              <button onClick={()=>setShowMovimentos(true)} style={{width:'100%',textAlign:'center',padding:12,border:'1px solid rgba(255,255,255,0.10)',borderRadius:14,background:'transparent',fontSize:12.5,fontWeight:700,color:'rgba(255,255,255,0.65)',fontFamily:'Inter, sans-serif',cursor:'pointer',marginTop:2}}>
+                Ver todos os movimentos
+              </button>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* ── Sheet: movimentos (experiência completa) ── */}
+      {showMovimentos&&(
+        <Sheet tall icon="💸" title="Movimentos" onClose={()=>setShowMovimentos(false)}
+          footer={
+            <button onClick={()=>setShowForm(true)} style={{width:'100%',border:'none',borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:15,cursor:'pointer',background:'linear-gradient(135deg, #F5C842, #E0A82A)',color:'#1A1200'}}>
+              ＋ Registar movimento
+            </button>
+          }>
+        <div style={{paddingTop:10}}>
           {/* Pesquisa */}
           <div style={{display:'flex',alignItems:'center',gap:9,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.10)',borderRadius:13,padding:'0 13px',marginBottom:10}}>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -846,11 +872,13 @@ export default function FinancasPage() {
             </div>
           )}
         </div>
+        </Sheet>
       )}
 
-      {/* ── TAB ORÇAMENTO ── */}
-      {tab==='orcamento'&&(
-        <div style={{padding:'14px 20px 0'}}>
+      {/* ── Sheet: orçamento (experiência completa) ── */}
+      {showOrcamento&&(
+        <Sheet tall icon="📋" title={`Orçamento de ${format(new Date(),'MMMM',{locale:pt})}`} onClose={()=>setShowOrcamento(false)}>
+        <div style={{paddingTop:10}}>
           {budgetedCats.length>0 ? (
             <>
               {/* Gauge global do mês */}
@@ -1000,206 +1028,61 @@ export default function FinancasPage() {
             </>
           )}
         </div>
+        </Sheet>
       )}
 
-      {/* ── TAB METAS ── */}
-      {tab==='metas'&&(
-        <div style={{padding:'14px 20px 0'}}>
-          {savingsGoal<=0&&reserveGoal<=0&&(
-            <div style={{background:'rgba(255,255,255,0.04)',border:'1px dashed rgba(245,200,66,0.3)',borderRadius:20,padding:'24px 18px',textAlign:'center',marginBottom:14}}>
-              <div style={{fontSize:38,marginBottom:10}}>🎯</div>
-              <div style={{fontSize:16,fontWeight:800,color:'#fff',marginBottom:6}}>Define as tuas metas financeiras</div>
-              <div style={{fontSize:12.5,color:'rgba(255,255,255,0.4)',lineHeight:1.55}}>Duas metas simples guiam tudo: quanto poupar por mês e o tamanho da tua reserva de emergência.</div>
-            </div>
-          )}
-
-          {/* Hero: reserva de emergência */}
-          {reserveGoal>0 ? (() => {
-            const pct = Math.min(100,Math.round(currentSavings/reserveGoal*100))
-            const monthsCovered = avgExpenses3m>0 ? currentSavings/avgExpenses3m : null
-            return (
-              <button onClick={()=>{setGReserve(String(reserveGoal));setGCurrent(currentSavings?String(currentSavings):'');setMetaSheet('reserva')}} style={{
-                width:'100%',textAlign:'left',cursor:'pointer',fontFamily:'Inter, sans-serif',
-                background:'linear-gradient(135deg, #140E26 0%, #1A1030 60%, #0E1626 100%)',
-                border:'1px solid rgba(157,92,245,0.25)',borderRadius:22,padding:18,
-                display:'flex',gap:16,alignItems:'center',marginBottom:12,
-              }}>
-                <div style={{width:96,height:96,position:'relative',flexShrink:0}}>
-                  <svg width="96" height="96" viewBox="0 0 96 96" style={{transform:'rotate(-90deg)'}}>
-                    <circle cx="48" cy="48" r="40" fill="none" stroke="rgba(157,92,245,0.15)" strokeWidth="8"/>
-                    <circle cx="48" cy="48" r="40" fill="none" stroke="#9D5CF5" strokeWidth="8" strokeLinecap="round"
-                      strokeDasharray={2*Math.PI*40} strokeDashoffset={2*Math.PI*40*(1-pct/100)}/>
-                  </svg>
-                  <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                    <div style={{fontSize:19,fontWeight:800,color:'#fff'}}>{pct}%</div>
-                    <div style={{fontSize:8.5,color:'rgba(255,255,255,0.4)',fontWeight:600}}>DA META</div>
-                  </div>
-                </div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(157,92,245,0.85)',display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
-                    🛡️ Reserva de emergência
-                  </div>
-                  <div style={{fontSize:22,fontWeight:900,letterSpacing:'-0.5px',color:'#fff'}}>
-                    {fmt(currentSavings)} <span style={{fontSize:13,fontWeight:600,color:'rgba(255,255,255,0.4)'}}>de {fmt(reserveGoal)}</span>
-                  </div>
-                  <div style={{fontSize:11.5,color:'rgba(255,255,255,0.55)',marginTop:5,lineHeight:1.45}}>
-                    {monthsCovered!==null
-                      ? <>≈ <b style={{color:'#fff'}}>{monthsCovered.toLocaleString('pt-PT',{maximumFractionDigits:1})} meses</b> de despesas cobertos · </>
-                      : null}
-                    {currentSavings<reserveGoal?`faltam ${fmt(reserveGoal-currentSavings)}`:'meta atingida 🎉'}
-                  </div>
-                  <div style={{marginTop:9,display:'inline-flex',alignItems:'center',gap:6,fontSize:11.5,fontWeight:700,color:'#F5C842'}}>✏️ Ajustar meta</div>
-                </div>
-              </button>
-            )
-          })() : (
-            <button onClick={()=>{setGReserve('');setGCurrent(currentSavings?String(currentSavings):'');setMetaSheet('reserva')}} style={{
-              width:'100%',display:'flex',alignItems:'center',gap:12,cursor:'pointer',fontFamily:'Inter, sans-serif',textAlign:'left',
-              background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:14,marginBottom:10,
-            }}>
-              <div style={{width:42,height:42,borderRadius:13,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,background:'rgba(157,92,245,0.12)'}}>🛡️</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13.5,fontWeight:700,color:'#fff'}}>Reserva de emergência</div>
-                <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',marginTop:2,lineHeight:1.4}}>
-                  3–6× despesas mensais{avgExpenses3m>0?` · ≈ ${fmt(avgExpenses3m*3)}–${fmt(avgExpenses3m*6)}`:''}
-                </div>
-              </div>
-              <span style={{flexShrink:0,fontSize:11.5,fontWeight:800,color:'#1A1200',background:'linear-gradient(135deg, #F5C842, #E0A82A)',borderRadius:10,padding:'8px 13px'}}>Definir</span>
-            </button>
-          )}
-
-          {/* Poupança deste mês */}
-          {savingsGoal>0 ? (() => {
-            const cur  = Math.max(0,balance)
-            const pct  = Math.min(100,Math.round(cur/savingsGoal*100))
-            const pace = cur >= savingsGoal*(dayOfMonth/daysInMonth)
-            const done = cur>=savingsGoal
-            return (
-              <button onClick={()=>{setGSave(String(savingsGoal));setMetaSheet('poupanca')}} style={{
-                width:'100%',textAlign:'left',cursor:'pointer',fontFamily:'Inter, sans-serif',
-                background:'rgba(255,255,255,0.04)',border:`1px solid ${done?'rgba(0,200,150,.25)':'rgba(255,255,255,0.07)'}`,
-                borderRadius:18,padding:'15px 16px',marginBottom:12,
-              }}>
-                <div style={{display:'flex',alignItems:'center',gap:11,marginBottom:12}}>
-                  <div style={{width:38,height:38,borderRadius:12,display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0,background:'rgba(0,200,150,0.12)'}}>💰</div>
-                  <div>
-                    <div style={{fontSize:13.5,fontWeight:700,color:'#fff'}}>Poupança deste mês</div>
-                    <div style={{fontSize:10.5,color:'rgba(255,255,255,0.4)',marginTop:1}}>Meta mensal: {fmt(savingsGoal)}</div>
-                  </div>
-                  <span style={{marginLeft:'auto',fontSize:10.5,fontWeight:800,borderRadius:8,padding:'4px 9px',flexShrink:0,
-                    background:done?'rgba(0,200,150,0.12)':pace?'rgba(0,200,150,0.12)':'rgba(245,200,66,0.12)',
-                    color:done?'#00C896':pace?'#00C896':'#F5C842'}}>
-                    {done?'✓ atingida':pace?'no ritmo':'abaixo do ritmo'}
-                  </span>
-                  <span style={{color:'rgba(255,255,255,0.25)',fontSize:14,flexShrink:0}}>›</span>
-                </div>
-                <div style={{height:8,background:'rgba(255,255,255,0.08)',borderRadius:10,overflow:'hidden',marginBottom:7}}>
-                  <div style={{height:'100%',borderRadius:10,width:`${pct}%`,background:'linear-gradient(90deg,#00C896,#00D4C8)',transition:'width .4s'}}/>
-                </div>
-                <div style={{display:'flex',justifyContent:'space-between',fontSize:11,color:'rgba(255,255,255,0.4)'}}>
-                  <span><b style={{color:'rgba(255,255,255,0.75)'}}>{fmt(cur)}</b> poupados</span>
-                  <span>{done?'meta atingida 🎉':`faltam ${fmt(savingsGoal-cur)} · ${daysLeft} dias`}</span>
-                </div>
-              </button>
-            )
-          })() : (
-            <button onClick={()=>{setGSave('');setMetaSheet('poupanca')}} style={{
-              width:'100%',display:'flex',alignItems:'center',gap:12,cursor:'pointer',fontFamily:'Inter, sans-serif',textAlign:'left',
-              background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:14,marginBottom:12,
-            }}>
-              <div style={{width:42,height:42,borderRadius:13,display:'flex',alignItems:'center',justifyContent:'center',fontSize:20,flexShrink:0,background:'rgba(0,200,150,0.12)'}}>💰</div>
-              <div style={{flex:1}}>
-                <div style={{fontSize:13.5,fontWeight:700,color:'#fff'}}>Poupança mensal</div>
-                <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',marginTop:2,lineHeight:1.4}}>
-                  Sugestão: 10–20% do que entra{avgIncome3m>0?` · ≈ ${fmt(avgIncome3m*0.1)}–${fmt(avgIncome3m*0.2)}`:''}
-                </div>
-              </div>
-              <span style={{flexShrink:0,fontSize:11.5,fontWeight:800,color:'#1A1200',background:'linear-gradient(135deg, #F5C842, #E0A82A)',borderRadius:10,padding:'8px 13px'}}>Definir</span>
-            </button>
-          )}
-
-          {/* Histórico de poupança com linha da meta */}
-          {(savingsGoal>0||reserveGoal>0)&&(
-            <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:18,padding:'15px 16px'}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-                <div style={{fontSize:12.5,fontWeight:700,color:'#fff'}}>Histórico de poupança</div>
-                <div style={{display:'flex',gap:10,fontSize:9.5,color:'rgba(255,255,255,0.4)',alignItems:'center'}}>
-                  <span><span style={{width:9,height:9,borderRadius:2,display:'inline-block',marginRight:4,verticalAlign:-1,background:'#00C896'}}/>poupado</span>
-                  {savingsGoal>0&&<span><span style={{width:9,height:9,borderRadius:2,display:'inline-block',marginRight:4,verticalAlign:-1,background:'rgba(245,200,66,0.6)'}}/>meta</span>}
-                </div>
-              </div>
-              <div style={{height:120,overflow:'hidden'}}>
-                {ready&&(
-                  <ResponsiveContainer width="100%" height={120}>
-                    <BarChart data={monthlyChart}>
-                      <CartesianGrid vertical={false} stroke="rgba(255,255,255,.04)"/>
-                      <XAxis dataKey="label" tick={{fill:'rgba(255,255,255,0.3)',fontSize:11}} axisLine={false} tickLine={false}/>
-                      <YAxis hide/>
-                      <Tooltip contentStyle={TT} formatter={(v:number)=>fmt(v)}/>
-                      {savingsGoal>0&&<ReferenceLine y={savingsGoal} stroke="rgba(245,200,66,0.55)" strokeDasharray="5 4"/>}
-                      <Bar dataKey="poupanca" radius={[5,5,0,0]}>
-                        {monthlyChart.map((m,i)=><Cell key={i} fill={m.poupanca>=0?'#00C896':'#E24B4A'}/>)}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                )}
-              </div>
-              {(() => {
-                if (savingsGoal<=0) return null
-                const above = monthlyChart.filter(m=>m.poupanca>=savingsGoal).length
-                const avgSave = monthlyChart.slice(0,5).reduce((a,m)=>a+m.poupanca,0)/Math.max(1,monthlyChart.slice(0,5).length)
-                const remaining = reserveGoal-currentSavings
-                const projection = reserveGoal>0&&remaining>0&&avgSave>0
-                  ? format(addMonths(new Date(),Math.ceil(remaining/avgSave)),'MMM yyyy',{locale:pt})
-                  : null
-                return (
-                  <div style={{marginTop:12,background:'rgba(0,200,150,0.05)',border:'1px solid rgba(0,200,150,0.15)',borderRadius:14,padding:'12px 14px',fontSize:12,lineHeight:1.55,color:'rgba(255,255,255,0.7)'}}>
-                    <b style={{color:'#00C896'}}>Mentor:</b> {above} dos últimos 6 meses acima da meta.
-                    {projection&&<> Ao ritmo atual, a reserva fica completa em <b style={{color:'#00C896'}}>{projection}</b>.</>}
-                  </div>
-                )
-              })()}
-            </div>
-          )}
-        </div>
-      )}
-
+      {/* ── Sheet: nova transação ── */}
       {showForm&&(
-        <div style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}} onClick={e=>e.target===e.currentTarget&&setShowForm(false)}>
-          <div style={{width:'100%',maxWidth:448,margin:'0 auto',background:'var(--bg1)',borderRadius:'20px 20px 0 0',borderTop:'0.5px solid var(--border)',display:'flex',flexDirection:'column',maxHeight:'90vh'}}>
-            <div style={{padding:'24px 24px 16px',overflowY:'auto',flex:1}}>
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:18}}>
-                <h2 style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Nova transação</h2>
-                <button onClick={()=>setShowForm(false)} style={{width:30,height:30,borderRadius:9,background:'var(--bg3)',border:'none',cursor:'pointer',fontSize:16,color:'var(--text2)'}}>×</button>
-              </div>
-              <div style={{display:'flex',gap:8,marginBottom:16}}>
-                {(['entrada','saida'] as const).map(t=>(
-                  <button key={t} onClick={()=>{setTxType(t);setFCat('')}} style={{flex:1,padding:'11px',borderRadius:12,border:'none',cursor:'pointer',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,background:txType===t?(t==='entrada'?'var(--teal)':'#E24B4A'):'var(--bg2)',color:txType===t?'var(--bg0)':'var(--text2)',transition:'all .15s'}}>
-                    {t==='entrada'?'↓ Entrada':'↑ Saída'}
-                  </button>
-                ))}
-              </div>
-              <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Valor (€)</label>
-              <input type="number" step="0.01" value={fAmount} onChange={e=>setFAmount(e.target.value)} placeholder="0.00" style={{...inp,marginBottom:12,fontSize:18,fontFamily:'Syne, sans-serif',fontWeight:600}}/>
-              <label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Categoria</label>
-              <div style={{display:'flex',flexWrap:'wrap',gap:6,marginBottom:12}}>
-                {(txType==='entrada'?CATEGORIES_IN:CATEGORIES_OUT).map(cat=>(
-                  <button key={cat} onClick={()=>setFCat(cat)} style={{padding:'7px 12px',borderRadius:10,border:'none',cursor:'pointer',fontSize:12,fontFamily:'DM Sans, sans-serif',background:fCat===cat?(txType==='entrada'?'var(--teal)':'#E24B4A'):'var(--bg2)',color:fCat===cat?'var(--bg0)':'var(--text2)',outline:fCat===cat?'none':'0.5px solid var(--border)',transition:'all .15s'}}>{cat}</button>
-                ))}
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10,marginBottom:8}}>
-                <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Descrição</label><input value={fDesc} onChange={e=>setFDesc(e.target.value)} placeholder="Opcional" style={inp}/></div>
-                <div><label style={{fontSize:12,color:'var(--text3)',display:'block',marginBottom:6}}>Data</label><input type="date" value={fDate} onChange={e=>setFDate(e.target.value)} style={inp}/></div>
-              </div>
-            </div>
-            {/* Botão sticky — zIndex 9999 garante que fica acima do Nav */}
-            <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)'}}>
-              <button onClick={addTx} disabled={saving||!fAmount||!fCat} style={{width:'100%',border:'none',borderRadius:14,padding:15,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:15,cursor:(fAmount&&fCat)?'pointer':'not-allowed',background:(fAmount&&fCat)?'var(--gold)':'rgba(232,168,56,0.25)',color:(fAmount&&fCat)?'var(--bg0)':'rgba(232,168,56,0.6)',transition:'all .15s'}}>
-                {saving?'A guardar…':'Guardar transação'}
+        <Sheet icon="💸" title="Nova transação" onClose={()=>setShowForm(false)}
+          footer={
+            <button onClick={addTx} disabled={saving||!fAmount||!fCat} style={{
+              width:'100%',border:'none',borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:15,
+              cursor:(fAmount&&fCat)?'pointer':'not-allowed',
+              background:(fAmount&&fCat)?'linear-gradient(135deg, #F5C842, #E0A82A)':'rgba(255,255,255,0.06)',
+              color:(fAmount&&fCat)?'#1A1200':'rgba(255,255,255,0.35)',
+            }}>{saving?'A guardar…':'Guardar movimento'}</button>
+          }>
+          <div style={{display:'flex',gap:8,marginTop:12}}>
+            {(['entrada','saida'] as const).map(t=>(
+              <button key={t} onClick={()=>{setTxType(t);setFCat('')}} style={{
+                flex:1,padding:'11px',borderRadius:13,cursor:'pointer',
+                fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,
+                background: txType===t ? (t==='entrada'?'rgba(0,200,150,0.12)':'rgba(226,75,74,0.12)') : 'rgba(255,255,255,0.03)',
+                border: `1px solid ${txType===t ? (t==='entrada'?'rgba(0,200,150,0.5)':'rgba(226,75,74,0.5)') : 'rgba(255,255,255,0.10)'}`,
+                color: txType===t ? (t==='entrada'?'#00C896':'#E24B4A') : 'rgba(255,255,255,0.55)',
+              }}>
+                {t==='entrada'?'↓ Entrada':'↑ Saída'}
               </button>
+            ))}
+          </div>
+
+          <label style={sheetLabel}>Valor (€)</label>
+          <input type="number" step="0.01" value={fAmount} onChange={e=>setFAmount(e.target.value)} placeholder="0.00" style={{...sheetInp,fontSize:18,fontWeight:700}}/>
+
+          <label style={sheetLabel}>Categoria</label>
+          <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+            {(txType==='entrada'?CATEGORIES_IN:CATEGORIES_OUT).map(cat=>(
+              <button key={cat} onClick={()=>setFCat(cat)} style={{
+                display:'flex',alignItems:'center',gap:6,padding:'8px 12px',borderRadius:11,cursor:'pointer',
+                fontSize:12,fontWeight:600,fontFamily:'Inter, sans-serif',
+                background:fCat===cat?'rgba(245,200,66,0.10)':'rgba(255,255,255,0.03)',
+                border:`1px solid ${fCat===cat?'rgba(245,200,66,0.45)':'rgba(255,255,255,0.10)'}`,
+                color:fCat===cat?'#F5C842':'rgba(255,255,255,0.55)',
+              }}>{catEmoji(cat)} {cat}</button>
+            ))}
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div>
+              <label style={sheetLabel}>Descrição</label>
+              <input value={fDesc} onChange={e=>setFDesc(e.target.value)} placeholder="Opcional" style={sheetInp}/>
+            </div>
+            <div>
+              <label style={sheetLabel}>Data</label>
+              <input type="date" value={fDate} onChange={e=>setFDate(e.target.value)} style={sheetInp}/>
             </div>
           </div>
-        </div>
+        </Sheet>
       )}
 
       {/* ── Sheet: detalhe/edição de movimento ── */}
@@ -1416,6 +1299,38 @@ export default function FinancasPage() {
               💡 Entram em média <b style={{color:'#00C896'}}>{fmt(avgIncome3m)}/mês</b>. Poupar 10–20% fica entre <b style={{color:'#00C896'}}>{fmt(avgIncome3m*0.1)} e {fmt(avgIncome3m*0.2)}</b>.
             </div>
           )}
+
+          {/* Histórico de poupança + projeção (migrado da antiga tab Metas) */}
+          <label style={sheetLabel}>Histórico de poupança</label>
+          <div style={{height:110,overflow:'hidden'}}>
+            <ResponsiveContainer width="100%" height={110}>
+              <BarChart data={monthlyChart}>
+                <CartesianGrid vertical={false} stroke="rgba(255,255,255,.04)"/>
+                <XAxis dataKey="label" tick={{fill:'rgba(255,255,255,0.3)',fontSize:11}} axisLine={false} tickLine={false}/>
+                <YAxis hide/>
+                <Tooltip contentStyle={TT} formatter={(v:number)=>fmt(v)}/>
+                {savingsGoal>0&&<ReferenceLine y={savingsGoal} stroke="rgba(245,200,66,0.55)" strokeDasharray="5 4"/>}
+                <Bar dataKey="poupanca" radius={[5,5,0,0]}>
+                  {monthlyChart.map((m,i)=><Cell key={i} fill={m.poupanca>=0?'#00C896':'#E24B4A'}/>)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          {(() => {
+            if (savingsGoal<=0) return null
+            const above = monthlyChart.filter(m=>m.poupanca>=savingsGoal).length
+            const avgSave = monthlyChart.slice(0,5).reduce((a,m)=>a+m.poupanca,0)/Math.max(1,monthlyChart.slice(0,5).length)
+            const remaining = reserveGoal-currentSavings
+            const projection = reserveGoal>0&&remaining>0&&avgSave>0
+              ? format(addMonths(new Date(),Math.ceil(remaining/avgSave)),'MMM yyyy',{locale:pt})
+              : null
+            return (
+              <div style={{marginTop:10,background:'rgba(0,200,150,0.05)',border:'1px solid rgba(0,200,150,0.15)',borderRadius:13,padding:'11px 13px',fontSize:12,lineHeight:1.55,color:'rgba(255,255,255,0.7)'}}>
+                <b style={{color:'#00C896'}}>Mentor:</b> {above} dos últimos 6 meses acima da meta.
+                {projection&&<> Ao ritmo atual, a reserva fica completa em <b style={{color:'#00C896'}}>{projection}</b>.</>}
+              </div>
+            )
+          })()}
         </Sheet>
       )}
 
