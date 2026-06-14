@@ -70,8 +70,12 @@ export function getMentorMessage(ctx: MentorContext): MentorMessage {
     action: 'Próximo passo: faz o check-in da noite e prepara a missão de amanhã.',
   }
   if (ratio < 0.3) return {
-    body: 'O dia não correu como querias. Não foge a isso — entende o que aconteceu.',
-    action: 'Próximo passo: escreve 1 linha no check-in sobre o que te bloqueou. Isso já é progresso.',
+    body: hour < 22
+      ? 'Ainda dá para fechar bem o dia. Um gesto pequeno agora muda o tom de tudo.'
+      : 'Dia mais leve do que querias — acontece. O que importa é não quebrares o ritmo.',
+    action: hour < 22
+      ? 'Próximo passo: escolhe 1 hábito e marca-o como feito agora.'
+      : 'Próximo passo: faz o check-in da noite e prepara um arranque melhor amanhã.',
   }
   if (missionPct >= 70) return {
     body: 'A missão avançou mesmo que o dia não tenha sido perfeito. Isso é execução real.',

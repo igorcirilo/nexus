@@ -960,6 +960,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
         open={showImport}
         title="Importar plano de dieta"
         kind="mixed"
+        domain="diet"
         onClose={() => setShowImport(false)}
         onConfirm={handleImportConfirm}
       />

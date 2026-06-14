@@ -32,10 +32,75 @@ const modal: CSSProperties = {
   boxShadow: '0 20px 80px rgba(0,0,0,.35)',
 }
 
+type ImportDomain = 'diet' | 'training'
+
+type ImportGuide = {
+  who: string
+  columns: string[]
+  example: string[][]
+  prompt: string
+  fileName: string
+}
+
+// Colunas alinhadas com o parser (looksLikeDietHeaderRow / looksLikeTrainingHeaderRow
+// em src/lib/body-plan.ts). Mantém esta ordem para máxima compatibilidade.
+const IMPORT_GUIDES: Record<ImportDomain, ImportGuide> = {
+  diet: {
+    who: 'nutricionista',
+    columns: ['refeição', 'alimento', 'quantidade', 'calorias (kcal)', 'proteínas (g)', 'carboidratos (g)', 'gorduras (g)'],
+    example: [
+      ['Pequeno-almoço', 'Ovos mexidos', '3 unidades', '220', '18', '2', '15'],
+      ['Pequeno-almoço', 'Aveia em flocos', '60 g', '230', '8', '40', '4'],
+      ['Lanche da manhã', 'Iogurte natural', '170 g', '110', '10', '8', '4'],
+      ['Almoço', 'Arroz integral', '120 g', '160', '3', '34', '1'],
+      ['Almoço', 'Frango grelhado', '200 g', '330', '62', '0', '7'],
+      ['Lanche da tarde', 'Banana', '1 unidade', '90', '1', '23', '0'],
+      ['Jantar', 'Salmão grelhado', '180 g', '370', '40', '0', '22'],
+      ['Jantar', 'Brócolos cozidos', '150 g', '50', '4', '7', '1'],
+      ['Ceia', 'Queijo quark', '250 g', '160', '28', '8', '1'],
+    ],
+    prompt: 'Cria uma planilha CSV do meu plano de dieta com as colunas exatamente nesta ordem: refeição, alimento, quantidade, calorias (kcal), proteínas (g), carboidratos (g), gorduras (g). Uma linha por alimento, repetindo o nome da refeição em cada linha. Usa números (sem unidades) nas colunas de calorias e macros.',
+    fileName: 'modelo-dieta.csv',
+  },
+  training: {
+    who: 'treinador',
+    columns: ['dia', 'exercício', 'séries', 'reps alvo', 'descanso', 'carga (kg)'],
+    example: [
+      ['Segunda - Peito e Tríceps', 'Supino reto', '4', '8-10', '90s', '60'],
+      ['Segunda - Peito e Tríceps', 'Supino inclinado halteres', '3', '10-12', '75s', '22'],
+      ['Segunda - Peito e Tríceps', 'Crucifixo na máquina', '3', '12-15', '60s', '25'],
+      ['Segunda - Peito e Tríceps', 'Tríceps na polia', '4', '12', '60s', '30'],
+      ['Quarta - Costas e Bíceps', 'Puxada frontal', '4', '8-10', '90s', '55'],
+      ['Quarta - Costas e Bíceps', 'Remada curvada', '4', '10', '90s', '50'],
+      ['Quarta - Costas e Bíceps', 'Rosca direta', '3', '12', '60s', '18'],
+      ['Sexta - Pernas', 'Agachamento livre', '4', '6-8', '120s', '80'],
+      ['Sexta - Pernas', 'Leg press', '4', '10-12', '90s', '160'],
+      ['Sexta - Pernas', 'Cadeira extensora', '3', '15', '60s', '45'],
+    ],
+    prompt: 'Cria uma planilha CSV do meu plano de treino com as colunas exatamente nesta ordem: dia, exercício, séries, reps alvo, descanso, carga (kg). Uma linha por exercício, agrupando por dia/secção na coluna "dia" (repete o nome do dia em cada exercício desse dia).',
+    fileName: 'modelo-treino.csv',
+  },
+}
+
+function downloadCsv(guide: ImportGuide) {
+  const escape = (cell: string) => (/[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)
+  const csv = [guide.columns, ...guide.example].map(row => row.map(escape).join(',')).join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = guide.fileName
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  URL.revokeObjectURL(url)
+}
+
 type Props = {
   open: boolean
   title: string
   kind: ImportSourceKind | 'mixed'
+  domain?: ImportDomain
   onClose: () => void
   onConfirm?: (result: FileImportResult) => void | Promise<void>
   confirmLabel?: string
@@ -45,10 +110,12 @@ export default function FileImportModal({
   open,
   title,
   kind,
+  domain,
   onClose,
   onConfirm,
   confirmLabel = 'Confirmar',
 }: Props) {
+  const guide = domain ? IMPORT_GUIDES[domain] : null
   const [status, setStatus] = useState<FileImportStatus>('idle')
   const [error, setError] = useState('')
   const [result, setResult] = useState<FileImportResult | null>(null)
@@ -142,6 +209,54 @@ export default function FileImportModal({
             </span>
             <input type="file" accept={accept} onChange={onPickFile} style={{ display: 'none' }} />
           </label>
+
+          {guide && (
+            <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14, display: 'grid', gap: 10 }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13 }}>
+                Para o melhor aproveitamento
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+                Pede ao teu {guide.who} para entregar a planilha com estas colunas — ou pede ao Claude para a gerar neste formato. Quanto mais completa, melhor a app lê.
+              </div>
+              <div style={{ overflowX: 'auto', border: '0.5px solid var(--border)', borderRadius: 10 }}>
+                <table style={{ borderCollapse: 'collapse', fontSize: 11, whiteSpace: 'nowrap', width: '100%' }}>
+                  <thead>
+                    <tr>
+                      {guide.columns.map((col) => (
+                        <th key={col} style={{ textAlign: 'left', padding: '6px 10px', color: 'var(--teal)', borderBottom: '0.5px solid var(--border)', fontWeight: 700 }}>
+                          {col}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {guide.example.slice(0, 2).map((rowCells, ri) => (
+                      <tr key={ri}>
+                        {rowCells.map((cell, ci) => (
+                          <td key={ci} style={{ padding: '6px 10px', color: 'var(--text2)', borderBottom: ri === 0 ? '0.5px solid rgba(255,255,255,.05)' : 'none' }}>
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <button
+                type="button"
+                onClick={() => downloadCsv(guide)}
+                style={{ justifySelf: 'start', background: 'var(--bg3)', color: 'var(--text1)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '8px 12px', fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
+              >
+                ↓ Baixar modelo CSV
+              </button>
+              <details style={{ fontSize: 12, color: 'var(--text3)' }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--text2)' }}>Exemplo de prompt para o Claude</summary>
+                <div style={{ marginTop: 8, background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 10, lineHeight: 1.5, color: 'var(--text2)' }}>
+                  {guide.prompt}
+                </div>
+              </details>
+            </div>
+          )}
 
           {status === 'loading' && (
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14, fontSize: 13, color: 'var(--text2)' }}>

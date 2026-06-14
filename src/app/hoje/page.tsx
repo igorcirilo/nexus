@@ -23,7 +23,6 @@ import {
   getProfile,
   getRitmo,
   updateStreak,
-  getDynamicWeeklyChallenge,
   getCheckinsForDate,
   checkAndAwardBadges,
   claimLoginBonus,
@@ -32,22 +31,13 @@ import {
 } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
 import type { Profile, Checkin, ProgramDay, ProgramTask, HabitArea } from '@/types'
-import { getProgramDayByDate, getProgramTasks, getFirstProgramDayWithTasks, ensureProgramHasTasks, updateTaskStatus, createManualTask } from '@/lib/program'
+import { getProgramDayByDate, getProgramTasks, getFirstProgramDayWithTasks, ensureProgramHasTasks, updateTaskStatus, createManualTask, getCurrentProgramWeekFocus, type ProgramWeekFocus } from '@/lib/program'
 import StreakRecovery from '@/components/StreakRecovery'
 
 type ProfileWithProgram = Profile & {
   program_id?: string | null
   onboarding_version?: number | null
 }
-
-const CHALLENGE_LIBRARY = [
-  'Semana da Consistencia',
-  'Semana do Foco Profundo',
-  'Semana Corpo em Movimento',
-  'Semana de Leitura Diaria',
-  'Semana de Check-ins Completos',
-  'Semana Sem Falhar o Basico',
-]
 
 const AREA_LABELS: Record<HabitArea, string> = {
   corpo: 'Corpo',
@@ -86,7 +76,7 @@ export default function HojePage() {
   const [showRecovery, setShowRecovery] = useState(false)
   const [canRecover, setCanRecover] = useState(false)
   const [todayCheckins, setTodayCheckins] = useState<Checkin[]>([])
-  const [weekChallenge, setWeekChallenge] = useState({ title: 'Semana da Consistencia', done: 0, total: 7 })
+  const [weekFocus, setWeekFocus] = useState<ProgramWeekFocus | null>(null)
   const [programDay, setProgramDay] = useState<ProgramDay | null>(null)
   const [tasks, setTasks] = useState<ProgramTask[]>([])
   const [noProgram, setNoProgram] = useState(false)
@@ -170,8 +160,8 @@ export default function HojePage() {
         }
       }
 
-      const challenge = await getDynamicWeeklyChallenge(user.id)
-      setWeekChallenge(challenge)
+      const focus = await getCurrentProgramWeekFocus(user.id)
+      setWeekFocus(focus)
       await updateStreak(user.id)
 
       // O streak/título pode ter sido recalculado no servidor: recarrega o perfil.
@@ -216,14 +206,6 @@ export default function HojePage() {
     }
   }
 
-  function handleSwapChallenge() {
-    setWeekChallenge((current) => {
-      const index = CHALLENGE_LIBRARY.indexOf(current.title)
-      const nextIndex = index >= 0 ? (index + 1) % CHALLENGE_LIBRARY.length : 0
-      return { ...current, title: CHALLENGE_LIBRARY[nextIndex] }
-    })
-  }
-
   async function handleSkipTask(task: ProgramTask) {
     await updateTaskStatus(task.id, 'skipped')
     setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'skipped' } : t))
@@ -255,7 +237,9 @@ export default function HojePage() {
   const doneCnt = tasks.filter((t) => t.status === 'completed').length
   const totalHabits = tasks.length
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
+  const currentPhase = hour < 12 ? 'manha' : hour < 18 ? 'tarde' : 'noite'
   const checkinLabel = hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite'
+  const checkinPending = !todayCheckins.some((c) => c.phase === currentPhase)
   const todayTaskViews: TodayTaskView[] = tasks.map(task => ({
     task,
     title: cleanDisplayText(task.title),
@@ -335,7 +319,7 @@ export default function HojePage() {
           </div>
         </div>
 
-        <div style={{ minWidth: 116, minHeight: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg, rgba(28,32,48,.96), rgba(20,23,32,.96))', border: '0.5px solid rgba(255,255,255,.08)', borderRadius: 18, padding: '8px 12px', color: 'var(--gold)', boxShadow: '0 14px 38px rgba(0,0,0,.22)' }}>
+        <a href="/progresso" aria-label="Ver progresso" style={{ minWidth: 116, minHeight: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg, rgba(28,32,48,.96), rgba(20,23,32,.96))', border: '0.5px solid rgba(255,255,255,.08)', borderRadius: 18, padding: '8px 12px', color: 'var(--gold)', boxShadow: '0 14px 38px rgba(0,0,0,.22)', textDecoration: 'none', touchAction: 'manipulation' }}>
           <Icon name="flame" size={24} style={{ animation: 'flame 1.8s ease-in-out infinite', transformOrigin: 'bottom center' }} />
           <div>
             <div style={{ fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--gold)', lineHeight: 1 }}>
@@ -344,12 +328,12 @@ export default function HojePage() {
             <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4, lineHeight: 1 }}>sequência</div>
           </div>
           <Icon name="chevron-right" size={16} color="var(--text3)" />
-        </div>
+        </a>
       </header>
 
       {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
 
-      <TodayCommandPanel action={primaryAction} context={mentorMsg.body} />
+      <TodayCommandPanel action={primaryAction} context={mentorMsg.body} checkinPending={checkinPending} />
 
       <TodayMetrics
         metrics={[
@@ -394,25 +378,17 @@ export default function HojePage() {
             onCompleteTask={handleCompleteTask}
           />
 
-          <WeeklyChallengeStrip
-            title={weekChallenge.title}
-            done={weekChallenge.done}
-            total={weekChallenge.total}
-            open={challengeOpen}
-            onToggle={() => setChallengeOpen(open => !open)}
-            onSwap={handleSwapChallenge}
-          />
-
-          <div style={{ padding: '0 20px', marginTop: 8 }}>
-            <a
-              href="/programa"
-              className="btn-ghost"
-              style={{ width: '100%', minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, textAlign: 'center', textDecoration: 'none', touchAction: 'manipulation' }}
-            >
-              Ver programa completo
-              <Icon name="chevron-right" size={15} />
-            </a>
-          </div>
+          {weekFocus && (
+            <WeeklyChallengeStrip
+              theme={weekFocus.theme}
+              weekNumber={weekFocus.weekNumber}
+              totalWeeks={weekFocus.totalWeeks}
+              done={weekFocus.done}
+              total={weekFocus.total}
+              open={challengeOpen}
+              onToggle={() => setChallengeOpen(open => !open)}
+            />
+          )}
         </>
       )}
 

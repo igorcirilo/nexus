@@ -350,6 +350,54 @@ export async function getProgramWithWeeks(userId: string): Promise<{
   return { program: prog as Program, weeks }
 }
 
+export type ProgramWeekFocus = {
+  theme: string
+  weekNumber: number
+  totalWeeks: number
+  done: number
+  total: number
+}
+
+/**
+ * Foco da semana atual do programa: tema, número da semana e progresso de
+ * tarefas (done/total) da semana que contém a data dada. Devolve null se não
+ * houver programa ativo. Reaproveita getProgramWithWeeks.
+ */
+export async function getCurrentProgramWeekFocus(
+  userId: string,
+  date: Date = new Date()
+): Promise<ProgramWeekFocus | null> {
+  const result = await getProgramWithWeeks(userId)
+  if (!result || result.weeks.length === 0) return null
+
+  const today = format(date, 'yyyy-MM-dd')
+  const weeks = result.weeks
+
+  // Semana cujo intervalo de dias contém hoje; senão a última já iniciada;
+  // senão a primeira.
+  const containing = weeks.find(w => {
+    const dates = w.days.map(d => d.date).filter(Boolean).sort()
+    if (dates.length === 0) return false
+    return today >= dates[0] && today <= dates[dates.length - 1]
+  })
+  const started = [...weeks]
+    .filter(w => (w.starts_on ?? '') <= today)
+    .sort((a, b) => (a.starts_on ?? '').localeCompare(b.starts_on ?? ''))
+    .pop()
+  const current = containing ?? started ?? weeks[0]
+
+  const done = current.days.reduce((sum, d) => sum + d.task_counts.completed, 0)
+  const total = current.days.reduce((sum, d) => sum + d.task_counts.total, 0)
+
+  return {
+    theme: current.theme,
+    weekNumber: current.week_number,
+    totalWeeks: weeks.length,
+    done,
+    total,
+  }
+}
+
 export async function getTasksForDate(
   userId: string,
   date: string
