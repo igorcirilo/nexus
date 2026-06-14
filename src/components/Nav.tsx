@@ -1,19 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import BottomSheet from '@/components/ui/BottomSheet'
 
-const PRIMARY_ITEMS = [
+const NAV_ITEMS = [
   { href: '/hoje', label: 'Hoje', icon: HomeIcon },
   { href: '/habitos', label: 'Hábitos', icon: CheckIcon },
   { href: '/corpo', label: 'Corpo', icon: BodyIcon },
   { href: '/progresso', label: 'Progresso', icon: ActivityIcon },
-]
-
-const SECONDARY_ITEMS = [
   { href: '/calendario', label: 'Calendário', icon: CalIcon },
   { href: '/financas', label: 'Finanças', icon: EuroIcon },
   { href: '/leitura', label: 'Leitura', icon: BookIcon },
@@ -23,103 +18,57 @@ const SECONDARY_ITEMS = [
 
 export default function Nav() {
   const path = usePathname()
-  const [moreOpen, setMoreOpen] = useState(false)
-
-  useEffect(() => {
-    setMoreOpen(false)
-  }, [path])
-
-  const moreActive = SECONDARY_ITEMS.some(item => path === item.href)
 
   return (
-    <>
-      <nav style={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        zIndex: 100,
-        background: 'rgba(20,23,32,.96)',
-        borderTop: '0.5px solid var(--border)',
-        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-        backdropFilter: 'blur(16px)',
-      }}>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(5, minmax(0, 1fr))',
+    <nav style={{
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      zIndex: 100,
+      background: 'rgba(20,23,32,.96)',
+      borderTop: '0.5px solid var(--border)',
+      paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+      backdropFilter: 'blur(16px)',
+    }}>
+      <div
+        className="nav-scroll"
+        style={{
+          display: 'flex',
           alignItems: 'center',
           padding: '7px 10px 8px',
+          gap: 4,
           width: '100%',
-          gap: 2,
-        }}>
-          {PRIMARY_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active = path === href || (href === '/progresso' && (path === '/evolucao' || path === '/dashboard'))
-            return (
-              <Link key={href} href={href} style={navItemStyle(active)}>
-                <Icon active={active} />
-                <span style={labelStyle(active)}>{label}</span>
-                {active && <span style={activeDotStyle} />}
-              </Link>
-            )
-          })}
+          overflowX: 'auto',
+          scrollSnapType: 'x proximity',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          const active = path === href || (href === '/progresso' && (path === '/evolucao' || path === '/dashboard'))
+          return (
+            <Link key={href} href={href} style={navItemStyle(active)}>
+              <Icon active={active} />
+              <span style={labelStyle(active)}>{label}</span>
+              {active && <span style={activeDotStyle} />}
+            </Link>
+          )
+        })}
+      </div>
 
-          <button
-            type="button"
-            onClick={() => setMoreOpen(true)}
-            aria-label="Abrir mais páginas"
-            aria-pressed={moreActive}
-            style={{
-              ...navItemStyle(moreActive),
-              border: 'none',
-              background: 'transparent',
-              width: '100%',
-              cursor: 'pointer',
-            }}
-          >
-            <MoreIcon active={moreActive} />
-            <span style={labelStyle(moreActive)}>Mais</span>
-            {moreActive && <span style={activeDotStyle} />}
-          </button>
-        </div>
-      </nav>
-
-      <BottomSheet open={moreOpen} onClose={() => setMoreOpen(false)} title="Mais">
-        <div style={{ display: 'grid', gap: 8 }}>
-          {SECONDARY_ITEMS.map(({ href, label, icon: Icon }) => {
-            const active = path === href
-            return (
-              <Link
-                key={href}
-                href={href}
-                style={{
-                  minHeight: 52,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '0 12px',
-                  borderRadius: 14,
-                  background: active ? 'rgba(232,168,56,.1)' : 'var(--bg2)',
-                  border: active ? '0.5px solid rgba(232,168,56,.24)' : '0.5px solid var(--border)',
-                  color: active ? 'var(--gold)' : 'var(--text2)',
-                  textDecoration: 'none',
-                  touchAction: 'manipulation',
-                }}
-              >
-                <Icon active={active} />
-                <span style={{ fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontSize: 14, fontWeight: active ? 600 : 500 }}>
-                  {label}
-                </span>
-              </Link>
-            )
-          })}
-        </div>
-      </BottomSheet>
-    </>
+      <style jsx>{`
+        .nav-scroll::-webkit-scrollbar { display: none; }
+        .nav-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+      `}</style>
+    </nav>
   )
 }
 
 function navItemStyle(active: boolean): CSSProperties {
   return {
+    flex: '0 0 auto',
+    minWidth: 'calc((100% - 16px) / 4.5)',
+    scrollSnapAlign: 'start',
     minHeight: 52,
     display: 'flex',
     flexDirection: 'column',
@@ -184,7 +133,4 @@ function BodyIcon({ active }: { active: boolean }) {
 }
 function BookIcon({ active }: { active: boolean }) {
   return <Ico active={active}><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v18H6.5A2.5 2.5 0 0 0 4 23z"/><path d="M8 7h8"/><path d="M8 11h8"/></Ico>
-}
-function MoreIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><path d="M5 12h.01"/><path d="M12 12h.01"/><path d="M19 12h.01"/></Ico>
 }

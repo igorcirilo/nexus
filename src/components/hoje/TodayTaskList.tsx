@@ -32,7 +32,7 @@ export default function TodayTaskList({
   return (
     <section
       id="tarefas-hoje"
-      aria-label={`Suas próximas ações: ${doneCount} de ${totalCount} concluídas`}
+      aria-label={`Próxima ação: ${doneCount} de ${totalCount} concluídas`}
       style={{ padding: '18px 20px 0', scrollMarginTop: 16 }}
     >
       <div
@@ -48,7 +48,7 @@ export default function TodayTaskList({
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 2 }}>
           <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, lineHeight: 1.2, color: 'var(--text1)' }}>
-            Suas próximas ações
+            Próxima ação
           </h2>
           <a
             href="/programa"

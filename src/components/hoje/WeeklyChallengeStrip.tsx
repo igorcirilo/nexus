@@ -3,16 +3,18 @@
 import Icon from '@/components/ui/Icon'
 
 interface WeeklyChallengeStripProps {
-  title: string
+  theme: string
+  weekNumber: number
+  totalWeeks: number
   done: number
   total: number
   open: boolean
   onToggle: () => void
-  onSwap: () => void
 }
 
-export default function WeeklyChallengeStrip({ title, done, total, open, onToggle, onSwap }: WeeklyChallengeStripProps) {
+export default function WeeklyChallengeStrip({ theme, weekNumber, totalWeeks, done, total, open, onToggle }: WeeklyChallengeStripProps) {
   const pct = Math.round((done / Math.max(1, total)) * 100)
+  const title = `Semana ${weekNumber}${theme ? ` · ${theme}` : ''}`
 
   return (
     <section style={{ margin: '12px 20px 0', padding: 14, borderRadius: 18, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
@@ -42,7 +44,7 @@ export default function WeeklyChallengeStrip({ title, done, total, open, onToggl
           </span>
           <span style={{ minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: 10, color: 'var(--teal)', textTransform: 'uppercase', letterSpacing: '.1em', fontWeight: 800, marginBottom: 3 }}>
-              Desafio da semana
+              Foco da semana
             </span>
             <span style={{ display: 'block', fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 600, fontSize: 14, color: 'var(--text1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {title}
@@ -60,30 +62,12 @@ export default function WeeklyChallengeStrip({ title, done, total, open, onToggl
         <div style={{ height: '100%', borderRadius: 100, background: 'var(--teal)', width: `${pct}%`, transition: 'width .25s ease' }} />
       </div>
       {open && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 12, paddingTop: 12, borderTop: '0.5px solid var(--border)' }}>
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: '0.5px solid var(--border)' }}>
           <p style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--text3)' }}>
-            Progresso visível sem competir com a ação principal do dia.
+            {theme
+              ? `O programa periodiza o teu progresso. Esta é a semana ${weekNumber} de ${totalWeeks} — tema "${theme}". Conclui as tarefas do dia para avançares.`
+              : `Semana ${weekNumber} de ${totalWeeks} do teu programa. Conclui as tarefas do dia para avançares.`}
           </p>
-          <button
-            type="button"
-            onClick={onSwap}
-            style={{
-              minHeight: 44,
-              border: '0.5px solid rgba(127,119,221,.28)',
-              borderRadius: 12,
-              background: 'rgba(127,119,221,.08)',
-              color: 'var(--accent)',
-              padding: '0 14px',
-              fontFamily: 'var(--font-dm), "DM Sans", sans-serif',
-              fontWeight: 600,
-              fontSize: 13,
-              cursor: 'pointer',
-              touchAction: 'manipulation',
-              flexShrink: 0,
-            }}
-          >
-            Trocar
-          </button>
         </div>
       )}
     </section>

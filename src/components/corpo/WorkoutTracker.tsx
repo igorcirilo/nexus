@@ -994,6 +994,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
         open={showImport}
         title="Importar plano de treino"
         kind="mixed"
+        domain="training"
         onClose={() => setShowImport(false)}
         onConfirm={handleImportConfirm}
       />

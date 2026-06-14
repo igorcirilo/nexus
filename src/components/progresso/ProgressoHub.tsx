@@ -25,15 +25,20 @@ export type HubAreaProgress = {
   total: number
 }
 
+export type HeatVal = 'none' | 'partial' | 'full'
+
 interface Props {
   profile: Profile
   ritmo: number
   areas: HubAreaProgress[]
   badges: UserBadge[]
   earnedKeys: Set<string>
-  consistency: number
-  weekData: { day: string; value: number }[]
+  heatmap: HeatVal[]
   onDashboard: () => void
+}
+
+const HEAT_COLOR: Record<HeatVal, string> = {
+  none: '#1C2030', partial: '#534AB7', full: '#1ECBB4',
 }
 
 function SectionLabel({ children, style }: { children: React.ReactNode; style?: CSSProperties }) {
@@ -69,8 +74,7 @@ export default function ProgressoHub({
   areas,
   badges,
   earnedKeys,
-  consistency,
-  weekData,
+  heatmap,
   onDashboard,
 }: Props) {
   const level      = levelFromStreak(profile.streak_best)
@@ -81,8 +85,6 @@ export default function ProgressoHub({
     ? Math.min(100, Math.round(((streakBest - prevThr) / (nextThr - prevThr)) * 100))
     : 100
   const daysToNext = nextThr != null ? Math.max(0, nextThr - streakBest) : 0
-
-  const maxVal = Math.max(1, ...weekData.map(d => d.value))
 
   // Earned badges: most recent first; newestKey highlights with teal "Novo"
   const earnedSorted = BADGE_DEFS.filter(b => earnedKeys.has(b.key)).sort((a, b) => {
@@ -190,44 +192,26 @@ export default function ProgressoHub({
         </div>
       </div>
 
-      {/* ── Consistência semanal ── */}
-      <SectionLabel>Consistência semanal</SectionLabel>
+      {/* ── Heatmap de consistência (28 dias) ── */}
+      <SectionLabel>Heatmap de consistência</SectionLabel>
       <div
-        onClick={onDashboard}
         style={{
           background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-          borderRadius: 20, padding: '18px 20px', marginBottom: 14, cursor: 'pointer',
+          borderRadius: 20, padding: '18px 20px', marginBottom: 14,
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Esta semana</div>
-          <div style={{ fontSize: 22, fontWeight: 800, color: '#00C896' }}>{consistency}%</div>
+        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>
+          Verde = dia completo · Roxo = parcial · Escuro = sem registo
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 60 }}>
-          {weekData.map((d, i) => {
-            const isToday  = i === weekData.length - 1
-            const heightPct = isToday
-              ? Math.max(8, Math.round((d.value / maxVal) * 100))
-              : d.value > 0 ? Math.max(20, Math.round((d.value / maxVal) * 100)) : 8
-            const bg = isToday
-              ? 'rgba(0,212,200,0.5)'
-              : d.value > 0 ? '#00C896' : 'rgba(255,80,80,0.3)'
-            return (
-              <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-                <div style={{
-                  width: '100%', borderRadius: '6px 6px 0 0',
-                  background: bg, height: `${heightPct}%`,
-                  ...(isToday ? { border: '1.5px solid #00D4C8' } : {}),
-                }} />
-                <div style={{
-                  fontSize: 10, fontWeight: 600,
-                  color: isToday ? '#00D4C8' : 'rgba(255,255,255,0.3)',
-                }}>
-                  {d.day.charAt(0)}
-                </div>
-              </div>
-            )
-          })}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 4 }}>
+          {['S','T','Q','Q','S','S','D'].map((d, i) => (
+            <div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>{d}</div>
+          ))}
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
+          {heatmap.map((v, i) => (
+            <div key={i} style={{ background: HEAT_COLOR[v], borderRadius: 4, aspectRatio: '1' }} />
+          ))}
         </div>
       </div>
 

@@ -159,9 +159,6 @@ export default function ProgressoPage() {
   }, [])
 
   const earned  = new Set(badges.map(b => b.badge_key))
-  const hmColor: Record<HeatVal,string> = {
-    none: '#1C2030', partial: '#534AB7', full: '#1ECBB4',
-  }
   const TT: React.CSSProperties = {
     background:'#1C2030', border:'0.5px solid rgba(255,255,255,.1)',
     borderRadius:10, color:'#F0EDE8', fontSize:12,
@@ -182,8 +179,7 @@ export default function ProgressoPage() {
           areas={areas}
           badges={badges}
           earnedKeys={earned}
-          consistency={stats.consistency}
-          weekData={xpData.map(d => ({ day: d.day, value: d.xp }))}
+          heatmap={heatmap}
           onDashboard={() => setTab('dashboard')}
         />
         <Nav />
@@ -345,32 +341,34 @@ export default function ProgressoPage() {
               </div>
             </div>
 
-            {/* Heatmap */}
-            <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:16,marginBottom:12}}>
-              <div style={{fontFamily:'Inter, sans-serif',fontSize:13,fontWeight:700,color:'#fff',marginBottom:2}}>
-                Heatmap de Consistência
+            {/* Consistência semanal */}
+            <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+                <div style={{fontFamily:'Inter, sans-serif',fontSize:13,fontWeight:700,color:'#fff'}}>Consistência semanal</div>
+                <div style={{fontSize:20,fontWeight:800,color:'#00C896'}}>{stats.consistency}%</div>
               </div>
-              <div style={{fontSize:11,color:'rgba(255,255,255,0.4)',marginBottom:10}}>
-                Verde = dia completo · Roxo = parcial · Escuro = sem registo
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4,marginBottom:4}}>
-                {['S','T','Q','Q','S','S','D'].map((d,i)=>(
-                  <div key={i} style={{fontSize:9,color:'rgba(255,255,255,0.3)',textAlign:'center'}}>{d}</div>
-                ))}
-              </div>
-              <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:4}}>
-                {heatmap.map((v,i)=>(
-                  <div key={i} style={{background:hmColor[v],borderRadius:4,aspectRatio:'1'}}/>
-                ))}
-              </div>
-              <div style={{display:'flex',alignItems:'center',justifyContent:'flex-end',gap:8,marginTop:8}}>
-                {([['#1C2030','Sem registo'],['#534AB7','Parcial'],['#1ECBB4','Completo']] as [string,string][]).map(([c,l])=>(
-                  <div key={l} style={{display:'flex',alignItems:'center',gap:3}}>
-                    <div style={{width:10,height:10,borderRadius:2,background:c}}/>
-                    <span style={{fontSize:9,color:'rgba(255,255,255,0.4)'}}>{l}</span>
+              {(() => {
+                const maxVal = Math.max(1, ...xpData.map(d => d.xp))
+                return (
+                  <div style={{display:'flex',gap:8,alignItems:'flex-end',height:60}}>
+                    {xpData.map((d,i)=>{
+                      const isToday = i === xpData.length - 1
+                      const heightPct = isToday
+                        ? Math.max(8, Math.round((d.xp / maxVal) * 100))
+                        : d.xp > 0 ? Math.max(20, Math.round((d.xp / maxVal) * 100)) : 8
+                      const bg = isToday
+                        ? 'rgba(0,212,200,0.5)'
+                        : d.xp > 0 ? '#00C896' : 'rgba(255,80,80,0.3)'
+                      return (
+                        <div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+                          <div style={{width:'100%',borderRadius:'6px 6px 0 0',background:bg,height:`${heightPct}%`,...(isToday?{border:'1.5px solid #00D4C8'}:{})}}/>
+                          <div style={{fontSize:10,fontWeight:600,color:isToday?'#00D4C8':'rgba(255,255,255,0.3)'}}>{d.day.charAt(0)}</div>
+                        </div>
+                      )
+                    })}
                   </div>
-                ))}
-              </div>
+                )
+              })()}
             </div>
 
             {/* Resumo da semana */}

@@ -5,9 +5,14 @@ import Icon from '@/components/ui/Icon'
 interface TodayCommandPanelProps {
   action: string
   context: string
+  /** Se o check-in da fase atual ainda está por fazer. */
+  checkinPending?: boolean
 }
 
-export default function TodayCommandPanel({ action, context }: TodayCommandPanelProps) {
+export default function TodayCommandPanel({ action, context, checkinPending = true }: TodayCommandPanelProps) {
+  const cta = checkinPending
+    ? { href: '/checkin', label: 'Ir para o check-in' }
+    : { href: '/progresso', label: 'Ver progresso' }
   return (
     <section
       aria-label="Ação principal de hoje"
@@ -55,7 +60,7 @@ export default function TodayCommandPanel({ action, context }: TodayCommandPanel
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto', alignItems: 'center', gap: 12 }}>
           <a
-            href="/checkin"
+            href={cta.href}
             style={{
               minHeight: 48,
               display: 'inline-flex',
@@ -73,7 +78,7 @@ export default function TodayCommandPanel({ action, context }: TodayCommandPanel
               boxShadow: '0 10px 24px rgba(232,168,56,.2)',
             }}
           >
-            Ir para o check-in
+            {cta.label}
           </a>
           <button
             type="button"
@@ -90,7 +95,7 @@ export default function TodayCommandPanel({ action, context }: TodayCommandPanel
               touchAction: 'manipulation',
             }}
           >
-            Depois
+            {checkinPending ? 'Depois' : 'Ver tarefas'}
           </button>
         </div>
       </div>
