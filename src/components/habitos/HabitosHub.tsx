@@ -207,7 +207,6 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
         </div>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{habit.time_window || areaLabel}</span>
-          <span style={{ color: '#F5C842', fontWeight: 700, flexShrink: 0 }}>+{habit.xp_reward} XP</span>
         </div>
       </div>
 

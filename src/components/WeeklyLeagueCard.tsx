@@ -6,12 +6,12 @@ import { pt } from 'date-fns/locale'
 import type { WeeklyLeagueOverview } from '@/types'
 
 interface LeagueData {
-  xp: number
+  points: number
   tier: 'Bronze' | 'Prata' | 'Ouro' | 'Lenda'
   tierColor: string
   tierBg: string
   tierIcon: string
-  xpToNext: number | null
+  pointsToNext: number | null
   nextTier: string | null
   pct: number
   resetDay: string
@@ -22,30 +22,30 @@ interface WeeklyLeagueCardProps {
   overview?: WeeklyLeagueOverview | null
 }
 
-export function calcLeague(weekXP: number): LeagueData {
+export function calcLeague(weekPoints: number): LeagueData {
   const TIERS = [
-    { name: 'Bronze' as const, min: 0, max: 149, icon: '🥉', color: '#CD7F32', bg: 'rgba(205,127,50,.12)', next: 'Prata', nextMin: 150 },
-    { name: 'Prata' as const, min: 150, max: 399, icon: '🥈', color: '#C0C0C0', bg: 'rgba(192,192,192,.12)', next: 'Ouro', nextMin: 400 },
-    { name: 'Ouro' as const, min: 400, max: 749, icon: '🥇', color: 'var(--gold)', bg: 'rgba(232,168,56,.12)', next: 'Lenda', nextMin: 750 },
-    { name: 'Lenda' as const, min: 750, max: Infinity, icon: '👑', color: 'var(--teal)', bg: 'rgba(30,203,180,.12)', next: null, nextMin: null },
+    { name: 'Bronze' as const, min: 0, max: 14, icon: '🥉', color: '#CD7F32', bg: 'rgba(205,127,50,.12)', next: 'Prata', nextMin: 15 },
+    { name: 'Prata' as const, min: 15, max: 34, icon: '🥈', color: '#C0C0C0', bg: 'rgba(192,192,192,.12)', next: 'Ouro', nextMin: 35 },
+    { name: 'Ouro' as const, min: 35, max: 59, icon: '🥇', color: 'var(--gold)', bg: 'rgba(232,168,56,.12)', next: 'Lenda', nextMin: 60 },
+    { name: 'Lenda' as const, min: 60, max: Infinity, icon: '👑', color: 'var(--teal)', bg: 'rgba(30,203,180,.12)', next: null, nextMin: null },
   ]
 
-  const tier = TIERS.find(t => weekXP >= t.min && weekXP <= t.max) ?? TIERS[0]
+  const tier = TIERS.find(t => weekPoints >= t.min && weekPoints <= t.max) ?? TIERS[0]
   const now = new Date()
   const dayOfWeek = now.getDay()
   const daysLeft = dayOfWeek === 1 ? 7 : ((8 - dayOfWeek) % 7) || 7
   const resetDay = daysLeft === 1 ? 'amanhã' : `em ${daysLeft} dias`
-  const range = tier.max === Infinity ? 750 : tier.max - tier.min + 1
-  const inTier = weekXP - tier.min
+  const range = tier.max === Infinity ? 60 : tier.max - tier.min + 1
+  const inTier = weekPoints - tier.min
   const pct = tier.max === Infinity ? 100 : Math.min(100, Math.round((inTier / range) * 100))
 
   return {
-    xp: weekXP,
+    points: weekPoints,
     tier: tier.name,
     tierColor: tier.color,
     tierBg: tier.bg,
     tierIcon: tier.icon,
-    xpToNext: tier.nextMin !== null ? Math.max(0, tier.nextMin - weekXP) : null,
+    pointsToNext: tier.nextMin !== null ? Math.max(0, tier.nextMin - weekPoints) : null,
     nextTier: tier.next,
     pct,
     resetDay,
@@ -60,7 +60,7 @@ function medal(rank: number) {
 }
 
 export default function WeeklyLeagueCard({ data, overview }: WeeklyLeagueCardProps) {
-  const { xp, tier, tierColor, tierBg, tierIcon, xpToNext, nextTier, pct, resetDay } = data
+  const { points, tier, tierColor, tierBg, tierIcon, pointsToNext, nextTier, pct, resetDay } = data
   const me = overview?.me ?? null
   const rankDelta = me && overview?.previous_rank
     ? overview.previous_rank - me.rank
@@ -121,7 +121,7 @@ export default function WeeklyLeagueCard({ data, overview }: WeeklyLeagueCardPro
             )}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text2)' }}>
-            {xp} XP esta semana
+            {points} pts esta semana
             {rankDelta !== null && (
               <span style={{ color: rankDelta > 0 ? 'var(--teal)' : rankDelta < 0 ? '#E24B4A' : 'var(--text3)' }}>
                 {' '}· {rankDelta > 0 ? `subiste ${rankDelta}` : rankDelta < 0 ? `desceste ${Math.abs(rankDelta)}` : 'sem mudança'}
@@ -131,7 +131,7 @@ export default function WeeklyLeagueCard({ data, overview }: WeeklyLeagueCardPro
         </div>
       </div>
 
-      {xpToNext !== null ? (
+      {pointsToNext !== null ? (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: 12, color: 'var(--text3)' }}>Progresso do tier</span>
@@ -141,7 +141,7 @@ export default function WeeklyLeagueCard({ data, overview }: WeeklyLeagueCardPro
             <div style={{ width: `${pct}%`, height: '100%', borderRadius: 999, background: tierColor, transition: 'width .25s ease' }} />
           </div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginBottom: overview ? 14 : 0 }}>
-            Faltam <span style={{ color: tierColor, fontWeight: 700 }}>{xpToNext} XP</span> para {nextTier}
+            Faltam <span style={{ color: tierColor, fontWeight: 700 }}>{pointsToNext} pts</span> para {nextTier}
           </div>
         </>
       ) : (
@@ -180,7 +180,7 @@ export default function WeeklyLeagueCard({ data, overview }: WeeklyLeagueCardPro
                     <div style={{ fontSize: 10, color: 'var(--text3)' }}>{player.title} · nível {player.level}</div>
                   </div>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: player.user_id === me?.user_id ? tierColor : 'var(--text2)' }}>
-                    {player.xp}
+                    {player.points}
                   </div>
                 </div>
               ))}
@@ -195,7 +195,7 @@ export default function WeeklyLeagueCard({ data, overview }: WeeklyLeagueCardPro
                     {format(new Date(`${item.week_start}T12:00:00`), 'd MMM', { locale: pt })}
                   </div>
                   <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)', lineHeight: 1, marginBottom: 4 }}>
-                    {item.xp} XP
+                    {item.points} pts
                   </div>
                   <div style={{ fontSize: 10, color: 'var(--text2)' }}>
                     {item.tier}{item.rank ? ` · #${item.rank}` : ''}

@@ -13,8 +13,8 @@ const ALL_BADGES = [
   { key: 'streak_7',         name: 'Uma Semana',   icon: '🔥', color: '#F5C842' },
   { key: 'streak_21',        name: 'Três Semanas', icon: '⚡', color: '#9D5CF5' },
   { key: 'streak_100',       name: 'Centenário',   icon: '💎', color: '#00D4C8' },
-  { key: 'xp_1000',          name: 'Mil Pontos',   icon: '⭐', color: '#F5C842' },
-  { key: 'xp_5000',          name: 'Veterano',     icon: '🏆', color: '#9D5CF5' },
+  { key: 'ritmo_80',         name: 'Em Chamas',    icon: '🚀', color: '#F5C842' },
+  { key: 'consistencia_30',  name: 'Inabalável',   icon: '🏔️', color: '#9D5CF5' },
 ]
 
 const METAS_90 = [
@@ -27,11 +27,12 @@ const NAV_SECTIONS: { section: Section; label: string; sub: string; icon: string
   { section: 'corpo',     label: 'Corpo & Físico',      sub: 'Peso, altura, idade, sexo', icon: '💪', color: '#00C896' },
   { section: 'metas',     label: 'Metas & Hábitos',     sub: 'Água, treinos, sono, leitura', icon: '🎯', color: '#00D4C8' },
   { section: 'objetivos', label: 'Objetivos 90 Dias',   sub: 'Pessoal, carreira, saúde',  icon: '🧭', color: '#9D5CF5' },
-  { section: 'xp',        label: 'XP & Desempenho',     sub: 'Meta semanal, taxa de conclusão', icon: '⚡', color: '#F5C842' },
+  { section: 'xp',        label: 'Metas & Desempenho',  sub: 'Taxa de conclusão semanal', icon: '⚡', color: '#F5C842' },
 ]
 
 interface Props {
   profile: Profile
+  ritmo: number
   badges: UserBadge[]
   email: string
   onEdit: (section?: Section) => void
@@ -60,7 +61,7 @@ function hexAlpha(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
-export default function PerfilHub({ profile, badges, email, onEdit, onLogout, onPhotoSelect, photoUploading, journeyData }: Props) {
+export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onLogout, onPhotoSelect, photoUploading, journeyData }: Props) {
   const earnedKeys = new Set(badges.map(b => b.badge_key))
   const earnedBadges = ALL_BADGES.filter(b => earnedKeys.has(b.key))
   const lockedBadges = ALL_BADGES.filter(b => !earnedKeys.has(b.key))
@@ -71,8 +72,7 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout, on
   })
 
   const initial = (profile.username ?? email ?? 'U').charAt(0).toUpperCase()
-  const xpToNextLevel = Math.max(0, (profile.level * 1000) - profile.xp_total)
-  const xpPct = Math.min(100, Math.round(((profile.xp_total % 1000) / 1000) * 100))
+  const ritmoPct = Math.min(100, Math.max(0, ritmo))
 
   const activeMetas = METAS_90.filter(m => (profile[m.key] as string | null | undefined))
 
@@ -188,15 +188,15 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout, on
           </div>
         </div>
 
-        {/* XP bar */}
+        {/* Ritmo bar */}
         <div style={{ width: '100%', maxWidth: 320, marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{profile.xp_total} XP total</span>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{xpToNextLevel} XP até Nível {profile.level + 1}</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Ritmo {ritmo}</span>
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>Nível {profile.level} · {profile.title}</span>
           </div>
           <div style={{ height: 6, background: 'rgba(255,255,255,0.07)', borderRadius: 6, overflow: 'hidden' }}>
             <div style={{
-              height: '100%', width: `${xpPct}%`,
+              height: '100%', width: `${ritmoPct}%`,
               background: 'linear-gradient(90deg, #9D5CF5, #00D4C8)', borderRadius: 6,
             }} />
           </div>
@@ -205,7 +205,7 @@ export default function PerfilHub({ profile, badges, email, onEdit, onLogout, on
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: 360 }}>
           {[
-            { label: 'XP Total',  value: profile.xp_total,        icon: '⚡', color: '#F5C842' },
+            { label: 'Ritmo',     value: ritmo,                    icon: '⚡', color: '#F5C842' },
             { label: 'Sequência', value: profile.streak_current,   icon: '🔥', color: '#FF6B6B' },
             { label: 'Recorde',   value: profile.streak_best,      icon: '🏆', color: '#00D4C8' },
             { label: 'Badges',    value: earnedBadges.length,      icon: '🎖️', color: '#9D5CF5' },

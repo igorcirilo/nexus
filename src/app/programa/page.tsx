@@ -334,7 +334,7 @@ export default function ProgramaPage() {
                   <div key={task.id} style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: '12px 14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
                       <div style={{ fontWeight: 600, color: 'var(--text1)', fontSize: 14 }}>{task.title}</div>
-                      <div style={{ fontSize: 11, color: 'var(--accent)', whiteSpace: 'nowrap' }}>+{task.xp_reward} XP</div>
+                      <div style={{ fontSize: 11, color: 'var(--text3)', whiteSpace: 'nowrap' }}>Dif. {task.difficulty}</div>
                     </div>
                     {task.description && (
                       <div style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.45, marginBottom: 8 }}>{task.description}</div>

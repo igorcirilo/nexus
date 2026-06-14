@@ -2,12 +2,12 @@
 // src/components/WeeklyRankCard.tsx
 
 type WeeklyRankCardProps = {
-  xpActual: number
-  xpAnterior: number
+  pointsActual: number
+  pointsAnterior: number
   diff: number
 }
 
-export default function WeeklyRankCard({ xpActual, xpAnterior, diff }: WeeklyRankCardProps) {
+export default function WeeklyRankCard({ pointsActual, pointsAnterior, diff }: WeeklyRankCardProps) {
   const positive = diff > 0
   const negative = diff < 0
   const arrow = positive ? '↑' : negative ? '↓' : '→'
@@ -37,7 +37,7 @@ export default function WeeklyRankCard({ xpActual, xpAnterior, diff }: WeeklyRan
             Ranking semanal pessoal
           </div>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 28, color: 'var(--gold)' }}>
-            {xpActual} XP
+            {pointsActual} pts
           </div>
           <div style={{ fontSize: 12, color: 'var(--text2)' }}>Esta semana</div>
         </div>
@@ -68,7 +68,7 @@ export default function WeeklyRankCard({ xpActual, xpAnterior, diff }: WeeklyRan
         >
           <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>Esta semana</div>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--text1)' }}>
-            {xpActual} XP
+            {pointsActual} pts
           </div>
         </div>
         <div
@@ -80,7 +80,7 @@ export default function WeeklyRankCard({ xpActual, xpAnterior, diff }: WeeklyRan
         >
           <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 6 }}>Semana passada</div>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--text1)' }}>
-            {xpAnterior} XP
+            {pointsAnterior} pts
           </div>
         </div>
       </div>

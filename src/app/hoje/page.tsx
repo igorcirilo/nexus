@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import Nav from '@/components/Nav'
-import XPBar from '@/components/XPBar'
-import XPToast, { triggerXP } from '@/components/XPToast'
+import RitmoBar from '@/components/RitmoBar'
+import FeedbackToast, { triggerToast } from '@/components/FeedbackToast'
 import AvatarXP from '@/components/AvatarXP'
 import NightSummaryCard from '@/components/NightSummaryCard'
 import LevelUpModal from '@/components/LevelUpModal'
@@ -21,7 +21,7 @@ import Icon from '@/components/ui/Icon'
 import {
   supabase,
   getProfile,
-  addXP,
+  getRitmo,
   updateStreak,
   getDynamicWeeklyChallenge,
   getCheckinsForDate,
@@ -79,6 +79,7 @@ function cleanActionText(value: string) {
 
 export default function HojePage() {
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [ritmo, setRitmo] = useState(0)
   const [userId, setUserId] = useState<string>('')
   const [missionPct, setMissionPct] = useState(0)
   const [loading, setLoading] = useState(true)
@@ -173,16 +174,25 @@ export default function HojePage() {
       setWeekChallenge(challenge)
       await updateStreak(user.id)
 
-      const gotBonus = await claimLoginBonus(user.id)
-      if (gotBonus) {
-        triggerXP(10, 'Login diario! +10 XP')
-        if (prof) prof.xp_total += 10
+      // O streak/título pode ter sido recalculado no servidor: recarrega o perfil.
+      const refreshed = await getProfile(user.id)
+      if (refreshed) {
+        if (manhaCI?.energy) refreshed.energy_today = manhaCI.energy
+        if (manhaCI?.mission) refreshed.mission_today = manhaCI.mission
+        setProfile(refreshed)
       }
+      const activeProfile = refreshed ?? prof
 
-      if (prof) {
+      const ritmoNow = await getRitmo(user.id)
+      setRitmo(ritmoNow)
+
+      await claimLoginBonus(user.id)
+
+      if (activeProfile) {
         const newBadges = await checkAndAwardBadges(user.id, {
-          streak_current: prof.streak_current,
-          xp_total: prof.xp_total,
+          streak_current: activeProfile.streak_current,
+          streak_best: activeProfile.streak_best,
+          ritmo: ritmoNow,
         })
         if (newBadges.length > 0) {
           setPendingBadges(newBadges)
@@ -224,7 +234,10 @@ export default function HojePage() {
     setTasks(prev => prev.map(t =>
       t.id === task.id ? { ...t, status: 'completed', completed_at: new Date().toISOString() } : t
     ))
-    if (userId) await addXP(userId, task.xp_reward)
+    if (userId) {
+      triggerToast(`${cleanDisplayText(task.title)} — feito`)
+      setRitmo(await getRitmo(userId))
+    }
   }
 
   async function handleCreateManualTask(title: string, area: HabitArea) {
@@ -241,7 +254,6 @@ export default function HojePage() {
 
   const doneCnt = tasks.filter((t) => t.status === 'completed').length
   const totalHabits = tasks.length
-  const xpHoje = todayCheckins.reduce((sum, c) => sum + (c.xp_earned ?? 0), 0)
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
   const checkinLabel = hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite'
   const todayTaskViews: TodayTaskView[] = tasks.map(task => ({
@@ -274,7 +286,7 @@ export default function HojePage() {
 
   return (
     <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', animation: 'fadeUp .3s ease' }}>
-      <XPToast />
+      <FeedbackToast />
 
       {levelUpData && (
         <LevelUpModal
@@ -335,7 +347,7 @@ export default function HojePage() {
         </div>
       </header>
 
-      {profile && <XPBar xp={profile.xp_total} level={profile.level} title={profile.title} />}
+      {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
 
       <TodayCommandPanel action={primaryAction} context={mentorMsg.body} />
 
@@ -406,7 +418,7 @@ export default function HojePage() {
 
       {profile && nightCheckin && (
         <NightSummaryCard
-          xpHoje={xpHoje}
+          ritmo={ritmo}
           habitsFeitos={doneCnt}
           habitsTotal={totalHabits}
           streak={profile.streak_current}
@@ -432,8 +444,6 @@ export default function HojePage() {
               <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 16 }}>{selectedTaskDescription}</p>
             )}
             <div style={{ display: 'flex', gap: 12, fontSize: 13, marginBottom: 24 }}>
-              <span style={{ color: 'var(--accent)', fontWeight: 600 }}>+{selectedTask.xp_reward} XP</span>
-              <span style={{ color: 'var(--border)' }}>·</span>
               <span style={{ color: 'var(--text3)' }}>Dificuldade {selectedTask.difficulty}</span>
             </div>
             <button

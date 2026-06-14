@@ -1,20 +1,18 @@
 'use client'
 
 import type { CSSProperties } from 'react'
-import { xpForLevel } from '@/types'
+import { nextStreakThreshold, levelFromStreak, STREAK_THRESHOLDS } from '@/types'
 import type { Profile, UserBadge } from '@/types'
 
 const FONT = 'Inter, sans-serif'
 
 const BADGE_DEFS = [
-  { key: 'streak_7',     icon: '🔥', name: '7 dias'      },
-  { key: 'streak_14',    icon: '🔥', name: '14 dias'     },
-  { key: 'streak_30',    icon: '🏆', name: '30 dias'     },
-  { key: 'streak_90',    icon: '💎', name: '90 dias'     },
-  { key: 'energy_max',   icon: '⚡', name: 'Energia máx' },
-  { key: 'mission_done', icon: '🎯', name: 'Missão'      },
-  { key: 'focus_10',     icon: '🧠', name: 'Foco x10'    },
-  { key: 'all_habits',   icon: '✨', name: 'Perfeito'    },
+  { key: 'primeiro_checkin', icon: '🌅', name: 'Primeira vez' },
+  { key: 'streak_7',         icon: '🔥', name: '7 dias'       },
+  { key: 'streak_21',        icon: '⚡', name: '21 dias'      },
+  { key: 'streak_100',       icon: '💎', name: '100 dias'     },
+  { key: 'ritmo_80',         icon: '🚀', name: 'Ritmo 80'     },
+  { key: 'consistencia_30',  icon: '🏔️', name: 'Inabalável'   },
 ]
 
 export type HubAreaProgress = {
@@ -29,11 +27,12 @@ export type HubAreaProgress = {
 
 interface Props {
   profile: Profile
+  ritmo: number
   areas: HubAreaProgress[]
   badges: UserBadge[]
   earnedKeys: Set<string>
   consistency: number
-  xpData: { day: string; xp: number }[]
+  weekData: { day: string; value: number }[]
   onDashboard: () => void
 }
 
@@ -66,23 +65,24 @@ const ctaBtn: CSSProperties = {
 
 export default function ProgressoHub({
   profile,
+  ritmo,
   areas,
   badges,
   earnedKeys,
   consistency,
-  xpData,
+  weekData,
   onDashboard,
 }: Props) {
-  const level     = profile.level
-  const xp        = profile.xp_total
-  const prev      = xpForLevel(level - 1)
-  const next      = xpForLevel(level)
-  const levelPct  = Math.min(100, Math.round(((xp - prev) / (next - prev)) * 100))
-  const xpToNext  = next - xp
-  const curXP     = xp - prev
-  const totalXP   = next - prev
+  const level      = levelFromStreak(profile.streak_best)
+  const streakBest = profile.streak_best
+  const prevThr    = STREAK_THRESHOLDS[level - 1] ?? 0
+  const nextThr    = nextStreakThreshold(streakBest)
+  const levelPct   = nextThr != null
+    ? Math.min(100, Math.round(((streakBest - prevThr) / (nextThr - prevThr)) * 100))
+    : 100
+  const daysToNext = nextThr != null ? Math.max(0, nextThr - streakBest) : 0
 
-  const maxXP = Math.max(1, ...xpData.map(d => d.xp))
+  const maxVal = Math.max(1, ...weekData.map(d => d.value))
 
   // Earned badges: most recent first; newestKey highlights with teal "Novo"
   const earnedSorted = BADGE_DEFS.filter(b => earnedKeys.has(b.key)).sort((a, b) => {
@@ -139,7 +139,7 @@ export default function ProgressoHub({
             <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>Nível atual</div>
             <div style={{ fontSize: 52, fontWeight: 900, color: '#fff', letterSpacing: '-3px', lineHeight: 1 }}>{level}</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
-              {xpToNext.toLocaleString('pt-PT')} XP para Nível {level + 1}
+              {nextThr != null ? `${daysToNext} dias de ofensiva → Nível ${level + 1}` : 'Nível máximo'}
             </div>
           </div>
 
@@ -173,18 +173,18 @@ export default function ProgressoHub({
           </div>
         </div>
 
-        {/* XP bar */}
+        {/* Ritmo bar */}
         <div style={{ position: 'relative', zIndex: 1, marginTop: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
             <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
-              {curXP.toLocaleString('pt-PT')} XP
+              Ritmo {ritmo}
             </span>
             <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.3)' }}>
-              {totalXP.toLocaleString('pt-PT')} XP
+              / 100
             </span>
           </div>
           <div style={{ height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 10, overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${levelPct}%`,
+            <div style={{ height: '100%', width: `${Math.min(100, Math.max(0, ritmo))}%`,
               background: 'linear-gradient(90deg, #9D5CF5, #00D4C8)', borderRadius: 10 }} />
           </div>
         </div>
@@ -204,14 +204,14 @@ export default function ProgressoHub({
           <div style={{ fontSize: 22, fontWeight: 800, color: '#00C896' }}>{consistency}%</div>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', height: 60 }}>
-          {xpData.map((d, i) => {
-            const isToday  = i === xpData.length - 1
+          {weekData.map((d, i) => {
+            const isToday  = i === weekData.length - 1
             const heightPct = isToday
-              ? Math.max(8, Math.round((d.xp / maxXP) * 100))
-              : d.xp > 0 ? Math.max(20, Math.round((d.xp / maxXP) * 100)) : 8
+              ? Math.max(8, Math.round((d.value / maxVal) * 100))
+              : d.value > 0 ? Math.max(20, Math.round((d.value / maxVal) * 100)) : 8
             const bg = isToday
               ? 'rgba(0,212,200,0.5)'
-              : d.xp > 0 ? '#00C896' : 'rgba(255,80,80,0.3)'
+              : d.value > 0 ? '#00C896' : 'rgba(255,80,80,0.3)'
             return (
               <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
                 <div style={{

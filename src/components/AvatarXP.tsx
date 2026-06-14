@@ -1,5 +1,6 @@
 'use client'
 // src/components/AvatarXP.tsx
+// Os níveis vão agora de 1 (Recruta) a 6 (Antifrágil), derivados da ofensiva.
 
 interface AvatarXPProps {
   level: number
@@ -8,20 +9,20 @@ interface AvatarXPProps {
 }
 
 function tierColor(level: number) {
-  if (level >= 15) return 'url(#nexusAvatarGradient)'
-  if (level >= 11) return 'var(--gold)'
-  if (level >= 8) return 'var(--accent)'
-  if (level >= 5) return 'var(--teal)'
-  if (level >= 3) return 'var(--text2)'
+  if (level >= 6) return 'url(#nexusAvatarGradient)'
+  if (level >= 5) return 'var(--gold)'
+  if (level >= 4) return 'var(--accent)'
+  if (level >= 3) return 'var(--teal)'
+  if (level >= 2) return 'var(--text2)'
   return 'var(--text3)'
 }
 
 export default function AvatarXP({ level, size = 48, avatarUrl }: AvatarXPProps) {
   const color = tierColor(level)
-  const showGlow = level >= 5
-  const showAura = level >= 8
-  const showCrown = level >= 11
-  const animate = level >= 15
+  const showGlow = level >= 3
+  const showAura = level >= 4
+  const showCrown = level >= 5
+  const animate = level >= 6
 
   // Com foto de perfil: foto dentro do anel de nível (mantém a cor do tier)
   if (avatarUrl) {
@@ -34,10 +35,10 @@ export default function AvatarXP({ level, size = 48, avatarUrl }: AvatarXPProps)
           flexShrink: 0,
           borderRadius: '50%',
           padding: 2,
-          background: level >= 15
+          background: level >= 6
             ? 'linear-gradient(135deg, var(--gold), var(--teal))'
             : undefined,
-          border: level >= 15 ? 'none' : `2px solid ${level >= 11 ? 'var(--gold)' : level >= 8 ? 'var(--accent)' : level >= 5 ? 'var(--teal)' : 'var(--border)'}`,
+          border: level >= 6 ? 'none' : `2px solid ${level >= 5 ? 'var(--gold)' : level >= 4 ? 'var(--accent)' : level >= 3 ? 'var(--teal)' : 'var(--border)'}`,
           boxShadow: showGlow ? '0 0 18px rgba(30,203,180,0.12)' : 'none',
           animation: animate ? 'nexusAvatarPulse 2s ease-in-out infinite' : 'none',
         }}
@@ -88,13 +89,13 @@ export default function AvatarXP({ level, size = 48, avatarUrl }: AvatarXPProps)
             cx="32"
             cy="32"
             r="27"
-            stroke={level >= 15 ? 'url(#nexusAvatarGradient)' : 'var(--accent)'}
+            stroke={level >= 6 ? 'url(#nexusAvatarGradient)' : 'var(--accent)'}
             strokeWidth="1.5"
             opacity="0.35"
           />
         )}
 
-        <circle cx="32" cy="19" r={level >= 3 ? 8 : 7} fill={color} opacity={level >= 3 ? 1 : 0.75} />
+        <circle cx="32" cy="19" r={level >= 3 ? 8 : 7} fill={color} opacity={level >= 2 ? 1 : 0.75} />
         <path
           d={level >= 3 ? 'M18 48C18 38 24 32 32 32C40 32 46 38 46 48' : 'M20 48C20 40 25 35 32 35C39 35 44 40 44 48'}
           stroke={color}
@@ -103,13 +104,13 @@ export default function AvatarXP({ level, size = 48, avatarUrl }: AvatarXPProps)
         />
 
         {showGlow && (
-          <circle cx="32" cy="19" r="11" stroke={level >= 8 ? 'var(--accent)' : 'var(--teal)'} strokeWidth="1.5" opacity="0.35" />
+          <circle cx="32" cy="19" r="11" stroke={level >= 4 ? 'var(--accent)' : 'var(--teal)'} strokeWidth="1.5" opacity="0.35" />
         )}
 
         {showCrown && (
           <path
             d="M22 14L27 8L32 14L37 8L42 14V18H22V14Z"
-            fill={level >= 15 ? 'url(#nexusAvatarGradient)' : 'var(--gold)'}
+            fill={level >= 6 ? 'url(#nexusAvatarGradient)' : 'var(--gold)'}
             opacity="0.95"
           />
         )}

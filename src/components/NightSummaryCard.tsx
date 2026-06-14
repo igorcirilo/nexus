@@ -2,7 +2,7 @@
 // src/components/NightSummaryCard.tsx
 
 interface NightSummaryCardProps {
-  xpHoje: number
+  ritmo: number
   habitsFeitos: number
   habitsTotal: number
   streak: number
@@ -10,7 +10,7 @@ interface NightSummaryCardProps {
 }
 
 export default function NightSummaryCard({
-  xpHoje,
+  ritmo,
   habitsFeitos,
   habitsTotal,
   streak,
@@ -39,9 +39,9 @@ export default function NightSummaryCard({
             Resumo do dia
           </div>
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 28, color: 'var(--gold)', lineHeight: 1 }}>
-            {xpHoje} XP
+            {ritmo}
           </div>
-          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>ganhos hoje</div>
+          <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>ritmo atual</div>
         </div>
         <div
           style={{

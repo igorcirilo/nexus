@@ -3,14 +3,13 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import Nav from '@/components/Nav'
-import XPToast, { triggerXP } from '@/components/XPToast'
-import { supabase, getProfile, saveCheckin, addXP, updateStreak, getCheckinsForDate } from '@/lib/supabase'
+import FeedbackToast, { triggerToast } from '@/components/FeedbackToast'
+import { supabase, getProfile, saveCheckin, updateStreak, getCheckinsForDate } from '@/lib/supabase'
 import type { Profile, CheckinPhase, ProgramTask } from '@/types'
 import { getTasksForDate } from '@/lib/program'
 
 type Phase = 'manha' | 'tarde' | 'noite'
 const LABELS: Record<Phase, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' }
-const PHASE_XP: Record<Phase, number> = { manha: 15, tarde: 10, noite: 20 }
 const PHASE_EMOJI: Record<Phase, string> = { manha: '🌅', tarde: '☀️', noite: '🌙' }
 
 function Pill({ label, selected, onSelect }: { label: string; selected: boolean; onSelect: () => void }) {
@@ -152,10 +151,9 @@ export default function CheckinPage() {
   async function finish(phase: Phase) {
     if (!profile || submitting) return
     setSubmitting(true)
-    const xp = PHASE_XP[phase]
 
     const payload: Record<string, unknown> = {
-      user_id: profile.id, date: today, phase, xp_earned: xp,
+      user_id: profile.id, date: today, phase,
     }
     if (phase === 'manha') Object.assign(payload, {
       sleep_hours: sleep === 'Menos de 5h' ? 4.5 : sleep === '5–6h' ? 5.5 : sleep === '7–8h' ? 7.5 : 9,
@@ -171,9 +169,9 @@ export default function CheckinPage() {
     })
 
     await saveCheckin(payload)
-    await addXP(profile.id, xp)
-    if (phase === 'noite') await updateStreak(profile.id)
-    triggerXP(xp, `Check-in ${LABELS[phase].toLowerCase()} — +${xp} XP`)
+    // Qualquer check-in conta para a ofensiva do dia (constrói consistência).
+    await updateStreak(profile.id)
+    triggerToast(`Check-in ${LABELS[phase].toLowerCase()} registado`)
     setDonePhases(p => new Set(Array.from(p).concat(phase)))
     setSubmitting(false)
   }
@@ -200,7 +198,7 @@ export default function CheckinPage() {
 
   return (
     <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
-      <XPToast />
+      <FeedbackToast />
 
       {/* Phase tabs */}
       <div style={{ padding: '24px 20px 0' }}>
@@ -244,7 +242,7 @@ export default function CheckinPage() {
               {LABELS[activePhase]} concluída!
             </div>
             <div style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 28 }}>
-              +{PHASE_XP[activePhase]} XP ganhos.
+              Ofensiva mantida. Volta amanhã para não quebrar.
             </div>
             <button
               onClick={() => reset(activePhase)}
@@ -518,7 +516,6 @@ export default function CheckinPage() {
               const doneTasks = nightTasks.filter(t => t.status === 'completed')
               const skipped = nightTasks.filter(t => t.status === 'skipped')
               const pending = nightTasks.filter(t => t.status === 'pending')
-              const tasksXp = doneTasks.reduce((s, t) => s + t.xp_reward, 0)
               return (
                 <div>
                   <div style={{ marginBottom: 24 }}>
@@ -570,20 +567,17 @@ export default function CheckinPage() {
                         }}>
                           {task.title}
                         </span>
-                        {task.status === 'completed' && (
-                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', flexShrink: 0 }}>+{task.xp_reward} XP</span>
-                        )}
                       </div>
                     ))}
                   </div>
 
-                  {tasksXp > 0 && (
+                  {doneTasks.length > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                      padding: 14, background: 'rgba(232,168,56,.06)',
-                      border: '0.5px solid rgba(232,168,56,.18)', borderRadius: 14, marginBottom: 12 }}>
-                      <span style={{ fontSize: 18 }}>⚡</span>
-                      <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--gold)' }}>
-                        +{tasksXp} XP em tasks hoje
+                      padding: 14, background: 'rgba(30,203,180,.06)',
+                      border: '0.5px solid rgba(30,203,180,.18)', borderRadius: 14, marginBottom: 12 }}>
+                      <span style={{ fontSize: 18 }}>✓</span>
+                      <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--teal)' }}>
+                        {doneTasks.length} {doneTasks.length === 1 ? 'task concluída' : 'tasks concluídas'} hoje
                       </span>
                     </div>
                   )}

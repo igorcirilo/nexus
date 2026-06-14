@@ -16,13 +16,12 @@ import {
   getHabitsWithLogs,
   toggleHabitLog,
   saveCheckin,
-  addXP,
+  updateStreak,
 } from '@/lib/supabase'
 import {
   computeCurrentStreak,
   getPatternInsights,
   PHASE_LABELS,
-  PHASE_XP,
   type AgendaEvent,
   type Checkin,
   type DayStatus,
@@ -175,22 +174,21 @@ export function useCalendarioController() {
     await toggleHabitLog(userId, habitId, dateStr, !currentDone)
     setSelHabits(await getHabitsWithLogs(userId, dateStr) as HabitRow[])
     loadMonth(userId, current)
-    showToast(currentDone ? 'Desmarcado' : 'Marcado ✓ (sem XP)')
+    showToast(currentDone ? 'Desmarcado' : 'Marcado ✓')
   }
 
   async function doQuickCheckin() {
     if (!userId || !quickPhase || !selected) return
     setQuickSaving(true)
-    const xp = PHASE_XP[quickPhase] ?? 10
-    await saveCheckin({ user_id: userId, date: selected, phase: quickPhase, energy: quickEnergy, mission: quickPhase === 'manha' ? (quickMission.trim() || null) : null, win_of_day: quickPhase === 'noite' ? (quickWin.trim() || null) : null, xp_earned: xp, completed_at: new Date().toISOString() })
-    await addXP(userId, xp)
+    await saveCheckin({ user_id: userId, date: selected, phase: quickPhase, energy: quickEnergy, mission: quickPhase === 'manha' ? (quickMission.trim() || null) : null, win_of_day: quickPhase === 'noite' ? (quickWin.trim() || null) : null, completed_at: new Date().toISOString() })
+    await updateStreak(userId)
     const checkins = await getCheckinsForDate(userId, selected)
     setSelCheckins(checkins as Checkin[])
     if (selected === today) setTodayCI(checkins as Checkin[])
     await loadMonth(userId, current)
     setQuickPhase(null); setQuickEnergy(7); setQuickMission(''); setQuickWin('')
     setQuickSaving(false)
-    showToast(`Check-in da ${PHASE_LABELS[quickPhase]} guardado! +${xp} XP`)
+    showToast(`Check-in da ${PHASE_LABELS[quickPhase]} guardado!`)
   }
 
   async function saveRm() {

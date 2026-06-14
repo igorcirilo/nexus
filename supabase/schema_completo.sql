@@ -268,7 +268,7 @@ create table if not exists public.weekly_league_snapshots (
   user_id uuid not null,
   week_start date not null,
   week_end date not null,
-  xp integer not null default 0,
+  points integer not null default 0,
   tier text not null,
   username text not null default 'Guerreiro',
   level integer not null default 1,
@@ -536,7 +536,7 @@ create index if not exists training_entries_user_date_idx on public.training_ent
 create index if not exists training_plans_user_created_idx on public.training_plans (user_id, created_at desc);
 create index if not exists idx_transactions_user_date on public.transactions (user_id, date desc);
 create index if not exists weekly_challenges_user_week_idx on public.weekly_challenges (user_id, week_start desc);
-create index if not exists weekly_league_snapshots_week_start_idx on public.weekly_league_snapshots (week_start, xp desc, updated_at);
+create index if not exists weekly_league_snapshots_week_start_idx on public.weekly_league_snapshots (week_start, points desc, updated_at);
 create index if not exists weekly_league_snapshots_user_idx on public.weekly_league_snapshots (user_id, week_start desc);
 
 -- ─────────────────────────────────────────────────────────────────────────────
@@ -699,33 +699,40 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
 
--- Soma XP e recalcula nível (cap 20) + título.
-create or replace function public.add_xp(p_user_id uuid, p_xp integer)
+-- Recalcula nível (1–6) e título a partir do MELHOR streak (ofensiva máxima).
+-- Substitui o antigo add_xp: a progressão é por consistência sustentada, não XP.
+-- Limiares (dias de ofensiva): 0,3,7,21,45,90 → níveis 1..6.
+create or replace function public.recompute_level(p_user_id uuid)
 returns void language plpgsql security definer as $function$
 declare
-  current_xp int;
+  best int;
   new_level int;
   new_title text;
 begin
-  select xp_total into current_xp from profiles where id = p_user_id;
-  current_xp := coalesce(current_xp, 0) + p_xp;
-  new_level := floor((-1 + sqrt(1 + 8 * current_xp / 500.0)) / 2) + 1;
-  new_level := greatest(1, least(new_level, 20));
-  new_title := case
-    when new_level < 3  then 'Recruta'
-    when new_level < 5  then 'Consistente'
-    when new_level < 8  then 'Focado'
-    when new_level < 11 then 'Estrategista'
-    when new_level < 15 then 'Imparável'
-    else 'Antifrágil'
+  select coalesce(streak_best, 0) into best from profiles where id = p_user_id;
+  new_level := case
+    when best >= 90 then 6
+    when best >= 45 then 5
+    when best >= 21 then 4
+    when best >= 7  then 3
+    when best >= 3  then 2
+    else 1
+  end;
+  new_title := case new_level
+    when 6 then 'Antifrágil'
+    when 5 then 'Imparável'
+    when 4 then 'Estrategista'
+    when 3 then 'Focado'
+    when 2 then 'Consistente'
+    else 'Recruta'
   end;
   update profiles
-  set xp_total = current_xp, level = new_level, title = new_title
+  set level = new_level, title = new_title
   where id = p_user_id;
 end;
 $function$;
 
--- Atualiza streak diário (retorna o streak atual).
+-- Atualiza streak diário (retorna o streak atual) e recalcula nível/título.
 create or replace function public.update_streak(p_user_id uuid)
 returns integer language plpgsql security definer as $function$
 declare
@@ -750,6 +757,8 @@ begin
       streak_best      = greatest(coalesce(streak_best, 0), new_streak),
       streak_last_date = today
   where id = p_user_id;
+
+  perform public.recompute_level(p_user_id);
 
   return new_streak;
 end;
@@ -804,3 +813,16 @@ do $$ begin
     for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 exception when duplicate_object then null; end $$;
 create index if not exists goal_milestones_goal_idx on public.goal_milestones (goal_id);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Catálogo de conquistas (badges). As keys têm de existir para o FK de
+-- user_badges. Rebaseado em consistência: sem badges de XP.
+-- ─────────────────────────────────────────────────────────────────────────────
+insert into public.badges (key, name, description, icon) values
+  ('primeiro_checkin', 'Primeira Vez', 'O teu primeiro check-in.', '🌅'),
+  ('streak_7',         'Uma Semana',   '7 dias de ofensiva seguidos.', '🔥'),
+  ('streak_21',        'Três Semanas', '21 dias de ofensiva seguidos.', '⚡'),
+  ('streak_100',       'Centenário',   '100 dias de ofensiva seguidos.', '💎'),
+  ('ritmo_80',         'Em Chamas',    'Atingiste um Ritmo de 80 ou mais.', '🚀'),
+  ('consistencia_30',  'Inabalável',   'A tua melhor ofensiva chegou aos 30 dias.', '🏔️')
+on conflict (key) do nothing;

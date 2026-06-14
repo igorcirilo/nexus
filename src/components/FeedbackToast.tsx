@@ -1,18 +1,19 @@
 'use client'
-// src/components/XPToast.tsx
+// src/components/FeedbackToast.tsx
+// Toast de feedback positivo (sem XP). Mostra uma mensagem curta de confirmação.
 import { useEffect, useState } from 'react'
 
-interface Notification { id: number; xp: number; msg: string }
+interface Notification { id: number; msg: string }
 
 let listeners: ((n: Notification) => void)[] = []
 let idCounter = 0
 
-export function triggerXP(xp: number, msg: string) {
-  const n = { id: ++idCounter, xp, msg }
+export function triggerToast(msg: string) {
+  const n = { id: ++idCounter, msg }
   listeners.forEach(l => l(n))
 }
 
-export default function XPToast() {
+export default function FeedbackToast() {
   const [items, setItems] = useState<Notification[]>([])
 
   useEffect(() => {
@@ -26,26 +27,8 @@ export default function XPToast() {
 
   return (
     <>
-      {/* XP popup centrado */}
       {items.slice(-1).map(n => (
-        <div key={n.id}
-             className="fixed z-[300] left-1/2 top-[44%] pointer-events-none"
-             style={{ transform: 'translate(-50%,-50%)', animation: 'pop .35s ease both' }}>
-          <div className="rounded-2xl px-8 py-5 text-center"
-               style={{ background: 'var(--bg2)', border: '1px solid rgba(232,168,56,.38)' }}>
-            <div className="font-syne font-extrabold text-[44px]" style={{ color: 'var(--gold)' }}>
-              +{n.xp}
-            </div>
-            <div className="text-[12px] mt-1 max-w-[160px] leading-snug" style={{ color: 'var(--text2)' }}>
-              {n.msg}
-            </div>
-          </div>
-        </div>
-      ))}
-
-      {/* Toast bottom */}
-      {items.slice(-1).map(n => (
-        <div key={'t'+n.id}
+        <div key={'t' + n.id}
              className="fixed bottom-24 left-1/2 z-[200] pointer-events-none flex items-center gap-2 rounded-xl px-4 py-2.5 text-[13px]"
              style={{
                transform: 'translateX(-50%)',

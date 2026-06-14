@@ -17,13 +17,11 @@ export type Checkin = {
   mood?: number
   mission?: string
   win_of_day?: string
-  xp_earned: number
 }
 export type HabitRow = {
   id: string
   name: string
   area: HabitArea
-  xp_reward: number
   habit_logs: { completed: boolean }[]
 }
 export type WeekdayStat = { weekday: number; done: number; total: number }
@@ -34,7 +32,6 @@ export const DAYS_MIN = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S']
 export const DAYS_PT_PREP = ['aos domingos', 'às segundas', 'às terças', 'às quartas', 'às quintas', 'às sextas', 'aos sábados']
 export const PHASE_LABELS: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' }
 export const PHASE_ICONS: Record<string, IconName> = { manha: 'sunrise', tarde: 'sun', noite: 'moon' }
-export const PHASE_XP: Record<string, number> = { manha: 15, tarde: 10, noite: 20 }
 export const EVENT_COLORS = ['#E8A838', '#1ECBB4', '#7F77DD', '#E24B4A', '#1D9E75', '#D4537E', '#85B7EB']
 
 export const inputStyle: CSSProperties = {

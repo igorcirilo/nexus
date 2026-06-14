@@ -47,7 +47,6 @@ export default function QuickAction() {
   // Hábito
   const [habitName,   setHabitName]   = useState('')
   const [habitArea,   setHabitArea]   = useState<HabitArea>('produtividade')
-  const [habitXP,     setHabitXP]     = useState('10')
   const [habitWindow, setHabitWindow] = useState('')
   const [habitSaving, setHabitSaving] = useState(false)
 
@@ -112,15 +111,13 @@ export default function QuickAction() {
 
   const pct = Math.round(((25*60 - secondsLeft)/(25*60)) * 100)
 
-  function resetHabitForm() { setHabitName(''); setHabitArea('produtividade'); setHabitXP('10'); setHabitWindow('') }
+  function resetHabitForm() { setHabitName(''); setHabitArea('produtividade'); setHabitWindow('') }
   function resetTxForm()    { setTxType('saida'); setTxCategory('Alimentação'); setTxCustomCat(''); setTxDesc(''); setTxAmount(''); setTxDate(format(new Date(),'yyyy-MM-dd')) }
 
   async function handleSaveHabit() {
     if (!userId || !habitName.trim()) return
-    const xp = Number(habitXP)
-    if (!Number.isFinite(xp) || xp < 1) return
     setHabitSaving(true)
-    const { error } = await createHabitQuick({ user_id:userId, name:habitName, area:habitArea, xp_reward:Math.round(xp), time_window:habitWindow })
+    const { error } = await createHabitQuick({ user_id:userId, name:habitName, area:habitArea, time_window:habitWindow })
     setHabitSaving(false)
     if (error) { setToast('Não foi possível criar o hábito.'); return }
     resetHabitForm(); setShowHabit(false); setToast('Hábito criado.')
@@ -145,7 +142,7 @@ export default function QuickAction() {
   async function savePomodoroIfNeeded() {
     if (!userId || secondsLeft > 0 || pomodoroSaved) return
     await saveFocusSession(userId, 25, pomodoroTask.trim() || undefined)
-    setPomodoroSaved(true); setToast('Sessão de foco guardada. +10 XP')
+    setPomodoroSaved(true); setToast('Sessão de foco guardada.')
   }
 
   const actions = [
@@ -203,16 +200,10 @@ export default function QuickAction() {
                 </div>
               </div>
 
-              {/* XP + Janela */}
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
-                <div>
-                  <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>XP</div>
-                  <input value={habitXP} onChange={e=>setHabitXP(e.target.value)} type="number" min={1} style={inputStyle}/>
-                </div>
-                <div>
-                  <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Janela</div>
-                  <input value={habitWindow} onChange={e=>setHabitWindow(e.target.value)} placeholder="manhã / tarde / noite" style={inputStyle}/>
-                </div>
+              {/* Janela */}
+              <div>
+                <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Janela</div>
+                <input value={habitWindow} onChange={e=>setHabitWindow(e.target.value)} placeholder="manhã / tarde / noite" style={inputStyle}/>
               </div>
             </div>
             <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)',display:'flex',gap:10}}>
@@ -340,7 +331,7 @@ export default function QuickAction() {
             </div>
             {secondsLeft===0&&(
               <button onClick={savePomodoroIfNeeded} disabled={pomodoroSaved} style={{marginTop:12,width:'100%',padding:'12px 0',borderRadius:12,border:'none',background:pomodoroSaved?'var(--bg3)':'var(--teal)',color:pomodoroSaved?'var(--text2)':'#0D0F14',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
-                {pomodoroSaved?'Sessão guardada':'Guardar sessão +10 XP'}
+                {pomodoroSaved?'Sessão guardada':'Guardar sessão'}
               </button>
             )}
             <button onClick={()=>{ setShowPomodoro(false); setRunning(false) }} style={{marginTop:16,background:'transparent',border:'none',color:'var(--text3)',fontSize:12,cursor:'pointer',fontFamily:'DM Sans, sans-serif'}}>Fechar</button>

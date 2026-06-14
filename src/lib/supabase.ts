@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import { format, endOfMonth } from 'date-fns'
 import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding, ReaderMode, ReaderTheme } from '@/types'
 import { emitToast } from '@/lib/toast-events'
+import { computeRitmo, RITMO_WINDOW_DAYS, type RitmoDay } from '@/lib/ritmo'
 
 // NEXT_PUBLIC_* values are inlined at build time. During build/CI (and any
 // environment without them set) they are undefined, which makes createClient
@@ -79,13 +80,44 @@ export async function saveCheckin(payload: Record<string, unknown>) {
   })
 }
 
-// ── XP & Streak ────────────────────────────────────────────
-export async function addXP(userId: string, xp: number) {
-  return supabase.rpc('add_xp', { p_user_id: userId, p_xp: xp })
-}
-
+// ── Ofensiva & Ritmo ───────────────────────────────────────
+// Atualiza a ofensiva diária. O RPC recalcula também o nível/título a partir
+// do melhor streak (recompute_level), por isso não há mais concessão de XP.
 export async function updateStreak(userId: string) {
   return supabase.rpc('update_streak', { p_user_id: userId })
+}
+
+/**
+ * Calcula o Ritmo (0–100) do utilizador a partir dos últimos dias de hábitos
+ * e check-ins. Reusa o padrão de janela de `getWeeklyStats`.
+ */
+export async function getRitmo(userId: string): Promise<number> {
+  const days = RITMO_WINDOW_DAYS
+  const since = new Date()
+  since.setDate(since.getDate() - (days - 1))
+  const sinceStr = since.toISOString().split('T')[0]
+
+  const [{ data: habits }, { data: logs }, { data: checkins }] = await Promise.all([
+    supabase.from('habits').select('id').eq('user_id', userId).eq('active', true),
+    supabase.from('habit_logs').select('date').eq('user_id', userId).eq('completed', true).gte('date', sinceStr),
+    supabase.from('checkins').select('date').eq('user_id', userId).gte('date', sinceStr),
+  ])
+
+  const habitsTotal = (habits ?? []).length
+  const doneByDay: Record<string, number> = {}
+  for (const l of (logs ?? []) as { date: string }[]) {
+    doneByDay[l.date] = (doneByDay[l.date] ?? 0) + 1
+  }
+  const checkinDays = new Set((checkins ?? []).map((c: { date: string }) => c.date))
+
+  const arr: RitmoDay[] = []
+  for (let i = 0; i < days; i++) {
+    const d = new Date()
+    d.setDate(d.getDate() - i)
+    const ds = d.toISOString().split('T')[0]
+    arr.push({ habitsTotal, habitsDone: doneByDay[ds] ?? 0, checkin: checkinDays.has(ds) })
+  }
+  return computeRitmo(arr)
 }
 
 // ── Sessões de foco ────────────────────────────────────────
@@ -93,7 +125,7 @@ export async function saveFocusSession(
   userId: string, duration: number, task?: string,
 ) {
   return supabase.from('focus_sessions').insert({
-    user_id: userId, duration, task, xp_earned: 10,
+    user_id: userId, duration, task,
     date: new Date().toISOString().split('T')[0],
   })
 }
@@ -140,7 +172,7 @@ export async function getWeeklyStats(userId: string) {
       .eq('user_id', userId)
       .gte('date', sinceStr),
     supabase.from('focus_sessions')
-      .select('date, duration, xp_earned')
+      .select('date, duration')
       .eq('user_id', userId)
       .gte('date', sinceStr),
   ])
@@ -729,14 +761,13 @@ const BADGE_NAMES: Record<string, string> = {
   streak_7: 'Uma Semana',
   streak_21: 'Três Semanas',
   streak_100: 'Centenário',
-  xp_1000: 'Mil Pontos',
-  xp_5000: 'Veterano',
-  xp_10000: 'Elite',
+  ritmo_80: 'Em Chamas',
+  consistencia_30: 'Inabalável',
 }
 
 export async function checkAndAwardBadges(
   userId: string,
-  profile: { streak_current: number; xp_total: number },
+  profile: { streak_current: number; streak_best: number; ritmo: number },
 ) {
   const { data: existing } = await supabase
     .from('user_badges')
@@ -756,9 +787,8 @@ export async function checkAndAwardBadges(
   if (profile.streak_current >= 7 && !earned.has('streak_7')) toAward.push('streak_7')
   if (profile.streak_current >= 21 && !earned.has('streak_21')) toAward.push('streak_21')
   if (profile.streak_current >= 100 && !earned.has('streak_100')) toAward.push('streak_100')
-  if (profile.xp_total >= 1000 && !earned.has('xp_1000')) toAward.push('xp_1000')
-  if (profile.xp_total >= 5000 && !earned.has('xp_5000')) toAward.push('xp_5000')
-  if (profile.xp_total >= 10000 && !earned.has('xp_10000')) toAward.push('xp_10000')
+  if (profile.ritmo >= 80 && !earned.has('ritmo_80')) toAward.push('ritmo_80')
+  if (profile.streak_best >= 30 && !earned.has('consistencia_30')) toAward.push('consistencia_30')
 
   for (const key of toAward) {
     await awardBadge(userId, key)
@@ -784,15 +814,15 @@ export async function claimLoginBonus(userId: string): Promise<boolean> {
     .update({ last_login_bonus: today })
     .eq('id', userId)
 
-  await supabase.rpc('add_xp', { p_user_id: userId, p_xp: 10 })
-
+  // Sem bónus de XP: o login apenas marca presença do dia.
   return true
 }
 
-// ── Liga semanal de XP ─────────────────────────────────────
-// Calcula XP ganho desde a última segunda-feira
-export async function getWeeklyLeagueXP(userId: string): Promise<number> {
-  // Segunda-feira desta semana
+// ── Liga semanal de consistência ───────────────────────────
+// Conta os compromissos cumpridos desde a última segunda-feira (check-ins,
+// hábitos completos, sessões de foco e tarefas de programa). É um inteiro
+// objetivo e não inflável — substitui o XP semanal.
+export async function getWeeklyConsistencyPoints(userId: string): Promise<number> {
   const now = new Date()
   const day = now.getDay() // 0=dom, 1=seg...
   const diffToMonday = day === 0 ? 6 : day - 1
@@ -800,60 +830,20 @@ export async function getWeeklyLeagueXP(userId: string): Promise<number> {
   monday.setDate(now.getDate() - diffToMonday)
   monday.setHours(0, 0, 0, 0)
   const mondayStr = monday.toISOString().split('T')[0]
+  const mondayIso = monday.toISOString()
 
-  // XP de check-ins
-  const { data: checkins } = await supabase
-    .from('checkins')
-    .select('xp_earned')
-    .eq('user_id', userId)
-    .gte('date', mondayStr)
+  const [checkins, habits, focus, tasks] = await Promise.all([
+    supabase.from('checkins').select('id', { count: 'exact', head: true })
+      .eq('user_id', userId).gte('date', mondayStr),
+    supabase.from('habit_logs').select('id', { count: 'exact', head: true })
+      .eq('user_id', userId).eq('completed', true).gte('date', mondayStr),
+    supabase.from('focus_sessions').select('id', { count: 'exact', head: true })
+      .eq('user_id', userId).gte('date', mondayStr),
+    supabase.from('program_tasks').select('id', { count: 'exact', head: true })
+      .eq('user_id', userId).eq('status', 'completed').gte('completed_at', mondayIso),
+  ])
 
-  const checkinXP = (checkins ?? []).reduce(
-    (sum, c: { xp_earned: number | null }) => sum + (c.xp_earned ?? 0), 0
-  )
-
-  // XP de hábitos completados (cada hábito completo = xp_reward ou 10 por defeito)
-  const { data: logs } = await supabase
-    .from('habit_logs')
-    .select('habit_id, completed')
-    .eq('user_id', userId)
-    .eq('completed', true)
-    .gte('date', mondayStr)
-
-  // Buscar XP de cada hábito
-  const habitIds = Array.from(new Set((logs ?? []).map((l: { habit_id: string }) => l.habit_id)))
-  let habitXP = 0
-
-  if (habitIds.length > 0) {
-    const { data: habits } = await supabase
-      .from('habits')
-      .select('id, xp_reward')
-      .in('id', habitIds)
-
-    const xpMap: Record<string, number> = {}
-    for (const h of (habits ?? []) as { id: string; xp_reward: number | null }[]) {
-      xpMap[h.id] = h.xp_reward ?? 10
-    }
-
-    habitXP = (logs ?? []).reduce(
-      (sum, l: { habit_id: string; completed: boolean }) =>
-        sum + (l.completed ? (xpMap[l.habit_id] ?? 10) : 0),
-      0
-    )
-  }
-
-  // XP de sessões de foco
-  const { data: sessions } = await supabase
-    .from('focus_sessions')
-    .select('xp_earned')
-    .eq('user_id', userId)
-    .gte('date', mondayStr)
-
-  const sessionXP = (sessions ?? []).reduce(
-    (sum, s: { xp_earned: number | null }) => sum + (s.xp_earned ?? 0), 0
-  )
-
-  return checkinXP + habitXP + sessionXP
+  return (checkins.count ?? 0) + (habits.count ?? 0) + (focus.count ?? 0) + (tasks.count ?? 0)
 }
 
 
@@ -862,7 +852,6 @@ export async function createHabitQuick(payload: {
   user_id: string
   name: string
   area: HabitArea
-  xp_reward: number
   time_window?: string | null
 }) {
   const { data, error } = await supabase
@@ -871,7 +860,6 @@ export async function createHabitQuick(payload: {
       user_id: payload.user_id,
       name: payload.name.trim(),
       area: payload.area,
-      xp_reward: payload.xp_reward,
       time_window: payload.time_window?.trim() || null,
       active: true,
     })
@@ -908,17 +896,17 @@ function getWeekWindow(base = new Date()) {
   }
 }
 
-function getLeagueTier(xp: number): WeeklyLeagueStanding['tier'] {
-  if (xp >= 750) return 'Lenda'
-  if (xp >= 400) return 'Ouro'
-  if (xp >= 150) return 'Prata'
+function getLeagueTier(points: number): WeeklyLeagueStanding['tier'] {
+  if (points >= 60) return 'Lenda'
+  if (points >= 35) return 'Ouro'
+  if (points >= 15) return 'Prata'
   return 'Bronze'
 }
 
 export async function ensureWeeklyLeagueSnapshot(userId: string) {
   const { weekStart, weekEnd } = getWeekWindow()
-  const xp = await getWeeklyLeagueXP(userId)
-  const tier = getLeagueTier(xp)
+  const points = await getWeeklyConsistencyPoints(userId)
+  const tier = getLeagueTier(points)
 
   const { data: profile } = await supabase
     .from('profiles')
@@ -932,7 +920,7 @@ export async function ensureWeeklyLeagueSnapshot(userId: string) {
       user_id: userId,
       week_start: weekStart,
       week_end: weekEnd,
-      xp,
+      points,
       tier,
       username: profile?.username ?? 'Guerreiro',
       level: profile?.level ?? 1,
@@ -958,9 +946,9 @@ export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLea
 
   const { data: rows, error } = await supabase
     .from('weekly_league_snapshots')
-    .select('user_id, week_start, week_end, xp, tier, username, level, title, updated_at')
+    .select('user_id, week_start, week_end, points, tier, username, level, title, updated_at')
     .eq('week_start', weekStart)
-    .order('xp', { ascending: false })
+    .order('points', { ascending: false })
     .order('updated_at', { ascending: true })
 
   if (error) {
@@ -972,7 +960,7 @@ export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLea
     user_id: row.user_id as string,
     week_start: row.week_start as string,
     week_end: row.week_end as string,
-    xp: row.xp as number,
+    points: row.points as number,
     tier: row.tier as WeeklyLeagueStanding['tier'],
     username: (row.username as string | null) ?? 'Guerreiro',
     level: (row.level as number | null) ?? 1,
@@ -985,16 +973,16 @@ export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLea
 
   const { data: previousRows } = await supabase
     .from('weekly_league_snapshots')
-    .select('user_id, week_start, week_end, xp, tier, username, level, title, updated_at')
+    .select('user_id, week_start, week_end, points, tier, username, level, title, updated_at')
     .eq('week_start', prevWeekStart)
-    .order('xp', { ascending: false })
+    .order('points', { ascending: false })
     .order('updated_at', { ascending: true })
 
   const previousStandings = (previousRows ?? []).map((row, index) => ({
     user_id: row.user_id as string,
     week_start: row.week_start as string,
     week_end: row.week_end as string,
-    xp: row.xp as number,
+    points: row.points as number,
     tier: row.tier as WeeklyLeagueStanding['tier'],
     username: (row.username as string | null) ?? 'Guerreiro',
     level: (row.level as number | null) ?? 1,
@@ -1006,7 +994,7 @@ export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLea
 
   const { data: historyRows } = await supabase
     .from('weekly_league_snapshots')
-    .select('week_start, week_end, xp, tier')
+    .select('week_start, week_end, points, tier')
     .eq('user_id', userId)
     .order('week_start', { ascending: false })
     .limit(4)
@@ -1018,11 +1006,11 @@ export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLea
     top: standings.slice(0, 5),
     me,
     previous_rank: previousMe?.rank ?? null,
-    previous_xp: previousMe?.xp ?? null,
+    previous_points: previousMe?.points ?? null,
     history: (historyRows ?? []).map(row => ({
       week_start: row.week_start as string,
       week_end: row.week_end as string,
-      xp: row.xp as number,
+      points: row.points as number,
       tier: row.tier as WeeklyLeagueStanding['tier'],
       rank: row.week_start === weekStart ? me?.rank ?? null : previousRows
         ? previousStandings.find(item => item.user_id === userId && item.week_start === row.week_start)?.rank ?? null

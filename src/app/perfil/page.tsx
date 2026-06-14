@@ -2,7 +2,7 @@
 // src/app/perfil/page.tsx
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
-import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d } from '@/lib/supabase'
+import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d, getRitmo } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { Profile, UserBadge } from '@/types'
 import PerfilHub from '@/components/perfil/PerfilHub'
@@ -80,6 +80,7 @@ export default function PerfilPage() {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
+  const [ritmo, setRitmo] = useState(0)
   const [form, setForm] = useState<Record<string, string | number>>({})
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
@@ -93,14 +94,16 @@ export default function PerfilPage() {
         return
       }
 
-      const [prof, userBadges, trainingCount, readingPages] = await Promise.all([
+      const [prof, userBadges, trainingCount, readingPages, ritmoNow] = await Promise.all([
         getProfile(user.id),
         getUserBadges(user.id),
         getTrainingCount30d(user.id),
         getReadingPages30d(user.id),
+        getRitmo(user.id),
       ])
       setProfile(prof)
       setBadges((userBadges ?? []) as UserBadge[])
+      setRitmo(ritmoNow)
       setJourneyData({ trainingCount30d: trainingCount, readingPages30d: readingPages })
       setEmail(user.email ?? '')
 
@@ -187,7 +190,7 @@ export default function PerfilPage() {
     corpo: 'Corpo',
     metas: 'Metas',
     objetivos: '90 Dias',
-    xp: 'XP & Goals',
+    xp: 'Metas',
   }
 
   const earnedKeys = new Set(badges.map((b) => b.badge_key))
@@ -215,6 +218,7 @@ export default function PerfilPage() {
         )}
         <PerfilHub
           profile={profile!}
+          ritmo={ritmo}
           badges={badges}
           email={email}
           onEdit={(sec) => { setSection(sec ?? 'corpo'); setTab('editar') }}
@@ -299,7 +303,7 @@ export default function PerfilPage() {
             <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, marginBottom: 10 }}>Estatísticas rápidas</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
               {[
-                { label: 'XP Total', value: profile.xp_total, color: 'var(--gold)' },
+                { label: 'Ritmo', value: ritmo, color: 'var(--gold)' },
                 { label: 'Nível', value: profile.level, color: 'var(--teal)' },
                 { label: 'Streak', value: profile.streak_current, color: 'var(--accent)' },
                 { label: 'Máximo', value: profile.streak_best, color: 'var(--text2)' },
@@ -424,11 +428,8 @@ export default function PerfilPage() {
         {section === 'xp' && (
           <>
             <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
-              Define as tuas metas de desempenho semanal. O dashboard vai mostrar o teu progresso em relação a estes valores.
+              Define a tua meta de consistência semanal. O dashboard vai mostrar o teu progresso em relação a este valor.
             </div>
-            <Field label={`Meta de XP por semana: ${form.xp_weekly_goal} XP`} hint="Média de referência: 500 XP/semana. Agressivo: 1000+">
-              <input type="range" min={100} max={2000} step={50} value={+form.xp_weekly_goal} onChange={(e) => set('xp_weekly_goal', +e.target.value)} style={{ width: '100%', accentColor: 'var(--gold)' }} />
-            </Field>
             <Field label={`Taxa de conclusão semanal aceitável: ${form.completion_pct_goal}%`} hint="Abaixo disto o mentor activa modo de retomada">
               <input type="range" min={40} max={100} step={5} value={+form.completion_pct_goal} onChange={(e) => set('completion_pct_goal', +e.target.value)} style={{ width: '100%', accentColor: 'var(--teal)' }} />
             </Field>
@@ -506,7 +507,7 @@ export default function PerfilPage() {
           Zona de perigo
         </div>
         <p style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 14 }}>
-          Repõe todos os teus dados — XP, hábitos, check-ins, streak e progresso serão apagados permanentemente. A conta mantém-se activa.
+          Repõe todos os teus dados — hábitos, check-ins, streak e progresso serão apagados permanentemente. A conta mantém-se activa.
         </p>
         <button
           type="button"
@@ -528,7 +529,7 @@ export default function PerfilPage() {
               supabase.from('transactions').delete().eq('user_id', user.id),
               supabase.from('agenda_events').delete().eq('user_id', user.id),
               supabase.from('profiles').update({
-                xp_total: 0, level: 1, streak_current: 0, streak_best: 0,
+                level: 1, title: 'Recruta', streak_current: 0, streak_best: 0,
                 streak_last_date: null, mission_today: null, energy_today: 5, onboarded: false,
               }).eq('id', user.id),
             ])

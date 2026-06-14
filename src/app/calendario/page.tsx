@@ -7,7 +7,7 @@ import { pt } from 'date-fns/locale'
 import Nav from '@/components/Nav'
 import CalendarioLoading from '@/components/calendario/CalendarioLoading'
 import { useCalendarioController } from '@/components/calendario/useCalendarioController'
-import { DAYS_MIN, DAYS_SHORT, EVENT_COLORS, PHASE_LABELS, PHASE_XP, getStreakSide, streakBarStyle, type DayStatus } from '@/components/calendario/types'
+import { DAYS_MIN, DAYS_SHORT, EVENT_COLORS, PHASE_LABELS, getStreakSide, streakBarStyle, type DayStatus } from '@/components/calendario/types'
 import { AREA_META } from '@/types'
 import type { HabitArea } from '@/types'
 
@@ -98,7 +98,7 @@ export default function CalendarioPage() {
   })()
 
   const selStatus = c.selected ? c.dayMap[c.selected] : undefined
-  const selXP = c.selCheckins.reduce((sum, ci) => sum + (ci.xp_earned ?? 0), 0)
+  const selCheckinCount = c.selCheckins.length
   const canEditSel = !!c.selected && c.selected <= c.today
 
   async function handleCreate() {
@@ -224,7 +224,6 @@ export default function CalendarioPage() {
               >
                 <span style={{ fontSize: 15 }}>{PHASE_EMOJI[phase]}</span>
                 {PHASE_LABELS[phase]}
-                <span style={{ marginLeft: 'auto', fontSize: 10, color: done ? '#F5C842' : 'rgba(255,255,255,0.25)' }}>+{PHASE_XP[phase]}</span>
               </button>
             )
           })}
@@ -286,7 +285,7 @@ export default function CalendarioPage() {
           tall
           icon="📆"
           title={(() => { const s = format(new Date(`${c.selected}T12:00:00`), "EEE, d 'de' MMMM", { locale: pt }); return s.charAt(0).toUpperCase() + s.slice(1) })()}
-          sub={selStatus?.complete ? `dia completo · +${selXP} XP` : selXP > 0 ? `+${selXP} XP` : undefined}
+          sub={selStatus?.complete ? 'dia completo' : selCheckinCount > 0 ? `${selCheckinCount} check-in${selCheckinCount === 1 ? '' : 's'}` : undefined}
           onClose={c.closeDay}
           footer={
             <button
@@ -335,14 +334,10 @@ export default function CalendarioPage() {
                           }}>✓</span>
                           <span style={{ fontSize: 14 }}>{meta?.icon}</span>
                           <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: done ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.85)', textDecoration: done ? 'line-through' : 'none', textDecorationColor: 'rgba(255,255,255,0.2)' }}>{h.name}</span>
-                          <span style={{ fontSize: 10.5, color: '#F5C842', fontWeight: 700 }}>+{h.xp_reward}</span>
                         </button>
                       )
                     })}
                   </div>
-                  {canEditSel && c.selected !== c.today && (
-                    <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.3)', marginTop: 6 }}>Marcação retroativa não dá XP.</div>
-                  )}
                 </>
               )}
 
@@ -368,7 +363,7 @@ export default function CalendarioPage() {
                     >
                       <span style={{ fontSize: 14 }}>{PHASE_EMOJI[phase]}</span>
                       {PHASE_LABELS[phase]}
-                      <span style={{ marginLeft: 'auto', fontSize: 9.5, color: ci ? '#F5C842' : 'rgba(255,255,255,0.25)' }}>+{ci?.xp_earned ?? PHASE_XP[phase]}</span>
+                      {ci && <span style={{ marginLeft: 'auto', fontSize: 9.5, color: '#00C896' }}>✓</span>}
                     </button>
                   )
                 })}
@@ -390,7 +385,7 @@ export default function CalendarioPage() {
                     disabled={c.quickSaving}
                     style={{ marginTop: 10, width: '100%', border: '1px solid rgba(0,200,150,0.4)', borderRadius: 12, padding: 12, fontFamily: FONT, fontWeight: 800, fontSize: 13, cursor: 'pointer', background: 'rgba(0,200,150,0.15)', color: '#00C896' }}
                   >
-                    {c.quickSaving ? 'A guardar…' : `Guardar check-in da ${PHASE_LABELS[c.quickPhase].toLowerCase()} · +${PHASE_XP[c.quickPhase]} XP`}
+                    {c.quickSaving ? 'A guardar…' : `Guardar check-in da ${PHASE_LABELS[c.quickPhase].toLowerCase()}`}
                   </button>
                 </div>
               )}

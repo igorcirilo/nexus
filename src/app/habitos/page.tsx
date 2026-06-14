@@ -492,7 +492,6 @@ export default function HabitosPage() {
                     }}
                   >
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{item.label}</div>
-                    <div style={{ fontSize: 10.5, marginTop: 4, color: '#F5C842', fontWeight: 700 }}>+{DIFFICULTY_XP[item.key]} XP</div>
                   </button>
                 ))}
               </div>
@@ -515,7 +514,7 @@ export default function HabitosPage() {
                   >
                     <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>{item.name}</div>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>
-                      {item.time_window ?? 'Qualquer hora'} · {item.difficulty} · +{DIFFICULTY_XP[item.difficulty]} XP
+                      {item.time_window ?? 'Qualquer hora'} · {item.difficulty}
                     </div>
                   </button>
                 ))}

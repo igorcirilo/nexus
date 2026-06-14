@@ -4,7 +4,9 @@ export interface Profile {
   id: string
   username: string | null
   avatar_url?: string | null
+  /** @deprecated XP removido — coluna mantida por compatibilidade, não usada. */
   xp_total: number
+  /** Nível 1–6, derivado do melhor streak (ver levelFromStreak). */
   level: number
   title: string
   streak_current: number
@@ -29,6 +31,7 @@ export interface Profile {
   goal_90_personal?: string | null
   goal_90_career?: string | null
   goal_90_health?: string | null
+  /** @deprecated meta de XP semanal removida. */
   xp_weekly_goal?: number | null
   completion_pct_goal?: number | null
 
@@ -52,6 +55,7 @@ export interface Habit {
   user_id: string
   name: string
   area: HabitArea
+  /** @deprecated XP removido — coluna mantida por compatibilidade. */
   xp_reward: number
   time_window: string | null
   active: boolean
@@ -85,6 +89,7 @@ export interface Checkin {
   mission_done?: string | null
   win_of_day?: string | null
   reflection?: string | null
+  /** @deprecated XP removido — coluna mantida por compatibilidade. */
   xp_earned: number
   completed_at: string
 }
@@ -118,6 +123,7 @@ export interface FocusSession {
   date: string
   duration: number
   task: string | null
+  /** @deprecated XP removido — coluna mantida por compatibilidade. */
   xp_earned: number
   created_at: string
 }
@@ -127,6 +133,7 @@ export interface Badge {
   name: string
   description: string | null
   icon: string | null
+  /** @deprecated XP removido — coluna mantida por compatibilidade. */
   xp_reward: number
 }
 
@@ -141,7 +148,7 @@ export interface WeeklyLeagueStanding {
   user_id: string
   week_start: string
   week_end: string
-  xp: number
+  points: number
   rank: number
   tier: 'Bronze' | 'Prata' | 'Ouro' | 'Lenda'
   username: string
@@ -157,11 +164,11 @@ export interface WeeklyLeagueOverview {
   top: WeeklyLeagueStanding[]
   me: WeeklyLeagueStanding | null
   previous_rank: number | null
-  previous_xp: number | null
+  previous_points: number | null
   history: Array<{
     week_start: string
     week_end: string
-    xp: number
+    points: number
     rank: number | null
     tier: 'Bronze' | 'Prata' | 'Ouro' | 'Lenda'
   }>
@@ -358,12 +365,42 @@ export interface ReadingPreference {
   updated_at: string
 }
 
-export function xpForLevel(level: number): number {
-  return Math.round((500 * level * (level + 1)) / 2)
+// ── Níveis & Títulos por consistência (ofensiva máxima) ────────
+// O XP foi removido: a progressão de identidade é agora derivada do melhor
+// streak (campo monotónico, protegido pelo freeze). Mede consistência
+// sustentada em vez de magnitude de esforço auto-reportado.
+
+export const LEVEL_TITLES = [
+  'Recruta',
+  'Consistente',
+  'Focado',
+  'Estrategista',
+  'Imparável',
+  'Antifrágil',
+] as const
+
+// Limiar (em dias de ofensiva máxima) para entrar em cada nível. Índice = nível-1.
+export const STREAK_THRESHOLDS = [0, 3, 7, 21, 45, 90] as const
+
+/** Nível (1–6) a partir do melhor streak alcançado. */
+export function levelFromStreak(streakBest: number): number {
+  let level = 1
+  for (let i = 0; i < STREAK_THRESHOLDS.length; i++) {
+    if (streakBest >= STREAK_THRESHOLDS[i]) level = i + 1
+  }
+  return level
 }
 
-export function levelFromXP(xp: number): number {
-  return Math.max(1, Math.floor((-1 + Math.sqrt(1 + (8 * xp) / 500)) / 2) + 1)
+/** Título correspondente ao melhor streak. */
+export function titleFromStreak(streakBest: number): string {
+  return LEVEL_TITLES[levelFromStreak(streakBest) - 1]
+}
+
+/** Dias de ofensiva necessários para o próximo nível, ou null se no topo. */
+export function nextStreakThreshold(streakBest: number): number | null {
+  const level = levelFromStreak(streakBest)
+  if (level >= STREAK_THRESHOLDS.length) return null
+  return STREAK_THRESHOLDS[level]
 }
 
 export const AREA_META: Record<HabitArea, { label: string; icon: string; color: string }> = {

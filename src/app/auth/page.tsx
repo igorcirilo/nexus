@@ -67,7 +67,7 @@ export default function AuthPage() {
           <div style={{ fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:40, color:'var(--gold)', letterSpacing:'-2px', marginBottom:8, lineHeight:1 }}>NEXUS</div>
           <div style={{ fontSize:15, color:'var(--text2)' }}>O teu sistema de evolução pessoal</div>
           <div style={{ display:'flex', justifyContent:'center', gap:20, marginTop:14 }}>
-            {['🎯 Hábitos','⚡ XP','🔥 Streak'].map(t => (
+            {['🎯 Hábitos','⚡ Ritmo','🔥 Ofensiva'].map(t => (
               <span key={t} style={{ fontSize:12, color:'var(--text3)' }}>{t}</span>
             ))}
           </div>

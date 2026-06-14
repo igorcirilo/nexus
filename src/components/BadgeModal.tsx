@@ -5,10 +5,9 @@ const BADGE_ICONS: Record<string, string> = {
   primeiro_checkin: '🌅',
   streak_7:         '🔥',
   streak_21:        '⚡',
-  streak_100:       '🏆',
-  xp_1000:          '💎',
-  xp_5000:          '🌟',
-  xp_10000:         '👑',
+  streak_100:       '💎',
+  ritmo_80:         '🚀',
+  consistencia_30:  '🏔️',
 }
 
 const BADGE_DESC: Record<string, string> = {
@@ -16,9 +15,8 @@ const BADGE_DESC: Record<string, string> = {
   streak_7:         'Uma semana completa de consistência. Isso não é sorte.',
   streak_21:        'Três semanas. Já é quase um hábito automático.',
   streak_100:       'Cem dias. Isso é raro. Genuinamente raro.',
-  xp_1000:          'Mil pontos conquistados. Estás a construir algo real.',
-  xp_5000:          'Veterano. 5000 XP de trabalho acumulado.',
-  xp_10000:         'Elite. Chegar aqui exige quem não para.',
+  ritmo_80:         'O teu Ritmo chegou a 80. Estás em fluxo.',
+  consistencia_30:  'A tua melhor ofensiva chegou aos 30 dias. Inabalável.',
 }
 
 interface Props {

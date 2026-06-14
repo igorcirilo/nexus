@@ -8,7 +8,7 @@ import {
 } from 'recharts'
 import Nav from '@/components/Nav'
 import ProgressoHub from '@/components/progresso/ProgressoHub'
-import { supabase, getProfile, getUserBadges, getWeeklyStats } from '@/lib/supabase'
+import { supabase, getProfile, getUserBadges, getWeeklyStats, getRitmo } from '@/lib/supabase'
 import { AREA_META } from '@/types'
 import { format, subDays } from 'date-fns'
 import type { Profile, UserBadge } from '@/types'
@@ -30,12 +30,13 @@ export default function ProgressoPage() {
   const [areas,       setAreas]       = useState<AreaProgress[]>([])
   const [loading,     setLoading]     = useState(true)
 
+  const [ritmo,   setRitmo]   = useState(0)
   const [xpData,  setXpData]  = useState<{day:string;xp:number;hab:number;ci:number}[]>([])
   const [esData,  setEsData]  = useState<{day:string;energia:number|null;sono:number|null}[]>([])
   const [heatmap, setHeatmap] = useState<HeatVal[]>([])
   const [stats,   setStats]   = useState({
-    consistency:0, xpWeek:0, sleep:0, energy:0,
-    prevConsistency:0, xpTrend:0, thisDone:0, thisTotal:0, checkinsToday:0,
+    consistency:0, activityWeek:0, sleep:0, energy:0,
+    prevConsistency:0, activityTrend:0, thisDone:0, thisTotal:0, checkinsToday:0,
   })
   const [ready, setReady] = useState(false)
 
@@ -48,29 +49,29 @@ export default function ProgressoPage() {
       const since28 = format(subDays(new Date(), 27), 'yyyy-MM-dd')
       const today   = format(new Date(), 'yyyy-MM-dd')
 
-      const [prof, ub, weekly,
+      const [prof, ub, weekly, ritmoNow,
         { data: logs14 }, { data: logs28 }, { data: ci14 }, { data: habits }
       ] = await Promise.all([
         getProfile(user.id),
         getUserBadges(user.id),
         getWeeklyStats(user.id),
+        getRitmo(user.id),
         supabase.from('habit_logs').select('date,completed,habit_id')
           .eq('user_id',user.id).gte('date',since14).lt('date',since7),
         supabase.from('habit_logs').select('date,completed')
           .eq('user_id',user.id).gte('date',since28),
-        supabase.from('checkins').select('date,phase,xp_earned')
+        supabase.from('checkins').select('date,phase')
           .eq('user_id',user.id).gte('date',since14).lt('date',since7),
-        supabase.from('habits').select('id,area,xp_reward')
+        supabase.from('habits').select('id,area')
           .eq('user_id',user.id).eq('active',true),
       ])
 
       setProfile(prof)
       setBadges(ub as UserBadge[])
+      setRitmo(ritmoNow)
 
-      // ── XP map ──────────────────────────────────────────────────────────
-      type HabitRow = { id:string; area:string; xp_reward:number }
-      const xpMap: Record<string,number> = {}
-      ;(habits ?? [] as HabitRow[]).forEach((h:HabitRow) => { xpMap[h.id] = h.xp_reward })
+      // ── Cada conclusão (hábito/check-in) vale 1 ponto de atividade ───────
+      type HabitRow = { id:string; area:string }
 
       // ── Area progress (últimos 7 dias vs total activo) ───────────────────
       type LogRow = { habit_id:string; completed:boolean; date:string }
@@ -91,21 +92,19 @@ export default function ProgressoPage() {
       })
       setAreas(areaList)
 
-      // ── XP por dia ──────────────────────────────────────────────────────
+      // ── Atividade por dia (conclusões: hábitos + check-ins) ─────────────
       type LogRow7 = { date:string; completed:boolean; habit_id:string }
       type CIRow   = {
         date:string; phase?:string|null; energy?:number|null
-        sleep_hours?:number|null; mood?:number|null; xp_earned?:number|null
+        sleep_hours?:number|null; mood?:number|null
       }
       const xpByDay = Array.from({length:7},(_,i) => {
         const d     = subDays(new Date(), 6-i)
         const day   = format(d,'yyyy-MM-dd')
         const habXP = (weekly.logs as LogRow7[])
-          .filter(l => l.date===day && l.completed)
-          .reduce((a:number,l:LogRow7) => a+(xpMap[l.habit_id]??10), 0)
+          .filter(l => l.date===day && l.completed).length
         const ciXP  = (weekly.checkins as CIRow[])
-          .filter(c => c.date===day)
-          .reduce((a:number,c:CIRow) => a+(c.xp_earned??0), 0)
+          .filter(c => c.date===day).length
         return { day:DAYS_PT[d.getDay()], xp:habXP+ciXP, hab:habXP, ci:ciXP }
       })
       setXpData(xpByDay)
@@ -135,8 +134,6 @@ export default function ProgressoPage() {
 
       // ── Stats resumo ─────────────────────────────────────────────────────
       type LogC = { completed:boolean }
-      type LogH = { habit_id:string; completed:boolean }
-      type CIXp = { xp_earned:number }
 
       const thisDone  = (weekly.logs as LogC[]).filter(l => l.completed).length
       const thisTotal = (weekly.logs as LogC[]).length
@@ -144,11 +141,8 @@ export default function ProgressoPage() {
       const prevTotal = (logs14 as LogC[] ?? []).length
       const consistency     = thisTotal > 0 ? Math.round(thisDone/thisTotal*100) : 0
       const prevConsistency = prevTotal > 0 ? Math.round(prevDone/prevTotal*100) : 0
-      const xpWeek  = xpByDay.reduce((a,d) => a+d.xp, 0)
-      const prevXP  =
-        (logs14 as LogH[] ?? []).filter(l => l.completed)
-          .reduce((a:number,l:LogH) => a+(xpMap[l.habit_id]??10), 0) +
-        (ci14 as CIXp[] ?? []).reduce((a:number,c:CIXp) => a+(c.xp_earned??0), 0)
+      const activityWeek  = xpByDay.reduce((a,d) => a+d.xp, 0)
+      const prevActivity  = prevDone + ((ci14 as unknown[] ?? []).length)
       const ciAll = (weekly.checkins as CIRow[]).filter(c => c.energy)
       const slAll = (weekly.checkins as CIRow[]).filter(c => c.sleep_hours)
       const avgE  = ciAll.length > 0
@@ -157,7 +151,7 @@ export default function ProgressoPage() {
         ? Math.round(slAll.reduce((a:number,c:CIRow) => a+(c.sleep_hours??0),0)/slAll.length*10)/10 : 0
       const checkinsToday = (weekly.checkins as CIRow[]).filter(c => c.date===today).length
 
-      setStats({ consistency, prevConsistency, xpWeek, xpTrend:xpWeek-prevXP,
+      setStats({ consistency, prevConsistency, activityWeek, activityTrend:activityWeek-prevActivity,
         sleep:avgS, energy:avgE, thisDone, thisTotal, checkinsToday })
       setLoading(false)
       setTimeout(() => setReady(true), 60)
@@ -184,11 +178,12 @@ export default function ProgressoPage() {
       <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: '#07070F' }}>
         <ProgressoHub
           profile={profile}
+          ritmo={ritmo}
           areas={areas}
           badges={badges}
           earnedKeys={earned}
           consistency={stats.consistency}
-          xpData={xpData.map(d => ({ day: d.day, xp: d.xp }))}
+          weekData={xpData.map(d => ({ day: d.day, value: d.xp }))}
           onDashboard={() => setTab('dashboard')}
         />
         <Nav />
@@ -246,9 +241,9 @@ export default function ProgressoPage() {
                 up:stats.consistency>=stats.prevConsistency,
               },
               {
-                l:'XP esta semana', v:`${stats.xpWeek}`, c:'#F5C842',
-                trend:`${stats.xpTrend>=0?'↑ +':'↓ '}${Math.abs(stats.xpTrend)} vs ant.`,
-                up:stats.xpTrend>=0,
+                l:'Ritmo atual', v:`${ritmo}`, c:'#F5C842',
+                trend:`${stats.activityTrend>=0?'↑ +':'↓ '}${Math.abs(stats.activityTrend)} conclusões vs ant.`,
+                up:stats.activityTrend>=0,
               },
               {
                 l:'Energia média',
@@ -286,18 +281,18 @@ export default function ProgressoPage() {
               Próxima conquista:{' '}
               {profile.streak_current<7
                 ? `streak de 7 dias — faltam ${7-profile.streak_current}`
-                : profile.streak_current<14
-                  ? `streak de 14 dias — faltam ${14-profile.streak_current}`
-                  : `streak de 30 dias — faltam ${30-profile.streak_current}`
+                : profile.streak_current<21
+                  ? `streak de 21 dias — faltam ${21-profile.streak_current}`
+                  : `streak de 100 dias — faltam ${100-profile.streak_current}`
               } dias.
             </span>
           </div>
 
           <div style={{padding:'12px 20px 0'}}>
 
-            {/* XP diário */}
+            {/* Atividade diária */}
             <div style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
-              <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:8}}>XP diário — hábitos + check-ins</div>
+              <div style={{fontSize:12,color:'rgba(255,255,255,0.4)',marginBottom:8}}>Atividade diária — hábitos + check-ins</div>
               <div style={{display:'flex',gap:14,marginBottom:10}}>
                 {([['#534AB7','Hábitos'],['#E8A838','Check-ins']] as [string,string][]).map(([c,l])=>(
                   <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'rgba(255,255,255,0.4)'}}>
@@ -313,7 +308,7 @@ export default function ProgressoPage() {
                       <XAxis dataKey="day" tick={{fill:'rgba(255,255,255,0.3)',fontSize:11}} axisLine={false} tickLine={false}/>
                       <YAxis hide/>
                       <Tooltip contentStyle={TT}
-                        formatter={(v:number,n:string)=>[v,n==='hab'?'Hábitos XP':'Check-in XP']}/>
+                        formatter={(v:number,n:string)=>[v,n==='hab'?'Hábitos':'Check-ins']}/>
                       <Bar dataKey="hab" name="hab" stackId="a" fill="#534AB7" radius={[0,0,0,0]}/>
                       <Bar dataKey="ci"  name="ci"  stackId="a" fill="#E8A838" radius={[5,5,0,0]}/>
                     </BarChart>
@@ -383,8 +378,8 @@ export default function ProgressoPage() {
               <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(255,255,255,0.3)',marginBottom:10}}>Resumo da semana</div>
               {[
                 {l:'Hábitos concluídos', v:`${stats.thisDone} de ${stats.thisTotal}`, c:stats.consistency>=70?'#00C896':'#F5C842'},
-                {l:'XP de hábitos',      v:`${xpData.reduce((a,d)=>a+d.hab,0)} XP`,  c:'#9D5CF5'},
-                {l:'XP de check-ins',    v:`${xpData.reduce((a,d)=>a+d.ci,0)} XP`,   c:'#F5C842'},
+                {l:'Check-ins da semana',v:`${xpData.reduce((a,d)=>a+d.ci,0)}`,       c:'#9D5CF5'},
+                {l:'Ritmo atual',        v:`${ritmo}`,                                c:'#F5C842'},
                 {l:'Streak actual',      v:`${profile.streak_current} dias 🔥`,        c:'#F5C842'},
               ].map(({l,v,c})=>(
                 <div key={l} style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:6}}>
