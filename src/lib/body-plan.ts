@@ -489,6 +489,16 @@ function dedupeExercises(exercises: TrainingExercisePlan[]) {
   })
 }
 
+function formatLoadValue(value: string) {
+  const clean = compactSpaces(value)
+  if (!clean) return ''
+  // Já tem unidade/contexto (kg, %, "4x", "bw", peso corporal) → mantém como está.
+  if (/[a-z%]/i.test(clean)) return clean
+  // Valor puramente numérico (ex.: "60", "12.5") → assume kg.
+  if (/^\d+(?:[.,]\d+)?$/.test(clean)) return `${clean} kg`
+  return clean
+}
+
 function parseTrainingSpreadsheet(result: Extract<FileImportResult, { kind: 'spreadsheet' }>): ParsedTrainingPlan {
   const rows = rowsFromSpreadsheet(result)
   const sections = new Map<string, TrainingExercisePlan[]>()
@@ -523,10 +533,11 @@ function parseTrainingSpreadsheet(result: Extract<FileImportResult, { kind: 'spr
     ])
 
     const explicitSeries = valueFromAliases(row, ['series', 'serie', 'set', 'sets'])
-    const explicitReps = valueFromAliases(row, ['reps', 'repsalvo', 'repeticoes', 'repeticao'])
-    const explicitRest = valueFromAliases(row, ['descanso', 'rest'])
+    const explicitReps = valueFromAliases(row, ['reps', 'repsalvo', 'repeticoes', 'repeticao', 'repalvo'])
+    const explicitRest = valueFromAliases(row, ['descanso', 'rest', 'intervalo', 'pausa'])
+    const explicitLoad = formatLoadValue(valueFromAliases(row, ['carga', 'cargakg', 'peso', 'pesokg', 'load', 'kg']))
     const explicitRpe = valueFromAliases(row, ['rpe'])
-    const explicitTechnique = valueFromAliases(row, ['tecnica', 'tempo', 'cadencia'])
+    const explicitTechnique = valueFromAliases(row, ['tecnica', 'tempo', 'cadencia', 'metodo', 'observacao', 'obs', 'notas'])
 
     const filled = nonEmptyValues(row)
     const positionalValues = Object.entries(row)
@@ -549,7 +560,7 @@ function parseTrainingSpreadsheet(result: Extract<FileImportResult, { kind: 'spr
     const nameCandidate = explicitName || filled[0] || ''
     if (!isValidExerciseName(nameCandidate)) return
 
-    const detailParts = [explicitSeries, explicitReps, explicitRest, explicitRpe, explicitTechnique]
+    const detailParts = [explicitSeries, explicitReps, explicitLoad, explicitRest, explicitRpe, explicitTechnique]
       .map(compactSpaces)
       .filter(Boolean)
 

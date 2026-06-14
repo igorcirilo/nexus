@@ -1,4 +1,4 @@
-import { parseDietImport } from '@/lib/body-plan'
+import { parseDietImport, parseTrainingImport } from '@/lib/body-plan'
 import type { FileImportResult } from '@/types'
 
 function makeSpreadsheetResult(
@@ -246,5 +246,36 @@ describe('parseDietImport', () => {
       'Caseína',
       'banana',
     ])
+  })
+})
+
+describe('parseTrainingImport', () => {
+  it('groups exercises by day and keeps the carga column (assumed kg)', () => {
+    const result = makeSpreadsheetResult([
+      { Dia: 'Segunda - Peito', Exercício: 'Supino reto', Séries: '4', 'Reps alvo': '8-10', Descanso: '90s', 'Carga (kg)': '60' },
+      { Dia: 'Segunda - Peito', Exercício: 'Crucifixo', Séries: '3', 'Reps alvo': '12', Descanso: '60s', 'Carga (kg)': '14' },
+      { Dia: 'Sexta - Pernas', Exercício: 'Agachamento livre', Séries: '4', 'Reps alvo': '6-8', Descanso: '120s', 'Carga (kg)': '80' },
+    ])
+
+    const parsed = parseTrainingImport(result)
+
+    const peito = parsed.sections.find((s) => s.title === 'Segunda - Peito')
+    expect(peito?.exercises.map((e) => e.name)).toEqual(['Supino reto', 'Crucifixo'])
+    expect(peito?.exercises[0].detail).toBe('4 | 8-10 | 60 kg | 90s')
+
+    const pernas = parsed.sections.find((s) => s.title === 'Sexta - Pernas')
+    expect(pernas?.exercises[0].detail).toBe('4 | 6-8 | 80 kg | 120s')
+  })
+
+  it('keeps non-numeric load values verbatim (percentages, bodyweight)', () => {
+    const result = makeSpreadsheetResult([
+      { Dia: 'Treino A', Exercício: 'Levantamento terra', Séries: '5', Reps: '3', Carga: '85%' },
+      { Dia: 'Treino A', Exercício: 'Flexões', Séries: '3', Reps: '15', Carga: 'peso corporal' },
+    ])
+
+    const parsed = parseTrainingImport(result)
+    const sec = parsed.sections.find((s) => s.title === 'Treino A')
+    expect(sec?.exercises[0].detail).toBe('5 | 3 | 85%')
+    expect(sec?.exercises[1].detail).toBe('3 | 15 | peso corporal')
   })
 })
