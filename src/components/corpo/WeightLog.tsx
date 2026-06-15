@@ -60,16 +60,35 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
     toast.success('Altura guardada!')
   }
 
-  const chartData = logs.map(l => ({
-    date: format(new Date(l.date + 'T12:00:00'), 'd MMM', { locale: pt }),
-    kg: Number(l.weight_kg),
-  }))
+  // Média móvel de 7 registos: suaviza o ruído diário e mostra a tendência real,
+  // reduzindo a ansiedade com flutuações de 0,2–0,5 kg que não significam nada.
+  const chartData = logs.map((l, i) => {
+    const windowSlice = logs.slice(Math.max(0, i - 6), i + 1)
+    const avg = windowSlice.reduce((sum, x) => sum + Number(x.weight_kg), 0) / windowSlice.length
+    return {
+      date: format(parseLocalDate(l.date), 'd MMM', { locale: pt }),
+      kg: Number(l.weight_kg),
+      media: Math.round(avg * 10) / 10,
+    }
+  })
+
+  // Domínio Y com folga generosa: evita que o eixo auto-escale e exagere
+  // variações pequenas, transformando ruído em "queda/subida" dramática.
+  const weights = logs.map(l => Number(l.weight_kg))
+  const dataMin = weights.length ? Math.min(...weights) : 0
+  const dataMax = weights.length ? Math.max(...weights) : 0
+  const yPad = Math.max(2, dataMax - dataMin)
+  const yDomain: [number, number] = [Math.floor(dataMin - yPad), Math.ceil(dataMax + yPad)]
 
   const latest = logs[logs.length - 1]
   const first = logs[0]
-  const delta = latest && first && logs.length > 1
-    ? (Number(latest.weight_kg) - Number(first.weight_kg)).toFixed(1)
+  const deltaNum = latest && first && logs.length > 1
+    ? Number(latest.weight_kg) - Number(first.weight_kg)
     : null
+  const deltaAbs = deltaNum !== null ? Math.abs(deltaNum).toFixed(1) : null
+  // Tom neutro: direção sem juízo de valor (subir não é "mau", descer não é "bom").
+  const deltaArrow = deltaNum === null ? '' : Math.abs(deltaNum) < 0.1 ? '→' : deltaNum > 0 ? '↑' : '↓'
+  const deltaLabel = deltaNum === null ? '' : Math.abs(deltaNum) < 0.1 ? 'estável' : `${deltaArrow} ${deltaAbs} kg`
 
   const filterLabels: { value: Filter; label: string }[] = [
     { value: 30, label: '30d' },
@@ -203,7 +222,7 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
             </div>
           </div>
 
-          {delta !== null && (
+          {deltaNum !== null && (
             <div style={{
               background: 'var(--bg2)',
               border: '1px solid var(--border)',
@@ -212,15 +231,15 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
               flex: 1,
             }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
-                Variação
+                Tendência no período
               </div>
               <div style={{
                 fontSize: 20,
                 fontWeight: 700,
                 fontFamily: 'Syne, sans-serif',
-                color: parseFloat(delta) <= 0 ? 'var(--teal)' : 'var(--gold)',
+                color: 'var(--text1)',
               }}>
-                {parseFloat(delta) > 0 ? '+' : ''}{delta} kg
+                {deltaLabel}
               </div>
             </div>
           )}
@@ -269,7 +288,8 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
                 tickLine={false}
               />
               <YAxis
-                domain={['auto', 'auto']}
+                domain={yDomain}
+                allowDecimals={false}
                 tick={{ fontSize: 10, fill: 'var(--text3)', fontFamily: 'DM Sans, sans-serif' }}
                 axisLine={false}
                 tickLine={false}
@@ -283,15 +303,27 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
                   fontSize: 13,
                   color: 'var(--text1)',
                 }}
-                formatter={(v: number) => [`${v} kg`, 'Peso']}
+                formatter={(v: number, name) => [`${v} kg`, name === 'media' ? 'Média 7d' : 'Peso']}
                 labelStyle={{ color: 'var(--text3)', fontSize: 11 }}
               />
+              {/* Registos diários: discretos, em segundo plano */}
               <Line
                 type="monotone"
                 dataKey="kg"
+                name="kg"
+                stroke="var(--text3)"
+                strokeWidth={1}
+                dot={{ r: 2, fill: 'var(--text3)' }}
+                activeDot={{ r: 4 }}
+              />
+              {/* Tendência (média móvel): a linha que realmente importa */}
+              <Line
+                type="monotone"
+                dataKey="media"
+                name="media"
                 stroke="var(--teal)"
-                strokeWidth={2}
-                dot={{ r: 3, fill: 'var(--teal)' }}
+                strokeWidth={2.5}
+                dot={false}
                 activeDot={{ r: 5 }}
               />
             </LineChart>

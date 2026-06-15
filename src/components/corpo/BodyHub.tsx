@@ -35,6 +35,13 @@ function fmt1(n: number) {
 function fmtInt(n: number) {
   return Math.round(n).toLocaleString('pt-BR')
 }
+// Faixa de IMC em termos clínicos e neutros — dá contexto sem juízo de valor.
+function imcFaixa(v: number) {
+  if (v < 18.5) return 'abaixo'
+  if (v < 25) return 'normal'
+  if (v < 30) return 'acima'
+  return 'alto'
+}
 function getTrainingParsed(plan: TrainingPlan | null): ParsedTrainingPlan | null {
   if (!plan) return null
   const raw = plan.raw_content as { parsedPlan?: ParsedTrainingPlan } | null
@@ -276,24 +283,27 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
-                  background: monthDelta <= 0 ? 'rgba(0,200,150,0.12)' : 'rgba(232,168,56,0.12)',
+                  background: 'rgba(255,255,255,0.06)',
                   borderRadius: 8,
                   padding: '4px 8px',
                   fontSize: 12,
                   fontWeight: 700,
-                  color: monthDelta <= 0 ? '#00C896' : '#F5C842',
+                  color: 'rgba(255,255,255,0.7)',
                   marginTop: 8,
                 }}
               >
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  {monthDelta <= 0 ? <polyline points="6 9 12 15 18 9" /> : <polyline points="6 15 12 9 18 15" />}
-                </svg>
-                {`${monthDelta > 0 ? '+' : '−'}${fmt1(Math.abs(monthDelta))} kg este mês`}
+                {/* Seta indica só a direção — sem cor de "bom/mau". O corpo muda em ambos os sentidos. */}
+                {Math.abs(monthDelta) >= 0.1 && (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    {monthDelta < 0 ? <polyline points="6 9 12 15 18 9" /> : <polyline points="6 15 12 9 18 15" />}
+                  </svg>
+                )}
+                {Math.abs(monthDelta) < 0.1 ? 'estável este mês' : `${fmt1(Math.abs(monthDelta))} kg este mês`}
               </div>
             )}
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <HeroStat value={imc ? fmt1(imc) : '--'} label="IMC" />
+            <HeroStat value={imc ? fmt1(imc) : '--'} label={imc ? `IMC · ${imcFaixa(imc)}` : 'IMC'} />
             <HeroStat value={goalWeight ? `${fmt1(Number(goalWeight))} kg` : '--'} label="Meta" />
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, getDay, isSameMonth, isToday, startOfMonth, startOfWeek } from 'date-fns'
 import { pt } from 'date-fns/locale'
@@ -40,8 +40,15 @@ function Sheet({ icon, title, sub, onClose, children, footer, tall }: {
   icon?: string; title: string; sub?: string; onClose: () => void
   children: React.ReactNode; footer?: React.ReactNode; tall?: boolean
 }) {
+  // Fechar com Esc — acessibilidade de teclado em diálogos modais.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
+    <div role="dialog" aria-modal="true" aria-label={title} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{
         width: '100%', maxWidth: 448, margin: '0 auto', background: '#11131C',
@@ -57,7 +64,7 @@ function Sheet({ icon, title, sub, onClose, children, footer, tall }: {
             <div style={{ fontWeight: 800, fontSize: 17, color: '#fff', letterSpacing: '-0.3px' }}>{title}</div>
             {sub && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{sub}</div>}
           </div>
-          <button onClick={onClose} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'rgba(255,255,255,0.6)', flexShrink: 0 }}>✕</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', fontSize: 15, color: 'rgba(255,255,255,0.6)', flexShrink: 0, touchAction: 'manipulation' }}>✕</button>
         </div>
         <div style={{ overflowY: 'auto', flex: 1, padding: '4px 20px 16px' }}>{children}</div>
         {footer && (
@@ -166,10 +173,10 @@ export default function CalendarioPage() {
       </div>
 
       {/* ── Grelha ── */}
-      <div style={{ margin: '10px 20px 0', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '12px 10px 10px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 6 }}>
+      <div role="grid" aria-label={`Calendário de ${monthLabel}`} style={{ margin: '10px 20px 0', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '12px 10px 10px' }}>
+        <div role="row" style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 6 }}>
           {DAYS_MIN.map((d, i) => (
-            <span key={i} style={{ textAlign: 'center', fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '.06em' }}>{d}</span>
+            <span key={i} role="columnheader" style={{ textAlign: 'center', fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '.06em' }}>{d}</span>
           ))}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3 }}>
@@ -185,9 +192,15 @@ export default function CalendarioPage() {
               <button
                 key={dateStr}
                 onClick={() => c.selectDay(dateStr)}
-                aria-label={`Dia ${format(day, 'd')}`}
+                aria-pressed={isSel}
+                aria-label={[
+                  `Dia ${format(day, 'd')}`,
+                  isTd ? 'hoje' : null,
+                  status?.complete ? 'dia completo' : status ? 'parcial' : null,
+                  dayEvents.length ? `${dayEvents.length} evento${dayEvents.length === 1 ? '' : 's'}` : null,
+                ].filter(Boolean).join(', ')}
                 style={{
-                  position: 'relative', height: c.viewMode === 'week' ? 56 : 42, borderRadius: 10,
+                  position: 'relative', height: c.viewMode === 'week' ? 56 : 46, borderRadius: 10, touchAction: 'manipulation',
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
                   fontSize: 13, fontWeight: status?.complete ? 800 : 600, fontFamily: FONT,
                   background: hubHeat(status), border: 'none', cursor: 'pointer', padding: 0,
@@ -612,10 +625,11 @@ export default function CalendarioPage() {
 }
 
 const navArrow: CSSProperties = {
-  width: 32, height: 32, borderRadius: 10,
+  width: 44, height: 44, borderRadius: 12,
   background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  color: 'rgba(255,255,255,0.6)', fontSize: 16, cursor: 'pointer', fontFamily: FONT,
+  color: 'rgba(255,255,255,0.6)', fontSize: 18, cursor: 'pointer', fontFamily: FONT,
+  touchAction: 'manipulation',
 }
 
 const secLabel: CSSProperties = {

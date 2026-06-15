@@ -210,6 +210,13 @@ export default function HojePage() {
     }
   }, [today, retryKey])
 
+  useEffect(() => {
+    if (!selectedTask) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedTask(null) }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selectedTask])
+
   async function handleStreakRecover() {
     if (!userId) return
     const success = await claimStreakRecovery(userId)
@@ -251,6 +258,18 @@ export default function HojePage() {
 
   const doneCnt = tasks.filter((t) => t.status === 'completed').length
   const totalHabits = tasks.length
+  // Ritmo esperado: fração do "dia ativo" (07h–22h) já decorrida.
+  // Compara o progresso real com o esperado para dizer se está no caminho.
+  const dayFraction = Math.min(1, Math.max(0, (hour - 7) / (22 - 7)))
+  const donePct = totalHabits > 0 ? doneCnt / totalHabits : 0
+  const paceCaption =
+    totalHabits === 0
+      ? 'Sem tarefas'
+      : doneCnt === totalHabits
+        ? 'Tudo feito'
+        : donePct >= dayFraction
+          ? 'No ritmo'
+          : 'Dá para acelerar'
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
   const currentPhase = hour < 12 ? 'manha' : hour < 18 ? 'tarde' : 'noite'
   const checkinLabel = hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite'
@@ -356,25 +375,9 @@ export default function HojePage() {
         </a>
       </header>
 
-      {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
-
+      {/* Acima da dobra: a ação principal e as pendências vêm primeiro.
+          A RitmoBar (gamificação) desce para o fim — é contexto, não a prioridade. */}
       <TodayCommandPanel action={primaryAction} context={mentorMsg.body} checkinPending={checkinPending} />
-
-      <TodayMetrics
-        metrics={[
-          { icon: 'zap', label: 'Energia', value: `${profile?.energy_today ?? 5}/10`, color: 'var(--teal)', progress: ((profile?.energy_today ?? 5) / 10) * 100, caption: 'Moderada' },
-          { icon: 'target', label: 'Hábitos', value: `${doneCnt}/${totalHabits}`, color: 'var(--accent)', progress: totalHabits > 0 ? (doneCnt / totalHabits) * 100 : 0, caption: `${totalHabits > 0 ? Math.round((doneCnt / totalHabits) * 100) : 0}% concluídos` },
-          { icon: 'clipboard', label: 'Check-in', value: checkinLabel, color: 'var(--teal)', caption: todayCheckins.length > 0 ? 'Em andamento' : 'Pendente' },
-        ]}
-      />
-
-      {profile && (
-        <TodayMissionPanel
-          mission={profile.mission_today || 'Definir a missão no check-in da manhã'}
-          progress={missionPct}
-          onProgress={setMissionPct}
-        />
-      )}
 
       <div style={{ padding: '0 20px' }}>
         {noProgram ? (
@@ -382,7 +385,7 @@ export default function HojePage() {
             icon="target"
             title="Complete seu diagnóstico"
             body="Responda algumas perguntas para receber seu plano personalizado de 63 dias."
-            action={{ label: 'Começar diagnóstico', href: '/onboarding' }}
+            action={{ label: 'Começar diagnóstico', href: '/onboarding-v2' }}
           />
         ) : !programDay ? (
           <div style={{ color: 'var(--text3)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>
@@ -417,6 +420,24 @@ export default function HojePage() {
         </>
       )}
 
+      <TodayMetrics
+        metrics={[
+          { icon: 'zap', label: 'Energia', value: `${profile?.energy_today ?? 5}/10`, color: 'var(--teal)', progress: ((profile?.energy_today ?? 5) / 10) * 100, caption: 'Moderada' },
+          { icon: 'target', label: 'Hábitos', value: `${doneCnt}/${totalHabits}`, color: 'var(--accent)', progress: donePct * 100, caption: paceCaption },
+          { icon: 'clipboard', label: 'Check-in', value: checkinLabel, color: 'var(--teal)', caption: todayCheckins.length > 0 ? 'Em andamento' : 'Pendente' },
+        ]}
+      />
+
+      {profile && (
+        <TodayMissionPanel
+          mission={profile.mission_today || 'Definir a missão no check-in da manhã'}
+          progress={missionPct}
+          onProgress={setMissionPct}
+        />
+      )}
+
+      {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
+
       {profile && nightCheckin && (
         <NightSummaryCard
           ritmo={ritmo}
@@ -431,6 +452,9 @@ export default function HojePage() {
 
       {selectedTask && (
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={selectedTaskTitle}
           style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,.5)' }}
           onClick={() => setSelectedTask(null)}
         >
