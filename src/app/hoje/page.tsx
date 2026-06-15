@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
+import { todayISO } from '@/lib/date'
 import Nav from '@/components/Nav'
 import RitmoBar from '@/components/RitmoBar'
 import FeedbackToast, { triggerToast } from '@/components/FeedbackToast'
@@ -10,6 +10,7 @@ import NightSummaryCard from '@/components/NightSummaryCard'
 import LevelUpModal from '@/components/LevelUpModal'
 import BadgeModal from '@/components/BadgeModal'
 import EmptyState from '@/components/EmptyState'
+import ErrorState from '@/components/ui/ErrorState'
 import AddTaskSheet from '@/components/hoje/AddTaskSheet'
 import HojeLoading from '@/components/hoje/HojeLoading'
 import TodayCommandPanel from '@/components/hoje/TodayCommandPanel'
@@ -73,6 +74,8 @@ export default function HojePage() {
   const [userId, setUserId] = useState<string>('')
   const [missionPct, setMissionPct] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
   const [showRecovery, setShowRecovery] = useState(false)
   const [canRecover, setCanRecover] = useState(false)
   const [todayCheckins, setTodayCheckins] = useState<Checkin[]>([])
@@ -86,12 +89,13 @@ export default function HojePage() {
   const [challengeOpen, setChallengeOpen] = useState(false)
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
   const [pendingBadges, setPendingBadges] = useState<{ key: string; name: string }[]>([])
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const today = todayISO()
   const hour = new Date().getHours()
 
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
 
   useEffect(() => {
+    let cancelled = false
     async function load() {
       const {
         data: { user },
@@ -189,11 +193,22 @@ export default function HojePage() {
         }
       }
 
-      setLoading(false)
+      if (!cancelled) setLoading(false)
     }
 
-    load()
-  }, [today])
+    setLoadError(false)
+    setLoading(true)
+    load().catch((err) => {
+      if (cancelled) return
+      console.error('[hoje] falha ao carregar dados do dia:', err)
+      setLoadError(true)
+      setLoading(false)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [today, retryKey])
 
   async function handleStreakRecover() {
     if (!userId) return
@@ -266,6 +281,16 @@ export default function HojePage() {
 
   if (loading) {
     return <HojeLoading />
+  }
+
+  if (loadError) {
+    return (
+      <ErrorState
+        title="O teu dia não carregou"
+        body="Tivemos um problema a carregar a página Hoje. Verifica a ligação e tenta de novo."
+        onRetry={() => setRetryKey((k) => k + 1)}
+      />
+    )
   }
 
   return (

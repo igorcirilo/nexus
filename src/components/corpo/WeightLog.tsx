@@ -7,6 +7,7 @@ import EmptyState from '@/components/EmptyState'
 import { useToast } from '@/components/Toast'
 import { getWeightLogs, upsertWeightLog, deleteWeightLog, type WeightLog } from '@/lib/body'
 import { updateProfile } from '@/lib/supabase'
+import { todayISO, parseLocalDate } from '@/lib/date'
 
 interface Props {
   userId: string
@@ -16,17 +17,12 @@ interface Props {
 
 type Filter = 30 | 90 | 0
 
-function getLocalDateString(): string {
-  const now = new Date()
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0]
-}
-
 export default function WeightLogComponent({ userId, heightCm, onHeightSave }: Props) {
   const toast = useToast()
   const [logs, setLogs] = useState<WeightLog[]>([])
   const [filter, setFilter] = useState<Filter>(30)
   const [weightIn, setWeightIn] = useState('')
-  const [dateIn, setDateIn] = useState(getLocalDateString())
+  const [dateIn, setDateIn] = useState(todayISO())
   const [saving, setSaving] = useState(false)
   const weightInputRef = useRef<HTMLInputElement | null>(null)
   const [heightVal, setHeightVal] = useState(heightCm ? String(heightCm) : '')
@@ -345,7 +341,7 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
                   {Number(l.weight_kg)} kg
                 </span>
                 <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--text3)' }}>
-                  {format(new Date(l.date + 'T12:00:00'), "d 'de' MMM", { locale: pt })}
+                  {format(parseLocalDate(l.date), "d 'de' MMM", { locale: pt })}
                 </span>
                 <button
                   onClick={() => handleDelete(l.id)}

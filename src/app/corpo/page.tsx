@@ -6,8 +6,10 @@ import DietTracker from '@/components/corpo/DietTracker'
 import WeightLog from '@/components/corpo/WeightLog'
 import BodyHub from '@/components/corpo/BodyHub'
 import CorpoLoading from '@/components/corpo/CorpoLoading'
+import ErrorState from '@/components/ui/ErrorState'
 import Icon, { type IconName } from '@/components/ui/Icon'
 import { supabase, getTrainingPlans, getDietPlans, getProfile } from '@/lib/supabase'
+import { todayISO } from '@/lib/date'
 import type { TrainingPlan, DietPlan, Profile } from '@/types'
 
 type BodyTab = 'resumo' | 'treino' | 'dieta' | 'peso'
@@ -19,11 +21,6 @@ const TABS: { key: BodyTab; label: string; icon: IconName }[] = [
   { key: 'peso',   label: 'Peso',   icon: 'scale' },
 ]
 
-function getLocalDate() {
-  const now = new Date()
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0]
-}
-
 export default function CorpoPage() {
   const [tab, setTab]                     = useState<BodyTab>('resumo')
   const [userId, setUserId]               = useState<string | null>(null)
@@ -31,7 +28,9 @@ export default function CorpoPage() {
   const [trainingPlans, setTrainingPlans] = useState<TrainingPlan[]>([])
   const [dietPlans, setDietPlans]         = useState<DietPlan[]>([])
   const [loading, setLoading]             = useState(true)
-  const today = getLocalDate()
+  const [loadError, setLoadError]         = useState(false)
+  const [retryKey, setRetryKey]           = useState(0)
+  const today = todayISO()
 
   useEffect(() => {
     let active = true
@@ -51,12 +50,29 @@ export default function CorpoPage() {
       setDietPlans((diet ?? []) as DietPlan[])
       setLoading(false)
     }
-    bootstrap()
+    setLoadError(false)
+    setLoading(true)
+    bootstrap().catch((err) => {
+      if (!active) return
+      console.error('[corpo] falha ao carregar dados:', err)
+      setLoadError(true)
+      setLoading(false)
+    })
     return () => { active = false }
-  }, [])
+  }, [retryKey])
 
   if (loading) {
     return <CorpoLoading />
+  }
+
+  if (loadError) {
+    return (
+      <ErrorState
+        title="Os teus dados não carregaram"
+        body="Tivemos um problema a carregar o teu progresso corporal. Verifica a ligação e tenta de novo."
+        onRetry={() => setRetryKey((k) => k + 1)}
+      />
+    )
   }
 
   if (!userId) return null

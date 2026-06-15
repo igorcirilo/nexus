@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { format, getISOWeek, subDays } from 'date-fns'
 import { pt } from 'date-fns/locale'
+import { parseLocalDate } from '@/lib/date'
 import { getProfile } from '@/lib/supabase'
 import { getTrainingEntries, getDietMeals, getWeightLogs, type WeightLog } from '@/lib/body'
 import {
@@ -177,7 +178,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
 
   // ── derived: peso / hero ──────────────────────────────────────
   const latest = weights && weights.length ? weights[weights.length - 1] : null
-  const monthAgoDate = format(subDays(new Date(`${today}T12:00:00`), 30), 'yyyy-MM-dd')
+  const monthAgoDate = format(subDays(parseLocalDate(today), 30), 'yyyy-MM-dd')
   const monthBase = weights?.find((w) => w.date >= monthAgoDate) ?? weights?.[0] ?? null
   const monthDelta =
     latest && monthBase && latest.id !== monthBase.id
@@ -200,11 +201,11 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
   const perCupL = waterGoalL / WATER_CUPS
   const waterAmount = waterFilled * perCupL
 
-  const headerSub = `${cap(format(new Date(`${today}T12:00:00`), 'EEEE', { locale: pt }))}, ${format(
-    new Date(`${today}T12:00:00`),
+  const headerSub = `${cap(format(parseLocalDate(today), 'EEEE', { locale: pt }))}, ${format(
+    parseLocalDate(today),
     "d 'de' MMM",
     { locale: pt }
-  )} · Semana ${getISOWeek(new Date(`${today}T12:00:00`))}`
+  )} · Semana ${getISOWeek(parseLocalDate(today))}`
 
   return (
     <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100vh', padding: '0 22px 28px' }}>

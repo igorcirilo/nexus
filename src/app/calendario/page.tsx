@@ -6,8 +6,10 @@ import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, getDay, isSa
 import { pt } from 'date-fns/locale'
 import Nav from '@/components/Nav'
 import CalendarioLoading from '@/components/calendario/CalendarioLoading'
+import ErrorState from '@/components/ui/ErrorState'
 import { useCalendarioController } from '@/components/calendario/useCalendarioController'
 import { DAYS_MIN, DAYS_SHORT, EVENT_COLORS, PHASE_LABELS, getStreakSide, streakBarStyle, type DayStatus } from '@/components/calendario/types'
+import { parseLocalDate } from '@/lib/date'
 import { AREA_META } from '@/types'
 import type { HabitArea } from '@/types'
 
@@ -74,6 +76,16 @@ export default function CalendarioPage() {
   const [alertsOpen, setAlertsOpen] = useState(false)
 
   if (c.loading) return <CalendarioLoading />
+
+  if (c.loadError) {
+    return (
+      <ErrorState
+        title="O calendário não carregou"
+        body="Tivemos um problema a carregar a tua agenda. Verifica a ligação e tenta de novo."
+        onRetry={c.retryLoad}
+      />
+    )
+  }
 
   const todayDow = getDay(new Date())
   const todayEvents = c.events.filter(e => e.date === c.today).sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''))
@@ -284,7 +296,7 @@ export default function CalendarioPage() {
         <Sheet
           tall
           icon="📆"
-          title={(() => { const s = format(new Date(`${c.selected}T12:00:00`), "EEE, d 'de' MMMM", { locale: pt }); return s.charAt(0).toUpperCase() + s.slice(1) })()}
+          title={(() => { const s = format(parseLocalDate(c.selected), "EEE, d 'de' MMMM", { locale: pt }); return s.charAt(0).toUpperCase() + s.slice(1) })()}
           sub={selStatus?.complete ? 'dia completo' : selCheckinCount > 0 ? `${selCheckinCount} check-in${selCheckinCount === 1 ? '' : 's'}` : undefined}
           onClose={c.closeDay}
           footer={
