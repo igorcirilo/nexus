@@ -278,6 +278,15 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
             ))}
           </div>
 
+          {/* Alternativa textual para leitores de ecrã: o SVG do recharts não é legível. */}
+          <div
+            role="img"
+            aria-label={
+              latest
+                ? `Gráfico de peso. Atual ${Number(latest.weight_kg)} kg. Tendência no período: ${deltaLabel || 'sem variação'}.`
+                : 'Gráfico de evolução do peso'
+            }
+          >
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={chartData} margin={{ top: 4, right: 12, left: -8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
@@ -328,6 +337,18 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
               />
             </LineChart>
           </ResponsiveContainer>
+          </div>
+          {/* Legenda do gráfico (texto + cor, nunca só cor) */}
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 6, fontSize: 10.5, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <i style={{ width: 14, height: 2, background: 'var(--teal)', borderRadius: 1, display: 'inline-block' }} />
+              Tendência (média 7d)
+            </span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <i style={{ width: 6, height: 6, background: 'var(--text3)', borderRadius: '50%', display: 'inline-block' }} />
+              Registo diário
+            </span>
+          </div>
         </div>
       )}
 

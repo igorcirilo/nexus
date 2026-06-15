@@ -115,14 +115,10 @@ export function getPatternInsights(patterns: WeekdayStat[]): string[] {
   const best = withPct[0]
   const worst = withPct[withPct.length - 1]
   if (best.pct >= 50) {
-    insights.push(`${capitalize(DAYS_PT_PREP[best.weekday])} és ${best.pct}% consistente — o teu melhor dia.`)
+    insights.push(`${capitalize(DAYS_PT_PREP[best.weekday])} és ${best.pct}% consistente — o teu melhor dia. Usa o mesmo gatilho nos outros dias.`)
   }
   if (worst.pct < best.pct && worst.weekday !== best.weekday) {
-    insights.push(`${capitalize(DAYS_PT_PREP[worst.weekday])} costumas falhar mais (${worst.pct}%).`)
-  }
-  const diff = best.pct - worst.pct
-  if (diff >= 35 && insights.length >= 2) {
-    insights.push(`Diferença de ${diff}% entre o teu melhor e pior dia — há margem para crescer.`)
+    insights.push(`${capitalize(DAYS_PT_PREP[worst.weekday])} costumas falhar mais (${worst.pct}%). Agenda o hábito mais cedo nesse dia.`)
   }
   return insights
 }
