@@ -27,7 +27,12 @@ export default function AuthPage() {
       const { error: e } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: { data: { full_name: name.trim() || email.split('@')[0] } },
+        options: {
+          data: { full_name: name.trim() || email.split('@')[0] },
+          // Link de confirmação volta SEMPRE para o domínio atual (evita
+          // depender do "Site URL" fixo no Supabase, que pode estar obsoleto).
+          emailRedirectTo: `${window.location.origin}/hoje`,
+        },
       })
       if (e) { setError(e.message); setLoading(false); return }
       // Login imediato após registo

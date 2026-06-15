@@ -14,13 +14,19 @@
 1. Vai a **Authentication → URL Configuration**
 2. Em **Site URL**:
    ```
-   https://nexus-lcd.vercel.app
+   https://nexus301.vercel.app
    ```
 3. Em **Redirect URLs** adiciona:
    ```
-   https://nexus-lcd.vercel.app/**
+   https://nexus301.vercel.app/**
    http://localhost:3000/**
    ```
+
+> ⚠️ O domínio antigo `nexus-lcd.vercel.app` foi removido do Vercel. Garante que
+> o Site URL e os Redirect URLs já **não** o referenciam, senão os emails de
+> confirmação de conta apontam para um domínio morto. O código (`src/app/auth/page.tsx`)
+> já envia `emailRedirectTo` com o domínio atual, mas esse URL tem de estar na
+> lista de **Redirect URLs** acima para o Supabase o aceitar.
 
 ## Passo 3 — Desactivar magic link (opcional)
 
