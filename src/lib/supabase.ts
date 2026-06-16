@@ -1,5 +1,5 @@
 // src/lib/supabase.ts
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
 import { format, endOfMonth } from 'date-fns'
 import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding, ReaderMode, ReaderTheme } from '@/types'
 import { emitToast } from '@/lib/toast-events'
@@ -13,7 +13,10 @@ import { computeRitmo, RITMO_WINDOW_DAYS, type RitmoDay } from '@/lib/ritmo'
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? 'https://placeholder.supabase.co'
 const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key'
 
-export const supabase = createClient(supabaseUrl, supabaseAnon)
+// Client de browser do @supabase/ssr: persiste a sessão em COOKIES (não em
+// localStorage), para que os Server Components/middleware consigam ler a sessão.
+// Mantém a mesma API de query usada em todo o app.
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnon)
 
 function reportError(context: string, message: string) {
   console.error(`[${context}]`, message || 'erro desconhecido')
