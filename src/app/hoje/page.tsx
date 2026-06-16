@@ -168,14 +168,19 @@ export default function HojePage() {
       setWeekFocus(focus)
       await updateStreak(user.id)
 
-      // O streak/título pode ter sido recalculado no servidor: recarrega o perfil.
-      const refreshed = await getProfile(user.id)
-      if (refreshed) {
-        if (manhaCI?.energy) refreshed.energy_today = manhaCI.energy
-        if (manhaCI?.mission) refreshed.mission_today = manhaCI.mission
-        setProfile(refreshed)
+      // update_streak recalcula apenas streak/nível/título no servidor.
+      // Em vez de re-buscar o perfil inteiro (select *), lê só essas colunas
+      // e funde no objeto já carregado — evita um segundo fetch redundante.
+      const { data: streakFields } = await supabase
+        .from('profiles')
+        .select('streak_current, streak_best, streak_last_date, level, title')
+        .eq('id', user.id)
+        .single()
+      if (prof && streakFields) {
+        Object.assign(prof, streakFields)
+        setProfile({ ...prof })
       }
-      const activeProfile = refreshed ?? prof
+      const activeProfile = prof
 
       const ritmoNow = await getRitmo(user.id)
       setRitmo(ritmoNow)

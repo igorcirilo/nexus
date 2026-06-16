@@ -189,7 +189,7 @@ export async function updateFullProfile(userId: string, updates: Record<string, 
 export async function getReminders(userId: string) {
   const { data } = await supabase
     .from('reminders')
-    .select('*')
+    .select('id, title, time, days, active, type')
     .eq('user_id', userId)
     .order('time')
   return data ?? []
@@ -345,13 +345,16 @@ export type AgendaEvent = {
   created_at: string
 }
 
+// Colunas explícitas — evita select('*') e o overfetch de payload.
+export const AGENDA_COLUMNS = 'id, user_id, title, description, date, time, end_time, color, all_day, created_at'
+
 export async function getAgendaEvents(userId: string, year: number, month: number) {
   const firstDay = new Date(year, month - 1, 1)
   const start = format(firstDay, 'yyyy-MM-dd')
   const end = format(endOfMonth(firstDay), 'yyyy-MM-dd')
   const { data, error } = await supabase
     .from('agenda_events')
-    .select('*')
+    .select(AGENDA_COLUMNS)
     .eq('user_id', userId)
     .gte('date', start)
     .lte('date', end)

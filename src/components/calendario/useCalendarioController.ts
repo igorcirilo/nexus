@@ -17,6 +17,7 @@ import {
   toggleHabitLog,
   saveCheckin,
   updateStreak,
+  AGENDA_COLUMNS,
 } from '@/lib/supabase'
 import { todayISO, parseLocalDate } from '@/lib/date'
 import {
@@ -174,7 +175,7 @@ export function useCalendarioController() {
     setPanelLoad(true)
     const [checkins, dayEvents, habits] = await Promise.all([
       getCheckinsForDate(userId, dateStr),
-      supabase.from('agenda_events').select('*').eq('user_id', userId).eq('date', dateStr).order('time'),
+      supabase.from('agenda_events').select(AGENDA_COLUMNS).eq('user_id', userId).eq('date', dateStr).order('time'),
       getHabitsWithLogs(userId, dateStr),
     ])
     setSelCheckins(checkins as Checkin[])

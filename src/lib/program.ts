@@ -2,6 +2,10 @@ import { format } from 'date-fns'
 import type { Program, ProgramWeek, ProgramDay, ProgramTask, HabitArea, TaskTemplate, AreaScores } from '@/types'
 import { FALLBACK_TASK_TEMPLATES, shouldTaskBeOnDay, difficultyForWeek, selectTemplatesForProgram } from '@/lib/program-engine'
 
+// Colunas explícitas — evita select('*') e overfetch nas leituras do programa.
+const PROGRAM_DAY_COLUMNS = 'id, program_id, week_id, day_number, date, created_at'
+const PROGRAM_TASK_COLUMNS = 'id, program_id, day_id, user_id, template_id, title, description, area, difficulty, xp_reward, status, source, completed_at, created_at'
+
 export type DayWithCounts = ProgramDay & {
   task_counts: { total: number; completed: number }
 }
@@ -19,7 +23,7 @@ export async function getProgramDayByDate(
 
   const { data, error } = await supabase
     .from('program_days')
-    .select('*')
+    .select(PROGRAM_DAY_COLUMNS)
     .eq('program_id', programId)
     .eq('date', dateStr)
     .maybeSingle()
@@ -34,7 +38,7 @@ export async function getProgramDayByDate(
 
   const { data: nextDay, error: nextDayError } = await supabase
     .from('program_days')
-    .select('*')
+    .select(PROGRAM_DAY_COLUMNS)
     .eq('program_id', programId)
     .gte('date', dateStr)
     .order('date', { ascending: true })
@@ -51,7 +55,7 @@ export async function getProgramDayByDate(
 
   const { data: lastDay, error: lastDayError } = await supabase
     .from('program_days')
-    .select('*')
+    .select(PROGRAM_DAY_COLUMNS)
     .eq('program_id', programId)
     .lte('date', dateStr)
     .order('date', { ascending: false })
@@ -71,7 +75,7 @@ export async function getProgramTasks(dayId: string): Promise<ProgramTask[]> {
 
   const { data, error } = await supabase
     .from('program_tasks')
-    .select('*')
+    .select(PROGRAM_TASK_COLUMNS)
     .eq('day_id', dayId)
     .order('created_at', { ascending: true })
 
@@ -107,7 +111,7 @@ export async function getFirstProgramDayWithTasks(
 
   const { data: day, error: dayError } = await supabase
     .from('program_days')
-    .select('*')
+    .select(PROGRAM_DAY_COLUMNS)
     .eq('id', firstTask.day_id)
     .maybeSingle()
 
