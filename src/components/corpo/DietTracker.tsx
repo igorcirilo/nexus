@@ -9,7 +9,7 @@ import Icon, { type IconName } from '@/components/ui/Icon'
 import { useToast } from '@/components/Toast'
 import { getDietPlans, saveDietPlan } from '@/lib/supabase'
 import { getDietMeals, upsertDietMeal, deleteDietPlan } from '@/lib/body'
-import { parseDietImport, type ParsedDietPlan } from '@/lib/body-plan'
+import { parseDietImport, normalizeDisplayText, type ParsedDietPlan } from '@/lib/body-plan'
 import type { DietPlan, DietMeal, DietMealKey, FileImportResult } from '@/types'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -45,26 +45,6 @@ function itemCheckKey(item: string) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/(^-|-$)/g, '')
-}
-
-function normalizeDisplayText(value: string) {
-  return value
-    .replace(/Â·/g, '·')
-    .replace(/â€¦/g, '...')
-    .replace(/âœ“/g, '✓')
-    .replace(/Ã§/g, 'ç')
-    .replace(/Ã£/g, 'ã')
-    .replace(/Ã¡/g, 'á')
-    .replace(/Ã¢/g, 'â')
-    .replace(/Ã©/g, 'é')
-    .replace(/Ãª/g, 'ê')
-    .replace(/Ã­/g, 'í')
-    .replace(/Ã³/g, 'ó')
-    .replace(/Ã´/g, 'ô')
-    .replace(/Ãº/g, 'ú')
-    .replace(/Ãµ/g, 'õ')
-    .replace(/\s+/g, ' ')
-    .trim()
 }
 
 function parseMealNotes(raw: string | null | undefined): MealNotesPayload {

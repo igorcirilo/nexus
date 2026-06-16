@@ -31,6 +31,7 @@ import {
   claimStreakRecovery,
 } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
+import { repairMojibake } from '@/lib/text'
 import type { Profile, Checkin, ProgramDay, ProgramTask, HabitArea } from '@/types'
 import { getProgramDayByDate, getProgramTasks, getFirstProgramDayWithTasks, ensureProgramHasTasks, updateTaskStatus, createManualTask, getCurrentProgramWeekFocus, type ProgramWeekFocus } from '@/lib/program'
 import StreakRecovery from '@/components/StreakRecovery'
@@ -50,15 +51,7 @@ const AREA_LABELS: Record<HabitArea, string> = {
   relacionamentos: 'Relacionamentos',
 }
 
-function cleanDisplayText(value: string | null | undefined) {
-  if (!value || !/[ÃÂâ]/.test(value)) return value ?? ''
-
-  try {
-    return new TextDecoder('utf-8').decode(Uint8Array.from(Array.from(value), char => char.charCodeAt(0) & 255))
-  } catch {
-    return value
-  }
-}
+const cleanDisplayText = repairMojibake
 
 function cleanActionText(value: string) {
   const text = cleanDisplayText(value)
