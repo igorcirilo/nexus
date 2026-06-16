@@ -1,6 +1,12 @@
 import { format } from 'date-fns'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Program, ProgramWeek, ProgramDay, ProgramTask, HabitArea, TaskTemplate, AreaScores } from '@/types'
 import { FALLBACK_TASK_TEMPLATES, shouldTaskBeOnDay, difficultyForWeek, selectTemplatesForProgram } from '@/lib/program-engine'
+
+// Resolve o client a usar: o passado (servidor) ou o de browser por omissão.
+async function resolveClient(client?: SupabaseClient): Promise<SupabaseClient> {
+  return client ?? (await import('@/lib/supabase')).supabase
+}
 
 // Colunas explícitas — evita select('*') e overfetch nas leituras do programa.
 const PROGRAM_DAY_COLUMNS = 'id, program_id, week_id, day_number, date, created_at'
@@ -16,9 +22,10 @@ export type WeekWithDays = ProgramWeek & {
 
 export async function getProgramDayByDate(
   programId: string,
-  date: Date = new Date()
+  date: Date = new Date(),
+  client?: SupabaseClient,
 ): Promise<ProgramDay | null> {
-  const { supabase } = await import('@/lib/supabase')
+  const supabase = await resolveClient(client)
   const dateStr = format(date, 'yyyy-MM-dd')
 
   const { data, error } = await supabase
@@ -70,8 +77,8 @@ export async function getProgramDayByDate(
   return (lastDay ?? null) as ProgramDay | null
 }
 
-export async function getProgramTasks(dayId: string): Promise<ProgramTask[]> {
-  const { supabase } = await import('@/lib/supabase')
+export async function getProgramTasks(dayId: string, client?: SupabaseClient): Promise<ProgramTask[]> {
+  const supabase = await resolveClient(client)
 
   const { data, error } = await supabase
     .from('program_tasks')
@@ -88,9 +95,10 @@ export async function getProgramTasks(dayId: string): Promise<ProgramTask[]> {
 }
 
 export async function getFirstProgramDayWithTasks(
-  programId: string
+  programId: string,
+  client?: SupabaseClient,
 ): Promise<ProgramDay | null> {
-  const { supabase } = await import('@/lib/supabase')
+  const supabase = await resolveClient(client)
 
   const { data: firstTask, error: firstTaskError } = await supabase
     .from('program_tasks')

@@ -1,5 +1,6 @@
 // src/lib/supabase.ts
 import { createBrowserClient } from '@supabase/ssr'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { format, endOfMonth } from 'date-fns'
 import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding, ReaderMode, ReaderTheme } from '@/types'
 import { emitToast } from '@/lib/toast-events'
@@ -24,8 +25,10 @@ function reportError(context: string, message: string) {
 }
 
 // ── Perfil ─────────────────────────────────────────────────
-export async function getProfile(userId: string) {
-  const { data } = await supabase
+// O parâmetro `client` permite reusar estas leituras nos Server Components
+// (passando o client de servidor). Por omissão usa o client de browser.
+export async function getProfile(userId: string, client: SupabaseClient = supabase) {
+  const { data } = await client
     .from('profiles')
     .select('*')
     .eq('id', userId)
@@ -68,8 +71,8 @@ export async function toggleHabitLog(
 }
 
 // ── Check-ins ──────────────────────────────────────────────
-export async function getCheckinsForDate(userId: string, date: string) {
-  const { data } = await supabase
+export async function getCheckinsForDate(userId: string, date: string, client: SupabaseClient = supabase) {
+  const { data } = await client
     .from('checkins')
     .select('*')
     .eq('user_id', userId)
