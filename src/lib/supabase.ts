@@ -509,8 +509,8 @@ export async function updateFinancialGoals(
 
 
 // ── Corpo ───────────────────────────────────────────────────
-export async function getTrainingPlans(userId: string) {
-  const { data, error } = await supabase
+export async function getTrainingPlans(userId: string, client: SupabaseClient = supabase) {
+  const { data, error } = await client
     .from('training_plans')
     .select('*')
     .eq('user_id', userId)
@@ -535,8 +535,8 @@ export async function saveTrainingPlan(payload: Record<string, unknown>) {
   return { data, error }
 }
 
-export async function getDietPlans(userId: string) {
-  const { data, error } = await supabase
+export async function getDietPlans(userId: string, client: SupabaseClient = supabase) {
+  const { data, error } = await client
     .from('diet_plans')
     .select('*')
     .eq('user_id', userId)

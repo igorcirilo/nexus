@@ -34,8 +34,8 @@ import {
   type WeekdayStat,
 } from '@/components/calendario/types'
 
-export function useCalendarioController() {
-  const [userId, setUserId] = useState<string | null>(null)
+export function useCalendarioController(initialUserId?: string) {
+  const [userId, setUserId] = useState<string | null>(initialUserId ?? null)
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [current, setCurrent] = useState(new Date())
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
@@ -132,18 +132,25 @@ export function useCalendarioController() {
     let cancelled = false
     setLoadError(false)
     setLoading(true)
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { window.location.href = '/auth'; return }
-      if (cancelled) return
-      setUserId(user.id)
+    // O userId chega do Server Component (auth feita no servidor); só recorremos
+    // ao getUser do cliente como fallback se não tiver sido fornecido.
+    async function resolveUser(): Promise<string | null> {
+      if (initialUserId) return initialUserId
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { window.location.href = '/auth'; return null }
+      return user.id
+    }
+    resolveUser().then(async (uid) => {
+      if (!uid || cancelled) return
+      setUserId(uid)
       await Promise.all([
-        loadMonth(user.id, new Date()),
-        getReminders(user.id).then(data => setReminders(data as Reminder[])),
-        getCheckinsForDate(user.id, today).then(data => setTodayCI(data as Checkin[])),
+        loadMonth(uid, new Date()),
+        getReminders(uid).then(data => setReminders(data as Reminder[])),
+        getCheckinsForDate(uid, today).then(data => setTodayCI(data as Checkin[])),
       ])
       if (cancelled) return
       setLoading(false)
-      loadPatterns(user.id)
+      loadPatterns(uid)
     }).catch((err) => {
       if (cancelled) return
       console.error('[calendario] falha ao carregar dados:', err)
@@ -151,7 +158,7 @@ export function useCalendarioController() {
       setLoading(false)
     })
     return () => { cancelled = true }
-  }, [today, loadMonth, loadPatterns, retryKey])
+  }, [today, loadMonth, loadPatterns, retryKey, initialUserId])
 
   async function changeMonth(dir: 1 | -1) {
     const next = dir === 1 ? addMonths(current, 1) : subMonths(current, 1)
