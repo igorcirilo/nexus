@@ -5,17 +5,13 @@ import type { CSSProperties } from 'react'
 import Nav from '@/components/Nav'
 import HabitosHub from '@/components/habitos/HabitosHub'
 import { supabase, getHabitsWithLogs, toggleHabitLog } from '@/lib/supabase'
+import { todayISO } from '@/lib/date'
 import { AREA_META } from '@/types'
 import type { Habit, HabitArea } from '@/types'
 
 type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[] }
 
 const FONT = 'Inter, sans-serif'
-
-function getLocalDate() {
-  const now = new Date()
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().split('T')[0]
-}
 
 const AREAS = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
 
@@ -130,7 +126,7 @@ export default function HabitosPage() {
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState('')
   const [todayHabits, setTodayHabits] = useState<HabitWithLog[]>([])
-  const today = getLocalDate()
+  const today = todayISO()
 
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
@@ -145,7 +141,7 @@ export default function HabitosPage() {
   }, [])
 
   async function reload(uid: string) {
-    const date = getLocalDate()
+    const date = todayISO()
     const [{ data }, todays] = await Promise.all([
       supabase.from('habits').select('*').eq('user_id', uid).order('area').order('name'),
       getHabitsWithLogs(uid, date),

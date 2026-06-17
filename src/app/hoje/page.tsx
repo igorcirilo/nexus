@@ -1,438 +1,61 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
-import Nav from '@/components/Nav'
-import RitmoBar from '@/components/RitmoBar'
-import FeedbackToast, { triggerToast } from '@/components/FeedbackToast'
-import AvatarXP from '@/components/AvatarXP'
-import NightSummaryCard from '@/components/NightSummaryCard'
-import LevelUpModal from '@/components/LevelUpModal'
-import BadgeModal from '@/components/BadgeModal'
-import EmptyState from '@/components/EmptyState'
-import AddTaskSheet from '@/components/hoje/AddTaskSheet'
-import HojeLoading from '@/components/hoje/HojeLoading'
-import TodayCommandPanel from '@/components/hoje/TodayCommandPanel'
-import TodayMetrics from '@/components/hoje/TodayMetrics'
-import TodayMissionPanel from '@/components/hoje/TodayMissionPanel'
-import TodayTaskList, { type TodayTaskView } from '@/components/hoje/TodayTaskList'
-import WeeklyChallengeStrip from '@/components/hoje/WeeklyChallengeStrip'
-import Icon from '@/components/ui/Icon'
-import {
-  supabase,
-  getProfile,
-  getRitmo,
-  updateStreak,
-  getCheckinsForDate,
-  checkAndAwardBadges,
-  claimLoginBonus,
-  canClaimStreakRecovery,
-  claimStreakRecovery,
-} from '@/lib/supabase'
-import { getMentorMessage } from '@/lib/mentor'
-import type { Profile, Checkin, ProgramDay, ProgramTask, HabitArea } from '@/types'
-import { getProgramDayByDate, getProgramTasks, getFirstProgramDayWithTasks, ensureProgramHasTasks, updateTaskStatus, createManualTask, getCurrentProgramWeekFocus, type ProgramWeekFocus } from '@/lib/program'
-import StreakRecovery from '@/components/StreakRecovery'
+import { redirect } from 'next/navigation'
+import { createServerSupabase } from '@/lib/supabase-server'
+import { getProfile, getCheckinsForDate } from '@/lib/supabase'
+import { getProgramDayByDate, getProgramTasks, getFirstProgramDayWithTasks } from '@/lib/program'
+import { todayISO } from '@/lib/date'
+import type { Profile, Checkin, ProgramDay, ProgramTask } from '@/types'
+import HojeClient from './HojeClient'
 
 type ProfileWithProgram = Profile & {
   program_id?: string | null
   onboarding_version?: number | null
 }
 
-const AREA_LABELS: Record<HabitArea, string> = {
-  corpo: 'Corpo',
-  produtividade: 'Produtividade',
-  idiomas: 'Idiomas',
-  carreira: 'Carreira',
-  financas: 'Finanças',
-  emocoes: 'Emoções',
-  relacionamentos: 'Relacionamentos',
-}
+// Server Component: faz a auth e busca os dados de LEITURA do dia no servidor.
+// As mutações de gamificação (streak, badges, login bónus) ficam no client island.
+export default async function HojePage() {
+  const sb = createServerSupabase()
+  const { data: { user } } = await sb.auth.getUser()
+  if (!user) redirect('/auth')
 
-function cleanDisplayText(value: string | null | undefined) {
-  if (!value || !/[ÃÂâ]/.test(value)) return value ?? ''
+  const today = todayISO()
+  const [profileRaw, checkinsRaw] = await Promise.all([
+    getProfile(user.id, sb),
+    getCheckinsForDate(user.id, today, sb),
+  ])
+  const profile = (profileRaw ?? null) as ProfileWithProgram | null
+  const checkins = (checkinsRaw ?? []) as Checkin[]
 
-  try {
-    return new TextDecoder('utf-8').decode(Uint8Array.from(Array.from(value), char => char.charCodeAt(0) & 255))
-  } catch {
-    return value
-  }
-}
+  const hasV2 = Boolean(profile && profile.program_id && (profile.onboarding_version ?? 1) >= 2)
+  if (profile && !profile.onboarded && !hasV2) redirect('/onboarding-v2')
 
-function cleanActionText(value: string) {
-  const text = cleanDisplayText(value)
-    .replace(/^Pr\S*ximo passo:\s*/i, '')
-    .replace(/\s+Isso j\S* \S* progresso\.$/i, '')
-    .trim()
-  return text ? text.charAt(0).toLocaleUpperCase('pt-PT') + text.slice(1) : text
-}
+  const noProgram = Boolean(profile && !hasV2)
 
-export default function HojePage() {
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [ritmo, setRitmo] = useState(0)
-  const [userId, setUserId] = useState<string>('')
-  const [missionPct, setMissionPct] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [showRecovery, setShowRecovery] = useState(false)
-  const [canRecover, setCanRecover] = useState(false)
-  const [todayCheckins, setTodayCheckins] = useState<Checkin[]>([])
-  const [weekFocus, setWeekFocus] = useState<ProgramWeekFocus | null>(null)
-  const [programDay, setProgramDay] = useState<ProgramDay | null>(null)
-  const [tasks, setTasks] = useState<ProgramTask[]>([])
-  const [noProgram, setNoProgram] = useState(false)
-  const [selectedTask, setSelectedTask] = useState<ProgramTask | null>(null)
-  const [addTaskOpen, setAddTaskOpen] = useState(false)
-  const [taskSaving, setTaskSaving] = useState(false)
-  const [challengeOpen, setChallengeOpen] = useState(false)
-  const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
-  const [pendingBadges, setPendingBadges] = useState<{ key: string; name: string }[]>([])
-  const today = format(new Date(), 'yyyy-MM-dd')
-  const hour = new Date().getHours()
-
-  const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
-
-  useEffect(() => {
-    async function load() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        window.location.href = '/auth'
-        return
-      }
-      setUserId(user.id)
-
-      const [prof, checkins] = await Promise.all([
-        getProfile(user.id),
-        getCheckinsForDate(user.id, today),
-      ])
-
-      const hasCompletedV2Onboarding = Boolean(
-        prof &&
-        ((prof as ProfileWithProgram).program_id) &&
-        ((((prof as ProfileWithProgram).onboarding_version) ?? 1) >= 2)
-      )
-
-      if (prof && !prof.onboarded && !hasCompletedV2Onboarding) {
-        window.location.href = '/onboarding-v2'
-        return
-      }
-      if (prof && !hasCompletedV2Onboarding) {
-        setNoProgram(true)
-      }
-
-      const typedCheckins = (checkins ?? []) as Checkin[]
-      setTodayCheckins(typedCheckins)
-
-      const manhaCI = typedCheckins.find((c) => c.phase === 'manha')
-      if (prof && manhaCI?.energy) prof.energy_today = manhaCI.energy
-      if (prof && manhaCI?.mission) prof.mission_today = manhaCI.mission
-
-      setProfile(prof)
-
-      if (prof && prof.streak_current === 0 && prof.streak_best > 0) {
-        setShowRecovery(true)
-        const canRec = await canClaimStreakRecovery(user.id)
-        setCanRecover(canRec)
-      }
-
-      if (hasCompletedV2Onboarding) {
-        const programId = (prof as ProfileWithProgram).program_id!
-        await ensureProgramHasTasks(user.id, programId)
-        const day = await getProgramDayByDate(programId)
-        if (day) {
-          const dayTasks = await getProgramTasks(day.id)
-
-          if (dayTasks.length > 0) {
-            setProgramDay(day)
-            setTasks(dayTasks)
-          } else {
-            const fallbackDay = await getFirstProgramDayWithTasks(programId)
-            if (fallbackDay) {
-              const fallbackTasks = await getProgramTasks(fallbackDay.id)
-              setProgramDay(fallbackDay)
-              setTasks(fallbackTasks)
-            } else {
-              setProgramDay(day)
-              setTasks([])
-            }
-          }
+  let programDay: ProgramDay | null = null
+  let tasks: ProgramTask[] = []
+  if (hasV2 && profile?.program_id) {
+    programDay = await getProgramDayByDate(profile.program_id, new Date(), sb)
+    if (programDay) {
+      tasks = await getProgramTasks(programDay.id, sb)
+      if (tasks.length === 0) {
+        const fallback = await getFirstProgramDayWithTasks(profile.program_id, sb)
+        if (fallback) {
+          programDay = fallback
+          tasks = await getProgramTasks(fallback.id, sb)
         }
       }
-
-      const focus = await getCurrentProgramWeekFocus(user.id)
-      setWeekFocus(focus)
-      await updateStreak(user.id)
-
-      // O streak/título pode ter sido recalculado no servidor: recarrega o perfil.
-      const refreshed = await getProfile(user.id)
-      if (refreshed) {
-        if (manhaCI?.energy) refreshed.energy_today = manhaCI.energy
-        if (manhaCI?.mission) refreshed.mission_today = manhaCI.mission
-        setProfile(refreshed)
-      }
-      const activeProfile = refreshed ?? prof
-
-      const ritmoNow = await getRitmo(user.id)
-      setRitmo(ritmoNow)
-
-      await claimLoginBonus(user.id)
-
-      if (activeProfile) {
-        const newBadges = await checkAndAwardBadges(user.id, {
-          streak_current: activeProfile.streak_current,
-          streak_best: activeProfile.streak_best,
-          ritmo: ritmoNow,
-        })
-        if (newBadges.length > 0) {
-          setPendingBadges(newBadges)
-        }
-      }
-
-      setLoading(false)
     }
-
-    load()
-  }, [today])
-
-  async function handleStreakRecover() {
-    if (!userId) return
-    const success = await claimStreakRecovery(userId)
-    if (success) {
-      setShowRecovery(false)
-      setCanRecover(false)
-      const updated = await getProfile(userId)
-      if (updated) setProfile(updated)
-    }
-  }
-
-  async function handleSkipTask(task: ProgramTask) {
-    await updateTaskStatus(task.id, 'skipped')
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'skipped' } : t))
-  }
-
-  async function handleCompleteTask(task: ProgramTask) {
-    await updateTaskStatus(task.id, 'completed')
-    setTasks(prev => prev.map(t =>
-      t.id === task.id ? { ...t, status: 'completed', completed_at: new Date().toISOString() } : t
-    ))
-    if (userId) {
-      triggerToast(`${cleanDisplayText(task.title)} — feito`)
-      setRitmo(await getRitmo(userId))
-    }
-  }
-
-  async function handleCreateManualTask(title: string, area: HabitArea) {
-    if (!userId || !programDay) return
-    setTaskSaving(true)
-    try {
-      const task = await createManualTask(userId, programDay.id, programDay.program_id, title, area)
-      setTasks(prev => [...prev, task])
-      setAddTaskOpen(false)
-    } finally {
-      setTaskSaving(false)
-    }
-  }
-
-  const doneCnt = tasks.filter((t) => t.status === 'completed').length
-  const totalHabits = tasks.length
-  const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
-  const currentPhase = hour < 12 ? 'manha' : hour < 18 ? 'tarde' : 'noite'
-  const checkinLabel = hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite'
-  const checkinPending = !todayCheckins.some((c) => c.phase === currentPhase)
-  const todayTaskViews: TodayTaskView[] = tasks.map(task => ({
-    task,
-    title: cleanDisplayText(task.title),
-    description: cleanDisplayText(task.description),
-    areaLabel: AREA_LABELS[task.area] ?? task.area,
-  }))
-
-  const mentorMsg = profile
-    ? getMentorMessage({
-        energy: profile.energy_today,
-        streak: profile.streak_current,
-        habitsDone: doneCnt,
-        habitsTotal: totalHabits,
-        missionPct,
-        phase: hour < 13 ? 'manha' : hour < 19 ? 'tarde' : 'noite',
-        hour,
-      })
-    : { body: '...', action: '...' }
-  const primaryAction = cleanActionText(mentorMsg.action)
-
-  const selectedTaskTitle = selectedTask ? cleanDisplayText(selectedTask.title) : ''
-  const selectedTaskDescription = selectedTask ? cleanDisplayText(selectedTask.description) : ''
-  const selectedTaskArea = selectedTask ? AREA_LABELS[selectedTask.area] ?? selectedTask.area : ''
-
-  if (loading) {
-    return <HojeLoading />
   }
 
   return (
-    <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', animation: 'fadeUp .3s ease' }}>
-      <FeedbackToast />
-
-      {levelUpData && (
-        <LevelUpModal
-          level={levelUpData.level}
-          title={levelUpData.title}
-          onClose={() => setLevelUpData(null)}
-        />
-      )}
-
-      {pendingBadges.length > 0 && (
-        <BadgeModal
-          badges={pendingBadges}
-          onClose={() => setPendingBadges(prev => prev.slice(1))}
-        />
-      )}
-
-      {showRecovery && profile && (
-        <StreakRecovery
-          prevBest={profile.streak_best}
-          canRecover={canRecover}
-          onRecover={handleStreakRecover}
-          onDismiss={() => setShowRecovery(false)}
-          onCheckin={() => {
-            window.location.href = '/checkin'
-          }}
-        />
-      )}
-
-      <AddTaskSheet
-        open={addTaskOpen}
-        saving={taskSaving}
-        onClose={() => setAddTaskOpen(false)}
-        onCreate={handleCreateManualTask}
-      />
-
-      <header style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          {profile && <AvatarXP level={profile.level} size={48} avatarUrl={profile.avatar_url} />}
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 2 }}>
-              {greeting}, {profile?.username ?? 'Guerreiro'}
-            </p>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>
-              Hoje
-            </h1>
-          </div>
-        </div>
-
-        <a href="/progresso" aria-label="Ver progresso" style={{ minWidth: 116, minHeight: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg, rgba(28,32,48,.96), rgba(20,23,32,.96))', border: '0.5px solid rgba(255,255,255,.08)', borderRadius: 18, padding: '8px 12px', color: 'var(--gold)', boxShadow: '0 14px 38px rgba(0,0,0,.22)', textDecoration: 'none', touchAction: 'manipulation' }}>
-          <Icon name="flame" size={24} style={{ animation: 'flame 1.8s ease-in-out infinite', transformOrigin: 'bottom center' }} />
-          <div>
-            <div style={{ fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--gold)', lineHeight: 1 }}>
-              {profile?.streak_current ?? 0} dias
-            </div>
-            <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4, lineHeight: 1 }}>sequência</div>
-          </div>
-          <Icon name="chevron-right" size={16} color="var(--text3)" />
-        </a>
-      </header>
-
-      {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
-
-      <TodayCommandPanel action={primaryAction} context={mentorMsg.body} checkinPending={checkinPending} />
-
-      <TodayMetrics
-        metrics={[
-          { icon: 'zap', label: 'Energia', value: `${profile?.energy_today ?? 5}/10`, color: 'var(--teal)', progress: ((profile?.energy_today ?? 5) / 10) * 100, caption: 'Moderada' },
-          { icon: 'target', label: 'Hábitos', value: `${doneCnt}/${totalHabits}`, color: 'var(--accent)', progress: totalHabits > 0 ? (doneCnt / totalHabits) * 100 : 0, caption: `${totalHabits > 0 ? Math.round((doneCnt / totalHabits) * 100) : 0}% concluídos` },
-          { icon: 'clipboard', label: 'Check-in', value: checkinLabel, color: 'var(--teal)', caption: todayCheckins.length > 0 ? 'Em andamento' : 'Pendente' },
-        ]}
-      />
-
-      {profile && (
-        <TodayMissionPanel
-          mission={profile.mission_today || 'Definir a missão no check-in da manhã'}
-          progress={missionPct}
-          onProgress={setMissionPct}
-        />
-      )}
-
-      <div style={{ padding: '0 20px' }}>
-        {noProgram ? (
-          <EmptyState
-            icon="target"
-            title="Complete seu diagnóstico"
-            body="Responda algumas perguntas para receber seu plano personalizado de 63 dias."
-            action={{ label: 'Começar diagnóstico', href: '/onboarding' }}
-          />
-        ) : !programDay ? (
-          <div style={{ color: 'var(--text3)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>
-            Seu próximo dia ainda está sendo preparado
-          </div>
-        ) : null}
-      </div>
-
-      {!noProgram && programDay && (
-        <>
-          <TodayTaskList
-            tasks={todayTaskViews}
-            doneCount={doneCnt}
-            totalCount={totalHabits}
-            onAddTask={() => setAddTaskOpen(true)}
-            onSelectTask={setSelectedTask}
-            onSkipTask={handleSkipTask}
-            onCompleteTask={handleCompleteTask}
-          />
-
-          {weekFocus && (
-            <WeeklyChallengeStrip
-              theme={weekFocus.theme}
-              weekNumber={weekFocus.weekNumber}
-              totalWeeks={weekFocus.totalWeeks}
-              done={weekFocus.done}
-              total={weekFocus.total}
-              open={challengeOpen}
-              onToggle={() => setChallengeOpen(open => !open)}
-            />
-          )}
-        </>
-      )}
-
-      {profile && nightCheckin && (
-        <NightSummaryCard
-          ritmo={ritmo}
-          habitsFeitos={doneCnt}
-          habitsTotal={totalHabits}
-          streak={profile.streak_current}
-          onVerProgresso={() => {
-            window.location.href = '/progresso'
-          }}
-        />
-      )}
-
-      {selectedTask && (
-        <div
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,.5)' }}
-          onClick={() => setSelectedTask(null)}
-        >
-          <div
-            style={{ width: '100%', maxWidth: 512, margin: '0 auto', background: 'var(--bg2)', borderRadius: '20px 20px 0 0', padding: '20px 24px calc(28px + env(safe-area-inset-bottom))', maxHeight: 'min(86dvh, 720px)', overflowY: 'auto' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ width: 32, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
-            <p style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>{selectedTaskArea}</p>
-            <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text1)', marginBottom: 8 }}>{selectedTaskTitle}</h3>
-            {selectedTaskDescription && (
-              <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 16 }}>{selectedTaskDescription}</p>
-            )}
-            <div style={{ display: 'flex', gap: 12, fontSize: 13, marginBottom: 24 }}>
-              <span style={{ color: 'var(--text3)' }}>Dificuldade {selectedTask.difficulty}</span>
-            </div>
-            <button
-              onClick={() => setSelectedTask(null)}
-              style={{ width: '100%', padding: 14, borderRadius: 14, background: 'var(--bg3)', color: 'var(--text2)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}
-            >
-              Fechar
-            </button>
-          </div>
-        </div>
-      )}
-
-      <Nav />
-    </main>
+    <HojeClient
+      userId={user.id}
+      serverToday={today}
+      initialProfile={profile}
+      initialCheckins={checkins}
+      initialProgramDay={programDay}
+      initialTasks={tasks}
+      initialNoProgram={noProgram}
+    />
   )
 }

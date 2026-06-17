@@ -1,4 +1,5 @@
 import type { DietMeal, DietMealKey, FileImportResult } from '@/types'
+import { repairMojibake } from '@/lib/text'
 
 export type TrainingExercisePlan = {
   id: string
@@ -360,7 +361,9 @@ function extractWideDietRowEntries(row: Record<string, string | number | boolean
 }
 
 function linesFromPdf(result: Extract<FileImportResult, { kind: 'pdf' }>) {
-  return result.extractedText
+  // Repara mojibake na origem: o texto importado é gravado já correto,
+  // sem depender da reparação em tempo de exibição.
+  return repairMojibake(result.extractedText)
     .split(/\r?\n/)
     .map(normalizeLine)
     .filter(Boolean)
@@ -376,7 +379,8 @@ function makeId(prefix: string, value: string, index: number) {
 
 function asString(value: unknown) {
   if (value === null || value === undefined) return ''
-  return compactSpaces(String(value))
+  // Repara mojibake na origem (todas as células da planilha passam por aqui).
+  return compactSpaces(repairMojibake(String(value)))
 }
 
 function keyOf(header: string) {
@@ -850,23 +854,7 @@ export function itemCheckKey(item: string) {
 }
 
 export function normalizeDisplayText(value: string) {
-  return value
-    .replace(/Â·/g, '·')
-    .replace(/â€¦/g, '...')
-    .replace(/âœ“/g, '✓')
-    .replace(/Ã§/g, 'ç')
-    .replace(/Ã£/g, 'ã')
-    .replace(/Ã¡/g, 'á')
-    .replace(/Ã¢/g, 'â')
-    .replace(/Ã©/g, 'é')
-    .replace(/Ãª/g, 'ê')
-    .replace(/Ã­/g, 'í')
-    .replace(/Ã³/g, 'ó')
-    .replace(/Ã´/g, 'ô')
-    .replace(/Ãº/g, 'ú')
-    .replace(/Ãµ/g, 'õ')
-    .replace(/\s+/g, ' ')
-    .trim()
+  return repairMojibake(value).replace(/\s+/g, ' ').trim()
 }
 
 export function parseMealNotes(raw: string | null | undefined): MealNotesPayload {

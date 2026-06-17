@@ -1,5 +1,6 @@
 // src/lib/supabase.ts
-import { createClient } from '@supabase/supabase-js'
+import { createBrowserClient } from '@supabase/ssr'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { format, endOfMonth } from 'date-fns'
 import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding, ReaderMode, ReaderTheme } from '@/types'
 import { emitToast } from '@/lib/toast-events'
@@ -13,7 +14,10 @@ import { computeRitmo, RITMO_WINDOW_DAYS, type RitmoDay } from '@/lib/ritmo'
 const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL  ?? 'https://placeholder.supabase.co'
 const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key'
 
-export const supabase = createClient(supabaseUrl, supabaseAnon)
+// Client de browser do @supabase/ssr: persiste a sessão em COOKIES (não em
+// localStorage), para que os Server Components/middleware consigam ler a sessão.
+// Mantém a mesma API de query usada em todo o app.
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnon)
 
 function reportError(context: string, message: string) {
   console.error(`[${context}]`, message || 'erro desconhecido')
@@ -21,8 +25,10 @@ function reportError(context: string, message: string) {
 }
 
 // ── Perfil ─────────────────────────────────────────────────
-export async function getProfile(userId: string) {
-  const { data } = await supabase
+// O parâmetro `client` permite reusar estas leituras nos Server Components
+// (passando o client de servidor). Por omissão usa o client de browser.
+export async function getProfile(userId: string, client: SupabaseClient = supabase) {
+  const { data } = await client
     .from('profiles')
     .select('*')
     .eq('id', userId)
@@ -65,8 +71,8 @@ export async function toggleHabitLog(
 }
 
 // ── Check-ins ──────────────────────────────────────────────
-export async function getCheckinsForDate(userId: string, date: string) {
-  const { data } = await supabase
+export async function getCheckinsForDate(userId: string, date: string, client: SupabaseClient = supabase) {
+  const { data } = await client
     .from('checkins')
     .select('*')
     .eq('user_id', userId)
@@ -189,7 +195,7 @@ export async function updateFullProfile(userId: string, updates: Record<string, 
 export async function getReminders(userId: string) {
   const { data } = await supabase
     .from('reminders')
-    .select('*')
+    .select('id, title, time, days, active, type')
     .eq('user_id', userId)
     .order('time')
   return data ?? []
@@ -345,13 +351,16 @@ export type AgendaEvent = {
   created_at: string
 }
 
+// Colunas explícitas — evita select('*') e o overfetch de payload.
+export const AGENDA_COLUMNS = 'id, user_id, title, description, date, time, end_time, color, all_day, created_at'
+
 export async function getAgendaEvents(userId: string, year: number, month: number) {
   const firstDay = new Date(year, month - 1, 1)
   const start = format(firstDay, 'yyyy-MM-dd')
   const end = format(endOfMonth(firstDay), 'yyyy-MM-dd')
   const { data, error } = await supabase
     .from('agenda_events')
-    .select('*')
+    .select(AGENDA_COLUMNS)
     .eq('user_id', userId)
     .gte('date', start)
     .lte('date', end)
@@ -500,8 +509,8 @@ export async function updateFinancialGoals(
 
 
 // ── Corpo ───────────────────────────────────────────────────
-export async function getTrainingPlans(userId: string) {
-  const { data, error } = await supabase
+export async function getTrainingPlans(userId: string, client: SupabaseClient = supabase) {
+  const { data, error } = await client
     .from('training_plans')
     .select('*')
     .eq('user_id', userId)
@@ -526,8 +535,8 @@ export async function saveTrainingPlan(payload: Record<string, unknown>) {
   return { data, error }
 }
 
-export async function getDietPlans(userId: string) {
-  const { data, error } = await supabase
+export async function getDietPlans(userId: string, client: SupabaseClient = supabase) {
+  const { data, error } = await client
     .from('diet_plans')
     .select('*')
     .eq('user_id', userId)

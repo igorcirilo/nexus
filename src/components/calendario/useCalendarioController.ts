@@ -17,7 +17,9 @@ import {
   toggleHabitLog,
   saveCheckin,
   updateStreak,
+  AGENDA_COLUMNS,
 } from '@/lib/supabase'
+import { todayISO, parseLocalDate } from '@/lib/date'
 import {
   computeCurrentStreak,
   getPatternInsights,
@@ -32,8 +34,8 @@ import {
   type WeekdayStat,
 } from '@/components/calendario/types'
 
-export function useCalendarioController() {
-  const [userId, setUserId] = useState<string | null>(null)
+export function useCalendarioController(initialUserId?: string) {
+  const [userId, setUserId] = useState<string | null>(initialUserId ?? null)
   const [viewMode, setViewMode] = useState<ViewMode>('month')
   const [current, setCurrent] = useState(new Date())
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
@@ -46,6 +48,8 @@ export function useCalendarioController() {
   const [reminders, setReminders] = useState<Reminder[]>([])
   const [events, setEvents] = useState<AgendaEvent[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
   const [todayCI, setTodayCI] = useState<Checkin[]>([])
   const [toast, setToast] = useState('')
   const [quickPhase, setQuickPhase] = useState<string | null>(null)
@@ -64,14 +68,14 @@ export function useCalendarioController() {
   const [showEvForm, setShowEvForm] = useState(false)
   const [evTitle, setEvTitle] = useState('')
   const [evDesc, setEvDesc] = useState('')
-  const [evDate, setEvDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [evDate, setEvDate] = useState(todayISO())
   const [evTime, setEvTime] = useState('')
   const [evEndTime, setEvEndTime] = useState('')
   const [evColor, setEvColor] = useState('#E8A838')
   const [evAllDay, setEvAllDay] = useState(false)
   const [evRecurrence, setEvRecurrence] = useState<Recurrence>('none')
   const [evSaving, setEvSaving] = useState(false)
-  const today = format(new Date(), 'yyyy-MM-dd')
+  const today = todayISO()
 
   function showToast(message: string) {
     setToast(message)
@@ -116,7 +120,7 @@ export function useCalendarioController() {
     const stats: WeekdayStat[] = Array.from({ length: 7 }, (_, weekday) => ({ weekday, done: 0, total: 0 }))
     Object.entries(byDate).forEach(([dateStr, stat]) => {
       if (dateStr > today) return
-      const weekday = getDay(new Date(`${dateStr}T12:00:00`))
+      const weekday = getDay(parseLocalDate(dateStr))
       stats[weekday].done += stat.done > 0 ? 1 : 0
       stats[weekday].total += 1
     })
@@ -125,18 +129,36 @@ export function useCalendarioController() {
   }, [today])
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { window.location.href = '/auth'; return }
-      setUserId(user.id)
+    let cancelled = false
+    setLoadError(false)
+    setLoading(true)
+    // O userId chega do Server Component (auth feita no servidor); só recorremos
+    // ao getUser do cliente como fallback se não tiver sido fornecido.
+    async function resolveUser(): Promise<string | null> {
+      if (initialUserId) return initialUserId
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { window.location.href = '/auth'; return null }
+      return user.id
+    }
+    resolveUser().then(async (uid) => {
+      if (!uid || cancelled) return
+      setUserId(uid)
       await Promise.all([
-        loadMonth(user.id, new Date()),
-        getReminders(user.id).then(data => setReminders(data as Reminder[])),
-        getCheckinsForDate(user.id, today).then(data => setTodayCI(data as Checkin[])),
+        loadMonth(uid, new Date()),
+        getReminders(uid).then(data => setReminders(data as Reminder[])),
+        getCheckinsForDate(uid, today).then(data => setTodayCI(data as Checkin[])),
       ])
+      if (cancelled) return
       setLoading(false)
-      loadPatterns(user.id)
+      loadPatterns(uid)
+    }).catch((err) => {
+      if (cancelled) return
+      console.error('[calendario] falha ao carregar dados:', err)
+      setLoadError(true)
+      setLoading(false)
     })
-  }, [today, loadMonth, loadPatterns])
+    return () => { cancelled = true }
+  }, [today, loadMonth, loadPatterns, retryKey, initialUserId])
 
   async function changeMonth(dir: 1 | -1) {
     const next = dir === 1 ? addMonths(current, 1) : subMonths(current, 1)
@@ -160,7 +182,7 @@ export function useCalendarioController() {
     setPanelLoad(true)
     const [checkins, dayEvents, habits] = await Promise.all([
       getCheckinsForDate(userId, dateStr),
-      supabase.from('agenda_events').select('*').eq('user_id', userId).eq('date', dateStr).order('time'),
+      supabase.from('agenda_events').select(AGENDA_COLUMNS).eq('user_id', userId).eq('date', dateStr).order('time'),
       getHabitsWithLogs(userId, dateStr),
     ])
     setSelCheckins(checkins as Checkin[])
@@ -219,7 +241,7 @@ export function useCalendarioController() {
     const authUserId = userId || (await supabase.auth.getUser()).data.user?.id || null
     if (!authUserId || !evTitle.trim()) return
     setEvSaving(true)
-    const baseDate = new Date(`${evDate}T12:00:00`)
+    const baseDate = parseLocalDate(evDate)
     const dates: string[] = [evDate]
     if (evRecurrence === 'diario') for (let i = 1; i < 14; i++) dates.push(format(addDays(baseDate, i), 'yyyy-MM-dd'))
     if (evRecurrence === 'semanal') for (let i = 1; i < 12; i++) dates.push(format(addWeeks(baseDate, i), 'yyyy-MM-dd'))
@@ -245,7 +267,7 @@ export function useCalendarioController() {
   const insights = patternsLoaded ? getPatternInsights(patterns) : []
 
   return {
-    loading, toast, today, insights,
+    loading, loadError, retryLoad: () => setRetryKey((k) => k + 1), toast, today, insights,
     // grelha
     viewMode, setViewMode, current, weekStart, dayMap, events, selected,
     currentStreak: computeCurrentStreak(dayMap),

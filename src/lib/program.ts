@@ -1,6 +1,16 @@
 import { format } from 'date-fns'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Program, ProgramWeek, ProgramDay, ProgramTask, HabitArea, TaskTemplate, AreaScores } from '@/types'
 import { FALLBACK_TASK_TEMPLATES, shouldTaskBeOnDay, difficultyForWeek, selectTemplatesForProgram } from '@/lib/program-engine'
+
+// Resolve o client a usar: o passado (servidor) ou o de browser por omissão.
+async function resolveClient(client?: SupabaseClient): Promise<SupabaseClient> {
+  return client ?? (await import('@/lib/supabase')).supabase
+}
+
+// Colunas explícitas — evita select('*') e overfetch nas leituras do programa.
+const PROGRAM_DAY_COLUMNS = 'id, program_id, week_id, day_number, date, created_at'
+const PROGRAM_TASK_COLUMNS = 'id, program_id, day_id, user_id, template_id, title, description, area, difficulty, xp_reward, status, source, completed_at, created_at'
 
 export type DayWithCounts = ProgramDay & {
   task_counts: { total: number; completed: number }
@@ -12,14 +22,15 @@ export type WeekWithDays = ProgramWeek & {
 
 export async function getProgramDayByDate(
   programId: string,
-  date: Date = new Date()
+  date: Date = new Date(),
+  client?: SupabaseClient,
 ): Promise<ProgramDay | null> {
-  const { supabase } = await import('@/lib/supabase')
+  const supabase = await resolveClient(client)
   const dateStr = format(date, 'yyyy-MM-dd')
 
   const { data, error } = await supabase
     .from('program_days')
-    .select('*')
+    .select(PROGRAM_DAY_COLUMNS)
     .eq('program_id', programId)
     .eq('date', dateStr)
     .maybeSingle()
@@ -34,7 +45,7 @@ export async function getProgramDayByDate(
 
   const { data: nextDay, error: nextDayError } = await supabase
     .from('program_days')
-    .select('*')
+    .select(PROGRAM_DAY_COLUMNS)
     .eq('program_id', programId)
     .gte('date', dateStr)
     .order('date', { ascending: true })
@@ -51,7 +62,7 @@ export async function getProgramDayByDate(
 
   const { data: lastDay, error: lastDayError } = await supabase
     .from('program_days')
-    .select('*')
+    .select(PROGRAM_DAY_COLUMNS)
     .eq('program_id', programId)
     .lte('date', dateStr)
     .order('date', { ascending: false })
@@ -66,12 +77,12 @@ export async function getProgramDayByDate(
   return (lastDay ?? null) as ProgramDay | null
 }
 
-export async function getProgramTasks(dayId: string): Promise<ProgramTask[]> {
-  const { supabase } = await import('@/lib/supabase')
+export async function getProgramTasks(dayId: string, client?: SupabaseClient): Promise<ProgramTask[]> {
+  const supabase = await resolveClient(client)
 
   const { data, error } = await supabase
     .from('program_tasks')
-    .select('*')
+    .select(PROGRAM_TASK_COLUMNS)
     .eq('day_id', dayId)
     .order('created_at', { ascending: true })
 
@@ -84,9 +95,10 @@ export async function getProgramTasks(dayId: string): Promise<ProgramTask[]> {
 }
 
 export async function getFirstProgramDayWithTasks(
-  programId: string
+  programId: string,
+  client?: SupabaseClient,
 ): Promise<ProgramDay | null> {
-  const { supabase } = await import('@/lib/supabase')
+  const supabase = await resolveClient(client)
 
   const { data: firstTask, error: firstTaskError } = await supabase
     .from('program_tasks')
@@ -107,7 +119,7 @@ export async function getFirstProgramDayWithTasks(
 
   const { data: day, error: dayError } = await supabase
     .from('program_days')
-    .select('*')
+    .select(PROGRAM_DAY_COLUMNS)
     .eq('id', firstTask.day_id)
     .maybeSingle()
 

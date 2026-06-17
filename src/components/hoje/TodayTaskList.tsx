@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import type { ProgramTask } from '@/types'
 import Icon from '@/components/ui/Icon'
 
@@ -29,6 +30,19 @@ export default function TodayTaskList({
   onSkipTask,
   onCompleteTask,
 }: TodayTaskListProps) {
+  // Bloqueia a tarefa enquanto a ação está a ser gravada para evitar duplo toque.
+  const [savingId, setSavingId] = useState<string | null>(null)
+
+  async function runAction(task: ProgramTask, action: (task: ProgramTask) => Promise<void>) {
+    if (savingId) return
+    setSavingId(task.id)
+    try {
+      await action(task)
+    } finally {
+      setSavingId(null)
+    }
+  }
+
   return (
     <section
       id="tarefas-hoje"
@@ -147,30 +161,37 @@ export default function TodayTaskList({
                 </div>
               </button>
 
-              {task.status === 'pending' && (
-                <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end', flexShrink: 0 }}>
-                  <button
-                    type="button"
-                    aria-label={`Pular tarefa ${title}`}
-                    onClick={() => onSkipTask(task)}
-                    style={compactActionStyle('ghost')}
-                  >
-                    <span style={compactIconStyle('ghost')}>
-                      <Icon name="chevron-right" size={16} color="currentColor" />
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Concluir tarefa ${title}`}
-                    onClick={() => onCompleteTask(task)}
-                    style={compactActionStyle('primary')}
-                  >
-                    <span style={compactIconStyle('primary')}>
-                      <Icon name="check" size={16} color="currentColor" />
-                    </span>
-                  </button>
-                </div>
-              )}
+              {task.status === 'pending' && (() => {
+                const isSaving = savingId === task.id
+                const isBusy = savingId !== null
+                return (
+                  <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end', flexShrink: 0, opacity: isBusy && !isSaving ? 0.4 : 1 }}>
+                    <button
+                      type="button"
+                      aria-label={`Pular tarefa ${title}`}
+                      onClick={() => runAction(task, onSkipTask)}
+                      disabled={isBusy}
+                      style={{ ...compactActionStyle('ghost'), cursor: isBusy ? 'not-allowed' : 'pointer' }}
+                    >
+                      <span style={compactIconStyle('ghost')}>
+                        <Icon name="chevron-right" size={16} color="currentColor" />
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Concluir tarefa ${title}`}
+                      onClick={() => runAction(task, onCompleteTask)}
+                      disabled={isBusy}
+                      aria-busy={isSaving}
+                      style={{ ...compactActionStyle('primary'), cursor: isBusy ? 'not-allowed' : 'pointer' }}
+                    >
+                      <span style={{ ...compactIconStyle('primary'), opacity: isSaving ? 0.6 : 1 }}>
+                        <Icon name="check" size={16} color="currentColor" />
+                      </span>
+                    </button>
+                  </div>
+                )
+              })()}
             </article>
           )
         })}
