@@ -170,7 +170,7 @@ export async function getWeeklyStats(userId: string) {
 
   const [{ data: logs }, { data: checkins }, { data: sessions }] = await Promise.all([
     supabase.from('habit_logs')
-      .select('date, completed')
+      .select('date, completed, habit_id')
       .eq('user_id', userId)
       .gte('date', sinceStr),
     supabase.from('checkins')

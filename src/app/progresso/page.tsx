@@ -82,12 +82,12 @@ export default function ProgressoPage() {
       })
       const areaList: AreaProgress[] = Object.entries(AREA_META).map(([key, meta]) => {
         const ids   = habitsByArea[key] ?? []
-        const total = ids.length * 30
+        const total = ids.length * 7
         const done  = (weekly.logs as LogRow[])
           .filter((l:LogRow) => ids.includes(l.habit_id) && l.completed).length
         return {
           key, label:meta.label, icon:meta.icon, color:meta.color,
-          pct: total > 0 ? Math.round(done/total*100) : 0, done, total,
+          pct: total > 0 ? Math.min(100, Math.round(done/total*100)) : 0, done, total,
         }
       })
       setAreas(areaList)
