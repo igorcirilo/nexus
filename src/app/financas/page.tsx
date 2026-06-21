@@ -595,9 +595,17 @@ export default function FinancasPage() {
         </div>
       </div>
 
-      {/* ── Hero: saldo do mês ── */}
-      <div style={{margin:'14px 20px 0',background:'linear-gradient(135deg, #131022 0%, #0E1A26 100%)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:22,padding:18}} onClick={()=>moreOpen&&setMoreOpen(false)}>
-        <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,212,200,0.85)',marginBottom:6}}>💎 Saldo do mês</div>
+      {/* ── Hero: saldo do mês (toca para ver movimentos) ── */}
+      <button
+        type="button"
+        onClick={()=>{ if(moreOpen){setMoreOpen(false);return} setShowMovimentos(true) }}
+        aria-label="Ver movimentos"
+        style={{display:'block',width:'calc(100% - 40px)',textAlign:'left',cursor:'pointer',fontFamily:'Inter, sans-serif',margin:'14px 20px 0',background:'linear-gradient(135deg, #131022 0%, #0E1A26 100%)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:22,padding:18}}
+      >
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,212,200,0.85)'}}>💎 Saldo do mês</div>
+          <span style={{fontSize:11,fontWeight:700,color:'rgba(0,212,200,0.85)'}}>Movimentos ›</span>
+        </div>
         <div style={{fontSize:32,fontWeight:900,letterSpacing:'-1px',color:balance>=0?'#00D4C8':'#E24B4A'}}>{fmt(balance)}</div>
         <div style={{display:'flex',gap:8,marginTop:12}}>
           <div style={{flex:1,background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.07)',borderRadius:12,padding:'9px 10px'}}>
@@ -609,7 +617,7 @@ export default function FinancasPage() {
             <div style={{fontSize:14,fontWeight:800,color:'#E24B4A',marginTop:2}}>−{fmt(totalOut)}</div>
           </div>
         </div>
-      </div>
+      </button>
 
       <div style={{padding:'0 20px'}} onClick={()=>moreOpen&&setMoreOpen(false)}>
         {/* ── Orçamento (resumo) ── */}

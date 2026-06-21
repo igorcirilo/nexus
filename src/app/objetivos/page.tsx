@@ -215,13 +215,6 @@ export default function ObjetivosPage() {
             </div>
           </div>
 
-          {editGoal && (
-            <div style={{ marginBottom: 4 }}>
-              <label style={fieldLabel}>Progresso actual: {fProgress}%</label>
-              <input type="range" min={0} max={100} step={5} value={fProgress} onChange={e => setFProgress(+e.target.value)}
-                style={{ width: '100%', accentColor: '#F5C842' }} />
-            </div>
-          )}
         </div>
 
         <div style={{ padding: '12px 20px calc(20px + env(safe-area-inset-bottom))', background: '#0D0E20', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
@@ -287,21 +280,10 @@ export default function ObjetivosPage() {
 
               {/* Corpo scrollável */}
               <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px' }}>
-                {/* Progresso */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>Progresso</span>
-                  <span style={{ fontWeight: 800, fontSize: 18, color: openGoal.progress >= 100 ? '#00C896' : '#F5C842' }}>{openGoal.progress}%</span>
-                </div>
-                <div style={{ height: 7, background: 'rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden', marginBottom: 8 }}>
-                  <div style={{ height: '100%', borderRadius: 10, width: `${openGoal.progress}%`, background: `linear-gradient(90deg, ${color}, ${color}BB)`, transition: 'width .4s' }} />
-                </div>
-                <input type="range" min={0} max={100} step={5} value={openGoal.progress}
-                  onChange={e => updateProgress(openGoal, +e.target.value)}
-                  aria-label="Ajustar progresso"
-                  style={{ width: '100%', accentColor: color }} />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10.5, color: 'rgba(255,255,255,0.3)', marginTop: 4 }}>
-                  <span>{format(new Date(openGoal.start_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
-                  <span>{format(new Date(openGoal.end_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                {/* Período */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                  <span>Início · {format(new Date(openGoal.start_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
+                  <span>Fim · {format(new Date(openGoal.end_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
                 </div>
 
                 {/* Marcos */}

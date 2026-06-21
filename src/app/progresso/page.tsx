@@ -58,7 +58,7 @@ export default function ProgressoPage() {
         getRitmo(user.id),
         supabase.from('habit_logs').select('date,completed,habit_id')
           .eq('user_id',user.id).gte('date',since14).lt('date',since7),
-        supabase.from('habit_logs').select('date,completed')
+        supabase.from('habit_logs').select('date,completed,habit_id')
           .eq('user_id',user.id).gte('date',since28),
         supabase.from('checkins').select('date,phase')
           .eq('user_id',user.id).gte('date',since14).lt('date',since7),
@@ -73,7 +73,7 @@ export default function ProgressoPage() {
       // ── Cada conclusão (hábito/check-in) vale 1 ponto de atividade ───────
       type HabitRow = { id:string; area:string }
 
-      // ── Area progress (últimos 7 dias vs total activo) ───────────────────
+      // ── Area progress (últimos 28 dias — alinhado com o heatmap) ─────────
       type LogRow = { habit_id:string; completed:boolean; date:string }
       const habitsByArea: Record<string,string[]> = {}
       ;(habits ?? [] as HabitRow[]).forEach((h:HabitRow) => {
@@ -82,12 +82,12 @@ export default function ProgressoPage() {
       })
       const areaList: AreaProgress[] = Object.entries(AREA_META).map(([key, meta]) => {
         const ids   = habitsByArea[key] ?? []
-        const total = ids.length * 30
-        const done  = (weekly.logs as LogRow[])
+        const total = ids.length * 28
+        const done  = (logs28 as LogRow[] ?? [])
           .filter((l:LogRow) => ids.includes(l.habit_id) && l.completed).length
         return {
           key, label:meta.label, icon:meta.icon, color:meta.color,
-          pct: total > 0 ? Math.round(done/total*100) : 0, done, total,
+          pct: total > 0 ? Math.min(100, Math.round(done/total*100)) : 0, done, total,
         }
       })
       setAreas(areaList)
