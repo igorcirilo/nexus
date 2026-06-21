@@ -1,10 +1,20 @@
 'use client'
 
+import { useState } from 'react'
 import type { CSSProperties } from 'react'
 import { AREA_META } from '@/types'
 import type { Goal90, HabitArea } from '@/types'
+import { GOAL_SUGGESTIONS, GOAL_SIZE_META, GOAL_SIZE_ORDER, type GoalSize } from '@/lib/goal-suggestions'
 
 const FONT = 'Inter, sans-serif'
+
+function normalizeTitle(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .trim()
+}
 
 export type HubMilestone = {
   id: string
@@ -18,6 +28,7 @@ interface Props {
   milestones: Record<string, HubMilestone[]>
   onOpenGoal: (goalId: string) => void
   onAdd: () => void
+  onAddSuggestion: (title: string, area: HabitArea) => void
 }
 
 function SectionLabel({ children, style }: { children: React.ReactNode; style?: CSSProperties }) {
@@ -58,7 +69,14 @@ function daysLeft(endDate: string): number {
   return Math.max(0, Math.round((end.getTime() - today.getTime()) / 86400000))
 }
 
-export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd }: Props) {
+export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onAddSuggestion }: Props) {
+  const [sugSize, setSugSize] = useState<GoalSize>('pequeno')
+  const [sugAreaKey, setSugAreaKey] = useState<string>(GOAL_SUGGESTIONS[0].key)
+
+  const existingTitles = new Set(goals.map(g => normalizeTitle(g.title)))
+  const sugArea = GOAL_SUGGESTIONS.find(a => a.key === sugAreaKey) ?? GOAL_SUGGESTIONS[0]
+  const sugCards = sugArea.suggestions[sugSize]
+
   const active   = goals.filter(g => g.status === 'active')
   const focusGoal = active[0] ?? null
   const nextDeadline = active.length > 0
@@ -142,6 +160,112 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd }: P
           <div style={{ fontSize: 13, fontWeight: 700, color: '#F5C842' }}>Criar primeiro objetivo</div>
         </div>
       )}
+
+      {/* ── Modelos / sugestões prontas ── */}
+      <SectionLabel>Modelos para começar</SectionLabel>
+
+      {/* Filtro por tamanho */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+        {GOAL_SIZE_ORDER.map(size => {
+          const on = sugSize === size
+          return (
+            <button
+              key={size}
+              onClick={() => setSugSize(size)}
+              style={{
+                flex: 1, padding: '8px 6px', borderRadius: 11, cursor: 'pointer',
+                fontFamily: FONT, fontSize: 12, fontWeight: 700,
+                background: on ? 'rgba(245,200,66,0.14)' : 'rgba(255,255,255,0.04)',
+                border: on ? '1px solid rgba(245,200,66,0.5)' : '1px solid rgba(255,255,255,0.08)',
+                color: on ? '#F5C842' : 'rgba(255,255,255,0.5)',
+              }}
+            >
+              {GOAL_SIZE_META[size].label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Filtro por área */}
+      <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 12 }}>
+        {GOAL_SUGGESTIONS.map(a => {
+          const on = sugAreaKey === a.key
+          return (
+            <button
+              key={a.key}
+              onClick={() => setSugAreaKey(a.key)}
+              style={{
+                flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
+                padding: '7px 11px', borderRadius: 999, cursor: 'pointer',
+                fontFamily: FONT, fontSize: 12, fontWeight: 600,
+                background: on ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.03)',
+                border: on ? '1px solid rgba(255,255,255,0.28)' : '1px solid rgba(255,255,255,0.08)',
+                color: on ? '#fff' : 'rgba(255,255,255,0.55)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ fontSize: 14 }}>{a.icon}</span>{a.label}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Cards de modelo */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 4 }}>
+        {sugCards.map(title => {
+          const added = existingTitles.has(normalizeTitle(title))
+          const color = AREA_META[sugArea.area]?.color ?? '#9D5CF5'
+          return (
+            <div
+              key={title}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 16, padding: '14px 14px',
+              }}
+            >
+              <div style={{
+                width: 38, height: 38, borderRadius: 11, flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: hexAlpha(color, 0.12), fontSize: 17,
+              }}>
+                {sugArea.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.25 }}>
+                  {title}
+                </div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3, fontWeight: 500 }}>
+                  {sugArea.label} · {GOAL_SIZE_META[sugSize].label.slice(0, -1).toLowerCase()} objetivo
+                </div>
+              </div>
+              {added ? (
+                <span style={{
+                  flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5,
+                  fontSize: 12, fontWeight: 700, color: '#00C896',
+                  background: 'rgba(0,200,150,0.10)', border: '1px solid rgba(0,200,150,0.25)',
+                  borderRadius: 999, padding: '7px 11px',
+                }}>
+                  ✓ Adicionado
+                </span>
+              ) : (
+                <button
+                  onClick={() => onAddSuggestion(title, sugArea.area)}
+                  style={{
+                    flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 4,
+                    fontFamily: FONT, fontSize: 12, fontWeight: 700, color: '#F5C842',
+                    background: 'rgba(245,200,66,0.12)', border: '1px solid rgba(245,200,66,0.4)',
+                    borderRadius: 999, padding: '7px 12px', cursor: 'pointer', whiteSpace: 'nowrap',
+                  }}
+                >
+                  adicionar +
+                </button>
+              )}
+            </div>
+          )
+        })}
+      </div>
 
       {/* ── Objetivos ativos ── */}
       {active.length > 0 && (

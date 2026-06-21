@@ -6,7 +6,6 @@ import ObjetivosHub from '@/components/objetivos/ObjetivosHub'
 import { supabase, getGoals90, saveGoal90, deleteGoal90, getMilestones, toggleMilestone } from '@/lib/supabase'
 import { AREA_META } from '@/types'
 import type { Goal90, HabitArea } from '@/types'
-import { GOAL_SUGGESTIONS, GOAL_SIZE_META, GOAL_SIZE_ORDER, type GoalSize } from '@/lib/goal-suggestions'
 
 type Milestone = { id: string; goal_id: string; user_id: string; title: string; done: boolean; due_date: string | null }
 
@@ -49,10 +48,6 @@ export default function ObjetivosPage() {
   const [fStart,    setFStart]    = useState(format(new Date(), 'yyyy-MM-dd'))
   const [fEnd,      setFEnd]      = useState(format(addDays(new Date(), 90), 'yyyy-MM-dd'))
 
-  // Sugestões prontas (apenas ao criar um novo objetivo)
-  const [sugSize,    setSugSize]    = useState<GoalSize>('pequeno')
-  const [sugAreaKey, setSugAreaKey] = useState<string>(GOAL_SUGGESTIONS[0].key)
-
   useEffect(() => {
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) { window.location.href = '/auth'; return }
@@ -79,13 +74,23 @@ export default function ObjetivosPage() {
     setFTitle(''); setFArea('corpo'); setFProgress(0)
     setFStart(format(new Date(), 'yyyy-MM-dd'))
     setFEnd(format(addDays(new Date(), 90), 'yyyy-MM-dd'))
-    setSugSize('pequeno'); setSugAreaKey(GOAL_SUGGESTIONS[0].key)
     setShowForm(true)
   }
 
-  function pickSuggestion(title: string, area: HabitArea) {
-    setFTitle(title)
-    setFArea(area)
+  // Adiciona um objetivo-modelo direto da lista de sugestões (janela padrão de 90 dias).
+  async function addSuggestion(title: string, area: HabitArea) {
+    if (!userId) return
+    await saveGoal90({
+      user_id: userId,
+      title,
+      area,
+      start_date: format(new Date(), 'yyyy-MM-dd'),
+      end_date: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
+      progress: 0,
+      status: 'active',
+    })
+    await loadGoals(userId)
+    showToast('Objetivo adicionado!')
   }
 
   function openEdit(g: Goal90) {
@@ -179,80 +184,6 @@ export default function ObjetivosPage() {
         </div>
 
         <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px' }}>
-          {!editGoal && (() => {
-            const sugArea = GOAL_SUGGESTIONS.find(a => a.key === sugAreaKey) ?? GOAL_SUGGESTIONS[0]
-            const items = sugArea.suggestions[sugSize]
-            return (
-              <div style={{ marginBottom: 20 }}>
-                <label style={fieldLabel}>Sugestões prontas</label>
-
-                {/* Tamanho do objetivo */}
-                <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
-                  {GOAL_SIZE_ORDER.map(size => (
-                    <button key={size} onClick={() => setSugSize(size)} style={{
-                      flex: 1, padding: '8px 6px', borderRadius: 11, cursor: 'pointer',
-                      fontFamily: FONT, fontSize: 12, fontWeight: 700,
-                      background: sugSize === size ? 'rgba(245,200,66,0.14)' : 'rgba(255,255,255,0.04)',
-                      border: sugSize === size ? '1px solid rgba(245,200,66,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                      color: sugSize === size ? '#F5C842' : 'rgba(255,255,255,0.5)',
-                    }}>
-                      {GOAL_SIZE_META[size].label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Áreas */}
-                <div style={{ display: 'flex', gap: 6, overflowX: 'auto', paddingBottom: 4, marginBottom: 10 }}>
-                  {GOAL_SUGGESTIONS.map(a => (
-                    <button key={a.key} onClick={() => setSugAreaKey(a.key)} style={{
-                      flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
-                      padding: '7px 11px', borderRadius: 999, cursor: 'pointer',
-                      fontFamily: FONT, fontSize: 12, fontWeight: 600,
-                      background: sugAreaKey === a.key ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.03)',
-                      border: sugAreaKey === a.key ? '1px solid rgba(255,255,255,0.28)' : '1px solid rgba(255,255,255,0.08)',
-                      color: sugAreaKey === a.key ? '#fff' : 'rgba(255,255,255,0.55)',
-                      whiteSpace: 'nowrap',
-                    }}>
-                      <span style={{ fontSize: 14 }}>{a.icon}</span>{a.label}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Lista de sugestões */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {items.map(title => {
-                    const selected = fTitle === title
-                    return (
-                      <button key={title} onClick={() => pickSuggestion(title, sugArea.area)} style={{
-                        display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left',
-                        padding: '11px 13px', borderRadius: 13, cursor: 'pointer', fontFamily: FONT,
-                        background: selected ? 'rgba(245,200,66,0.10)' : 'rgba(255,255,255,0.03)',
-                        border: selected ? '1px solid rgba(245,200,66,0.45)' : '1px solid rgba(255,255,255,0.08)',
-                      }}>
-                        <span style={{
-                          width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 11, fontWeight: 800,
-                          border: `1.5px solid ${selected ? '#F5C842' : 'rgba(255,255,255,0.2)'}`,
-                          background: selected ? '#F5C842' : 'transparent',
-                          color: selected ? '#1A1200' : 'transparent',
-                        }}>✓</span>
-                        <span style={{
-                          flex: 1, fontSize: 13.5, fontWeight: 600,
-                          color: selected ? '#fff' : 'rgba(255,255,255,0.82)',
-                        }}>{title}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.32)', marginTop: 10, lineHeight: 1.45 }}>
-                  Escolhe uma sugestão para preencher e personaliza abaixo, ou escreve o teu próprio objetivo.
-                </div>
-              </div>
-            )
-          })()}
-
           <label style={fieldLabel}>Objectivo</label>
           <input value={fTitle} onChange={e => setFTitle(e.target.value)}
             placeholder="Ex: Correr 5km sem parar" style={{ ...inp, marginBottom: 16 }} />
@@ -313,6 +244,7 @@ export default function ObjetivosPage() {
         milestones={milestones}
         onOpenGoal={setOpenGoalId}
         onAdd={openNew}
+        onAddSuggestion={addSuggestion}
       />
 
       {/* ── Bottom sheet: detalhe do objetivo ── */}
