@@ -12,7 +12,6 @@ import BadgeModal from '@/components/BadgeModal'
 import EmptyState from '@/components/EmptyState'
 import AddTaskSheet from '@/components/hoje/AddTaskSheet'
 import TodayCommandPanel from '@/components/hoje/TodayCommandPanel'
-import TodayMetrics from '@/components/hoje/TodayMetrics'
 import TodayMissionPanel from '@/components/hoje/TodayMissionPanel'
 import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
 import Icon from '@/components/ui/Icon'
@@ -95,6 +94,9 @@ export default function HojeClient({
   const [addSaving, setAddSaving] = useState(false)
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
   const [pendingBadges, setPendingBadges] = useState<{ key: string; name: string }[]>([])
+  // "Adiar" o card "Agora": esconde-o até a app ser reaberta (sessionStorage
+  // limpa quando a app fecha, por iso o card volta numa nova sessão).
+  const [commandDismissed, setCommandDismissed] = useState(false)
   const today = todayISO()
   const hour = new Date().getHours()
 
@@ -159,6 +161,18 @@ export default function HojeClient({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  // Lê o estado de "adiado" guardado para esta sessão/dia.
+  useEffect(() => {
+    if (sessionStorage.getItem('hoje-command-dismissed') === today) {
+      setCommandDismissed(true)
+    }
+  }, [today])
+
+  function handleDismissCommand() {
+    setCommandDismissed(true)
+    sessionStorage.setItem('hoje-command-dismissed', today)
+  }
 
   async function handleStreakRecover() {
     const success = await claimStreakRecovery(userId)
@@ -226,20 +240,8 @@ export default function HojeClient({
 
   const doneCnt = habits.filter(isDone).length
   const totalHabits = habits.length
-  // Ritmo esperado: fração do "dia ativo" (07h–22h) já decorrida.
-  const dayFraction = Math.min(1, Math.max(0, (hour - 7) / (22 - 7)))
-  const donePct = totalHabits > 0 ? doneCnt / totalHabits : 0
-  const paceCaption =
-    totalHabits === 0
-      ? 'Sem hábitos'
-      : doneCnt === totalHabits
-        ? 'Tudo feito'
-        : donePct >= dayFraction
-          ? 'No ritmo'
-          : 'Dá para acelerar'
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
   const currentPhase = hour < 12 ? 'manha' : hour < 18 ? 'tarde' : 'noite'
-  const checkinLabel = hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite'
   const checkinPending = !todayCheckins.some((c) => c.phase === currentPhase)
   const habitViews: TodayHabitView[] = habits.map((h) => ({
     id: h.id,
@@ -312,8 +314,27 @@ export default function HojeClient({
         </a>
       </header>
 
-      {/* Acima da dobra: ação principal + hábitos do dia. RitmoBar desce. */}
-      <TodayCommandPanel action={primaryAction} context={mentorMsg.body} checkinPending={checkinPending} />
+      {/* Topo: nível + missão do dia. */}
+      {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
+
+      {profile && (
+        <TodayMissionPanel
+          mission={profile.mission_today || 'Definir a missão no check-in da manhã'}
+          progress={missionPct}
+          onProgress={setMissionPct}
+        />
+      )}
+
+      {/* Card "Agora": some quando o check-in fica concluído; "Depois" adia-o
+          até a app ser reaberta. */}
+      {checkinPending && !commandDismissed && (
+        <TodayCommandPanel
+          action={primaryAction}
+          context={mentorMsg.body}
+          checkinPending={checkinPending}
+          onDismiss={handleDismissCommand}
+        />
+      )}
 
       {noHabits ? (
         <div style={{ padding: '0 20px' }}>
@@ -333,24 +354,6 @@ export default function HojeClient({
           onAddHabit={() => setAddOpen(true)}
         />
       )}
-
-      <TodayMetrics
-        metrics={[
-          { icon: 'zap', label: 'Energia', value: `${profile?.energy_today ?? 5}/10`, color: 'var(--teal)', progress: ((profile?.energy_today ?? 5) / 10) * 100, caption: 'Moderada' },
-          { icon: 'target', label: 'Hábitos', value: `${doneCnt}/${totalHabits}`, color: 'var(--accent)', progress: donePct * 100, caption: paceCaption },
-          { icon: 'clipboard', label: 'Check-in', value: checkinLabel, color: 'var(--teal)', caption: todayCheckins.length > 0 ? 'Em andamento' : 'Pendente' },
-        ]}
-      />
-
-      {profile && (
-        <TodayMissionPanel
-          mission={profile.mission_today || 'Definir a missão no check-in da manhã'}
-          progress={missionPct}
-          onProgress={setMissionPct}
-        />
-      )}
-
-      {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
 
       {profile && nightCheckin && (
         <NightSummaryCard
