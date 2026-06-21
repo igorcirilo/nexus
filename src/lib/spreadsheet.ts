@@ -9,14 +9,31 @@ declare global {
         SheetNames: string[]
         Sheets: Record<string, unknown>
       }
+      writeFile: (workbook: unknown, fileName: string, options?: Record<string, unknown>) => void
       utils: {
         sheet_to_json: (
           sheet: unknown,
           options?: Record<string, unknown>
         ) => Array<Record<string, string | number | boolean | null>> | Array<Array<string | number | boolean | null>>
+        book_new: () => unknown
+        aoa_to_sheet: (data: Array<Array<string | number | null>>, options?: Record<string, unknown>) => Record<string, unknown>
+        book_append_sheet: (workbook: unknown, sheet: unknown, name?: string) => void
       }
     }
   }
+}
+
+export type SpreadsheetCell = string | number | null
+
+export interface SpreadsheetExportSheet {
+  /** Nome da aba (≤ 31 caracteres, sem caracteres inválidos do Excel). */
+  name: string
+  /** Cabeçalhos das colunas, na ordem exata pretendida. */
+  columns: string[]
+  /** Linhas de dados. Números ficam como números; texto fica como texto. */
+  rows: SpreadsheetCell[][]
+  /** Largura sugerida de cada coluna (em caracteres). */
+  columnWidths?: number[]
 }
 
 const SHEETJS_SRC = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js'
@@ -318,5 +335,67 @@ export async function parseSpreadsheetFile(file: File): Promise<SpreadsheetImpor
     },
     sheets,
     warnings,
+  }
+}
+
+function sanitizeSheetName(name: string) {
+  // Excel proíbe estes caracteres e limita a 31 chars no nome da aba.
+  return name.replace(/[\\/?*[\]:]/g, ' ').trim().slice(0, 31) || 'Folha1'
+}
+
+function buildCsvFromSheet(sheet: SpreadsheetExportSheet) {
+  const escape = (cell: SpreadsheetCell) => {
+    const text = cell === null || cell === undefined ? '' : String(cell)
+    return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+  }
+  return [sheet.columns, ...sheet.rows].map((row) => row.map(escape).join(',')).join('\n')
+}
+
+/**
+ * Gera e descarrega um ficheiro XLSX a partir de uma ou mais abas.
+ * Usa o SheetJS (já carregado para a leitura de planilhas). Caso a
+ * biblioteca não fique disponível (ex.: offline), faz fallback para CSV
+ * com o mesmo conteúdo, para o utilizador nunca ficar sem o modelo.
+ */
+export async function downloadXlsx(
+  fileName: string,
+  sheets: SpreadsheetExportSheet[]
+): Promise<void> {
+  ensureBrowser()
+
+  try {
+    await ensureSheetJs()
+    const XLSX = window.XLSX!
+    const workbook = XLSX.utils.book_new()
+
+    sheets.forEach((sheet, index) => {
+      const aoa: SpreadsheetCell[][] = [sheet.columns, ...sheet.rows]
+      const worksheet = XLSX.utils.aoa_to_sheet(aoa)
+      if (sheet.columnWidths) {
+        worksheet['!cols'] = sheet.columnWidths.map((width) => ({ wch: width }))
+      }
+      XLSX.utils.book_append_sheet(
+        workbook,
+        worksheet,
+        sanitizeSheetName(sheet.name || `Folha${index + 1}`)
+      )
+    })
+
+    const finalName = fileName.toLowerCase().endsWith('.xlsx') ? fileName : `${fileName}.xlsx`
+    XLSX.writeFile(workbook, finalName)
+  } catch {
+    // Fallback CSV (apenas a primeira aba) caso o SheetJS falhe.
+    const primary = sheets[0]
+    if (!primary) return
+    const csv = buildCsvFromSheet(primary)
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = fileName.replace(/\.xlsx$/i, '') + '.csv'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
   }
 }

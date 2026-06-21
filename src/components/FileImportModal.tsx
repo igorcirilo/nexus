@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import type { ChangeEvent, CSSProperties } from 'react'
 import ImportPreview from '@/components/ImportPreview'
 import { extractPdfText } from '@/lib/pdf'
-import { parseSpreadsheetFile } from '@/lib/spreadsheet'
+import { parseSpreadsheetFile, downloadXlsx } from '@/lib/spreadsheet'
 import type { FileImportResult, FileImportStatus, ImportSourceKind } from '@/types'
 
 const overlay: CSSProperties = {
@@ -34,66 +34,180 @@ const modal: CSSProperties = {
 
 type ImportDomain = 'diet' | 'training'
 
+type SpreadsheetCell = string | number
+
+type SpreadsheetTemplate = {
+  /** Rótulo apresentado ao utilizador (ex.: "Modelo masculino"). */
+  name: string
+  /** Nota curta sobre o conteúdo do modelo. */
+  description: string
+  /** Nome do ficheiro descarregado (sem extensão — fica .xlsx). */
+  fileName: string
+  /** Nome da aba dentro do ficheiro. */
+  sheetName: string
+  /** Linhas de dados (números nas colunas numéricas, texto no resto). */
+  rows: SpreadsheetCell[][]
+}
+
 type ImportGuide = {
   who: string
   columns: string[]
-  example: string[][]
+  /** Largura sugerida de cada coluna no XLSX (em caracteres). */
+  columnWidths: number[]
+  /** Pré-visualização da estrutura esperada (cabeçalho + exemplos). */
+  example: SpreadsheetCell[][]
+  /** Um ou mais modelos XLSX prontos a descarregar. */
+  templates: SpreadsheetTemplate[]
+  /** Exemplo de prompt para o Claude (faz perguntas antes de gerar). */
   prompt: string
-  fileName: string
 }
 
 // Colunas alinhadas com o parser (looksLikeDietHeaderRow / looksLikeTrainingHeaderRow
-// em src/lib/body-plan.ts). Mantém esta ordem para máxima compatibilidade.
+// em src/lib/body-plan.ts). Mantém esta ordem exata para máxima compatibilidade.
+// Calorias, macros, séries e carga ficam como NÚMEROS (sem unidades).
 const IMPORT_GUIDES: Record<ImportDomain, ImportGuide> = {
   diet: {
     who: 'nutricionista',
     columns: ['refeição', 'alimento', 'quantidade', 'calorias (kcal)', 'proteínas (g)', 'carboidratos (g)', 'gorduras (g)'],
+    columnWidths: [16, 28, 14, 14, 14, 16, 14],
     example: [
-      ['Pequeno-almoço', 'Ovos mexidos', '3 unidades', '220', '18', '2', '15'],
-      ['Pequeno-almoço', 'Aveia em flocos', '60 g', '230', '8', '40', '4'],
-      ['Lanche da manhã', 'Iogurte natural', '170 g', '110', '10', '8', '4'],
-      ['Almoço', 'Arroz integral', '120 g', '160', '3', '34', '1'],
-      ['Almoço', 'Frango grelhado', '200 g', '330', '62', '0', '7'],
-      ['Lanche da tarde', 'Banana', '1 unidade', '90', '1', '23', '0'],
-      ['Jantar', 'Salmão grelhado', '180 g', '370', '40', '0', '22'],
-      ['Jantar', 'Brócolos cozidos', '150 g', '50', '4', '7', '1'],
-      ['Ceia', 'Queijo quark', '250 g', '160', '28', '8', '1'],
+      ['Café da manhã', 'Ovos', '2 unidades', 140, 12, 1, 10],
+      ['Café da manhã', 'Aveia', '50 g', 190, 7, 30, 4],
+      ['Almoço', 'Arroz', '120 g', 156, 3, 34, 1],
     ],
-    prompt: 'Cria uma planilha CSV do meu plano de dieta com as colunas exatamente nesta ordem: refeição, alimento, quantidade, calorias (kcal), proteínas (g), carboidratos (g), gorduras (g). Uma linha por alimento, repetindo o nome da refeição em cada linha. Usa números (sem unidades) nas colunas de calorias e macros.',
-    fileName: 'modelo-dieta.csv',
+    templates: [
+      {
+        name: 'Modelo de dieta equilibrada (~2200 kcal)',
+        description: 'Exemplo generalista para homens e mulheres · 4 refeições · alta em proteína',
+        fileName: 'modelo-dieta-equilibrada',
+        sheetName: 'Dieta',
+        rows: [
+          ['Café da manhã', 'Ovos inteiros', '3 unidades', 210, 18, 2, 14],
+          ['Café da manhã', 'Pão integral', '2 fatias', 160, 7, 28, 2],
+          ['Café da manhã', 'Banana', '1 unidade', 90, 1, 23, 0],
+          ['Café da manhã', 'Café sem açúcar', '1 xícara', 5, 0, 0, 0],
+          ['Almoço', 'Arroz integral', '150 g', 195, 4, 41, 1],
+          ['Almoço', 'Feijão preto', '130 g', 120, 8, 20, 1],
+          ['Almoço', 'Peito de frango grelhado', '150 g', 250, 47, 0, 5],
+          ['Almoço', 'Brócolis cozido', '120 g', 40, 3, 8, 0],
+          ['Almoço', 'Salada verde com azeite', '1 prato', 110, 2, 6, 9],
+          ['Lanche', 'Iogurte natural desnatado', '170 g', 100, 10, 8, 4],
+          ['Lanche', 'Aveia em flocos', '30 g', 115, 4, 20, 2],
+          ['Lanche', 'Maçã', '1 unidade', 80, 0, 21, 0],
+          ['Lanche', 'Amêndoas', '15 g', 90, 3, 3, 8],
+          ['Jantar', 'Salmão grelhado', '150 g', 310, 34, 0, 19],
+          ['Jantar', 'Batata-doce cozida', '150 g', 130, 2, 30, 0],
+          ['Jantar', 'Legumes salteados', '150 g', 90, 3, 12, 3],
+          ['Jantar', 'Azeite de oliva', '1 colher de sopa', 90, 0, 0, 10],
+        ],
+      },
+    ],
+    prompt: [
+      'És um nutricionista experiente. Antes de criar qualquer plano alimentar, faz-me PRIMEIRO as seguintes perguntas e aguarda as minhas respostas (não geres a dieta já):',
+      '• Objetivo principal (emagrecimento, ganho de massa, manutenção, performance ou saúde geral)',
+      '• Idade · Sexo · Peso · Altura',
+      '• Nível de atividade física',
+      '• Restrições alimentares · Preferências alimentares · Alimentos que não gosto',
+      '• Número de refeições por dia · Horários aproximados das refeições',
+      '• Condições de saúde relevantes · Uso de suplementos',
+      '• Rotina de trabalho/estudo · Orçamento alimentar · Nível de habilidade na cozinha',
+      '',
+      'Só depois de teres as minhas respostas, gera uma dieta estruturada, clara e prática.',
+      'Apresenta o resultado final como uma tabela com as colunas exatamente nesta ordem: refeição, alimento, quantidade, calorias (kcal), proteínas (g), carboidratos (g), gorduras (g).',
+      'Uma linha por alimento, repetindo o nome da refeição em cada linha. Usa apenas números (sem unidades) nas colunas de calorias e macros, para eu poder colar diretamente numa planilha XLSX.',
+      'No fim, deixa claro que a dieta é uma orientação geral e não substitui acompanhamento profissional individualizado.',
+    ].join('\n'),
   },
   training: {
     who: 'treinador',
     columns: ['dia', 'exercício', 'séries', 'reps alvo', 'descanso', 'carga (kg)'],
+    columnWidths: [30, 32, 8, 12, 12, 12],
     example: [
-      ['Segunda - Peito e Tríceps', 'Supino reto', '4', '8-10', '90s', '60'],
-      ['Segunda - Peito e Tríceps', 'Supino inclinado halteres', '3', '10-12', '75s', '22'],
-      ['Segunda - Peito e Tríceps', 'Crucifixo na máquina', '3', '12-15', '60s', '25'],
-      ['Segunda - Peito e Tríceps', 'Tríceps na polia', '4', '12', '60s', '30'],
-      ['Quarta - Costas e Bíceps', 'Puxada frontal', '4', '8-10', '90s', '55'],
-      ['Quarta - Costas e Bíceps', 'Remada curvada', '4', '10', '90s', '50'],
-      ['Quarta - Costas e Bíceps', 'Rosca direta', '3', '12', '60s', '18'],
-      ['Sexta - Pernas', 'Agachamento livre', '4', '6-8', '120s', '80'],
-      ['Sexta - Pernas', 'Leg press', '4', '10-12', '90s', '160'],
-      ['Sexta - Pernas', 'Cadeira extensora', '3', '15', '60s', '45'],
+      ['Segunda - Inferiores', 'Agachamento livre', 4, '8-12', '90s', 40],
+      ['Segunda - Inferiores', 'Leg press', 4, '10-12', '90s', 80],
+      ['Terça - Superiores', 'Supino reto', 4, '8-12', '90s', 30],
     ],
-    prompt: 'Cria uma planilha CSV do meu plano de treino com as colunas exatamente nesta ordem: dia, exercício, séries, reps alvo, descanso, carga (kg). Uma linha por exercício, agrupando por dia/secção na coluna "dia" (repete o nome do dia em cada exercício desse dia).',
-    fileName: 'modelo-treino.csv',
+    templates: [
+      {
+        name: 'Modelo feminino',
+        description: 'Foco em inferiores, glúteos, posterior e quadríceps + core',
+        fileName: 'modelo-treino-feminino',
+        sheetName: 'Treino feminino',
+        rows: [
+          ['Segunda - Inferiores (Glúteos e Posterior)', 'Agachamento livre', 4, '8-12', '90s', 30],
+          ['Segunda - Inferiores (Glúteos e Posterior)', 'Levantamento terra romeno', 4, '10-12', '90s', 30],
+          ['Segunda - Inferiores (Glúteos e Posterior)', 'Elevação pélvica (hip thrust)', 4, '10-12', '90s', 40],
+          ['Segunda - Inferiores (Glúteos e Posterior)', 'Cadeira flexora', 3, '12-15', '60s', 25],
+          ['Segunda - Inferiores (Glúteos e Posterior)', 'Panturrilha em pé', 4, '15-20', '45s', 20],
+          ['Quarta - Superiores e Core', 'Supino com halteres', 3, '10-12', '60s', 10],
+          ['Quarta - Superiores e Core', 'Puxada frontal', 3, '10-12', '60s', 30],
+          ['Quarta - Superiores e Core', 'Desenvolvimento de ombros', 3, '12', '60s', 8],
+          ['Quarta - Superiores e Core', 'Prancha abdominal', 3, '30-45s', '45s', 0],
+          ['Quarta - Superiores e Core', 'Abdominal infra', 3, '15', '45s', 0],
+          ['Sexta - Inferiores (Quadríceps e Glúteos)', 'Leg press', 4, '10-12', '90s', 80],
+          ['Sexta - Inferiores (Quadríceps e Glúteos)', 'Afundo (passada)', 3, '10-12 cada', '75s', 14],
+          ['Sexta - Inferiores (Quadríceps e Glúteos)', 'Cadeira extensora', 4, '12-15', '60s', 30],
+          ['Sexta - Inferiores (Quadríceps e Glúteos)', 'Abdução de quadril', 4, '15-20', '45s', 25],
+          ['Sexta - Inferiores (Quadríceps e Glúteos)', 'Elevação pélvica unilateral', 3, '12 cada', '60s', 0],
+        ],
+      },
+      {
+        name: 'Modelo masculino',
+        description: 'Divisão equilibrada: peito, costas, ombros, braços, pernas e core',
+        fileName: 'modelo-treino-masculino',
+        sheetName: 'Treino masculino',
+        rows: [
+          ['Segunda - Peito e Tríceps', 'Supino reto', 4, '8-10', '90s', 50],
+          ['Segunda - Peito e Tríceps', 'Supino inclinado com halteres', 3, '10-12', '75s', 20],
+          ['Segunda - Peito e Tríceps', 'Crucifixo na máquina', 3, '12-15', '60s', 25],
+          ['Segunda - Peito e Tríceps', 'Tríceps na polia', 4, '12', '60s', 25],
+          ['Segunda - Peito e Tríceps', 'Tríceps francês', 3, '12', '60s', 12],
+          ['Terça - Costas e Bíceps', 'Barra fixa (ou puxada assistida)', 4, '8-10', '90s', 0],
+          ['Terça - Costas e Bíceps', 'Remada curvada', 4, '10', '90s', 40],
+          ['Terça - Costas e Bíceps', 'Remada unilateral com haltere', 3, '10-12', '60s', 22],
+          ['Terça - Costas e Bíceps', 'Rosca direta', 3, '12', '60s', 16],
+          ['Terça - Costas e Bíceps', 'Rosca martelo', 3, '12', '60s', 12],
+          ['Quinta - Pernas e Core', 'Agachamento livre', 4, '6-8', '120s', 70],
+          ['Quinta - Pernas e Core', 'Leg press', 4, '10-12', '90s', 120],
+          ['Quinta - Pernas e Core', 'Cadeira extensora', 3, '12-15', '60s', 40],
+          ['Quinta - Pernas e Core', 'Mesa flexora', 3, '12', '60s', 35],
+          ['Quinta - Pernas e Core', 'Prancha abdominal', 3, '45s', '45s', 0],
+          ['Sexta - Ombros e Braços', 'Desenvolvimento militar', 4, '8-10', '90s', 30],
+          ['Sexta - Ombros e Braços', 'Elevação lateral', 4, '12-15', '45s', 8],
+          ['Sexta - Ombros e Braços', 'Remada alta', 3, '12', '60s', 25],
+          ['Sexta - Ombros e Braços', 'Rosca direta', 3, '12', '60s', 16],
+          ['Sexta - Ombros e Braços', 'Tríceps testa', 3, '12', '60s', 14],
+        ],
+      },
+    ],
+    prompt: [
+      'És um treinador/personal trainer experiente. Antes de montar qualquer treino, faz-me PRIMEIRO as seguintes perguntas e aguarda as minhas respostas (não geres o treino já):',
+      '• Objetivo principal (hipertrofia, emagrecimento, força, condicionamento ou saúde geral)',
+      '• Idade · Sexo · Peso · Altura',
+      '• Nível de experiência com treino · Histórico de treino · Nível de condicionamento atual',
+      '• Frequência semanal disponível · Tempo disponível por treino',
+      '• Local de treino (academia, casa ou ambos) · Equipamentos disponíveis',
+      '• Lesões ou limitações físicas',
+      '• Grupos musculares prioritários · Exercícios que gosto ou não gosto',
+      '• Preferência por divisão de treino · Foco específico (glúteos, pernas, superiores, core ou corpo inteiro)',
+      '',
+      'Só depois de teres as minhas respostas, gera um treino estruturado.',
+      'Apresenta o resultado final como uma tabela com as colunas exatamente nesta ordem: dia, exercício, séries, reps alvo, descanso, carga (kg).',
+      'Uma linha por exercício, repetindo o nome do dia/secção em todos os exercícios desse bloco. Usa números na coluna carga (kg) — 0 quando for peso corporal — para eu poder colar diretamente numa planilha XLSX.',
+      'No fim, deixa claro que o treino é uma orientação geral e não substitui acompanhamento profissional individualizado.',
+    ].join('\n'),
   },
 }
 
-function downloadCsv(guide: ImportGuide) {
-  const escape = (cell: string) => (/[",\n]/.test(cell) ? `"${cell.replace(/"/g, '""')}"` : cell)
-  const csv = [guide.columns, ...guide.example].map(row => row.map(escape).join(',')).join('\n')
-  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = guide.fileName
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(url)
+function downloadTemplate(guide: ImportGuide, template: SpreadsheetTemplate) {
+  void downloadXlsx(template.fileName, [
+    {
+      name: template.sheetName,
+      columns: guide.columns,
+      rows: template.rows,
+      columnWidths: guide.columnWidths,
+    },
+  ])
 }
 
 type Props = {
@@ -216,7 +330,7 @@ export default function FileImportModal({
                 Para o melhor aproveitamento
               </div>
               <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
-                Pede ao teu {guide.who} para entregar a planilha com estas colunas — ou pede ao Claude para a gerar neste formato. Quanto mais completa, melhor a app lê.
+                Pede ao teu {guide.who} para entregar a planilha com estas colunas — ou descarrega um modelo XLSX abaixo e edita. Quanto mais completa, melhor a app lê.
               </div>
               <div style={{ overflowX: 'auto', border: '0.5px solid var(--border)', borderRadius: 10 }}>
                 <table style={{ borderCollapse: 'collapse', fontSize: 11, whiteSpace: 'nowrap', width: '100%' }}>
@@ -230,10 +344,10 @@ export default function FileImportModal({
                     </tr>
                   </thead>
                   <tbody>
-                    {guide.example.slice(0, 2).map((rowCells, ri) => (
+                    {guide.example.slice(0, 3).map((rowCells, ri) => (
                       <tr key={ri}>
                         {rowCells.map((cell, ci) => (
-                          <td key={ci} style={{ padding: '6px 10px', color: 'var(--text2)', borderBottom: ri === 0 ? '0.5px solid rgba(255,255,255,.05)' : 'none' }}>
+                          <td key={ci} style={{ padding: '6px 10px', color: 'var(--text2)', borderBottom: ri < 2 ? '0.5px solid rgba(255,255,255,.05)' : 'none' }}>
                             {cell}
                           </td>
                         ))}
@@ -242,16 +356,47 @@ export default function FileImportModal({
                   </tbody>
                 </table>
               </div>
-              <button
-                type="button"
-                onClick={() => downloadCsv(guide)}
-                style={{ justifySelf: 'start', background: 'var(--bg3)', color: 'var(--text1)', border: '0.5px solid var(--border)', borderRadius: 10, padding: '8px 12px', fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 12, cursor: 'pointer' }}
-              >
-                ↓ Baixar modelo CSV
-              </button>
+
+              <div style={{ fontSize: 11, color: 'var(--text3)' }}>
+                {guide.templates.length > 1 ? 'Modelos XLSX prontos a usar:' : 'Modelo XLSX pronto a usar:'}
+              </div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {guide.templates.map((template) => (
+                  <button
+                    key={template.fileName}
+                    type="button"
+                    onClick={() => downloadTemplate(guide, template)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 10,
+                      textAlign: 'left',
+                      background: 'var(--bg3)',
+                      color: 'var(--text1)',
+                      border: '0.5px solid var(--border)',
+                      borderRadius: 10,
+                      padding: '10px 12px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <span style={{ fontSize: 16, lineHeight: 1, color: 'var(--teal)' }}>↓</span>
+                    <span style={{ display: 'grid', gap: 2 }}>
+                      <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 12 }}>
+                        Baixar {template.name} (XLSX)
+                      </span>
+                      <span style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.4 }}>
+                        {template.description}
+                      </span>
+                    </span>
+                  </button>
+                ))}
+              </div>
+
               <details style={{ fontSize: 12, color: 'var(--text3)' }}>
-                <summary style={{ cursor: 'pointer', color: 'var(--text2)' }}>Exemplo de prompt para o Claude</summary>
-                <div style={{ marginTop: 8, background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 10, lineHeight: 1.5, color: 'var(--text2)' }}>
+                <summary style={{ cursor: 'pointer', color: 'var(--text2)' }}>
+                  Exemplo de prompt para o Claude (gerar {domain === 'diet' ? 'dieta' : 'treino'})
+                </summary>
+                <div style={{ marginTop: 8, background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 10, padding: 10, lineHeight: 1.5, color: 'var(--text2)', whiteSpace: 'pre-wrap' }}>
                   {guide.prompt}
                 </div>
               </details>
