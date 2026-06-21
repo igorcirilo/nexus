@@ -7,9 +7,11 @@ interface TodayCommandPanelProps {
   context: string
   /** Se o check-in da fase atual ainda está por fazer. */
   checkinPending?: boolean
+  /** Adia o card: esconde-o até a app ser reaberta. */
+  onDismiss?: () => void
 }
 
-export default function TodayCommandPanel({ action, context, checkinPending = true }: TodayCommandPanelProps) {
+export default function TodayCommandPanel({ action, context, checkinPending = true, onDismiss }: TodayCommandPanelProps) {
   const cta = checkinPending
     ? { href: '/checkin', label: 'Ir para o check-in' }
     : { href: '/progresso', label: 'Ver progresso' }
@@ -82,7 +84,10 @@ export default function TodayCommandPanel({ action, context, checkinPending = tr
           </a>
           <button
             type="button"
-            onClick={() => document.getElementById('tarefas-hoje')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            onClick={() => {
+              if (onDismiss) onDismiss()
+              else document.getElementById('tarefas-hoje')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+            }}
             style={{
               minHeight: 48,
               border: 'none',

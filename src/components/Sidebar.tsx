@@ -5,13 +5,13 @@ import { usePathname } from 'next/navigation'
 
 const ITEMS = [
   { href: '/hoje',      label: 'Hoje',        icon: HomeIcon     },
-  { href: '/calendario',label: 'Calendário',  icon: CalIcon      },
-  { href: '/habitos',   label: 'Hábitos',     icon: CheckIcon    },
-  { href: '/corpo',     label: 'Corpo',       icon: BodyIcon     },
-  { href: '/progresso', label: 'Progresso',   icon: ActivityIcon },
   { href: '/financas',  label: 'Finanças',    icon: EuroIcon     },
+  { href: '/corpo',     label: 'Corpo',       icon: BodyIcon     },
+  { href: '/calendario',label: 'Calendário',  icon: CalIcon      },
   { href: '/leitura',   label: 'Leitura',     icon: BookIcon     },
+  { href: '/habitos',   label: 'Hábitos',     icon: CheckIcon    },
   { href: '/objetivos', label: 'Objectivos',  icon: TargetIcon   },
+  { href: '/progresso', label: 'Progresso',   icon: ActivityIcon },
   { href: '/perfil',    label: 'Perfil',      icon: UserIcon     },
 ]
 
