@@ -322,29 +322,18 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                         {dl <= 14 && dl > 0 && <span style={{ color: '#FF6B6B', marginLeft: 6 }}>· {dl}d restantes</span>}
                       </div>
                     </div>
-                    <div style={{ fontSize: 22, fontWeight: 800, color: isPriority ? '#F5C842' : color, flexShrink: 0 }}>
-                      {g.progress}%
-                    </div>
                   </div>
 
-                  {/* Progress bar */}
-                  <div style={{ marginBottom: 12 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-                        {area?.label ?? g.area}
-                      </span>
+                  {/* Área + contagem de marcos */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: msList.length > 0 ? 12 : 0 }}>
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                      {area?.label ?? g.area}
+                    </span>
+                    {msList.length > 0 && (
                       <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
-                        {msList.length > 0 ? `${msDone} de ${msList.length} marcos` : `${g.progress}% concluído`}
+                        {msDone} de {msList.length} marcos
                       </span>
-                    </div>
-                    <div style={{ height: 7, background: 'rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
-                      <div style={{
-                        height: '100%', borderRadius: 10, width: `${g.progress}%`,
-                        background: isPriority
-                          ? 'linear-gradient(90deg, #F5C842, #E07B2A)'
-                          : `linear-gradient(90deg, ${color}, ${color}BB)`,
-                      }} />
-                    </div>
+                    )}
                   </div>
 
                   {/* Milestones (up to 3) */}
