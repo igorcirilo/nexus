@@ -77,6 +77,22 @@ export default function ObjetivosPage() {
     setShowForm(true)
   }
 
+  // Adiciona um objetivo-modelo direto da lista de sugestões (janela padrão de 90 dias).
+  async function addSuggestion(title: string, area: HabitArea) {
+    if (!userId) return
+    await saveGoal90({
+      user_id: userId,
+      title,
+      area,
+      start_date: format(new Date(), 'yyyy-MM-dd'),
+      end_date: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
+      progress: 0,
+      status: 'active',
+    })
+    await loadGoals(userId)
+    showToast('Objetivo adicionado!')
+  }
+
   function openEdit(g: Goal90) {
     setEditGoal(g)
     setFTitle(g.title); setFArea(g.area as HabitArea)
@@ -228,6 +244,7 @@ export default function ObjetivosPage() {
         milestones={milestones}
         onOpenGoal={setOpenGoalId}
         onAdd={openNew}
+        onAddSuggestion={addSuggestion}
       />
 
       {/* ── Bottom sheet: detalhe do objetivo ── */}

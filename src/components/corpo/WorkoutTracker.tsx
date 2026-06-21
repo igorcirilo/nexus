@@ -101,7 +101,9 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── On mount: restore from sessionStorage or open selector ──────────────────
+  // ── On mount: restore from sessionStorage (sem abrir modal automaticamente) ──
+  // O seletor de treino só abre por ação explícita do utilizador (botão
+  // "Escolher treino"/"Trocar"), para uma experiência mais fluida e menos invasiva.
 
   useEffect(() => {
     const stored = sessionStorage.getItem(sessionKey(today))
@@ -118,8 +120,6 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
       } catch {
         // ignore
       }
-    } else if (initialPlans.length > 0) {
-      setShowSelector(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
