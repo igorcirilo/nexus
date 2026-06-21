@@ -14,14 +14,16 @@ import AddTaskSheet from '@/components/hoje/AddTaskSheet'
 import TodayCommandPanel from '@/components/hoje/TodayCommandPanel'
 import TodayMetrics from '@/components/hoje/TodayMetrics'
 import TodayMissionPanel from '@/components/hoje/TodayMissionPanel'
-import TodayTaskList, { type TodayTaskView } from '@/components/hoje/TodayTaskList'
-import WeeklyChallengeStrip from '@/components/hoje/WeeklyChallengeStrip'
+import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
 import Icon from '@/components/ui/Icon'
 import {
   getProfile,
   getRitmo,
   updateStreak,
   getCheckinsForDate,
+  getHabitsWithLogs,
+  toggleHabitLog,
+  createHabitQuick,
   checkAndAwardBadges,
   claimLoginBonus,
   canClaimStreakRecovery,
@@ -30,24 +32,13 @@ import {
 } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
 import { repairMojibake } from '@/lib/text'
-import type { Profile, Checkin, ProgramDay, ProgramTask, HabitArea } from '@/types'
-import { getProgramDayByDate, getProgramTasks, getFirstProgramDayWithTasks, ensureProgramHasTasks, updateTaskStatus, createManualTask, getCurrentProgramWeekFocus, type ProgramWeekFocus } from '@/lib/program'
+import { calculateScores } from '@/lib/profile-assessment'
+import { suggestHabitLevel, generateHabitsFromAssessment } from '@/lib/assessment-to-habits'
+import { AREA_META } from '@/types'
+import type { Profile, Checkin, Habit, HabitArea, Answers } from '@/types'
 import StreakRecovery from '@/components/StreakRecovery'
 
-type ProfileWithProgram = Profile & {
-  program_id?: string | null
-  onboarding_version?: number | null
-}
-
-const AREA_LABELS: Record<HabitArea, string> = {
-  corpo: 'Corpo',
-  produtividade: 'Produtividade',
-  idiomas: 'Idiomas',
-  carreira: 'Carreira',
-  financas: 'Finanças',
-  emocoes: 'Emoções',
-  relacionamentos: 'Relacionamentos',
-}
+type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[] }
 
 const cleanDisplayText = repairMojibake
 
@@ -69,14 +60,17 @@ function seedProfile(initial: Profile | null, checkins: Checkin[]): Profile | nu
   }
 }
 
+function isDone(h: HabitWithLog): boolean {
+  return Boolean(h.habit_logs && h.habit_logs.length > 0 && h.habit_logs[0].completed)
+}
+
 interface HojeClientProps {
   userId: string
   serverToday: string
   initialProfile: Profile | null
   initialCheckins: Checkin[]
-  initialProgramDay: ProgramDay | null
-  initialTasks: ProgramTask[]
-  initialNoProgram: boolean
+  initialHabits: HabitWithLog[]
+  initialNoHabits: boolean
 }
 
 export default function HojeClient({
@@ -84,9 +78,8 @@ export default function HojeClient({
   serverToday,
   initialProfile,
   initialCheckins,
-  initialProgramDay,
-  initialTasks,
-  initialNoProgram,
+  initialHabits,
+  initialNoHabits,
 }: HojeClientProps) {
   // Estado inicial vem do servidor → primeiro paint já com dados reais.
   const [profile, setProfile] = useState<Profile | null>(() => seedProfile(initialProfile, initialCheckins))
@@ -95,16 +88,14 @@ export default function HojeClient({
   const [showRecovery, setShowRecovery] = useState(false)
   const [canRecover, setCanRecover] = useState(false)
   const [todayCheckins, setTodayCheckins] = useState<Checkin[]>(initialCheckins)
-  const [weekFocus, setWeekFocus] = useState<ProgramWeekFocus | null>(null)
-  const [programDay, setProgramDay] = useState<ProgramDay | null>(initialProgramDay)
-  const [tasks, setTasks] = useState<ProgramTask[]>(initialTasks)
-  const noProgram = initialNoProgram
-  const [selectedTask, setSelectedTask] = useState<ProgramTask | null>(null)
-  const [addTaskOpen, setAddTaskOpen] = useState(false)
-  const [taskSaving, setTaskSaving] = useState(false)
-  const [challengeOpen, setChallengeOpen] = useState(false)
+  const [habits, setHabits] = useState<HabitWithLog[]>(initialHabits)
+  const [noHabits, setNoHabits] = useState(initialNoHabits)
+  const [backfilling, setBackfilling] = useState(false)
+  const [addOpen, setAddOpen] = useState(false)
+  const [addSaving, setAddSaving] = useState(false)
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
   const [pendingBadges, setPendingBadges] = useState<{ key: string; name: string }[]>([])
+  const today = todayISO()
   const hour = new Date().getHours()
 
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
@@ -114,18 +105,19 @@ export default function HojeClient({
   useEffect(() => {
     let cancelled = false
     async function runSideEffects() {
-      const programId = (initialProfile as ProfileWithProgram | null)?.program_id ?? null
-
       // Reconciliação de fuso: o servidor calcula "hoje" no SEU fuso (UTC em
-      // produção), que pode estar desfasado um dia do utilizador. Se a data
-      // local do dispositivo diferir, recarrega os dados sensíveis à data.
-      const clientToday = todayISO()
-      const dateMismatch = clientToday !== serverToday
+      // produção). Se a data local do dispositivo diferir, recarrega os dados
+      // sensíveis à data (check-ins + hábitos do dia).
+      const dateMismatch = today !== serverToday
       if (dateMismatch) {
-        const freshCheckins = (await getCheckinsForDate(userId, clientToday)) as Checkin[]
+        const [freshCheckins, freshHabits] = await Promise.all([
+          getCheckinsForDate(userId, today) as Promise<Checkin[]>,
+          getHabitsWithLogs(userId, today) as Promise<HabitWithLog[]>,
+        ])
         if (!cancelled) {
           setTodayCheckins(freshCheckins)
           setProfile((prev) => seedProfile(prev, freshCheckins))
+          setHabits(freshHabits)
         }
       }
 
@@ -133,31 +125,6 @@ export default function HojeClient({
         setShowRecovery(true)
         setCanRecover(await canClaimStreakRecovery(userId))
       }
-
-      // Recarrega o dia do programa quando: faltam tarefas (precisa semear) ou
-      // a data do cliente diverge da do servidor.
-      if (!noProgram && programId && (initialTasks.length === 0 || dateMismatch)) {
-        if (initialTasks.length === 0) await ensureProgramHasTasks(userId, programId)
-        const day = await getProgramDayByDate(programId)
-        if (!cancelled && day) {
-          let dayTasks = await getProgramTasks(day.id)
-          let resolvedDay = day
-          if (dayTasks.length === 0) {
-            const fallback = await getFirstProgramDayWithTasks(programId)
-            if (fallback) {
-              resolvedDay = fallback
-              dayTasks = await getProgramTasks(fallback.id)
-            }
-          }
-          if (!cancelled) {
-            setProgramDay(resolvedDay)
-            setTasks(dayTasks)
-          }
-        }
-      }
-
-      const focus = await getCurrentProgramWeekFocus(userId)
-      if (!cancelled) setWeekFocus(focus)
 
       await updateStreak(userId)
       // Lê só as colunas recalculadas pelo RPC e funde no perfil já carregado.
@@ -193,58 +160,78 @@ export default function HojeClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  useEffect(() => {
-    if (!selectedTask) return
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedTask(null) }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [selectedTask])
-
   async function handleStreakRecover() {
     const success = await claimStreakRecovery(userId)
     if (success) {
       setShowRecovery(false)
       setCanRecover(false)
       const updated = await getProfile(userId)
-      if (updated) setProfile(updated)
+      if (updated) setProfile(updated as Profile)
     }
   }
 
-  async function handleSkipTask(task: ProgramTask) {
-    await updateTaskStatus(task.id, 'skipped')
-    setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'skipped' } : t))
-  }
-
-  async function handleCompleteTask(task: ProgramTask) {
-    await updateTaskStatus(task.id, 'completed')
-    setTasks(prev => prev.map(t =>
-      t.id === task.id ? { ...t, status: 'completed', completed_at: new Date().toISOString() } : t
-    ))
-    triggerToast(`${cleanDisplayText(task.title)} — feito`)
+  async function handleToggleHabit(id: string, done: boolean) {
+    // Update otimista; o log usa a data local do dispositivo.
+    setHabits((prev) => prev.map((h) => (h.id === id ? { ...h, habit_logs: [{ completed: done, date: today }] } : h)))
+    await toggleHabitLog(userId, id, today, done)
+    if (done) {
+      const h = habits.find((x) => x.id === id)
+      if (h) triggerToast(`${cleanDisplayText(h.name)} — feito`)
+    }
     setRitmo(await getRitmo(userId))
   }
 
-  async function handleCreateManualTask(title: string, area: HabitArea) {
-    if (!programDay) return
-    setTaskSaving(true)
+  async function handleCreateManualHabit(name: string, area: HabitArea) {
+    setAddSaving(true)
     try {
-      const task = await createManualTask(userId, programDay.id, programDay.program_id, title, area)
-      setTasks(prev => [...prev, task])
-      setAddTaskOpen(false)
+      await createHabitQuick({ user_id: userId, name, area })
+      const fresh = (await getHabitsWithLogs(userId, today)) as HabitWithLog[]
+      setHabits(fresh)
+      setNoHabits(fresh.length === 0)
+      setAddOpen(false)
     } finally {
-      setTaskSaving(false)
+      setAddSaving(false)
     }
   }
 
-  const doneCnt = tasks.filter((t) => t.status === 'completed').length
-  const totalHabits = tasks.length
+  // Backfill para utilizadores legados (tinham programa, sem hábitos): gera os
+  // hábitos a partir da última avaliação guardada.
+  async function handleBackfill() {
+    setBackfilling(true)
+    try {
+      const { data: assess } = await supabase
+        .from('user_assessments')
+        .select('id, responses')
+        .eq('user_id', userId)
+        .order('completed_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (!assess) {
+        window.location.href = '/onboarding-v2'
+        return
+      }
+      const answers = (assess.responses ?? {}) as Answers
+      const scores = calculateScores(answers)
+      const level = suggestHabitLevel(answers, scores)
+      await generateHabitsFromAssessment(userId, assess.id as string, answers, level)
+      const fresh = (await getHabitsWithLogs(userId, today)) as HabitWithLog[]
+      setHabits(fresh)
+      setNoHabits(false)
+    } catch (err) {
+      console.error('[hoje] backfill de hábitos falhou:', err)
+    } finally {
+      setBackfilling(false)
+    }
+  }
+
+  const doneCnt = habits.filter(isDone).length
+  const totalHabits = habits.length
   // Ritmo esperado: fração do "dia ativo" (07h–22h) já decorrida.
-  // Compara o progresso real com o esperado para dizer se está no caminho.
   const dayFraction = Math.min(1, Math.max(0, (hour - 7) / (22 - 7)))
   const donePct = totalHabits > 0 ? doneCnt / totalHabits : 0
   const paceCaption =
     totalHabits === 0
-      ? 'Sem tarefas'
+      ? 'Sem hábitos'
       : doneCnt === totalHabits
         ? 'Tudo feito'
         : donePct >= dayFraction
@@ -254,11 +241,13 @@ export default function HojeClient({
   const currentPhase = hour < 12 ? 'manha' : hour < 18 ? 'tarde' : 'noite'
   const checkinLabel = hour < 12 ? 'Manhã' : hour < 18 ? 'Tarde' : 'Noite'
   const checkinPending = !todayCheckins.some((c) => c.phase === currentPhase)
-  const todayTaskViews: TodayTaskView[] = tasks.map(task => ({
-    task,
-    title: cleanDisplayText(task.title),
-    description: cleanDisplayText(task.description),
-    areaLabel: AREA_LABELS[task.area] ?? task.area,
+  const habitViews: TodayHabitView[] = habits.map((h) => ({
+    id: h.id,
+    name: cleanDisplayText(h.name),
+    areaLabel: AREA_META[h.area]?.label ?? h.area,
+    color: AREA_META[h.area]?.color ?? 'var(--teal)',
+    timeWindow: h.time_window,
+    done: isDone(h),
   }))
 
   const mentorMsg = profile
@@ -274,27 +263,16 @@ export default function HojeClient({
     : { body: '...', action: '...' }
   const primaryAction = cleanActionText(mentorMsg.action)
 
-  const selectedTaskTitle = selectedTask ? cleanDisplayText(selectedTask.title) : ''
-  const selectedTaskDescription = selectedTask ? cleanDisplayText(selectedTask.description) : ''
-  const selectedTaskArea = selectedTask ? AREA_LABELS[selectedTask.area] ?? selectedTask.area : ''
-
   return (
     <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', animation: 'fadeUp .3s ease' }}>
       <FeedbackToast />
 
       {levelUpData && (
-        <LevelUpModal
-          level={levelUpData.level}
-          title={levelUpData.title}
-          onClose={() => setLevelUpData(null)}
-        />
+        <LevelUpModal level={levelUpData.level} title={levelUpData.title} onClose={() => setLevelUpData(null)} />
       )}
 
       {pendingBadges.length > 0 && (
-        <BadgeModal
-          badges={pendingBadges}
-          onClose={() => setPendingBadges(prev => prev.slice(1))}
-        />
+        <BadgeModal badges={pendingBadges} onClose={() => setPendingBadges((prev) => prev.slice(1))} />
       )}
 
       {showRecovery && profile && (
@@ -309,12 +287,7 @@ export default function HojeClient({
         />
       )}
 
-      <AddTaskSheet
-        open={addTaskOpen}
-        saving={taskSaving}
-        onClose={() => setAddTaskOpen(false)}
-        onCreate={handleCreateManualTask}
-      />
+      <AddTaskSheet open={addOpen} saving={addSaving} onClose={() => setAddOpen(false)} onCreate={handleCreateManualHabit} />
 
       <header style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -323,9 +296,7 @@ export default function HojeClient({
             <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 2 }}>
               {greeting}, {profile?.username ?? 'Guerreiro'}
             </p>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>
-              Hoje
-            </h1>
+            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>Hoje</h1>
           </div>
         </div>
 
@@ -341,49 +312,26 @@ export default function HojeClient({
         </a>
       </header>
 
-      {/* Acima da dobra: a ação principal e as pendências vêm primeiro.
-          A RitmoBar (gamificação) desce para o fim — é contexto, não a prioridade. */}
+      {/* Acima da dobra: ação principal + hábitos do dia. RitmoBar desce. */}
       <TodayCommandPanel action={primaryAction} context={mentorMsg.body} checkinPending={checkinPending} />
 
-      <div style={{ padding: '0 20px' }}>
-        {noProgram ? (
+      {noHabits ? (
+        <div style={{ padding: '0 20px' }}>
           <EmptyState
             icon="target"
-            title="Complete seu diagnóstico"
-            body="Responda algumas perguntas para receber seu plano personalizado de 63 dias."
-            action={{ label: 'Começar diagnóstico', href: '/onboarding-v2' }}
+            title="Vamos configurar os teus hábitos"
+            body="Atualizámos o Nexus para hábitos diários. Cria o teu conjunto inicial com base no teu diagnóstico."
+            action={{ label: backfilling ? 'A preparar…' : 'Configurar hábitos', onClick: handleBackfill }}
           />
-        ) : !programDay ? (
-          <div style={{ color: 'var(--text3)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>
-            Seu próximo dia ainda está sendo preparado
-          </div>
-        ) : null}
-      </div>
-
-      {!noProgram && programDay && (
-        <>
-          <TodayTaskList
-            tasks={todayTaskViews}
-            doneCount={doneCnt}
-            totalCount={totalHabits}
-            onAddTask={() => setAddTaskOpen(true)}
-            onSelectTask={setSelectedTask}
-            onSkipTask={handleSkipTask}
-            onCompleteTask={handleCompleteTask}
-          />
-
-          {weekFocus && (
-            <WeeklyChallengeStrip
-              theme={weekFocus.theme}
-              weekNumber={weekFocus.weekNumber}
-              totalWeeks={weekFocus.totalWeeks}
-              done={weekFocus.done}
-              total={weekFocus.total}
-              open={challengeOpen}
-              onToggle={() => setChallengeOpen(open => !open)}
-            />
-          )}
-        </>
+        </div>
+      ) : (
+        <TodayHabitList
+          habits={habitViews}
+          doneCount={doneCnt}
+          totalCount={totalHabits}
+          onToggle={handleToggleHabit}
+          onAddHabit={() => setAddOpen(true)}
+        />
       )}
 
       <TodayMetrics
@@ -414,37 +362,6 @@ export default function HojeClient({
             window.location.href = '/progresso'
           }}
         />
-      )}
-
-      {selectedTask && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          aria-label={selectedTaskTitle}
-          style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,.5)' }}
-          onClick={() => setSelectedTask(null)}
-        >
-          <div
-            style={{ width: '100%', maxWidth: 512, margin: '0 auto', background: 'var(--bg2)', borderRadius: '20px 20px 0 0', padding: '20px 24px calc(28px + env(safe-area-inset-bottom))', maxHeight: 'min(86dvh, 720px)', overflowY: 'auto' }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div style={{ width: 32, height: 4, borderRadius: 2, background: 'var(--border)', margin: '0 auto 16px' }} />
-            <p style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.5px', marginBottom: 4 }}>{selectedTaskArea}</p>
-            <h3 style={{ fontWeight: 700, fontSize: 18, color: 'var(--text1)', marginBottom: 8 }}>{selectedTaskTitle}</h3>
-            {selectedTaskDescription && (
-              <p style={{ fontSize: 14, color: 'var(--text3)', marginBottom: 16 }}>{selectedTaskDescription}</p>
-            )}
-            <div style={{ display: 'flex', gap: 12, fontSize: 13, marginBottom: 24 }}>
-              <span style={{ color: 'var(--text3)' }}>Dificuldade {selectedTask.difficulty}</span>
-            </div>
-            <button
-              onClick={() => setSelectedTask(null)}
-              style={{ width: '100%', padding: 14, borderRadius: 14, background: 'var(--bg3)', color: 'var(--text2)', fontWeight: 600, fontSize: 15, border: 'none', cursor: 'pointer' }}
-            >
-              Fechar
-            </button>
-          </div>
-        </div>
       )}
 
       <Nav />

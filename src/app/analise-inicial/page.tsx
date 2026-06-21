@@ -4,7 +4,13 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@supabase/supabase-js'
 import { calculateScores } from '@/lib/profile-assessment'
-import { generateProgramFromAssessment } from '@/lib/assessment-to-program'
+import {
+  generateHabitsFromAssessment,
+  suggestHabitLevel,
+  selectHabitsForLevel,
+  HABIT_LEVELS,
+  type HabitLevel,
+} from '@/lib/assessment-to-habits'
 import { logError } from '@/lib/log'
 import type { AreaScores, HabitArea, Answers } from '@/types'
 
@@ -31,7 +37,10 @@ const AREAS: HabitArea[] = [
 export default function AnaliseInicialPage() {
   const router = useRouter()
   const [scores, setScores] = useState<AreaScores | null>(null)
+  const [answers, setAnswers] = useState<Answers | null>(null)
   const [userId, setUserId] = useState<string | null>(null)
+  const [suggestedLevel, setSuggestedLevel] = useState<HabitLevel>(1)
+  const [selectedLevel, setSelectedLevel] = useState<HabitLevel>(1)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,35 +59,38 @@ export default function AnaliseInicialPage() {
         return
       }
       setUserId(data.user.id)
-      const answers = JSON.parse(answersRaw) as Answers
-      setScores(calculateScores(answers))
+      const parsed = JSON.parse(answersRaw) as Answers
+      const sc = calculateScores(parsed)
+      const suggested = suggestHabitLevel(parsed, sc)
+      setAnswers(parsed)
+      setScores(sc)
+      setSuggestedLevel(suggested)
+      setSelectedLevel(suggested)
     })
   }, [router])
 
   const handleGeneratePlan = async () => {
-    if (!userId || !scores) return
+    if (!userId || !scores || !answers) return
 
     const assessmentId = sessionStorage.getItem('nexus_assessment_id')!
-    const answersRaw = sessionStorage.getItem('nexus_assessment_answers')!
-    const answers = JSON.parse(answersRaw) as Answers
 
     setGenerating(true)
     setError(null)
 
     try {
-      await generateProgramFromAssessment(userId, assessmentId, answers)
+      await generateHabitsFromAssessment(userId, assessmentId, answers, selectedLevel)
       sessionStorage.removeItem('nexus_assessment_id')
       sessionStorage.removeItem('nexus_assessment_answers')
       router.push('/hoje')
     } catch (e) {
-      setError('Erro ao gerar seu plano. Tente novamente.')
-      logError('analise-inicial: gerar plano', e)
+      setError('Erro ao criar seus hábitos. Tente novamente.')
+      logError('analise-inicial: gerar hábitos', e)
     } finally {
       setGenerating(false)
     }
   }
 
-  if (!scores) {
+  if (!scores || !answers) {
     return (
       <div
         style={{
@@ -103,6 +115,8 @@ export default function AnaliseInicialPage() {
     )
   }
 
+  const preview = selectHabitsForLevel(answers, scores, selectedLevel)
+
   return (
     <div
       style={{
@@ -112,7 +126,7 @@ export default function AnaliseInicialPage() {
         maxWidth: 480,
         width: '100%',
         margin: '0 auto',
-        padding: '28px 20px',
+        padding: '28px 20px calc(28px + env(safe-area-inset-bottom))',
       }}
     >
       <div style={{ textAlign: 'center' }}>
@@ -130,10 +144,10 @@ export default function AnaliseInicialPage() {
           {scores.global}
           <span style={{ fontSize: 24, color: 'var(--text3)', fontWeight: 400 }}>/100</span>
         </div>
-        <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 28 }}>Sua pontuação inicial</p>
+        <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 24 }}>Sua pontuação inicial</p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 28 }}>
         {AREAS.map(area => (
           <div key={area} className="card" style={{ padding: '14px 16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
@@ -155,6 +169,85 @@ export default function AnaliseInicialPage() {
         ))}
       </div>
 
+      {/* Seletor de nível */}
+      <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, color: 'var(--text1)', marginBottom: 4 }}>
+        Escolha sua intensidade
+      </h2>
+      <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 14 }}>
+        Começar pequeno cria consistência. Você pode subir de nível depois.
+      </p>
+
+      <div style={{ display: 'grid', gap: 10, marginBottom: 20 }}>
+        {HABIT_LEVELS.map(spec => {
+          const active = spec.level === selectedLevel
+          const isSuggested = spec.level === suggestedLevel
+          const parts = [
+            spec.mix.d1 ? `${spec.mix.d1} fáceis` : null,
+            spec.mix.d2 ? `${spec.mix.d2} médios` : null,
+            spec.mix.d3 ? `${spec.mix.d3} difíceis` : null,
+          ].filter(Boolean).join(' · ')
+          return (
+            <button
+              key={spec.level}
+              type="button"
+              onClick={() => setSelectedLevel(spec.level)}
+              aria-pressed={active}
+              style={{
+                textAlign: 'left',
+                padding: '14px 16px',
+                borderRadius: 16,
+                cursor: 'pointer',
+                background: active ? 'rgba(232,168,56,.10)' : 'var(--bg2)',
+                border: `1.5px solid ${active ? 'var(--gold)' : 'var(--border)'}`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                touchAction: 'manipulation',
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
+                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)' }}>
+                    Nível {spec.level} · {spec.label}
+                  </span>
+                  {isSuggested && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--bg0)', background: 'var(--gold)', borderRadius: 100, padding: '2px 7px' }}>
+                      Sugerido
+                    </span>
+                  )}
+                </div>
+                <span style={{ fontSize: 12, color: 'var(--text3)' }}>{spec.total} hábitos · {parts}</span>
+              </div>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 20, height: 20, borderRadius: '50%', flexShrink: 0,
+                  border: `2px solid ${active ? 'var(--gold)' : 'var(--text3)'}`,
+                  background: active ? 'var(--gold)' : 'transparent',
+                }}
+              />
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Preview dos hábitos do nível escolhido */}
+      <div className="card" style={{ padding: '14px 16px', marginBottom: 24 }}>
+        <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700, marginBottom: 10 }}>
+          Seus {preview.length} hábitos
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+          {preview.map(h => (
+            <div key={h.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--text1)' }}>
+              <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--teal)', flexShrink: 0 }} />
+              <span style={{ flex: 1, minWidth: 0 }}>{h.name}</span>
+              {h.time_window && <span style={{ fontSize: 11, color: 'var(--text3)', flexShrink: 0 }}>{h.time_window}</span>}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {error && <p style={{ marginBottom: 12, fontSize: 13, color: '#E24B4A' }}>{error}</p>}
       <button
         className="btn-primary"
@@ -162,10 +255,10 @@ export default function AnaliseInicialPage() {
         disabled={generating}
         style={{ opacity: generating ? 0.5 : 1, cursor: generating ? 'not-allowed' : 'pointer' }}
       >
-        {generating ? 'Gerando seu plano...' : 'Ver meu plano de 63 dias →'}
+        {generating ? 'Criando seus hábitos...' : 'Criar meus hábitos →'}
       </button>
       <p style={{ marginTop: 12, fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
-        Vamos montar seu plano de 63 dias personalizado com base no seu diagnóstico
+        Vamos montar seus hábitos diários com base no seu diagnóstico
       </p>
     </div>
   )

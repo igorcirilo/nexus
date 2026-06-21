@@ -16,6 +16,8 @@ export interface Profile {
   mission_today: string | null
   energy_today: number
   onboarded: boolean
+  /** Nível de intensidade dos hábitos (1 básico → 4 alta performance). NULL = legado/programa. */
+  habit_level?: number | null
   created_at: string
 
   age?: number | null
@@ -60,6 +62,12 @@ export interface Habit {
   time_window: string | null
   active: boolean
   created_at: string
+  /** Origem: 'manual' (criado pelo user) ou 'onboarding' (gerado pelo questionário). */
+  source: 'manual' | 'onboarding'
+  /** 1 fácil · 2 média · 3 difícil. */
+  difficulty: 1 | 2 | 3
+  /** Chave estável do catálogo (só p/ hábitos de onboarding); permite regenerar sem duplicar. */
+  catalog_key: string | null
 }
 
 export interface HabitLog {

@@ -6,6 +6,7 @@ import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCoun
 import { useRouter } from 'next/navigation'
 import type { Profile, UserBadge } from '@/types'
 import PerfilHub from '@/components/perfil/PerfilHub'
+import HabitLevelCard from '@/components/perfil/HabitLevelCard'
 
 type AppTab = 'resumo' | 'editar'
 type Section = 'corpo' | 'metas' | 'objetivos' | 'xp'
@@ -350,6 +351,10 @@ export default function PerfilPage() {
             </div>
           </div>
         </>
+      )}
+
+      {profile?.habit_level != null && (
+        <HabitLevelCard userId={profile.id} currentLevel={profile.habit_level} />
       )}
 
       <div style={{ display: 'flex', margin: '0 20px 20px', padding: 4, background: 'var(--bg2)', borderRadius: 12, border: '0.5px solid var(--border)', gap: 2 }}>

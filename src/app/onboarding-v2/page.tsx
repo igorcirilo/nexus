@@ -34,11 +34,12 @@ export default function OnboardingV2Page() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('onboarded, onboarding_version, program_id')
+        .select('onboarded, onboarding_version, program_id, habit_level')
         .eq('id', data.user.id)
         .single()
 
-      if (profile?.onboarded && (profile.onboarding_version ?? 1) >= 2 && profile.program_id) {
+      // Já concluiu: tem hábitos por nível (novo) ou um programa (legado).
+      if (profile?.onboarded && (profile.habit_level != null || profile.program_id)) {
         router.replace('/hoje')
         return
       }
