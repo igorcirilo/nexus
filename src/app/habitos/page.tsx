@@ -15,7 +15,8 @@ const FONT = 'Inter, sans-serif'
 
 const AREAS = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
 
-const DEFAULT_HABITS: Omit<Habit, 'id' | 'user_id' | 'created_at'>[] = [
+// Apenas os campos definidos no insert; source/difficulty/catalog_key usam os defaults da BD.
+const DEFAULT_HABITS: Pick<Habit, 'name' | 'area' | 'xp_reward' | 'time_window' | 'active'>[] = [
   { name: 'Treino fisico', area: 'corpo', xp_reward: 20, time_window: '07:00-09:00', active: true },
   { name: 'Agua · 2L', area: 'corpo', xp_reward: 8, time_window: 'Todo o dia', active: true },
   { name: 'Idioma · 20 min', area: 'idiomas', xp_reward: 15, time_window: '18:00-19:00', active: true },

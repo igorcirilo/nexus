@@ -47,8 +47,8 @@ export async function updateProfile(userId: string, updates: Record<string, unkn
 }
 
 // ── Hábitos ────────────────────────────────────────────────
-export async function getHabitsWithLogs(userId: string, date: string) {
-  const { data: habits } = await supabase
+export async function getHabitsWithLogs(userId: string, date: string, client: SupabaseClient = supabase) {
+  const { data: habits } = await client
     .from('habits')
     .select('*, habit_logs(completed, date)')
     .eq('user_id', userId)
