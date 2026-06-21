@@ -4,17 +4,24 @@ import type { CSSProperties, ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const NAV_ITEMS = [
+// Destinos primários: 3 à esquerda + 3 à direita, com a ação rápida ao centro.
+// Hábitos, Progresso e Objetivos vivem agora no hub do Perfil.
+const LEFT_ITEMS = [
   { href: '/hoje', label: 'Hoje', icon: HomeIcon },
+  { href: '/calendario', label: 'Agenda', icon: CalIcon },
   { href: '/financas', label: 'Finanças', icon: EuroIcon },
+]
+const RIGHT_ITEMS = [
   { href: '/corpo', label: 'Corpo', icon: BodyIcon },
-  { href: '/calendario', label: 'Calendário', icon: CalIcon },
   { href: '/leitura', label: 'Leitura', icon: BookIcon },
-  { href: '/habitos', label: 'Hábitos', icon: CheckIcon },
-  { href: '/objetivos', label: 'Objetivos', icon: TargetIcon },
-  { href: '/progresso', label: 'Progresso', icon: ActivityIcon },
   { href: '/perfil', label: 'Perfil', icon: UserIcon },
 ]
+
+function emitQuickAction() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('nexus:quickaction-toggle'))
+  }
+}
 
 export default function Nav() {
   const path = usePathname()
@@ -31,21 +38,48 @@ export default function Nav() {
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       backdropFilter: 'blur(16px)',
     }}>
-      <div
-        className="nav-scroll"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '7px 10px 8px',
-          gap: 4,
-          width: '100%',
-          overflowX: 'auto',
-          scrollSnapType: 'x proximity',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = path === href || (href === '/progresso' && (path === '/evolucao' || path === '/dashboard'))
+      <div style={{ display: 'flex', alignItems: 'center', padding: '7px 8px 8px' }}>
+        {LEFT_ITEMS.map(({ href, label, icon: Icon }) => {
+          const active = path === href
+          return (
+            <Link key={href} href={href} style={navItemStyle(active)}>
+              <Icon active={active} />
+              <span style={labelStyle(active)}>{label}</span>
+              {active && <span style={activeDotStyle} />}
+            </Link>
+          )
+        })}
+
+        {/* Ação rápida ao centro (novo hábito / transação / pomodoro). */}
+        <button
+          type="button"
+          onClick={emitQuickAction}
+          aria-label="Ação rápida"
+          style={{
+            flex: '0 0 auto',
+            width: 54,
+            height: 54,
+            marginTop: -20,
+            borderRadius: '50%',
+            border: '4px solid rgba(20,23,32,.96)',
+            background: 'linear-gradient(135deg, var(--teal), var(--accent))',
+            color: '#fff',
+            fontSize: 26,
+            fontWeight: 300,
+            lineHeight: 1,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 24px rgba(30,203,180,.4)',
+            touchAction: 'manipulation',
+          }}
+        >
+          ＋
+        </button>
+
+        {RIGHT_ITEMS.map(({ href, label, icon: Icon }) => {
+          const active = path === href
           return (
             <Link key={href} href={href} style={navItemStyle(active)}>
               <Icon active={active} />
@@ -55,20 +89,14 @@ export default function Nav() {
           )
         })}
       </div>
-
-      <style jsx>{`
-        .nav-scroll::-webkit-scrollbar { display: none; }
-        .nav-scroll { scrollbar-width: none; -ms-overflow-style: none; }
-      `}</style>
     </nav>
   )
 }
 
 function navItemStyle(active: boolean): CSSProperties {
   return {
-    flex: '0 0 auto',
-    minWidth: 'calc((100% - 16px) / 4.5)',
-    scrollSnapAlign: 'start',
+    flex: '1 1 0',
+    minWidth: 0,
     minHeight: 52,
     display: 'flex',
     flexDirection: 'column',
@@ -113,17 +141,8 @@ function HomeIcon({ active }: { active: boolean }) {
 function CalIcon({ active }: { active: boolean }) {
   return <Ico active={active}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v6"/><path d="M8 2v6"/><path d="M3 10h18"/></Ico>
 }
-function CheckIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="5"/><path d="M12 6v6l4 2"/></Ico>
-}
-function ActivityIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19H2"/></Ico>
-}
 function EuroIcon({ active }: { active: boolean }) {
   return <Ico active={active}><path d="M4 10h12"/><path d="M4 14h12"/><path d="M15.5 4.5a9 9 0 1 1 0 15"/></Ico>
-}
-function TargetIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></Ico>
 }
 function UserIcon({ active }: { active: boolean }) {
   return <Ico active={active}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Ico>

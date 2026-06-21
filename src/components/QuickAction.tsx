@@ -87,6 +87,13 @@ export default function QuickAction() {
     return () => document.removeEventListener('keydown', onKey)
   }, [open])
 
+  // O botão central da navbar abre/fecha o menu de ação rápida.
+  useEffect(() => {
+    function onToggle() { setOpen(v => !v) }
+    window.addEventListener('nexus:quickaction-toggle', onToggle)
+    return () => window.removeEventListener('nexus:quickaction-toggle', onToggle)
+  }, [])
+
   useEffect(() => {
     if (!toast) return
     const t = window.setTimeout(() => setToast(''), 2400)
@@ -339,25 +346,25 @@ export default function QuickAction() {
         </div>
       )}
 
-      {/* ── Botão flutuante ── */}
-      {/* zIndex abaixo de Nav (100) e dos overlays (9000+): o FAB nunca deve
+      {/* ── Menu de ação rápida (aberto pelo botão central da navbar) ── */}
+      {/* zIndex abaixo de Nav (100) e dos overlays (9000+): o menu nunca deve
           flutuar por cima de modais/bottom sheets abertos. */}
-      <div data-quickaction style={{position:'fixed',bottom:88,right:20,zIndex:90,display:'flex',flexDirection:'column',alignItems:'flex-end',gap:10}}>
-        {open && (
-          <div style={{display:'flex',flexDirection:'column',gap:8,animation:'qaMenuIn .18s ease'}}>
+      {open && (
+        <>
+          <div onClick={()=>setOpen(false)} style={{position:'fixed',inset:0,zIndex:95,background:'transparent'}} />
+          <div data-quickaction style={{position:'fixed',bottom:84,left:'50%',transform:'translateX(-50%)',zIndex:96,display:'flex',flexDirection:'column',alignItems:'center',gap:8,animation:'qaMenuIn .18s ease'}}>
             {actions.map(a=>(
-              <button key={a.label} onClick={a.onClick} style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg1)',border:`0.5px solid ${a.color}44`,borderRadius:14,padding:'10px 14px',cursor:'pointer',boxShadow:'0 4px 20px rgba(0,0,0,.35)',whiteSpace:'nowrap'}}>
+              <button key={a.label} onClick={a.onClick} style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg1)',border:`0.5px solid ${a.color}44`,borderRadius:14,padding:'10px 14px',cursor:'pointer',boxShadow:'0 4px 20px rgba(0,0,0,.35)',whiteSpace:'nowrap',minWidth:160}}>
                 <div style={{width:32,height:32,borderRadius:9,background:a.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,flexShrink:0}}>{a.icon}</div>
                 <span style={{fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:13,color:a.color}}>＋ {a.label}</span>
               </button>
             ))}
           </div>
-        )}
-        <button onClick={()=>setOpen(v=>!v)} style={{width:52,height:52,borderRadius:'50%',border:'none',background:open?'var(--bg3)':'linear-gradient(135deg, var(--teal), var(--accent))',color:'#fff',fontSize:open?22:26,fontWeight:300,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:open?'0 2px 12px rgba(0,0,0,.3)':'0 4px 20px rgba(30,203,180,.35)',transform:open?'rotate(45deg)':'rotate(0deg)',transition:'transform .2s ease, background .2s ease',flexShrink:0}} aria-label="Acção rápida">＋</button>
-        <style jsx>{`
-          @keyframes qaMenuIn { from { opacity:0; transform:translateY(8px) scale(.97); } to { opacity:1; transform:translateY(0) scale(1); } }
-        `}</style>
-      </div>
+        </>
+      )}
+      <style jsx>{`
+        @keyframes qaMenuIn { from { opacity:0; transform:translate(-50%,8px) scale(.97); } to { opacity:1; transform:translate(-50%,0) scale(1); } }
+      `}</style>
     </>
   )
 }

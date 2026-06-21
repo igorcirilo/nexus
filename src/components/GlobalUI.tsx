@@ -6,11 +6,10 @@
 import { usePathname } from 'next/navigation'
 import QuickAction from './QuickAction'
 
-const HIDE_ON = ['/auth', '/onboarding', '/perfil']
+const HIDE_ON = ['/auth', '/onboarding']
 
-// Rotas com UI imersiva ou ação primária própria onde o FAB global
-// taparia controlos da página (ex.: reader de leitura em ecrã cheio,
-// formulário de edição do perfil).
+// Rotas com UI imersiva onde o menu global taparia controlos da página
+// (ex.: reader de leitura em ecrã cheio).
 const HIDE_ON_PATTERNS = [/^\/leitura\/.+/]
 
 export default function GlobalUI() {
