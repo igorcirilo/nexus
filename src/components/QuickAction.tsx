@@ -17,7 +17,7 @@ const HABIT_AREAS: Array<{ key: HabitArea; label: string; icon: string; color: s
 ]
 
 const CATEGORIES_IN  = ['Salário','Freelance','Investimento','Rendas','Presente','Outro']
-const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
+const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Contas','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
 const CUSTOM_KEY     = '__custom__'
 
 const inputStyle: React.CSSProperties = {

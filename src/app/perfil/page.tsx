@@ -77,6 +77,7 @@ export default function PerfilPage() {
   const [journeyData, setJourneyData] = useState<{ trainingCount30d: number; readingPages30d: number } | undefined>(undefined)
   const [tab, setTab] = useState<AppTab>('resumo')
   const [section, setSection] = useState<Section>('corpo')
+  const [editSection, setEditSection] = useState<Section | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -194,6 +195,96 @@ export default function PerfilPage() {
     xp: 'Metas',
   }
 
+  // Cada secção tem a sua própria identidade quando aberta como modal.
+  const sectionMeta: Record<Section, { icon: string; title: string; sub: string }> = {
+    corpo:     { icon: '💪', title: 'Corpo & Físico',     sub: 'Peso, altura, idade e sexo' },
+    metas:     { icon: '🎯', title: 'Metas & Hábitos',    sub: 'Água, treinos, sono e leitura' },
+    objetivos: { icon: '🧭', title: 'Objetivos 90 Dias',  sub: 'Pessoal, carreira e saúde' },
+    xp:        { icon: '⚡', title: 'Desempenho',          sub: 'Taxa de conclusão semanal' },
+  }
+
+  // Campos de cada secção, partilhados entre a página de edição e os modais.
+  function renderSectionFields(sec: Section) {
+    if (sec === 'corpo') return (
+      <>
+        <Field label="Nome de utilizador">
+          <input style={inputStyle} value={String(form.username)} onChange={(e) => set('username', e.target.value)} placeholder="Como te chamamos" />
+        </Field>
+        <div style={rowStyle}>
+          <Field label="Idade (anos)">
+            <input style={inputStyle} type="number" value={String(form.age)} onChange={(e) => set('age', e.target.value === '' ? '' : +e.target.value)} placeholder="30" />
+          </Field>
+          <Field label="Sexo">
+            <select style={inputStyle} value={String(form.sex)} onChange={(e) => set('sex', e.target.value)}>
+              <option value="">—</option>
+              <option value="masculino">Masculino</option>
+              <option value="feminino">Feminino</option>
+              <option value="outro">Outro</option>
+            </select>
+          </Field>
+        </div>
+        <div style={rowStyle}>
+          <Field label="Peso actual (kg)">
+            <input style={inputStyle} type="number" step="0.1" value={String(form.weight_kg)} onChange={(e) => set('weight_kg', e.target.value === '' ? '' : +e.target.value)} placeholder="75.0" />
+          </Field>
+          <Field label="Altura (cm)">
+            <input style={inputStyle} type="number" value={String(form.height_cm)} onChange={(e) => set('height_cm', e.target.value === '' ? '' : +e.target.value)} placeholder="175" />
+          </Field>
+        </div>
+        <Field label="Peso objetivo (kg)">
+          <input style={inputStyle} type="number" step="0.1" value={String(form.goal_weight)} onChange={(e) => set('goal_weight', e.target.value === '' ? '' : +e.target.value)} placeholder="70.0" />
+        </Field>
+      </>
+    )
+    if (sec === 'metas') return (
+      <>
+        <Field label={`Meta de água diária: ${Math.round((+form.water_goal_ml / 1000) * 10) / 10}L`} hint="Recomendado: 2.0–3.0L por dia">
+          <input type="range" min={1000} max={4000} step={250} value={+form.water_goal_ml} onChange={(e) => set('water_goal_ml', +e.target.value)} style={{ width: '100%', accentColor: 'var(--teal)' }} />
+        </Field>
+        <Field label={`Treinos por semana: ${form.workouts_per_week}`}>
+          <input type="range" min={1} max={7} step={1} value={+form.workouts_per_week} onChange={(e) => set('workouts_per_week', +e.target.value)} style={{ width: '100%', accentColor: 'var(--gold)' }} />
+        </Field>
+        <Field label={`Meta de sono: ${form.sleep_goal_h}h`}>
+          <input type="range" min={5} max={10} step={0.5} value={+form.sleep_goal_h} onChange={(e) => set('sleep_goal_h', +e.target.value)} style={{ width: '100%', accentColor: 'var(--accent)' }} />
+        </Field>
+        <Field label={`Páginas de leitura por dia: ${form.read_pages_day}`}>
+          <input type="range" min={5} max={100} step={5} value={+form.read_pages_day} onChange={(e) => set('read_pages_day', +e.target.value)} style={{ width: '100%', accentColor: 'var(--accent)' }} />
+        </Field>
+      </>
+    )
+    if (sec === 'objetivos') return (
+      <>
+        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
+          Define o que queres alcançar nos próximos 90 dias em cada área. Estas metas guiam o sistema.
+        </div>
+        <Field label="Objectivo pessoal de 90 dias">
+          <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_personal)} onChange={(e) => set('goal_90_personal', e.target.value)} placeholder="Ex: Criar um hábito de meditação diária e melhorar o sono" />
+        </Field>
+        <Field label="Objectivo profissional / carreira">
+          <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_career)} onChange={(e) => set('goal_90_career', e.target.value)} placeholder="Ex: Lançar o projecto X e conseguir os primeiros clientes" />
+        </Field>
+        <Field label="Objectivo de saúde">
+          <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_health)} onChange={(e) => set('goal_90_health', e.target.value)} placeholder="Ex: Perder 5kg e correr 5km sem parar" />
+        </Field>
+      </>
+    )
+    return (
+      <>
+        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
+          Define a tua meta de consistência semanal. O dashboard vai mostrar o teu progresso em relação a este valor.
+        </div>
+        <Field label={`Taxa de conclusão semanal aceitável: ${form.completion_pct_goal}%`} hint="Abaixo disto o mentor activa modo de retomada">
+          <input type="range" min={40} max={100} step={5} value={+form.completion_pct_goal} onChange={(e) => set('completion_pct_goal', +e.target.value)} style={{ width: '100%', accentColor: 'var(--teal)' }} />
+        </Field>
+      </>
+    )
+  }
+
+  async function saveSection() {
+    await save()
+    setEditSection(null)
+  }
+
   const earnedKeys = new Set(badges.map((b) => b.badge_key))
 
   if (loading) {
@@ -222,12 +313,54 @@ export default function PerfilPage() {
           ritmo={ritmo}
           badges={badges}
           email={email}
-          onEdit={(sec) => { setSection(sec ?? 'corpo'); setTab('editar') }}
+          onEdit={(sec) => setEditSection(sec ?? 'corpo')}
+          onEditAll={() => { setSection('corpo'); setTab('editar') }}
           onLogout={logout}
           onPhotoSelect={handlePhotoSelect}
           photoUploading={photoUploading}
           journeyData={journeyData}
         />
+
+        {editSection && (
+          <div
+            onClick={() => !saving && setEditSection(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{ width: '100%', maxWidth: 480, background: 'var(--bg1)', borderTopLeftRadius: 24, borderTopRightRadius: 24, border: '0.5px solid var(--border)', maxHeight: '90dvh', display: 'flex', flexDirection: 'column' }}
+            >
+              <div style={{ padding: '18px 24px 14px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 20 }}>{sectionMeta[editSection].icon}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>{sectionMeta[editSection].title}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{sectionMeta[editSection].sub}</div>
+                </div>
+                <button onClick={() => setEditSection(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--bg3)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text2)' }}>✕</button>
+              </div>
+              <div style={{ padding: '18px 24px', overflowY: 'auto', flex: 1 }}>
+                {renderSectionFields(editSection)}
+              </div>
+              <div style={{ padding: '12px 24px calc(20px + env(safe-area-inset-bottom))', background: 'var(--bg1)', borderTop: '0.5px solid var(--border)', display: 'flex', gap: 10 }}>
+                <button onClick={() => setEditSection(null)} style={{ flex: 1, padding: '14px 0', borderRadius: 14, border: '0.5px solid var(--border)', background: 'var(--bg3)', color: 'var(--text2)', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={saveSection} disabled={saving} style={{ flex: 1, padding: '14px 0', borderRadius: 14, border: 'none', background: 'var(--gold)', color: 'var(--bg0)', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+                  {saving ? 'A guardar…' : 'Guardar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {saved && (
+          <div style={{
+            position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)',
+            background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.38)', borderRadius: 12,
+            padding: '10px 18px', fontSize: 13, color: 'var(--teal)', zIndex: 10000, whiteSpace: 'nowrap',
+          }}>
+            Perfil guardado!
+          </div>
+        )}
+
         <Nav />
       </main>
     )
@@ -364,100 +497,28 @@ export default function PerfilPage() {
       </div>
 
       <div style={{ padding: '0 20px' }}>
-        {section === 'corpo' && (
-          <>
-            <Field label="Nome de utilizador">
-              <input style={inputStyle} value={String(form.username)} onChange={(e) => set('username', e.target.value)} placeholder="Como te chamamos" />
-            </Field>
-            <div style={rowStyle}>
-              <Field label="Idade (anos)">
-                <input style={inputStyle} type="number" value={String(form.age)} onChange={(e) => set('age', e.target.value === '' ? '' : +e.target.value)} placeholder="30" />
-              </Field>
-              <Field label="Sexo">
-                <select style={inputStyle} value={String(form.sex)} onChange={(e) => set('sex', e.target.value)}>
-                  <option value="">—</option>
-                  <option value="masculino">Masculino</option>
-                  <option value="feminino">Feminino</option>
-                  <option value="outro">Outro</option>
-                </select>
-              </Field>
-            </div>
-            <div style={rowStyle}>
-              <Field label="Peso actual (kg)">
-                <input style={inputStyle} type="number" step="0.1" value={String(form.weight_kg)} onChange={(e) => set('weight_kg', e.target.value === '' ? '' : +e.target.value)} placeholder="75.0" />
-              </Field>
-              <Field label="Altura (cm)">
-                <input style={inputStyle} type="number" value={String(form.height_cm)} onChange={(e) => set('height_cm', e.target.value === '' ? '' : +e.target.value)} placeholder="175" />
-              </Field>
-            </div>
-            <Field label="Peso objetivo (kg)">
-              <input style={inputStyle} type="number" step="0.1" value={String(form.goal_weight)} onChange={(e) => set('goal_weight', e.target.value === '' ? '' : +e.target.value)} placeholder="70.0" />
-            </Field>
-          </>
-        )}
-
-        {section === 'metas' && (
-          <>
-            <Field label={`Meta de água diária: ${Math.round((+form.water_goal_ml / 1000) * 10) / 10}L`} hint="Recomendado: 2.0–3.0L por dia">
-              <input type="range" min={1000} max={4000} step={250} value={+form.water_goal_ml} onChange={(e) => set('water_goal_ml', +e.target.value)} style={{ width: '100%', accentColor: 'var(--teal)' }} />
-            </Field>
-            <Field label={`Treinos por semana: ${form.workouts_per_week}`}>
-              <input type="range" min={1} max={7} step={1} value={+form.workouts_per_week} onChange={(e) => set('workouts_per_week', +e.target.value)} style={{ width: '100%', accentColor: 'var(--gold)' }} />
-            </Field>
-            <Field label={`Meta de sono: ${form.sleep_goal_h}h`}>
-              <input type="range" min={5} max={10} step={0.5} value={+form.sleep_goal_h} onChange={(e) => set('sleep_goal_h', +e.target.value)} style={{ width: '100%', accentColor: 'var(--accent)' }} />
-            </Field>
-            <Field label={`Páginas de leitura por dia: ${form.read_pages_day}`}>
-              <input type="range" min={5} max={100} step={5} value={+form.read_pages_day} onChange={(e) => set('read_pages_day', +e.target.value)} style={{ width: '100%', accentColor: 'var(--accent)' }} />
-            </Field>
-          </>
-        )}
-
-        {section === 'objetivos' && (
-          <>
-            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
-              Define o que queres alcançar nos próximos 90 dias em cada área. Estas metas guiam o sistema.
-            </div>
-            <Field label="Objectivo pessoal de 90 dias">
-              <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_personal)} onChange={(e) => set('goal_90_personal', e.target.value)} placeholder="Ex: Criar um hábito de meditação diária e melhorar o sono" />
-            </Field>
-            <Field label="Objectivo profissional / carreira">
-              <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_career)} onChange={(e) => set('goal_90_career', e.target.value)} placeholder="Ex: Lançar o projecto X e conseguir os primeiros clientes" />
-            </Field>
-            <Field label="Objectivo de saúde">
-              <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_health)} onChange={(e) => set('goal_90_health', e.target.value)} placeholder="Ex: Perder 5kg e correr 5km sem parar" />
-            </Field>
-          </>
-        )}
+        {renderSectionFields(section)}
 
         {section === 'xp' && (
-          <>
-            <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
-              Define a tua meta de consistência semanal. O dashboard vai mostrar o teu progresso em relação a este valor.
-            </div>
-            <Field label={`Taxa de conclusão semanal aceitável: ${form.completion_pct_goal}%`} hint="Abaixo disto o mentor activa modo de retomada">
-              <input type="range" min={40} max={100} step={5} value={+form.completion_pct_goal} onChange={(e) => set('completion_pct_goal', +e.target.value)} style={{ width: '100%', accentColor: 'var(--teal)' }} />
-            </Field>
-            <button
-              type="button"
-              disabled
-              style={{
-                width: '100%',
-                opacity: 0.4,
-                cursor: 'not-allowed',
-                background: 'var(--bg2)',
-                color: 'var(--text2)',
-                border: '0.5px solid var(--border)',
-                borderRadius: 14,
-                padding: 14,
-                fontFamily: 'Syne, sans-serif',
-                fontWeight: 700,
-                fontSize: 14,
-              }}
-            >
-              Exportar dados (em breve)
-            </button>
-          </>
+          <button
+            type="button"
+            disabled
+            style={{
+              width: '100%',
+              opacity: 0.4,
+              cursor: 'not-allowed',
+              background: 'var(--bg2)',
+              color: 'var(--text2)',
+              border: '0.5px solid var(--border)',
+              borderRadius: 14,
+              padding: 14,
+              fontFamily: 'Syne, sans-serif',
+              fontWeight: 700,
+              fontSize: 14,
+            }}
+          >
+            Exportar dados (em breve)
+          </button>
         )}
 
         <button

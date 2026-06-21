@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Nexus — 3 opções de navbar</title>
+<style>
+  :root{
+    --bg:#07070F; --bg2:rgba(255,255,255,.04); --border:rgba(255,255,255,.08);
+    --gold:#F5C842; --teal:#00D4C8; --purple:#9D5CF5; --dim:rgba(255,255,255,.42);
+    --dim2:rgba(255,255,255,.6);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:#0a0a14;color:#fff;font-family:Inter,system-ui,sans-serif;padding:32px 16px 64px}
+  h1{font-size:22px;font-weight:800;letter-spacing:-.4px;text-align:center;margin:0 0 6px}
+  .sub{text-align:center;color:var(--dim);font-size:13px;margin:0 auto 36px;max-width:620px;line-height:1.6}
+  .grid{display:flex;flex-wrap:wrap;gap:28px;justify-content:center;align-items:flex-start}
+  .opt{width:340px}
+  .opt h2{font-size:15px;font-weight:800;margin:0 0 4px;color:var(--gold)}
+  .opt p{font-size:12.5px;color:var(--dim);line-height:1.55;margin:0 0 14px;min-height:54px}
+  /* phone */
+  .phone{position:relative;height:300px;border-radius:30px;background:
+      radial-gradient(120% 80% at 50% 0%, #16162c 0%, var(--bg) 60%);
+    border:1px solid var(--border);overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  .screen{position:absolute;inset:0;padding:18px 16px}
+  .fakeline{height:9px;border-radius:6px;background:rgba(255,255,255,.05);margin-bottom:9px}
+  .card{height:74px;border-radius:16px;background:var(--bg2);border:1px solid var(--border);margin-bottom:12px}
+  /* nav shells */
+  .nav{position:absolute;left:0;right:0;bottom:0;background:rgba(20,23,32,.96);
+    border-top:.5px solid var(--border);backdrop-filter:blur(16px)}
+  .row{display:flex;align-items:center}
+  .item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;
+    padding:9px 0 10px;color:var(--dim);text-decoration:none}
+  .item.on{color:var(--gold)}
+  .item .lbl{font-size:10.5px;font-weight:600;white-space:nowrap}
+  .dot{width:4px;height:4px;border-radius:50%;background:var(--gold);margin-top:1px}
+  svg{display:block}
+
+  /* Option A — scrolling (current) for comparison strip */
+  .scroll{display:flex;gap:4px;overflow-x:auto;padding:7px 10px 8px}
+  .scroll .item{flex:0 0 auto;min-width:62px}
+
+  /* Option B — center FAB */
+  .fab{width:54px;height:54px;border-radius:50%;flex:0 0 auto;margin:-22px 6px 0;
+    background:linear-gradient(135deg,var(--teal),var(--purple));display:flex;align-items:center;
+    justify-content:center;box-shadow:0 8px 24px rgba(0,212,200,.4);color:#fff;font-size:26px;font-weight:300}
+
+  /* Option C — floating pill */
+  .pillwrap{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:0 0 16px;background:transparent;border:0}
+  .pill{display:flex;align-items:center;gap:4px;background:rgba(24,26,38,.92);border:1px solid var(--border);
+    border-radius:30px;padding:7px 8px;backdrop-filter:blur(16px);box-shadow:0 14px 40px rgba(0,0,0,.55)}
+  .pitem{display:flex;align-items:center;gap:7px;color:var(--dim);padding:9px 11px;border-radius:22px;text-decoration:none}
+  .pitem.on{color:#0a0a14;background:var(--gold);font-weight:700}
+  .pitem .lbl{font-size:12px;font-weight:700;white-space:nowrap;max-width:0;overflow:hidden;transition:max-width .2s}
+  .pitem.on .lbl{max-width:80px}
+
+  .note{font-size:11.5px;color:var(--dim);margin-top:10px;line-height:1.5}
+  .tag{display:inline-block;font-size:10px;font-weight:700;color:var(--teal);
+    background:rgba(0,212,200,.12);border-radius:6px;padding:2px 7px;margin-left:6px}
+</style>
+</head>
+<body>
+  <h1>Nexus — 3 opções de navbar</h1>
+  <p class="sub">Problema atual: <b>9 destinos</b> espremidos numa barra que faz scroll horizontal — o utilizador não vê tudo de uma vez e os alvos de toque ficam pequenos. As 3 opções abaixo escolhem 4–5 destinos primários e arrumam o resto.</p>
+
+  <div class="grid">
+
+    <!-- OPÇÃO 1 -->
+    <div class="opt">
+      <h2>Opção 1 · Tab bar + “Mais”</h2>
+      <p>5 destinos fixos (Hoje, Finanças, Corpo, Progresso) e um botão <b>Mais</b> que abre uma folha com Calendário, Leitura, Hábitos, Objetivos e Perfil. Padrão iOS, alvos grandes, previsível.</p>
+      <div class="phone">
+        <div class="screen">
+          <div class="fakeline" style="width:40%"></div>
+          <div class="card"></div><div class="card"></div>
+        </div>
+        <div class="nav">
+          <div class="row">
+            <a class="item on">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+              <span class="lbl">Hoje</span><span class="dot"></span>
+            </a>
+            <a class="item">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10h12"/><path d="M4 14h12"/><path d="M15.5 4.5a9 9 0 1 1 0 15"/></svg>
+              <span class="lbl">Finanças</span>
+            </a>
+            <a class="item">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 18V8a3 3 0 0 1 6 0v10"/><path d="M6 12h12"/><path d="M4 10v4"/><path d="M20 10v4"/></svg>
+              <span class="lbl">Corpo</span>
+            </a>
+            <a class="item">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19H2"/></svg>
+              <span class="lbl">Progresso</span>
+            </a>
+            <a class="item">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+              <span class="lbl">Mais</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="note">+ Escala para sempre (adicionar destinos não aperta a barra). <span class="tag">recomendada</span></div>
+    </div>
+
+    <!-- OPÇÃO 2 -->
+    <div class="opt">
+      <h2>Opção 2 · 4 abas + ação central</h2>
+      <p>Quatro destinos (Hoje, Finanças, Hábitos, Perfil) com um <b>botão central</b> destacado para a ação rápida (novo hábito / transação / pomodoro), substituindo o FAB solto. As restantes secções vivem no Perfil/Hub.</p>
+      <div class="phone">
+        <div class="screen">
+          <div class="fakeline" style="width:40%"></div>
+          <div class="card"></div><div class="card"></div>
+        </div>
+        <div class="nav">
+          <div class="row" style="padding:0 6px">
+            <a class="item on">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+              <span class="lbl">Hoje</span><span class="dot"></span>
+            </a>
+            <a class="item">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10h12"/><path d="M4 14h12"/><path d="M15.5 4.5a9 9 0 1 1 0 15"/></svg>
+              <span class="lbl">Finanças</span>
+            </a>
+            <div class="fab">+</div>
+            <a class="item">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="5"/><path d="M12 6v6l4 2"/></svg>
+              <span class="lbl">Hábitos</span>
+            </a>
+            <a class="item">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              <span class="lbl">Perfil</span>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="note">+ Une navegação e ação rápida num só sítio (resolve a sobreposição FAB ↔ navbar).</div>
+    </div>
+
+    <!-- OPÇÃO 3 -->
+    <div class="opt">
+      <h2>Opção 3 · Pill flutuante (rótulo expansível)</h2>
+      <p>Barra flutuante arredondada: ícones-só quando inativos, ícone + rótulo só no ativo. Cabem 5 destinos com elegância e a barra “respira” acima do conteúdo. Estética premium.</p>
+      <div class="phone">
+        <div class="screen">
+          <div class="fakeline" style="width:40%"></div>
+          <div class="card"></div><div class="card"></div>
+        </div>
+        <div class="pillwrap">
+          <div class="pill">
+            <a class="pitem on">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+              <span class="lbl">Hoje</span>
+            </a>
+            <a class="pitem">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 10h12"/><path d="M4 14h12"/><path d="M15.5 4.5a9 9 0 1 1 0 15"/></svg>
+            </a>
+            <a class="pitem">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M9 18V8a3 3 0 0 1 6 0v10"/><path d="M6 12h12"/><path d="M4 10v4"/><path d="M20 10v4"/></svg>
+            </a>
+            <a class="pitem">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19H2"/></svg>
+            </a>
+            <a class="pitem">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </a>
+          </div>
+        </div>
+      </div>
+      <div class="note">+ Visual mais moderno e leve; − só 5 destinos, exige um hub para o resto.</div>
+    </div>
+
+  </div>
+</body>
+</html>

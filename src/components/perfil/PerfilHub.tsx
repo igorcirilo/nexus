@@ -36,6 +36,7 @@ interface Props {
   badges: UserBadge[]
   email: string
   onEdit: (section?: Section) => void
+  onEditAll?: () => void
   onLogout: () => void
   onPhotoSelect?: (file: File) => void
   photoUploading?: boolean
@@ -61,7 +62,7 @@ function hexAlpha(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
-export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onLogout, onPhotoSelect, photoUploading, journeyData }: Props) {
+export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEditAll, onLogout, onPhotoSelect, photoUploading, journeyData }: Props) {
   const earnedKeys = new Set(badges.map(b => b.badge_key))
   const earnedBadges = ALL_BADGES.filter(b => earnedKeys.has(b.key))
   const lockedBadges = ALL_BADGES.filter(b => !earnedKeys.has(b.key))
@@ -88,7 +89,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onLog
       }}>
         {/* Edit button */}
         <button
-          onClick={() => onEdit()}
+          onClick={() => (onEditAll ? onEditAll() : onEdit())}
           style={{
             position: 'absolute', top: 20, right: 20,
             height: 34, borderRadius: 11, padding: '0 13px',

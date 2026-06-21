@@ -24,10 +24,13 @@ import { pt } from 'date-fns/locale'
 import type { Profile, Transaction, FinancialImportPreview, FinancialImportCandidate } from '@/types'
 
 const CATEGORIES_IN  = ['Salário','Freelance','Investimento','Rendas','Presente','Outro']
-const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
+const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Contas','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
 const CAT_COLORS     = ['#7F77DD','#1ECBB4','#E8A838','#E24B4A','#1D9E75','#D4537E','#85B7EB','#F0C060','#534AB7','#9BA0B0']
+// Categoria reservada: mover dinheiro para poupança. Conta para a meta mensal de poupança.
+const SAVINGS_CAT = 'Poupança'
+const CUSTOM_KEY  = '__custom__'
 const CAT_EMOJI: Record<string,string> = {
-  Alimentação:'🍔', Transporte:'🚗', Habitação:'🏠', Saúde:'💊', Lazer:'🎮',
+  Alimentação:'🍔', Transporte:'🚗', Habitação:'🏠', Contas:'🧾', Saúde:'💊', Lazer:'🎮',
   Roupa:'👕', Educação:'🎓', Assinaturas:'📺', Poupança:'🏦', Outro:'📦',
   Salário:'💼', Freelance:'💻', Investimento:'📈', Rendas:'🏘️', Presente:'🎁',
 }
@@ -102,7 +105,7 @@ function StepChips({ steps, onStep }: { steps: number[]; onStep: (delta:number)=
   )
 }
 const DEFAULT_BUDGETS: Record<string,number> = {
-  Alimentação:400, Transporte:150, Habitação:800, Saúde:100,
+  Alimentação:400, Transporte:150, Habitação:800, Contas:150, Saúde:100,
   Lazer:200, Roupa:100, Educação:100, Assinaturas:50, Poupança:300, Outro:100,
 }
 
@@ -136,6 +139,7 @@ export default function FinancasPage() {
   const [showForm,   setShowForm]  = useState(false)
   const [txType,     setTxType]    = useState<'entrada'|'saida'>('saida')
   const [fCat,       setFCat]      = useState('')
+  const [fCustomCat, setFCustomCat]= useState('')
   const [fDesc,      setFDesc]     = useState('')
   const [fAmount,    setFAmount]   = useState('')
   const [fDate,      setFDate]     = useState(format(new Date(),'yyyy-MM-dd'))
@@ -206,6 +210,21 @@ export default function FinancasPage() {
   const daysInMonth = getDaysInMonth(new Date())
   const daysLeft    = daysInMonth - dayOfMonth
 
+  // Categorias de saída personalizadas: qualquer categoria que apareça nos
+  // movimentos mas não esteja na lista base (ex.: criada via "Personalizar").
+  // Assim entram no orçamento e nos filtros como cidadãs de primeira classe.
+  const customOutCats = useMemo(() => {
+    const known = new Set([...CATEGORIES_OUT, ...CATEGORIES_IN])
+    const found = new Set<string>()
+    ;[...txs, ...history].forEach(t => { if (t.type === 'saida' && !known.has(t.category)) found.add(t.category) })
+    return Array.from(found).sort()
+  }, [txs, history])
+  // Lista de categorias de saída usada em orçamento/listas, com "Outro" sempre no fim.
+  const OUT_CATS = useMemo(
+    () => [...CATEGORIES_OUT.filter(c => c !== 'Outro'), ...customOutCats, 'Outro'],
+    [customOutCats],
+  )
+
   // Gráfico 6 meses
   const monthlyChart = useMemo(()=>Array.from({length:6},(_,i)=>{
     const d=subMonths(new Date(),5-i)
@@ -247,10 +266,10 @@ export default function FinancasPage() {
       const inMonth = history.filter(t=>t.type==='saida'&&t.date>=s&&t.date<=e)
       const perCat: Record<string,number> = {}
       inMonth.forEach(t=>{ perCat[t.category]=(perCat[t.category]??0)+t.amount })
-      CATEGORIES_OUT.forEach(c=>{ (map[c] ??= []).push(Math.round(perCat[c]??0)) })
+      OUT_CATS.forEach(c=>{ (map[c] ??= []).push(Math.round(perCat[c]??0)) })
     }
     return map
-  }, [history])
+  }, [history, OUT_CATS])
 
   // ── Movimentos: filtro + agrupamento por dia ──
   const filteredTxs = useMemo(() => {
@@ -284,7 +303,12 @@ export default function FinancasPage() {
     thisMonth.filter(t=>t.type==='saida').forEach(t=>{ map[t.category]=(map[t.category]??0)+t.amount })
     return map
   }, [thisMonth])
-  const budgetedCats = CATEGORIES_OUT
+  // Poupança do mês = só os lançamentos categorizados como "Poupança" (não o saldo).
+  const savedThisMonth = useMemo(
+    () => thisMonth.filter(t=>t.type==='saida'&&t.category===SAVINGS_CAT).reduce((a,t)=>a+t.amount,0),
+    [thisMonth],
+  )
+  const budgetedCats = OUT_CATS
     .filter(c => (budgets[c]??0) > 0)
     .map(c => {
       const budget = budgets[c]
@@ -292,13 +316,13 @@ export default function FinancasPage() {
       return { cat:c, budget, spent, pct: Math.round(spent/budget*100) }
     })
     .sort((a,b)=>b.pct-a.pct)
-  const unbudgetedCats = CATEGORIES_OUT.filter(c => (budgets[c]??0) <= 0)
+  const unbudgetedCats = OUT_CATS.filter(c => (budgets[c]??0) <= 0)
   const totalBudget        = budgetedCats.reduce((a,b)=>a+b.budget,0)
   const totalSpentBudgeted = budgetedCats.reduce((a,b)=>a+b.spent,0)
   const budgetPct          = totalBudget>0 ? Math.min(100,Math.round(totalSpentBudgeted/totalBudget*100)) : 0
   const monthPct           = Math.round(dayOfMonth/daysInMonth*100)
   const budgetOnPace       = budgetPct <= monthPct + 5
-  const budgetSuggestions  = CATEGORIES_OUT
+  const budgetSuggestions  = OUT_CATS
     .filter(c => (catAvg3m[c]??0) > 0)
     .map(c => ({ cat:c, avg:catAvg3m[c], suggested: Math.ceil((catAvg3m[c]*1.05)/10)*10 }))
 
@@ -346,13 +370,14 @@ export default function FinancasPage() {
   }
 
   async function addTx() {
-    if (!userId||!fAmount||!fCat) return
+    const finalCat = fCat===CUSTOM_KEY ? fCustomCat.trim() : fCat
+    if (!userId||!fAmount||!finalCat) return
     setSaving(true)
-    const {error} = await saveTransaction({user_id:userId,type:txType,category:fCat,description:fDesc||null,amount:parseFloat(fAmount),date:fDate})
+    const {error} = await saveTransaction({user_id:userId,type:txType,category:finalCat,description:fDesc||null,amount:parseFloat(fAmount),date:fDate})
     if (error) { showToast('Erro ao guardar.', 'error'); setSaving(false); return }
     const [r,h] = await Promise.all([getTransactions(userId,2),getTransactionsByMonth(userId,6)])
     setTxs(r as Transaction[]); setHistory(h as Transaction[])
-    setFAmount(''); setFDesc(''); setFCat(''); setShowForm(false)
+    setFAmount(''); setFDesc(''); setFCat(''); setFCustomCat(''); setShowForm(false)
     showToast('Transação adicionada!'); setSaving(false)
   }
 
@@ -706,7 +731,7 @@ export default function FinancasPage() {
           >
             <div style={{fontSize:9.5,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'rgba(0,200,150,0.85)',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>💰 Poupança · {format(new Date(),'MMM',{locale:pt})}</div>
             {savingsGoal>0 ? (() => {
-              const cur  = Math.max(0,balance)
+              const cur  = savedThisMonth
               const pct  = Math.min(100,Math.round(cur/savingsGoal*100))
               const pace = cur >= savingsGoal*(dayOfMonth/daysInMonth)
               const done = cur>=savingsGoal
@@ -1040,19 +1065,21 @@ export default function FinancasPage() {
       )}
 
       {/* ── Sheet: nova transação ── */}
-      {showForm&&(
+      {showForm&&(() => {
+        const canSaveNew = !!fAmount && (fCat===CUSTOM_KEY ? !!fCustomCat.trim() : !!fCat)
+        return (
         <Sheet icon="💸" title="Nova transação" onClose={()=>setShowForm(false)}
           footer={
-            <button onClick={addTx} disabled={saving||!fAmount||!fCat} style={{
+            <button onClick={addTx} disabled={saving||!canSaveNew} style={{
               width:'100%',border:'none',borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:15,
-              cursor:(fAmount&&fCat)?'pointer':'not-allowed',
-              background:(fAmount&&fCat)?'linear-gradient(135deg, #F5C842, #E0A82A)':'rgba(255,255,255,0.06)',
-              color:(fAmount&&fCat)?'#1A1200':'rgba(255,255,255,0.35)',
+              cursor:canSaveNew?'pointer':'not-allowed',
+              background:canSaveNew?'linear-gradient(135deg, #F5C842, #E0A82A)':'rgba(255,255,255,0.06)',
+              color:canSaveNew?'#1A1200':'rgba(255,255,255,0.35)',
             }}>{saving?'A guardar…':'Guardar movimento'}</button>
           }>
           <div style={{display:'flex',gap:8,marginTop:12}}>
             {(['entrada','saida'] as const).map(t=>(
-              <button key={t} onClick={()=>{setTxType(t);setFCat('')}} style={{
+              <button key={t} onClick={()=>{setTxType(t);setFCat('');setFCustomCat('')}} style={{
                 flex:1,padding:'11px',borderRadius:13,cursor:'pointer',
                 fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,
                 background: txType===t ? (t==='entrada'?'rgba(0,200,150,0.12)':'rgba(226,75,74,0.12)') : 'rgba(255,255,255,0.03)',
@@ -1069,7 +1096,7 @@ export default function FinancasPage() {
 
           <label style={sheetLabel}>Categoria</label>
           <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
-            {(txType==='entrada'?CATEGORIES_IN:CATEGORIES_OUT).map(cat=>(
+            {(txType==='entrada'?CATEGORIES_IN:OUT_CATS).map(cat=>(
               <button key={cat} onClick={()=>setFCat(cat)} style={{
                 display:'flex',alignItems:'center',gap:6,padding:'8px 12px',borderRadius:11,cursor:'pointer',
                 fontSize:12,fontWeight:600,fontFamily:'Inter, sans-serif',
@@ -1078,7 +1105,23 @@ export default function FinancasPage() {
                 color:fCat===cat?'#F5C842':'rgba(255,255,255,0.55)',
               }}>{catEmoji(cat)} {cat}</button>
             ))}
+            <button onClick={()=>setFCat(CUSTOM_KEY)} style={{
+              display:'flex',alignItems:'center',gap:6,padding:'8px 12px',borderRadius:11,cursor:'pointer',
+              fontSize:12,fontWeight:600,fontFamily:'Inter, sans-serif',
+              background:fCat===CUSTOM_KEY?'rgba(127,119,221,0.18)':'rgba(255,255,255,0.03)',
+              border:`1px solid ${fCat===CUSTOM_KEY?'rgba(127,119,221,0.55)':'rgba(255,255,255,0.10)'}`,
+              color:fCat===CUSTOM_KEY?'#9D8DF5':'rgba(255,255,255,0.55)',
+            }}>✏️ Personalizar</button>
           </div>
+          {fCat===CUSTOM_KEY && (
+            <input
+              value={fCustomCat}
+              onChange={e=>setFCustomCat(e.target.value)}
+              placeholder="Ex: Água, Luz, Veterinário…"
+              style={{...sheetInp,marginTop:10}}
+              autoFocus
+            />
+          )}
 
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
             <div>
@@ -1091,7 +1134,8 @@ export default function FinancasPage() {
             </div>
           </div>
         </Sheet>
-      )}
+        )
+      })()}
 
       {/* ── Sheet: detalhe/edição de movimento ── */}
       {openTx && !confirmDeleteTx && (
@@ -1118,7 +1162,7 @@ export default function FinancasPage() {
 
           <label style={sheetLabel}>Categoria</label>
           <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
-            {(openTx.type==='entrada'?CATEGORIES_IN:CATEGORIES_OUT).map(cat=>(
+            {(openTx.type==='entrada'?CATEGORIES_IN:OUT_CATS).map(cat=>(
               <button key={cat} onClick={()=>setEtCat(cat)} style={{
                 display:'flex',alignItems:'center',gap:6,padding:'8px 12px',borderRadius:11,cursor:'pointer',
                 fontSize:12,fontWeight:600,fontFamily:'Inter, sans-serif',
