@@ -4,17 +4,24 @@ import type { CSSProperties, ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const NAV_ITEMS = [
+// Destinos primários: 3 à esquerda + 3 à direita, com a ação rápida ao centro.
+// Hábitos, Progresso e Objetivos vivem agora no hub do Perfil.
+const LEFT_ITEMS = [
   { href: '/hoje', label: 'Hoje', icon: HomeIcon },
-  { href: '/financas', label: 'Finanças', icon: EuroIcon },
+  { href: '/calendario', label: 'Agenda', icon: CalIcon },
+  { href: '/financas', label: 'Finanças', icon: FinanceIcon },
+]
+const RIGHT_ITEMS = [
   { href: '/corpo', label: 'Corpo', icon: BodyIcon },
-  { href: '/calendario', label: 'Calendário', icon: CalIcon },
   { href: '/leitura', label: 'Leitura', icon: BookIcon },
-  { href: '/habitos', label: 'Hábitos', icon: CheckIcon },
-  { href: '/objetivos', label: 'Objetivos', icon: TargetIcon },
-  { href: '/progresso', label: 'Progresso', icon: ActivityIcon },
   { href: '/perfil', label: 'Perfil', icon: UserIcon },
 ]
+
+function emitQuickAction() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('nexus:quickaction-toggle'))
+  }
+}
 
 export default function Nav() {
   const path = usePathname()
@@ -31,34 +38,74 @@ export default function Nav() {
       paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       backdropFilter: 'blur(16px)',
     }}>
-      <div
-        className="nav-scroll"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          padding: '7px 10px 8px',
-          gap: 4,
-          width: '100%',
-          overflowX: 'auto',
-          scrollSnapType: 'x proximity',
-          WebkitOverflowScrolling: 'touch',
-        }}
-      >
-        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = path === href || (href === '/progresso' && (path === '/evolucao' || path === '/dashboard'))
+      <div style={{ display: 'flex', alignItems: 'center', padding: '7px 8px 8px' }}>
+        {LEFT_ITEMS.map(({ href, label, icon: Icon }) => {
+          const active = path === href
           return (
             <Link key={href} href={href} style={navItemStyle(active)}>
               <Icon active={active} />
               <span style={labelStyle(active)}>{label}</span>
-              {active && <span style={activeDotStyle} />}
+              {active && <span style={activeUnderlineStyle} />}
+            </Link>
+          )
+        })}
+
+        {/* Ação rápida ao centro (novo hábito / transação / pomodoro). */}
+        <button
+          type="button"
+          onClick={emitQuickAction}
+          aria-label="Ação rápida"
+          className="nav-fab"
+          style={{
+            flex: '0 0 auto',
+            width: 56,
+            height: 56,
+            marginTop: -22,
+            borderRadius: '50%',
+            border: '4px solid rgba(20,23,32,.96)',
+            background: 'linear-gradient(135deg, #F2C45A, var(--gold))',
+            color: 'var(--bg0)',
+            fontSize: 28,
+            fontWeight: 400,
+            lineHeight: 1,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            touchAction: 'manipulation',
+          }}
+        >
+          ＋
+        </button>
+
+        {RIGHT_ITEMS.map(({ href, label, icon: Icon }) => {
+          const active = path === href
+          return (
+            <Link key={href} href={href} style={navItemStyle(active)}>
+              <Icon active={active} />
+              <span style={labelStyle(active)}>{label}</span>
+              {active && <span style={activeUnderlineStyle} />}
             </Link>
           )
         })}
       </div>
 
       <style jsx>{`
-        .nav-scroll::-webkit-scrollbar { display: none; }
-        .nav-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+        .nav-fab {
+          box-shadow: 0 6px 22px rgba(232, 168, 56, 0.5);
+          animation: navFabPulse 2.6s ease-in-out infinite;
+          transition: transform 0.15s ease;
+        }
+        .nav-fab:active {
+          transform: scale(0.94);
+        }
+        @keyframes navFabPulse {
+          0%, 100% { box-shadow: 0 6px 22px rgba(232, 168, 56, 0.45); }
+          50% { box-shadow: 0 8px 30px rgba(232, 168, 56, 0.8); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .nav-fab { animation: none; }
+        }
       `}</style>
     </nav>
   )
@@ -66,9 +113,8 @@ export default function Nav() {
 
 function navItemStyle(active: boolean): CSSProperties {
   return {
-    flex: '0 0 auto',
-    minWidth: 'calc((100% - 16px) / 4.5)',
-    scrollSnapAlign: 'start',
+    flex: '1 1 0',
+    minWidth: 0,
     minHeight: 52,
     display: 'flex',
     flexDirection: 'column',
@@ -92,45 +138,41 @@ function labelStyle(active: boolean): CSSProperties {
   }
 }
 
-const activeDotStyle = {
-  width: 5,
-  height: 5,
-  borderRadius: '50%',
+const activeUnderlineStyle = {
+  width: 16,
+  height: 2,
+  borderRadius: 1,
   background: 'var(--gold)',
-  marginTop: 1,
+  marginTop: 2,
 } satisfies CSSProperties
 
 function Ico({ active, children }: { active: boolean; children: ReactNode }) {
   return (
     <svg width="23" height="23" viewBox="0 0 24 24" fill="none"
-         stroke={active ? 'var(--gold)' : 'var(--text3)'} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
+         stroke={active ? 'var(--gold)' : 'var(--text3)'} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{children}</svg>
   )
 }
 
+// Conjunto de ícones "Mono Air": linha refinada, geometria suave.
 function HomeIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></Ico>
+  return <Ico active={active}><path d="M3 9.6 12 3l9 6.6V19.8a1.5 1.5 0 0 1-1.5 1.5H4.5A1.5 1.5 0 0 1 3 19.8z"/><path d="M9.3 21.3v-7.8h5.4v7.8"/></Ico>
 }
 function CalIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v6"/><path d="M8 2v6"/><path d="M3 10h18"/></Ico>
+  return <Ico active={active}><rect x="3" y="4.6" width="18" height="16.8" rx="3"/><path d="M16 2.5v4"/><path d="M8 2.5v4"/><path d="M3 9.6h18"/></Ico>
 }
-function CheckIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="5"/><path d="M12 6v6l4 2"/></Ico>
+// Finanças: gráfico circular (pie).
+function FinanceIcon({ active }: { active: boolean }) {
+  return <Ico active={active}><circle cx="12" cy="12" r="8.6"/><path d="M12 3.4V12h8.6"/></Ico>
 }
-function ActivityIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><path d="M4 19V9"/><path d="M10 19V5"/><path d="M16 19v-7"/><path d="M22 19H2"/></Ico>
-}
-function EuroIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><path d="M4 10h12"/><path d="M4 14h12"/><path d="M15.5 4.5a9 9 0 1 1 0 15"/></Ico>
-}
-function TargetIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></Ico>
-}
+// Perfil: avatar dentro de círculo.
 function UserIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></Ico>
+  return <Ico active={active}><circle cx="12" cy="12" r="9.1"/><circle cx="12" cy="9.8" r="3"/><path d="M6.7 18.6a5.6 5.6 0 0 1 10.6 0"/></Ico>
 }
+// Corpo: figura de braços erguidos.
 function BodyIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><path d="M8 18h8"/><path d="M9 18V8a3 3 0 0 1 6 0v10"/><path d="M6 12h12"/><path d="M4 10v4"/><path d="M20 10v4"/></Ico>
+  return <Ico active={active}><circle cx="12" cy="4.4" r="2"/><path d="M12 6.8v7.2"/><path d="M12 8.2 6.6 4.8"/><path d="M12 8.2 17.4 4.8"/><path d="M12 14 8 20.6"/><path d="M12 14 16 20.6"/></Ico>
 }
+// Leitura: livro aberto.
 function BookIcon({ active }: { active: boolean }) {
-  return <Ico active={active}><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v18H6.5A2.5 2.5 0 0 0 4 23z"/><path d="M8 7h8"/><path d="M8 11h8"/></Ico>
+  return <Ico active={active}><path d="M12 6.6C10 5.1 7.5 4.4 4.5 4.4v12.8c3 0 5.5.7 7.5 2.2 2-1.5 4.5-2.2 7.5-2.2V4.4c-3 0-5.5.7-7.5 2.2z"/><path d="M12 6.6v13"/></Ico>
 }

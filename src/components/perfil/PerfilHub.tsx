@@ -36,6 +36,7 @@ interface Props {
   badges: UserBadge[]
   email: string
   onEdit: (section?: Section) => void
+  onEditAll?: () => void
   onLogout: () => void
   onPhotoSelect?: (file: File) => void
   photoUploading?: boolean
@@ -61,7 +62,7 @@ function hexAlpha(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
-export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onLogout, onPhotoSelect, photoUploading, journeyData }: Props) {
+export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEditAll, onLogout, onPhotoSelect, photoUploading, journeyData }: Props) {
   const earnedKeys = new Set(badges.map(b => b.badge_key))
   const earnedBadges = ALL_BADGES.filter(b => earnedKeys.has(b.key))
   const lockedBadges = ALL_BADGES.filter(b => !earnedKeys.has(b.key))
@@ -88,7 +89,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onLog
       }}>
         {/* Edit button */}
         <button
-          onClick={() => onEdit()}
+          onClick={() => (onEditAll ? onEditAll() : onEdit())}
           style={{
             position: 'absolute', top: 20, right: 20,
             height: 34, borderRadius: 11, padding: '0 13px',
@@ -385,6 +386,43 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onLog
             </div>
           </>
         )}
+
+        {/* ── Áreas (movidas da navbar) ── */}
+        <SectionLabel>Áreas</SectionLabel>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {[
+            { href: '/habitos',   label: 'Hábitos',   sub: 'Os teus hábitos diários',      icon: '✅', color: '#00C896' },
+            { href: '/progresso', label: 'Progresso', sub: 'Evolução, estatísticas e ligas', icon: '📈', color: '#00D4C8' },
+            { href: '/objetivos', label: 'Objetivos', sub: 'Metas e desafios de longo prazo', icon: '🎯', color: '#F5C842' },
+          ].map((item, idx, arr) => (
+            <a
+              key={item.href}
+              href={item.href}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: idx === 0 ? '14px 14px 4px 4px' : idx === arr.length - 1 ? '4px 4px 14px 14px' : '4px',
+                padding: '14px 16px', textDecoration: 'none', fontFamily: FONT,
+              } as CSSProperties}
+            >
+              <div style={{
+                width: 34, height: 34, borderRadius: 10, flexShrink: 0,
+                background: hexAlpha(item.color, 0.12),
+                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17,
+              }}>
+                {item.icon}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(255,255,255,0.9)', marginBottom: 2 }}>{item.label}</div>
+                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', fontWeight: 400 }}>{item.sub}</div>
+              </div>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </a>
+          ))}
+        </div>
 
         {/* ── Configurar perfil ── */}
         <SectionLabel>Configurar perfil</SectionLabel>
