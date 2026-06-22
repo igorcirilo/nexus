@@ -6,7 +6,7 @@ import type { Profile, UserBadge } from '@/types'
 
 const FONT = 'Inter, sans-serif'
 
-type Section = 'corpo' | 'objetivos' | 'xp'
+type Section = 'corpo'
 
 const ALL_BADGES = [
   { key: 'primeiro_checkin', name: 'Primeira Vez', icon: '🌅', color: '#F5C842' },
@@ -17,16 +17,8 @@ const ALL_BADGES = [
   { key: 'consistencia_30',  name: 'Inabalável',   icon: '🏔️', color: '#9D5CF5' },
 ]
 
-const METAS_90 = [
-  { key: 'goal_90_personal' as const, label: 'Pessoal', icon: '🧭', color: '#9D5CF5' },
-  { key: 'goal_90_career'   as const, label: 'Carreira', icon: '💼', color: '#00D4C8' },
-  { key: 'goal_90_health'   as const, label: 'Saúde',    icon: '💪', color: '#00C896' },
-]
-
 const NAV_SECTIONS: { section: Section; label: string; sub: string; icon: string; color: string }[] = [
-  { section: 'corpo',     label: 'Corpo & Físico',      sub: 'Medidas, água e treinos',   icon: '💪', color: '#00C896' },
-  { section: 'objetivos', label: 'Objetivos 90 Dias',   sub: 'Pessoal, carreira, saúde',  icon: '🧭', color: '#9D5CF5' },
-  { section: 'xp',        label: 'Metas & Desempenho',  sub: 'Taxa de conclusão semanal', icon: '⚡', color: '#F5C842' },
+  { section: 'corpo', label: 'Corpo & Físico', sub: 'Medidas, água e treinos', icon: '💪', color: '#00C896' },
 ]
 
 interface Props {
@@ -73,8 +65,6 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
 
   const initial = (profile.username ?? email ?? 'U').charAt(0).toUpperCase()
   const ritmoPct = Math.min(100, Math.max(0, ritmo))
-
-  const activeMetas = METAS_90.filter(m => (profile[m.key] as string | null | undefined))
 
   return (
     <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100dvh', paddingBottom: 40 }}>
@@ -349,43 +339,6 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
           </div>
         )}
 
-        {/* ── Metas 90 dias ── */}
-        {activeMetas.length > 0 && (
-          <>
-            <SectionLabel>Metas 90 dias</SectionLabel>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {activeMetas.map(m => (
-                <div
-                  key={m.key}
-                  onClick={() => onEdit('objetivos')}
-                  style={{
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-                    borderRadius: 16, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <div style={{
-                    width: 28, height: 28, borderRadius: 8, flexShrink: 0, marginTop: 1,
-                    background: hexAlpha(m.color, 0.12),
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: 14,
-                  }}>
-                    {m.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: hexAlpha(m.color, 0.8), marginBottom: 4 }}>
-                      {m.label}
-                    </div>
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5, fontWeight: 500 }}>
-                      {profile[m.key] as string}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </>
-        )}
-
         {/* ── Áreas (movidas da navbar) ── */}
         <SectionLabel>Áreas</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -434,7 +387,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                 width: '100%', display: 'flex', alignItems: 'center', gap: 14,
                 background: 'rgba(255,255,255,0.03)',
                 border: '1px solid rgba(255,255,255,0.06)',
-                borderRadius: idx === 0 ? '14px 14px 4px 4px' : idx === NAV_SECTIONS.length - 1 ? '4px 4px 14px 14px' : '4px',
+                borderRadius: NAV_SECTIONS.length === 1 ? 14 : idx === 0 ? '14px 14px 4px 4px' : idx === NAV_SECTIONS.length - 1 ? '4px 4px 14px 14px' : '4px',
                 padding: '14px 16px',
                 cursor: 'pointer', textAlign: 'left',
                 fontFamily: FONT,

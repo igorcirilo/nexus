@@ -9,30 +9,7 @@ import PerfilHub from '@/components/perfil/PerfilHub'
 import HabitLevelCard from '@/components/perfil/HabitLevelCard'
 
 type AppTab = 'resumo' | 'editar'
-type Section = 'corpo' | 'objetivos' | 'xp'
-
-function SectionTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        flex: 1,
-        padding: '9px 4px',
-        borderRadius: 10,
-        border: 'none',
-        cursor: 'pointer',
-        fontFamily: 'DM Sans, sans-serif',
-        fontSize: 12,
-        transition: 'all .2s',
-        background: active ? 'var(--bg3)' : 'transparent',
-        color: active ? 'var(--text1)' : 'var(--text3)',
-      }}
-    >
-      {label}
-    </button>
-  )
-}
+type Section = 'corpo'
 
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
@@ -76,7 +53,6 @@ export default function PerfilPage() {
   const [badges, setBadges] = useState<UserBadge[]>([])
   const [journeyData, setJourneyData] = useState<{ trainingCount30d: number; readingPages30d: number } | undefined>(undefined)
   const [tab, setTab] = useState<AppTab>('resumo')
-  const [section, setSection] = useState<Section>('corpo')
   const [editSection, setEditSection] = useState<Section | null>(null)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -122,11 +98,6 @@ export default function PerfilPage() {
         fin_monthly_save: prof?.fin_monthly_save ?? '',
         fin_debt_goal: prof?.fin_debt_goal ?? '',
         fin_reserve_goal: prof?.fin_reserve_goal ?? '',
-        goal_90_personal: prof?.goal_90_personal ?? '',
-        goal_90_career: prof?.goal_90_career ?? '',
-        goal_90_health: prof?.goal_90_health ?? '',
-        xp_weekly_goal: prof?.xp_weekly_goal ?? 500,
-        completion_pct_goal: prof?.completion_pct_goal ?? 80,
       })
       setLoading(false)
     }
@@ -185,23 +156,14 @@ export default function PerfilPage() {
     }
   }
 
-  const sections: Section[] = ['corpo', 'objetivos', 'xp']
-  const sectionLabels: Record<Section, string> = {
-    corpo: 'Corpo',
-    objetivos: '90 Dias',
-    xp: 'Desempenho',
-  }
-
-  // Cada secção tem a sua própria identidade quando aberta como modal.
+  // Identidade do modal de edição.
   const sectionMeta: Record<Section, { icon: string; title: string; sub: string }> = {
-    corpo:     { icon: '💪', title: 'Corpo & Físico',     sub: 'Medidas, água e treinos' },
-    objetivos: { icon: '🧭', title: 'Objetivos 90 Dias',  sub: 'Pessoal, carreira e saúde' },
-    xp:        { icon: '⚡', title: 'Desempenho',          sub: 'Taxa de conclusão semanal' },
+    corpo: { icon: '💪', title: 'Corpo & Físico', sub: 'Medidas, água e treinos' },
   }
 
-  // Campos de cada secção, partilhados entre a página de edição e os modais.
-  function renderSectionFields(sec: Section) {
-    if (sec === 'corpo') return (
+  // Campos de Corpo & Físico, partilhados entre a página de edição e o modal.
+  function renderSectionFields() {
+    return (
       <>
         <Field label="Nome de utilizador">
           <input style={inputStyle} value={String(form.username)} onChange={(e) => set('username', e.target.value)} placeholder="Como te chamamos" />
@@ -244,32 +206,6 @@ export default function PerfilPage() {
         </div>
       </>
     )
-    if (sec === 'objetivos') return (
-      <>
-        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 16, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
-          Define o que queres alcançar nos próximos 90 dias em cada área. Estas metas guiam o sistema.
-        </div>
-        <Field label="Objectivo pessoal de 90 dias">
-          <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_personal)} onChange={(e) => set('goal_90_personal', e.target.value)} placeholder="Ex: Criar um hábito de meditação diária e melhorar o sono" />
-        </Field>
-        <Field label="Objectivo profissional / carreira">
-          <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_career)} onChange={(e) => set('goal_90_career', e.target.value)} placeholder="Ex: Lançar o projecto X e conseguir os primeiros clientes" />
-        </Field>
-        <Field label="Objectivo de saúde">
-          <textarea style={{ ...inputStyle, height: 90, resize: 'none' }} value={String(form.goal_90_health)} onChange={(e) => set('goal_90_health', e.target.value)} placeholder="Ex: Perder 5kg e correr 5km sem parar" />
-        </Field>
-      </>
-    )
-    return (
-      <>
-        <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6, padding: '12px 14px', borderRadius: 12, background: 'var(--bg2)', border: '0.5px solid var(--border)' }}>
-          Define a tua meta de consistência semanal. O dashboard vai mostrar o teu progresso em relação a este valor.
-        </div>
-        <Field label={`Taxa de conclusão semanal aceitável: ${form.completion_pct_goal}%`} hint="Abaixo disto o mentor activa modo de retomada">
-          <input type="range" min={40} max={100} step={5} value={+form.completion_pct_goal} onChange={(e) => set('completion_pct_goal', +e.target.value)} style={{ width: '100%', accentColor: 'var(--teal)' }} />
-        </Field>
-      </>
-    )
   }
 
   async function saveSection() {
@@ -306,7 +242,7 @@ export default function PerfilPage() {
           badges={badges}
           email={email}
           onEdit={(sec) => setEditSection(sec ?? 'corpo')}
-          onEditAll={() => { setSection('corpo'); setTab('editar') }}
+          onEditAll={() => setTab('editar')}
           onLogout={logout}
           onPhotoSelect={handlePhotoSelect}
           photoUploading={photoUploading}
@@ -331,7 +267,7 @@ export default function PerfilPage() {
                 <button onClick={() => setEditSection(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--bg3)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text2)' }}>✕</button>
               </div>
               <div style={{ padding: '18px 24px', overflowY: 'auto', flex: 1 }}>
-                {renderSectionFields(editSection)}
+                {renderSectionFields()}
               </div>
               <div style={{ padding: '12px 24px calc(20px + env(safe-area-inset-bottom))', background: 'var(--bg1)', borderTop: '0.5px solid var(--border)', display: 'flex', gap: 10 }}>
                 <button onClick={() => setEditSection(null)} style={{ flex: 1, padding: '14px 0', borderRadius: 14, border: '0.5px solid var(--border)', background: 'var(--bg3)', color: 'var(--text2)', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
@@ -482,36 +418,8 @@ export default function PerfilPage() {
         <HabitLevelCard userId={profile.id} currentLevel={profile.habit_level} />
       )}
 
-      <div style={{ display: 'flex', margin: '0 20px 20px', padding: 4, background: 'var(--bg2)', borderRadius: 12, border: '0.5px solid var(--border)', gap: 2 }}>
-        {sections.map((s) => (
-          <SectionTab key={s} label={sectionLabels[s]} active={section === s} onClick={() => setSection(s)} />
-        ))}
-      </div>
-
       <div style={{ padding: '0 20px' }}>
-        {renderSectionFields(section)}
-
-        {section === 'xp' && (
-          <button
-            type="button"
-            disabled
-            style={{
-              width: '100%',
-              opacity: 0.4,
-              cursor: 'not-allowed',
-              background: 'var(--bg2)',
-              color: 'var(--text2)',
-              border: '0.5px solid var(--border)',
-              borderRadius: 14,
-              padding: 14,
-              fontFamily: 'Syne, sans-serif',
-              fontWeight: 700,
-              fontSize: 14,
-            }}
-          >
-            Exportar dados (em breve)
-          </button>
-        )}
+        {renderSectionFields()}
 
         <button
           type="button"
