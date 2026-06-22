@@ -152,36 +152,6 @@ export interface UserBadge {
   badge?: Badge
 }
 
-export interface WeeklyLeagueStanding {
-  user_id: string
-  week_start: string
-  week_end: string
-  points: number
-  rank: number
-  tier: 'Bronze' | 'Prata' | 'Ouro' | 'Lenda'
-  username: string
-  level: number
-  title: string
-  updated_at?: string
-}
-
-export interface WeeklyLeagueOverview {
-  week_start: string
-  week_end: string
-  total_players: number
-  top: WeeklyLeagueStanding[]
-  me: WeeklyLeagueStanding | null
-  previous_rank: number | null
-  previous_points: number | null
-  history: Array<{
-    week_start: string
-    week_end: string
-    points: number
-    rank: number | null
-    tier: 'Bronze' | 'Prata' | 'Ouro' | 'Lenda'
-  }>
-}
-
 export type FinancialImportCandidateType = 'entrada' | 'saida'
 export type FinancialImportCandidateConfidence = 'high' | 'medium' | 'low'
 

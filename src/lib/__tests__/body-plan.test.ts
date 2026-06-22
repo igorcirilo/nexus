@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { parseDietImport, parseTrainingImport } from '@/lib/body-plan'
 import type { FileImportResult } from '@/types'
 
