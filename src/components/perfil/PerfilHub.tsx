@@ -6,7 +6,7 @@ import type { Profile, UserBadge } from '@/types'
 
 const FONT = 'Inter, sans-serif'
 
-type Section = 'corpo' | 'metas' | 'objetivos' | 'xp'
+type Section = 'corpo' | 'objetivos' | 'xp'
 
 const ALL_BADGES = [
   { key: 'primeiro_checkin', name: 'Primeira Vez', icon: '🌅', color: '#F5C842' },
@@ -24,8 +24,7 @@ const METAS_90 = [
 ]
 
 const NAV_SECTIONS: { section: Section; label: string; sub: string; icon: string; color: string }[] = [
-  { section: 'corpo',     label: 'Corpo & Físico',      sub: 'Peso, altura, idade, sexo', icon: '💪', color: '#00C896' },
-  { section: 'metas',     label: 'Metas & Hábitos',     sub: 'Água, treinos, sono, leitura', icon: '🎯', color: '#00D4C8' },
+  { section: 'corpo',     label: 'Corpo & Físico',      sub: 'Medidas, água e treinos',   icon: '💪', color: '#00C896' },
   { section: 'objetivos', label: 'Objetivos 90 Dias',   sub: 'Pessoal, carreira, saúde',  icon: '🧭', color: '#9D5CF5' },
   { section: 'xp',        label: 'Metas & Desempenho',  sub: 'Taxa de conclusão semanal', icon: '⚡', color: '#F5C842' },
 ]

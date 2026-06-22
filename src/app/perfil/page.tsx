@@ -9,7 +9,7 @@ import PerfilHub from '@/components/perfil/PerfilHub'
 import HabitLevelCard from '@/components/perfil/HabitLevelCard'
 
 type AppTab = 'resumo' | 'editar'
-type Section = 'corpo' | 'metas' | 'objetivos' | 'xp'
+type Section = 'corpo' | 'objetivos' | 'xp'
 
 function SectionTab({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -118,8 +118,6 @@ export default function PerfilPage() {
         goal_weight: prof?.goal_weight ?? '',
         water_goal_ml: prof?.water_goal_ml ?? 2000,
         workouts_per_week: prof?.workouts_per_week ?? 3,
-        sleep_goal_h: prof?.sleep_goal_h ?? 8,
-        read_pages_day: prof?.read_pages_day ?? 10,
         fin_current_savings: prof?.fin_current_savings ?? '',
         fin_monthly_save: prof?.fin_monthly_save ?? '',
         fin_debt_goal: prof?.fin_debt_goal ?? '',
@@ -187,18 +185,16 @@ export default function PerfilPage() {
     }
   }
 
-  const sections: Section[] = ['corpo', 'metas', 'objetivos', 'xp']
+  const sections: Section[] = ['corpo', 'objetivos', 'xp']
   const sectionLabels: Record<Section, string> = {
     corpo: 'Corpo',
-    metas: 'Metas',
     objetivos: '90 Dias',
-    xp: 'Metas',
+    xp: 'Desempenho',
   }
 
   // Cada secção tem a sua própria identidade quando aberta como modal.
   const sectionMeta: Record<Section, { icon: string; title: string; sub: string }> = {
-    corpo:     { icon: '💪', title: 'Corpo & Físico',     sub: 'Peso, altura, idade e sexo' },
-    metas:     { icon: '🎯', title: 'Metas & Hábitos',    sub: 'Água, treinos, sono e leitura' },
+    corpo:     { icon: '💪', title: 'Corpo & Físico',     sub: 'Medidas, água e treinos' },
     objetivos: { icon: '🧭', title: 'Objetivos 90 Dias',  sub: 'Pessoal, carreira e saúde' },
     xp:        { icon: '⚡', title: 'Desempenho',          sub: 'Taxa de conclusão semanal' },
   }
@@ -234,22 +230,18 @@ export default function PerfilPage() {
         <Field label="Peso objetivo (kg)">
           <input style={inputStyle} type="number" step="0.1" value={String(form.goal_weight)} onChange={(e) => set('goal_weight', e.target.value === '' ? '' : +e.target.value)} placeholder="70.0" />
         </Field>
-      </>
-    )
-    if (sec === 'metas') return (
-      <>
-        <Field label={`Meta de água diária: ${Math.round((+form.water_goal_ml / 1000) * 10) / 10}L`} hint="Recomendado: 2.0–3.0L por dia">
-          <input type="range" min={1000} max={4000} step={250} value={+form.water_goal_ml} onChange={(e) => set('water_goal_ml', +e.target.value)} style={{ width: '100%', accentColor: 'var(--teal)' }} />
-        </Field>
-        <Field label={`Treinos por semana: ${form.workouts_per_week}`}>
-          <input type="range" min={1} max={7} step={1} value={+form.workouts_per_week} onChange={(e) => set('workouts_per_week', +e.target.value)} style={{ width: '100%', accentColor: 'var(--gold)' }} />
-        </Field>
-        <Field label={`Meta de sono: ${form.sleep_goal_h}h`}>
-          <input type="range" min={5} max={10} step={0.5} value={+form.sleep_goal_h} onChange={(e) => set('sleep_goal_h', +e.target.value)} style={{ width: '100%', accentColor: 'var(--accent)' }} />
-        </Field>
-        <Field label={`Páginas de leitura por dia: ${form.read_pages_day}`}>
-          <input type="range" min={5} max={100} step={5} value={+form.read_pages_day} onChange={(e) => set('read_pages_day', +e.target.value)} style={{ width: '100%', accentColor: 'var(--accent)' }} />
-        </Field>
+
+        <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.06em', fontWeight: 700, margin: '6px 0 12px' }}>
+          Metas diárias
+        </div>
+        <div style={rowStyle}>
+          <Field label="Água diária (L)" hint="Recomendado: 2.0–3.0L">
+            <input style={inputStyle} type="number" step="0.25" min="1" max="4" value={form.water_goal_ml === '' ? '' : +form.water_goal_ml / 1000} onChange={(e) => set('water_goal_ml', e.target.value === '' ? '' : Math.round(+e.target.value * 1000))} placeholder="2.5" />
+          </Field>
+          <Field label="Treinos / semana">
+            <input style={inputStyle} type="number" step="1" min="1" max="7" value={String(form.workouts_per_week)} onChange={(e) => set('workouts_per_week', e.target.value === '' ? '' : +e.target.value)} placeholder="3" />
+          </Field>
+        </div>
       </>
     )
     if (sec === 'objetivos') return (
