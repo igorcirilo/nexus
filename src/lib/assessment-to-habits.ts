@@ -172,8 +172,26 @@ export async function generateHabitsFromAssessment(
 
   const chosen = selectHabitsForLevel(answers, scores, level)
   if (chosen.length > 0) {
-    const { error } = await supabase.from('habits').insert(chosen.map((h) => habitRow(userId, h)))
-    if (error) throw error
+    // Defesa contra duplicação: se já existirem hábitos de onboarding (ex.:
+    // backfill disparado duas vezes), insere só os catalog_key ausentes. Mesmo
+    // padrão byKey/desiredKeys de regenerateHabitsForLevel. (P2.4)
+    const { data: existing } = await supabase
+      .from('habits')
+      .select('catalog_key')
+      .eq('user_id', userId)
+      .eq('source', 'onboarding')
+
+    const existingKeys = new Set(
+      ((existing ?? []) as { catalog_key: string | null }[])
+        .map((r) => r.catalog_key)
+        .filter((k): k is string => Boolean(k)),
+    )
+    const toInsert = chosen.filter((h) => !existingKeys.has(h.key))
+
+    if (toInsert.length > 0) {
+      const { error } = await supabase.from('habits').insert(toInsert.map((h) => habitRow(userId, h)))
+      if (error) throw error
+    }
   }
 
   const { error: profileError } = await supabase

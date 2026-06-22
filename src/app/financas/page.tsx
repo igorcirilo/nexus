@@ -372,8 +372,10 @@ export default function FinancasPage() {
   async function addTx() {
     const finalCat = fCat===CUSTOM_KEY ? fCustomCat.trim() : fCat
     if (!userId||!fAmount||!finalCat) return
+    const amount = parseFloat(fAmount.replace(',','.'))
+    if (!Number.isFinite(amount) || amount<=0) { showToast('Valor inválido.', 'error'); return }
     setSaving(true)
-    const {error} = await saveTransaction({user_id:userId,type:txType,category:finalCat,description:fDesc||null,amount:parseFloat(fAmount),date:fDate})
+    const {error} = await saveTransaction({user_id:userId,type:txType,category:finalCat,description:fDesc||null,amount,date:fDate})
     if (error) { showToast('Erro ao guardar.', 'error'); setSaving(false); return }
     const [r,h] = await Promise.all([getTransactions(userId,2),getTransactionsByMonth(userId,6)])
     setTxs(r as Transaction[]); setHistory(h as Transaction[])
@@ -383,7 +385,12 @@ export default function FinancasPage() {
 
   async function removeTx(id:string) {
     const {error}=await deleteTransaction(id)
-    if (!error) { setTxs(t=>t.filter(x=>x.id!==id)); setHistory(h=>h.filter(x=>x.id!==id)); showToast('Removido.') }
+    if (error || !userId) return
+    // Refaz o fetch: o `history` (getTransactionsByMonth) não traz `id`, por
+    // isso filtrar localmente por id não o removia dos gráficos (P2.6).
+    const [r,h] = await Promise.all([getTransactions(userId,2),getTransactionsByMonth(userId,6)])
+    setTxs(r as Transaction[]); setHistory(h as Transaction[])
+    showToast('Removido.')
   }
 
   function saveBudget(cat:string,val:string) {

@@ -168,7 +168,13 @@ export default function CheckinPage() {
       reflection, mood: moodNight,
     })
 
-    await saveCheckin(payload)
+    const { error: saveError } = await saveCheckin(payload)
+    if (saveError) {
+      // Não marca a fase como concluída se a gravação falhar (P2.8).
+      triggerToast('Não foi possível guardar o check-in. Tenta de novo.')
+      setSubmitting(false)
+      return
+    }
     // Qualquer check-in conta para a ofensiva do dia (constrói consistência).
     await updateStreak(profile.id)
     triggerToast(`Check-in ${LABELS[phase].toLowerCase()} registado`)

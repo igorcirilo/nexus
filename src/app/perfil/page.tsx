@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
 import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d, getRitmo } from '@/lib/supabase'
+import { emitToast } from '@/lib/toast-events'
+import { normalizeProfileForm } from '@/lib/profile-form'
 import { useRouter } from 'next/navigation'
 import type { Profile, UserBadge } from '@/types'
 import PerfilHub from '@/components/perfil/PerfilHub'
@@ -112,8 +114,15 @@ export default function PerfilPage() {
   async function save() {
     if (!profile) return
     setSaving(true)
-    await updateFullProfile(profile.id, form)
+    // Campos numéricos: '' → null; strings numéricas → Number. Evita enviar
+    // strings vazias para colunas numéricas (que falham/gravam lixo). (P2.7)
+    const payload = normalizeProfileForm(form)
+    const { error } = await updateFullProfile(profile.id, payload)
     setSaving(false)
+    if (error) {
+      emitToast('Não foi possível guardar o perfil.', 'error')
+      return
+    }
     setSaved(true)
     setTimeout(() => setSaved(false), 2200)
   }
