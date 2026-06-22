@@ -73,7 +73,7 @@ export default function NightSummaryCard({
           fontSize: 13,
           color: 'var(--text2)',
           lineHeight: 1.6,
-          background: 'rgba(255,255,255,.02)',
+          background: 'rgba(var(--ink-rgb),.02)',
           border: '0.5px solid var(--border)',
           borderRadius: 12,
           padding: '12px 14px',

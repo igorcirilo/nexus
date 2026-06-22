@@ -38,14 +38,14 @@ interface Props {
 }
 
 const HEAT_COLOR: Record<HeatVal, string> = {
-  none: '#1C2030', partial: '#534AB7', full: '#1ECBB4',
+  none: 'var(--bg2)', partial: '#534AB7', full: '#1ECBB4',
 }
 
 function SectionLabel({ children, style }: { children: React.ReactNode; style?: CSSProperties }) {
   return (
     <div style={{
       fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-      textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)',
+      textTransform: 'uppercase', color: 'rgba(var(--ink-rgb),0.3)',
       marginBottom: 10, marginTop: 18,
       ...style,
     }}>
@@ -63,8 +63,8 @@ function hexAlpha(hex: string, alpha: number): string {
 
 const ctaBtn: CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-  padding: '13px', borderRadius: 14, border: '1px solid rgba(255,255,255,0.07)',
-  background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.7)',
+  padding: '13px', borderRadius: 14, border: '1px solid rgba(var(--ink-rgb),0.07)',
+  background: 'rgba(var(--ink-rgb),0.03)', color: 'rgba(var(--ink-rgb),0.7)',
   fontFamily: FONT, fontWeight: 600, fontSize: 13, cursor: 'pointer',
 }
 
@@ -97,12 +97,12 @@ export default function ProgressoHub({
   const displayBadges = [...earnedSorted.slice(0, 4), ...lockedDefs.slice(0, Math.max(1, 5 - earnedSorted.length))]
 
   return (
-    <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100dvh', padding: '0 22px 40px' }}>
+    <div style={{ fontFamily: FONT, background: 'var(--surface-page)', minHeight: '100dvh', padding: '0 22px 40px' }}>
 
       {/* Header */}
       <div style={{ padding: '20px 0 4px' }}>
         <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Progresso</div>
-        <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+        <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 2 }}>
           Nível {level} · {profile.title}
         </div>
       </div>
@@ -138,9 +138,9 @@ export default function ProgressoHub({
               </svg>
               {profile.title}
             </div>
-            <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.5)', fontWeight: 500 }}>Nível atual</div>
+            <div style={{ fontSize: 14, color: 'rgba(var(--ink-rgb),0.5)', fontWeight: 500 }}>Nível atual</div>
             <div style={{ fontSize: 52, fontWeight: 900, color: '#fff', letterSpacing: '-3px', lineHeight: 1 }}>{level}</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'rgba(255,255,255,0.75)', marginTop: 4 }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.75)', marginTop: 4 }}>
               {nextThr != null ? `${daysToNext} dias de ofensiva → Nível ${level + 1}` : 'Nível máximo'}
             </div>
           </div>
@@ -158,7 +158,7 @@ export default function ProgressoHub({
               </svg>
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center' }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{levelPct}%</div>
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>nível</div>
+                <div style={{ fontSize: 9, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500 }}>nível</div>
               </div>
             </div>
             {/* Streak pill (ranking não existe no app — substituído por streak atual) */}
@@ -178,14 +178,14 @@ export default function ProgressoHub({
         {/* Ritmo bar */}
         <div style={{ position: 'relative', zIndex: 1, marginTop: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.8)' }}>
               Ritmo {ritmo}
             </span>
-            <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.3)' }}>
+            <span style={{ fontSize: 12, fontWeight: 500, color: 'rgba(var(--ink-rgb),0.3)' }}>
               / 100
             </span>
           </div>
-          <div style={{ height: 8, background: 'rgba(255,255,255,0.08)', borderRadius: 10, overflow: 'hidden' }}>
+          <div style={{ height: 8, background: 'rgba(var(--ink-rgb),0.08)', borderRadius: 10, overflow: 'hidden' }}>
             <div style={{ height: '100%', width: `${Math.min(100, Math.max(0, ritmo))}%`,
               background: 'linear-gradient(90deg, #9D5CF5, #00D4C8)', borderRadius: 10 }} />
           </div>
@@ -196,16 +196,16 @@ export default function ProgressoHub({
       <SectionLabel>Heatmap de consistência</SectionLabel>
       <div
         style={{
-          background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+          background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.07)',
           borderRadius: 20, padding: '18px 20px', marginBottom: 14,
         }}
       >
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 12 }}>
+        <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', marginBottom: 12 }}>
           Verde = dia completo · Roxo = parcial · Escuro = sem registo
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4, marginBottom: 4 }}>
           {['S','T','Q','Q','S','S','D'].map((d, i) => (
-            <div key={i} style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', textAlign: 'center' }}>{d}</div>
+            <div key={i} style={{ fontSize: 9, color: 'rgba(var(--ink-rgb),0.3)', textAlign: 'center' }}>{d}</div>
           ))}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 4 }}>
@@ -232,14 +232,14 @@ export default function ProgressoHub({
               {a.icon}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.8)', marginBottom: 5 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.8)', marginBottom: 5 }}>
                 {a.label}
               </div>
-              <div style={{ height: 5, background: 'rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ height: 5, background: 'rgba(var(--ink-rgb),0.07)', borderRadius: 10, overflow: 'hidden' }}>
                 <div style={{ height: '100%', borderRadius: 10, width: `${a.pct}%`, background: a.color }} />
               </div>
             </div>
-            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.5)', minWidth: 32, textAlign: 'right' }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.5)', minWidth: 32, textAlign: 'right' }}>
               {a.total > 0 ? `${a.pct}%` : '—'}
             </div>
           </div>
@@ -257,10 +257,10 @@ export default function ProgressoHub({
               display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
               background: isNewest
                 ? 'rgba(0,212,200,0.06)'
-                : isEarned ? 'rgba(245,200,66,0.06)' : 'rgba(255,255,255,0.04)',
+                : isEarned ? 'rgba(245,200,66,0.06)' : 'rgba(var(--ink-rgb),0.04)',
               border: `1px solid ${isNewest
                 ? 'rgba(0,212,200,0.3)'
-                : isEarned ? 'rgba(245,200,66,0.2)' : 'rgba(255,255,255,0.08)'}`,
+                : isEarned ? 'rgba(245,200,66,0.2)' : 'rgba(var(--ink-rgb),0.08)'}`,
               borderRadius: 16, padding: '14px 10px', minWidth: 72,
               opacity: isEarned ? 1 : 0.4,
             }}>
@@ -269,7 +269,7 @@ export default function ProgressoHub({
                 fontSize: 10, fontWeight: 600, textAlign: 'center',
                 color: isNewest
                   ? 'rgba(0,212,200,0.7)'
-                  : isEarned ? 'rgba(245,200,66,0.7)' : 'rgba(255,255,255,0.5)',
+                  : isEarned ? 'rgba(245,200,66,0.7)' : 'rgba(var(--ink-rgb),0.5)',
               }}>
                 {b.name}
               </div>

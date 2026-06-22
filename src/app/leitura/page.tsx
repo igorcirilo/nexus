@@ -214,11 +214,11 @@ export default function LeituraPage() {
   }
 
   return (
-    <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+    <main style={{ paddingBottom: 100, minHeight: '100vh', background: 'var(--surface-page)' }}>
       {toast && (
         <div style={{
           position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)',
-          zIndex: 200, background: '#0D0E20', border: '1px solid rgba(0,200,150,0.25)',
+          zIndex: 200, background: 'var(--surface-card)', border: '1px solid rgba(0,200,150,0.25)',
           borderRadius: 12, padding: '10px 16px', fontSize: 13, color: '#00C896',
           fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
         }}>
@@ -247,15 +247,15 @@ export default function LeituraPage() {
         >
           <div style={{
             width:'100%', maxWidth:480, margin:'0 auto',
-            background:'#07070F', borderRadius:'20px 20px 0 0',
-            borderTop:'1px solid rgba(255,255,255,0.08)',
+            background:'var(--surface-page)', borderRadius:'20px 20px 0 0',
+            borderTop:'1px solid rgba(var(--ink-rgb),0.08)',
             display:'flex', flexDirection:'column', maxHeight:'85vh',
             fontFamily:'Inter, sans-serif',
           }}>
-            <div style={{ padding:'20px 20px 14px', borderBottom:'1px solid rgba(255,255,255,0.06)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+            <div style={{ padding:'20px 20px 14px', borderBottom:'1px solid rgba(var(--ink-rgb),0.06)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <div>
                 <div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>Biblioteca</div>
-                <div style={{ fontSize:12, color:'rgba(255,255,255,0.35)', marginTop:2 }}>
+                <div style={{ fontSize:12, color:'rgba(var(--ink-rgb),0.35)', marginTop:2 }}>
                   {books.length} livro{books.length !== 1 ? 's' : ''}
                 </div>
               </div>
@@ -264,7 +264,7 @@ export default function LeituraPage() {
                   onClick={() => { setShowBiblioteca(false); setShowImport(true) }}
                   style={{
                     padding:'8px 14px', borderRadius:10, border:'none', cursor:'pointer',
-                    background:'linear-gradient(135deg, #F5C842, #E07B2A)', color:'#07070F',
+                    background:'linear-gradient(135deg, #F5C842, #E07B2A)', color:'var(--surface-page)',
                     fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:12,
                   }}
                 >
@@ -272,7 +272,7 @@ export default function LeituraPage() {
                 </button>
                 <button
                   onClick={() => setShowBiblioteca(false)}
-                  style={{ width:32, height:32, borderRadius:9, background:'rgba(255,255,255,0.07)', border:'none', cursor:'pointer', fontSize:18, color:'rgba(255,255,255,0.6)' }}
+                  style={{ width:32, height:32, borderRadius:9, background:'rgba(var(--ink-rgb),0.07)', border:'none', cursor:'pointer', fontSize:18, color:'rgba(var(--ink-rgb),0.6)' }}
                 >
                   ×
                 </button>
@@ -282,7 +282,7 @@ export default function LeituraPage() {
             <div style={{ overflowY:'auto', flex:1, padding:'12px 20px 24px', display:'flex', flexDirection:'column', gap:10 }}>
               {books.length === 0 ? (
                 <div style={{ padding:'32px 0', textAlign:'center' }}>
-                  <div style={{ fontSize:13, color:'rgba(255,255,255,0.3)', marginBottom:10 }}>Ainda não tens ebooks na biblioteca.</div>
+                  <div style={{ fontSize:13, color:'rgba(var(--ink-rgb),0.3)', marginBottom:10 }}>Ainda não tens ebooks na biblioteca.</div>
                   <button
                     onClick={() => { setShowBiblioteca(false); setShowImport(true) }}
                     style={{ background:'none', border:'1px solid rgba(245,200,66,0.3)', borderRadius:10, padding:'9px 16px', color:'#F5C842', fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:13, cursor:'pointer' }}
@@ -304,14 +304,14 @@ export default function LeituraPage() {
                       onClick={() => { setShowBiblioteca(false); router.push(`/leitura/${book.id}`) }}
                       style={{
                         display:'flex', gap:14, alignItems:'flex-start',
-                        background:'rgba(255,255,255,0.03)', border:`1px solid ${isActive ? 'rgba(245,200,66,0.15)' : 'rgba(255,255,255,0.07)'}`,
+                        background:'rgba(var(--ink-rgb),0.03)', border:`1px solid ${isActive ? 'rgba(245,200,66,0.15)' : 'rgba(var(--ink-rgb),0.07)'}`,
                         borderRadius:16, padding:14, cursor:'pointer',
                       }}
                     >
                       <div style={{
                         width:52, height:70, borderRadius:8, flexShrink:0,
                         background:grad, display:'flex', alignItems:'center', justifyContent:'center',
-                        color:'rgba(255,255,255,0.9)', fontWeight:900, fontSize:20,
+                        color:'rgba(var(--ink-rgb),0.9)', fontWeight:900, fontSize:20,
                         boxShadow:'0 4px 14px rgba(0,0,0,0.4)',
                       }}>
                         {(book.cover_label ?? book.title.charAt(0)).toUpperCase()}
@@ -320,16 +320,16 @@ export default function LeituraPage() {
                         <div style={{ fontSize:15, fontWeight:700, color:'#fff', marginBottom:3, lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                           {book.title}
                         </div>
-                        <div style={{ fontSize:11, color:'rgba(255,255,255,0.35)', marginBottom:10 }}>
+                        <div style={{ fontSize:11, color:'rgba(var(--ink-rgb),0.35)', marginBottom:10 }}>
                           {book.source_file_name ?? 'PDF importado'}
                         </div>
-                        <div style={{ height:5, background:'rgba(255,255,255,0.07)', borderRadius:5, overflow:'hidden', marginBottom:5 }}>
+                        <div style={{ height:5, background:'rgba(var(--ink-rgb),0.07)', borderRadius:5, overflow:'hidden', marginBottom:5 }}>
                           <div style={{
                             height:'100%', borderRadius:5, width:`${pct}%`,
                             background: pct >= 100 ? '#00C896' : 'linear-gradient(90deg, #F5C842, #E07B2A)',
                           }} />
                         </div>
-                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'rgba(255,255,255,0.35)' }}>
+                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'rgba(var(--ink-rgb),0.35)' }}>
                           <span>{pct >= 100 ? '✓ Concluído' : `${pct}% lido`}</span>
                           <span>Página {curPage}</span>
                         </div>

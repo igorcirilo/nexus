@@ -302,7 +302,7 @@ export default function HojeClient({
           </div>
         </div>
 
-        <a href="/progresso" aria-label="Ver progresso" style={{ minWidth: 116, minHeight: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg, rgba(28,32,48,.96), rgba(20,23,32,.96))', border: '0.5px solid rgba(255,255,255,.08)', borderRadius: 18, padding: '8px 12px', color: 'var(--gold)', boxShadow: '0 14px 38px rgba(0,0,0,.22)', textDecoration: 'none', touchAction: 'manipulation' }}>
+        <a href="/progresso" aria-label="Ver progresso" style={{ minWidth: 116, minHeight: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg, rgba(28,32,48,.96), rgba(20,23,32,.96))', border: '0.5px solid rgba(var(--ink-rgb),.08)', borderRadius: 18, padding: '8px 12px', color: 'var(--gold)', boxShadow: '0 14px 38px rgba(0,0,0,.22)', textDecoration: 'none', touchAction: 'manipulation' }}>
           <Icon name="flame" size={24} style={{ animation: 'flame 1.8s ease-in-out infinite', transformOrigin: 'bottom center' }} />
           <div>
             <div style={{ fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--gold)', lineHeight: 1 }}>

@@ -48,7 +48,7 @@ export default function TodayMetrics({ metrics }: TodayMetricsProps) {
           </div>
           <div style={{ gridColumn: '1 / -1' }}>
             {typeof metric.progress === 'number' && (
-              <div style={{ height: 6, borderRadius: 100, background: 'rgba(255,255,255,.12)', overflow: 'hidden' }}>
+              <div style={{ height: 6, borderRadius: 100, background: 'rgba(var(--ink-rgb),.12)', overflow: 'hidden' }}>
                 <div style={{ width: `${Math.max(0, Math.min(100, metric.progress))}%`, height: '100%', borderRadius: 100, background: metric.color }} />
               </div>
             )}

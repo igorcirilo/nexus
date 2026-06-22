@@ -70,7 +70,7 @@ export default function AvatarXP({ level, size = 48, avatarUrl }: AvatarXPProps)
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'rgba(255,255,255,0.02)',
+        background: 'rgba(var(--ink-rgb),0.02)',
         border: '0.5px solid var(--border)',
         boxShadow: showGlow ? '0 0 18px rgba(30,203,180,0.12)' : 'none',
         animation: animate ? 'nexusAvatarPulse 2s ease-in-out infinite' : 'none',

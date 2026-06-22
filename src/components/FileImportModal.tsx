@@ -308,7 +308,7 @@ export default function FileImportModal({
           <label style={{
             display: 'grid',
             gap: 8,
-            border: '1px dashed rgba(255,255,255,.14)',
+            border: '1px dashed rgba(var(--ink-rgb),.14)',
             borderRadius: 16,
             padding: 16,
             background: 'var(--bg1)',
@@ -347,7 +347,7 @@ export default function FileImportModal({
                     {guide.example.slice(0, 3).map((rowCells, ri) => (
                       <tr key={ri}>
                         {rowCells.map((cell, ci) => (
-                          <td key={ci} style={{ padding: '6px 10px', color: 'var(--text2)', borderBottom: ri < 2 ? '0.5px solid rgba(255,255,255,.05)' : 'none' }}>
+                          <td key={ci} style={{ padding: '6px 10px', color: 'var(--text2)', borderBottom: ri < 2 ? '0.5px solid rgba(var(--ink-rgb),.05)' : 'none' }}>
                             {cell}
                           </td>
                         ))}

@@ -23,7 +23,7 @@ export default function TodayCommandPanel({ action, context, checkinPending = tr
         padding: '22px 20px',
         borderRadius: 24,
         background: 'linear-gradient(135deg, rgba(28,32,48,.98), rgba(14,22,31,.98))',
-        border: '0.5px solid rgba(255,255,255,.08)',
+        border: '0.5px solid rgba(var(--ink-rgb),.08)',
         borderLeft: '2px solid var(--gold)',
         boxShadow: '0 20px 54px rgba(0,0,0,.24)',
         position: 'relative',
@@ -45,7 +45,7 @@ export default function TodayCommandPanel({ action, context, checkinPending = tr
             {action}
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ width: 74, height: 74, borderRadius: 22, background: 'linear-gradient(135deg, rgba(255,255,255,.07), rgba(255,255,255,.03))', color: 'var(--gold)', border: '0.5px solid var(--border)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.04)' }}>
+            <span style={{ width: 74, height: 74, borderRadius: 22, background: 'linear-gradient(135deg, rgba(var(--ink-rgb),.07), rgba(var(--ink-rgb),.03))', color: 'var(--gold)', border: '0.5px solid var(--border)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 1px 0 rgba(var(--ink-rgb),.04)' }}>
               <NotePencilIcon />
             </span>
           </div>

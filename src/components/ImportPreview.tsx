@@ -149,7 +149,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
                               style={{
                                 padding: '10px 12px',
                                 color: 'var(--text3)',
-                                borderBottom: '0.5px solid rgba(255,255,255,.04)',
+                                borderBottom: '0.5px solid rgba(var(--ink-rgb),.04)',
                                 verticalAlign: 'top',
                               }}
                             >

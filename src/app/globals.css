@@ -4,7 +4,7 @@
 @tailwind utilities;
 
 /* ── Design tokens ─────────────────────────────────────── */
-:root {
+:root, :root[data-theme="dark"] {
   --gold:   #E8A838;
   --teal:   #1ECBB4;
   --accent: #7F77DD;
@@ -15,7 +15,14 @@
   --text1:  #F0EDE8;
   --text2:  #9BA0B0;
   --text3:  #5A6070;
-  --border: rgba(255,255,255,0.07);
+  /* "ink" = a cor de primeiro plano (texto/overlays) usada como rgba(var(--ink-rgb),α).
+     Branca no escuro, escura no claro — faz texto E overlays inverterem juntos. */
+  --ink-rgb: 255,255,255;
+  --border: rgba(var(--ink-rgb),0.07);
+  /* superfícies opacas (página / cards / popovers) */
+  --surface-page: #07070F;
+  --surface-card: #11131C;
+  --surface-pop:  #161825;
   --text-xs: 10px;
   --text-sm: 12px;
   --text-base: 14px;
@@ -33,10 +40,26 @@
   --radius-lg: 20px;
 }
 
+/* ── Tema claro ────────────────────────────────────────── */
+:root[data-theme="light"] {
+  --bg0:    #F5F6F9;
+  --bg1:    #FFFFFF;
+  --bg2:    #FFFFFF;
+  --bg3:    #ECEEF3;
+  --text1:  #181B23;
+  --text2:  #5A6072;
+  --text3:  #8A90A0;
+  --ink-rgb: 24,27,35;
+  --border: rgba(var(--ink-rgb),0.12);
+  --surface-page: #F5F6F9;
+  --surface-card: #FFFFFF;
+  --surface-pop:  #FFFFFF;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 ::-webkit-scrollbar { display: none; }
 * { -ms-overflow-style: none; scrollbar-width: none; }
-html, body { background: var(--bg0); color: var(--text1); min-height: 100vh; }
+html, body { background: var(--surface-page); color: var(--text1); min-height: 100vh; }
 body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; }
 
 /* ═══════════════════════════════════════════════════════

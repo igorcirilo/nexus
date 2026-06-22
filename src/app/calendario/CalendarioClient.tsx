@@ -18,10 +18,10 @@ const PHASE_EMOJI: Record<string, string> = { manha: '🌅', tarde: '☀️', no
 
 const sheetLabel: CSSProperties = {
   fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.3)', display: 'block', margin: '16px 0 8px', fontFamily: FONT,
+  color: 'rgba(var(--ink-rgb),0.3)', display: 'block', margin: '16px 0 8px', fontFamily: FONT,
 }
 const sheetInp: CSSProperties = {
-  width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)',
+  width: '100%', background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.10)',
   borderRadius: 13, padding: '12px 14px', color: '#fff',
   fontFamily: FONT, fontSize: 14, fontWeight: 600, outline: 'none',
 }
@@ -51,24 +51,24 @@ function Sheet({ icon, title, sub, onClose, children, footer, tall }: {
     <div role="dialog" aria-modal="true" aria-label={title} style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
       onClick={e => e.target === e.currentTarget && onClose()}>
       <div style={{
-        width: '100%', maxWidth: 448, margin: '0 auto', background: '#11131C',
-        borderRadius: '24px 24px 0 0', borderTop: '1px solid rgba(255,255,255,0.12)',
+        width: '100%', maxWidth: 448, margin: '0 auto', background: 'var(--surface-card)',
+        borderRadius: '24px 24px 0 0', borderTop: '1px solid rgba(var(--ink-rgb),0.12)',
         display: 'flex', flexDirection: 'column',
         maxHeight: tall ? '92dvh' : 'min(86dvh, 720px)',
         fontFamily: FONT, boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
       }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.18)', margin: '10px auto 0', flexShrink: 0 }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(var(--ink-rgb),0.18)', margin: '10px auto 0', flexShrink: 0 }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
           {icon && <span style={{ fontSize: 20 }}>{icon}</span>}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 17, color: '#fff', letterSpacing: '-0.3px' }}>{title}</div>
-            {sub && <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>{sub}</div>}
+            {sub && <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>{sub}</div>}
           </div>
-          <button onClick={onClose} aria-label="Fechar" style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', fontSize: 15, color: 'rgba(255,255,255,0.6)', flexShrink: 0, touchAction: 'manipulation' }}>✕</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(var(--ink-rgb),0.06)', border: 'none', cursor: 'pointer', fontSize: 15, color: 'rgba(var(--ink-rgb),0.6)', flexShrink: 0, touchAction: 'manipulation' }}>✕</button>
         </div>
         <div style={{ overflowY: 'auto', flex: 1, padding: '4px 20px 16px' }}>{children}</div>
         {footer && (
-          <div style={{ padding: '12px 20px calc(20px + env(safe-area-inset-bottom))', background: '#11131C', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+          <div style={{ padding: '12px 20px calc(20px + env(safe-area-inset-bottom))', background: 'var(--surface-card)', borderTop: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
             {footer}
           </div>
         )}
@@ -132,9 +132,9 @@ export default function CalendarioClient({ userId }: { userId: string }) {
   }
 
   return (
-    <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: '#07070F', fontFamily: FONT }}>
+    <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: 'var(--surface-page)', fontFamily: FONT }}>
       {c.toast && (
-        <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: '#161825', border: '1px solid rgba(0,200,150,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: '#00C896', zIndex: 10000, whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-pop)', border: '1px solid rgba(0,200,150,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: '#00C896', zIndex: 10000, whiteSpace: 'nowrap' }}>
           ✓ {c.toast}
         </div>
       )}
@@ -143,7 +143,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 20px 6px' }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Calendário</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 500, marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 2 }}>
             {c.currentStreak > 0 ? `🔥 ${c.currentStreak} dias de sequência` : 'Marca hábitos para criar sequência'}
           </div>
         </div>
@@ -161,22 +161,22 @@ export default function CalendarioClient({ userId }: { userId: string }) {
         <button onClick={() => (c.viewMode === 'month' ? c.changeMonth(-1) : c.changeWeek(-1))} aria-label="Anterior" style={navArrow}>‹</button>
         <div style={{ flex: 1, textAlign: 'center', fontSize: 14.5, fontWeight: 800, color: '#fff' }}>{monthLabel}</div>
         <button onClick={() => (c.viewMode === 'month' ? c.changeMonth(1) : c.changeWeek(1))} aria-label="Seguinte" style={navArrow}>›</button>
-        <div style={{ display: 'flex', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 11, padding: 3, gap: 3 }}>
+        <div style={{ display: 'flex', background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 11, padding: 3, gap: 3 }}>
           {(['month', 'week'] as const).map(m => (
             <button key={m} onClick={() => c.setViewMode(m)} style={{
               padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
-              background: c.viewMode === m ? 'rgba(255,255,255,0.08)' : 'transparent',
-              color: c.viewMode === m ? '#F5C842' : 'rgba(255,255,255,0.3)', fontFamily: FONT,
+              background: c.viewMode === m ? 'rgba(var(--ink-rgb),0.08)' : 'transparent',
+              color: c.viewMode === m ? '#F5C842' : 'rgba(var(--ink-rgb),0.3)', fontFamily: FONT,
             }}>{m === 'month' ? 'Mês' : 'Semana'}</button>
           ))}
         </div>
       </div>
 
       {/* ── Grelha ── */}
-      <div role="grid" aria-label={`Calendário de ${monthLabel}`} style={{ margin: '10px 20px 0', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 18, padding: '12px 10px 10px' }}>
+      <div role="grid" aria-label={`Calendário de ${monthLabel}`} style={{ margin: '10px 20px 0', background: 'rgba(var(--ink-rgb),0.04)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 18, padding: '12px 10px 10px' }}>
         <div role="row" style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 6 }}>
           {DAYS_MIN.map((d, i) => (
-            <span key={i} role="columnheader" style={{ textAlign: 'center', fontSize: 9.5, fontWeight: 700, color: 'rgba(255,255,255,0.3)', letterSpacing: '.06em' }}>{d}</span>
+            <span key={i} role="columnheader" style={{ textAlign: 'center', fontSize: 9.5, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.3)', letterSpacing: '.06em' }}>{d}</span>
           ))}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3 }}>
@@ -204,7 +204,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
                   fontSize: 13, fontWeight: status?.complete ? 800 : 600, fontFamily: FONT,
                   background: hubHeat(status), border: 'none', cursor: 'pointer', padding: 0,
-                  color: status?.complete ? '#04140E' : isTd ? '#F5C842' : inMonth ? 'rgba(255,255,255,0.6)' : 'rgba(255,255,255,0.18)',
+                  color: status?.complete ? '#04140E' : isTd ? '#F5C842' : inMonth ? 'rgba(var(--ink-rgb),0.6)' : 'rgba(var(--ink-rgb),0.18)',
                   boxShadow: isSel ? 'inset 0 0 0 1.5px rgba(157,92,245,0.85)' : isTd ? 'inset 0 0 0 1.5px #F5C842' : 'none',
                 }}
               >
@@ -221,7 +221,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
             )
           })}
         </div>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 10, fontSize: 9.5, color: 'rgba(255,255,255,0.3)' }}>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 10, fontSize: 9.5, color: 'rgba(var(--ink-rgb),0.3)' }}>
           <span><i style={{ ...legendSwatch, background: 'rgba(0,200,150,0.85)' }} />completo</span>
           <span><i style={{ ...legendSwatch, background: 'rgba(0,200,150,0.30)' }} />parcial</span>
           <span><i style={{ ...legendSwatch, background: 'transparent', border: '1.5px solid #F5C842' }} />hoje</span>
@@ -242,9 +242,9 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 style={{
                   flex: 1, display: 'flex', alignItems: 'center', gap: 7, borderRadius: 13, padding: '10px 11px',
                   fontSize: 11.5, fontWeight: 700, fontFamily: FONT, cursor: done ? 'default' : 'pointer',
-                  background: done ? 'rgba(0,200,150,0.08)' : 'rgba(255,255,255,0.03)',
-                  border: done ? '1px solid rgba(0,200,150,0.25)' : '1px dashed rgba(255,255,255,0.14)',
-                  color: done ? '#00C896' : 'rgba(255,255,255,0.4)',
+                  background: done ? 'rgba(0,200,150,0.08)' : 'rgba(var(--ink-rgb),0.03)',
+                  border: done ? '1px solid rgba(0,200,150,0.25)' : '1px dashed rgba(var(--ink-rgb),0.14)',
+                  color: done ? '#00C896' : 'rgba(var(--ink-rgb),0.4)',
                 }}
               >
                 <span style={{ fontSize: 15 }}>{PHASE_EMOJI[phase]}</span>
@@ -264,7 +264,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           </button>
         </div>
         {todayEvents.length === 0 && todayReminders.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(255,255,255,0.35)', background: 'rgba(255,255,255,0.03)', border: '1px dashed rgba(255,255,255,0.10)', borderRadius: 16, fontSize: 12.5 }}>
+          <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(var(--ink-rgb),0.35)', background: 'rgba(var(--ink-rgb),0.03)', border: '1px dashed rgba(var(--ink-rgb),0.10)', borderRadius: 16, fontSize: 12.5 }}>
             Nada agendado para hoje. Toca em + para criar.
           </div>
         ) : (
@@ -274,7 +274,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 <span style={{ fontSize: 16 }}>📅</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflowWrap: 'anywhere' }}>{e.title}</div>
-                  <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
+                  <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
                     {e.all_day ? 'Todo o dia' : e.time ? `${e.time.slice(0, 5)}${e.end_time ? ` – ${e.end_time.slice(0, 5)}` : ''}` : 'Sem hora'}
                   </div>
                 </div>
@@ -286,7 +286,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 <span style={{ fontSize: 16 }}>🔔</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflowWrap: 'anywhere' }}>{r.title}</div>
-                  <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
+                  <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
                     {r.time.slice(0, 5)} · {r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
                   </div>
                 </div>
@@ -298,7 +298,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
 
         {/* ── Mentor: padrões semanais ── */}
         {c.insights.length > 0 && (
-          <div style={{ marginTop: 14, background: 'rgba(0,200,150,0.05)', border: '1px solid rgba(0,200,150,0.15)', borderRadius: 14, padding: '12px 14px', fontSize: 12, lineHeight: 1.6, color: 'rgba(255,255,255,0.7)' }}>
+          <div style={{ marginTop: 14, background: 'rgba(0,200,150,0.05)', border: '1px solid rgba(0,200,150,0.15)', borderRadius: 14, padding: '12px 14px', fontSize: 12, lineHeight: 1.6, color: 'rgba(var(--ink-rgb),0.7)' }}>
             <b style={{ color: '#00C896' }}>Mentor:</b> {c.insights.slice(0, 2).join(' ')}
           </div>
         )}
@@ -322,7 +322,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           }
         >
           {c.panelLoad ? (
-            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>a carregar…</div>
+            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(var(--ink-rgb),0.35)', fontSize: 13 }}>a carregar…</div>
           ) : (
             <>
               {/* Hábitos */}
@@ -330,7 +330,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 <>
                   <label style={{ ...sheetLabel, marginTop: 12 }}>
                     Hábitos · {c.selHabits.filter(h => h.habit_logs?.[0]?.completed).length}/{c.selHabits.length}
-                    {!canEditSel && <span style={{ marginLeft: 8, textTransform: 'none', letterSpacing: 0, color: 'rgba(255,255,255,0.25)' }}>dia futuro</span>}
+                    {!canEditSel && <span style={{ marginLeft: 8, textTransform: 'none', letterSpacing: 0, color: 'rgba(var(--ink-rgb),0.25)' }}>dia futuro</span>}
                   </label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                     {c.selHabits.map(h => {
@@ -345,20 +345,20 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                           style={{
                             display: 'flex', alignItems: 'center', gap: 11, borderRadius: 13, padding: '10px 12px',
                             cursor: canEditSel ? 'pointer' : 'default', fontFamily: FONT, textAlign: 'left', width: '100%',
-                            background: done ? 'rgba(0,200,150,0.05)' : 'rgba(255,255,255,0.03)',
-                            border: `1px solid ${done ? 'rgba(0,200,150,0.18)' : 'rgba(255,255,255,0.08)'}`,
+                            background: done ? 'rgba(0,200,150,0.05)' : 'rgba(var(--ink-rgb),0.03)',
+                            border: `1px solid ${done ? 'rgba(0,200,150,0.18)' : 'rgba(var(--ink-rgb),0.08)'}`,
                             opacity: canEditSel ? 1 : 0.5,
                           }}
                         >
                           <span style={{
                             width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-                            border: `2px solid ${done ? '#00C896' : 'rgba(255,255,255,0.2)'}`,
+                            border: `2px solid ${done ? '#00C896' : 'rgba(var(--ink-rgb),0.2)'}`,
                             background: done ? '#00C896' : 'transparent',
                             color: done ? '#001A10' : 'transparent',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800,
                           }}>✓</span>
                           <span style={{ fontSize: 14 }}>{meta?.icon}</span>
-                          <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: done ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.85)', textDecoration: done ? 'line-through' : 'none', textDecorationColor: 'rgba(255,255,255,0.2)' }}>{h.name}</span>
+                          <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: done ? 'rgba(var(--ink-rgb),0.5)' : 'rgba(var(--ink-rgb),0.85)', textDecoration: done ? 'line-through' : 'none', textDecorationColor: 'rgba(var(--ink-rgb),0.2)' }}>{h.name}</span>
                         </button>
                       )
                     })}
@@ -380,9 +380,9 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                       style={{
                         flex: 1, display: 'flex', alignItems: 'center', gap: 6, borderRadius: 13, padding: '10px 10px',
                         fontSize: 11.5, fontWeight: 700, fontFamily: FONT, cursor: ci || !canEditSel ? 'default' : 'pointer',
-                        background: ci ? 'rgba(0,200,150,0.08)' : active ? 'rgba(245,200,66,0.10)' : 'rgba(255,255,255,0.03)',
-                        border: ci ? '1px solid rgba(0,200,150,0.25)' : active ? '1px solid rgba(245,200,66,0.45)' : '1px dashed rgba(255,255,255,0.14)',
-                        color: ci ? '#00C896' : active ? '#F5C842' : 'rgba(255,255,255,0.4)',
+                        background: ci ? 'rgba(0,200,150,0.08)' : active ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
+                        border: ci ? '1px solid rgba(0,200,150,0.25)' : active ? '1px solid rgba(245,200,66,0.45)' : '1px dashed rgba(var(--ink-rgb),0.14)',
+                        color: ci ? '#00C896' : active ? '#F5C842' : 'rgba(var(--ink-rgb),0.4)',
                         opacity: canEditSel || ci ? 1 : 0.5,
                       }}
                     >
@@ -396,8 +396,8 @@ export default function CalendarioClient({ userId }: { userId: string }) {
 
               {/* Quick check-in */}
               {c.quickPhase && canEditSel && (
-                <div style={{ marginTop: 10, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.10)', borderRadius: 13, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontWeight: 600, marginBottom: 8 }}>Energia · {c.quickEnergy}/10</div>
+                <div style={{ marginTop: 10, background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.10)', borderRadius: 13, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 600, marginBottom: 8 }}>Energia · {c.quickEnergy}/10</div>
                   <input type="range" min={1} max={10} value={c.quickEnergy} onChange={e => c.setQuickEnergy(+e.target.value)} style={{ width: '100%', accentColor: '#00D4C8' }} />
                   {c.quickPhase === 'manha' && (
                     <input value={c.quickMission} onChange={e => c.setQuickMission(e.target.value)} placeholder="O que queres conquistar hoje?" style={{ ...sheetInp, marginTop: 10, fontSize: 13 }} />
@@ -418,14 +418,14 @@ export default function CalendarioClient({ userId }: { userId: string }) {
               {/* Agenda do dia */}
               <label style={sheetLabel}>Agenda</label>
               {c.selEvents.length === 0 ? (
-                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.3)', padding: '4px 0 8px' }}>Sem eventos neste dia.</div>
+                <div style={{ fontSize: 12.5, color: 'rgba(var(--ink-rgb),0.3)', padding: '4px 0 8px' }}>Sem eventos neste dia.</div>
               ) : (
                 c.selEvents.map(e => (
                   <div key={e.id} style={{ ...timelineRow, borderLeft: `3px solid ${e.color}` }}>
                     <span style={{ fontSize: 16 }}>📅</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflowWrap: 'anywhere' }}>{e.title}</div>
-                      <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
+                      <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
                         {e.all_day ? 'Todo o dia' : e.time ? `${e.time.slice(0, 5)}${e.end_time ? ` – ${e.end_time.slice(0, 5)}` : ''}` : 'Sem hora'}
                         {e.description ? ` · ${e.description}` : ''}
                       </div>
@@ -456,26 +456,26 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           }
         >
           {c.reminders.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '26px 0', color: 'rgba(255,255,255,0.35)', fontSize: 13 }}>
+            <div style={{ textAlign: 'center', padding: '26px 0', color: 'rgba(var(--ink-rgb),0.35)', fontSize: 13 }}>
               Sem alertas. Cria o primeiro para receberes lembretes.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12 }}>
               {c.reminders.map(r => (
-                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, padding: '11px 13px', opacity: r.active ? 1 : 0.5 }}>
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.08)', borderRadius: 14, padding: '11px 13px', opacity: r.active ? 1 : 0.5 }}>
                   <span style={{ fontSize: 16 }}>🔔</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflowWrap: 'anywhere' }}>{r.title}</div>
-                    <div style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.4)', marginTop: 1 }}>
+                    <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
                       {r.time.slice(0, 5)} · {r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
                     </div>
                   </div>
                   <button
                     onClick={() => c.toggleRm(r.id, r.active)}
                     aria-label={r.active ? 'Desativar' : 'Ativar'}
-                    style={{ width: 40, height: 24, borderRadius: 12, position: 'relative', flexShrink: 0, border: 'none', cursor: 'pointer', background: r.active ? '#00D4C8' : 'rgba(255,255,255,0.1)' }}
+                    style={{ width: 40, height: 24, borderRadius: 12, position: 'relative', flexShrink: 0, border: 'none', cursor: 'pointer', background: r.active ? '#00D4C8' : 'rgba(var(--ink-rgb),0.1)' }}
                   >
-                    <span style={{ position: 'absolute', top: 3, left: r.active ? 'auto' : 3, right: r.active ? 3 : 'auto', width: 18, height: 18, borderRadius: '50%', background: r.active ? '#07070F' : 'rgba(255,255,255,0.4)' }} />
+                    <span style={{ position: 'absolute', top: 3, left: r.active ? 'auto' : 3, right: r.active ? 3 : 'auto', width: 18, height: 18, borderRadius: '50%', background: r.active ? 'var(--surface-page)' : 'rgba(var(--ink-rgb),0.4)' }} />
                   </button>
                   <button onClick={() => c.removeRm(r.id)} aria-label={`Remover ${r.title}`} style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(226,75,74,0.08)', border: '1px solid rgba(226,75,74,0.2)', color: '#E24B4A', cursor: 'pointer', fontSize: 12, flexShrink: 0 }}>✕</button>
                 </div>
@@ -497,8 +497,8 @@ export default function CalendarioClient({ userId }: { userId: string }) {
               style={{
                 width: '100%', border: 'none', borderRadius: 15, padding: 15, fontFamily: FONT, fontWeight: 800, fontSize: 15,
                 cursor: 'pointer',
-                background: (createOpen === 'evento' ? c.evTitle.trim() : c.rmTitle.trim()) ? 'linear-gradient(135deg, #F5C842, #E0A82A)' : 'rgba(255,255,255,0.06)',
-                color: (createOpen === 'evento' ? c.evTitle.trim() : c.rmTitle.trim()) ? '#1A1200' : 'rgba(255,255,255,0.35)',
+                background: (createOpen === 'evento' ? c.evTitle.trim() : c.rmTitle.trim()) ? 'linear-gradient(135deg, #F5C842, #E0A82A)' : 'rgba(var(--ink-rgb),0.06)',
+                color: (createOpen === 'evento' ? c.evTitle.trim() : c.rmTitle.trim()) ? '#1A1200' : 'rgba(var(--ink-rgb),0.35)',
               }}
             >
               {createOpen === 'evento' ? (c.evSaving ? 'A guardar…' : 'Criar evento') : (c.rmSaving ? 'A guardar…' : 'Criar alerta')}
@@ -510,9 +510,9 @@ export default function CalendarioClient({ userId }: { userId: string }) {
               <button key={k} onClick={() => setCreateOpen(k)} style={{
                 flex: 1, padding: '11px 0', borderRadius: 13, cursor: 'pointer', textAlign: 'center',
                 fontFamily: FONT, fontWeight: 700, fontSize: 13,
-                background: createOpen === k ? `${col}1A` : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${createOpen === k ? `${col}80` : 'rgba(255,255,255,0.10)'}`,
-                color: createOpen === k ? col : 'rgba(255,255,255,0.5)',
+                background: createOpen === k ? `${col}1A` : 'rgba(var(--ink-rgb),0.03)',
+                border: `1px solid ${createOpen === k ? `${col}80` : 'rgba(var(--ink-rgb),0.10)'}`,
+                color: createOpen === k ? col : 'rgba(var(--ink-rgb),0.5)',
               }}>{l}</button>
             ))}
           </div>
@@ -542,11 +542,11 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                   <button
                     onClick={() => c.setEvAllDay(!c.evAllDay)}
                     aria-pressed={c.evAllDay}
-                    style={{ ...sheetInp, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: c.evAllDay ? '#F5C842' : 'rgba(255,255,255,0.5)' }}
+                    style={{ ...sheetInp, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: c.evAllDay ? '#F5C842' : 'rgba(var(--ink-rgb),0.5)' }}
                   >
                     {c.evAllDay ? 'Sim' : 'Não'}
-                    <span style={{ width: 40, height: 22, borderRadius: 11, position: 'relative', background: c.evAllDay ? '#F5C842' : 'rgba(255,255,255,0.1)', display: 'inline-block' }}>
-                      <span style={{ position: 'absolute', top: 3, left: c.evAllDay ? 'auto' : 3, right: c.evAllDay ? 3 : 'auto', width: 16, height: 16, borderRadius: '50%', background: c.evAllDay ? '#0A0800' : 'rgba(255,255,255,0.4)' }} />
+                    <span style={{ width: 40, height: 22, borderRadius: 11, position: 'relative', background: c.evAllDay ? '#F5C842' : 'rgba(var(--ink-rgb),0.1)', display: 'inline-block' }}>
+                      <span style={{ position: 'absolute', top: 3, left: c.evAllDay ? 'auto' : 3, right: c.evAllDay ? 3 : 'auto', width: 16, height: 16, borderRadius: '50%', background: c.evAllDay ? '#0A0800' : 'rgba(var(--ink-rgb),0.4)' }} />
                     </span>
                   </button>
                 </div>
@@ -560,7 +560,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 {EVENT_COLORS.map(col => (
                   <button key={col} onClick={() => c.setEvColor(col)} aria-label={`Cor ${col}`} style={{
                     width: 30, height: 30, borderRadius: '50%', background: col, border: 'none', cursor: 'pointer',
-                    boxShadow: c.evColor === col ? `0 0 0 2.5px #11131C, 0 0 0 4.5px ${col}` : 'none',
+                    boxShadow: c.evColor === col ? `0 0 0 2.5px var(--surface-card), 0 0 0 4.5px ${col}` : 'none',
                   }} />
                 ))}
               </div>
@@ -570,14 +570,14 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 {([['none', 'Não repete'], ['diario', 'Diário'], ['semanal', 'Semanal'], ['mensal', 'Mensal']] as const).map(([k, l]) => (
                   <button key={k} onClick={() => c.setEvRecurrence(k)} style={{
                     flex: 1, padding: '10px 4px', borderRadius: 13, cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: FONT,
-                    background: c.evRecurrence === k ? 'rgba(245,200,66,0.10)' : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${c.evRecurrence === k ? 'rgba(245,200,66,0.45)' : 'rgba(255,255,255,0.10)'}`,
-                    color: c.evRecurrence === k ? '#F5C842' : 'rgba(255,255,255,0.55)',
+                    background: c.evRecurrence === k ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
+                    border: `1px solid ${c.evRecurrence === k ? 'rgba(245,200,66,0.45)' : 'rgba(var(--ink-rgb),0.10)'}`,
+                    color: c.evRecurrence === k ? '#F5C842' : 'rgba(var(--ink-rgb),0.55)',
                   }}>{l}</button>
                 ))}
               </div>
               {c.evRecurrence !== 'none' && (
-                <div style={{ marginTop: 10, fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
+                <div style={{ marginTop: 10, fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', lineHeight: 1.5 }}>
                   {c.evRecurrence === 'diario' ? 'Cria o evento nos próximos 14 dias.' : c.evRecurrence === 'semanal' ? 'Cria o evento nas próximas 12 semanas.' : 'Cria o evento nos próximos 6 meses.'}
                 </div>
               )}
@@ -602,16 +602,16 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                       aria-label={DAYS_SHORT[index]}
                       style={{
                         flex: 1, height: 38, borderRadius: 11, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: FONT,
-                        background: on ? 'rgba(245,200,66,0.12)' : 'rgba(255,255,255,0.03)',
-                        border: `1px solid ${on ? 'rgba(245,200,66,0.5)' : 'rgba(255,255,255,0.10)'}`,
-                        color: on ? '#F5C842' : 'rgba(255,255,255,0.4)',
+                        background: on ? 'rgba(245,200,66,0.12)' : 'rgba(var(--ink-rgb),0.03)',
+                        border: `1px solid ${on ? 'rgba(245,200,66,0.5)' : 'rgba(var(--ink-rgb),0.10)'}`,
+                        color: on ? '#F5C842' : 'rgba(var(--ink-rgb),0.4)',
                       }}
                     >{d}</button>
                   )
                 })}
               </div>
 
-              <div style={{ marginTop: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.18)', borderRadius: 13, padding: '11px 13px', fontSize: 11.5, lineHeight: 1.5, color: 'rgba(255,255,255,0.55)' }}>
+              <div style={{ marginTop: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.18)', borderRadius: 13, padding: '11px 13px', fontSize: 11.5, lineHeight: 1.5, color: 'rgba(var(--ink-rgb),0.55)' }}>
                 💡 Recebes uma notificação à hora marcada, nos dias escolhidos.
               </div>
             </>
@@ -626,15 +626,15 @@ export default function CalendarioClient({ userId }: { userId: string }) {
 
 const navArrow: CSSProperties = {
   width: 44, height: 44, borderRadius: 12,
-  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.10)',
+  background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.10)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  color: 'rgba(255,255,255,0.6)', fontSize: 18, cursor: 'pointer', fontFamily: FONT,
+  color: 'rgba(var(--ink-rgb),0.6)', fontSize: 18, cursor: 'pointer', fontFamily: FONT,
   touchAction: 'manipulation',
 }
 
 const secLabel: CSSProperties = {
   fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.3)', margin: '20px 0 10px',
+  color: 'rgba(var(--ink-rgb),0.3)', margin: '20px 0 10px',
 }
 
 const legendSwatch: CSSProperties = {
@@ -643,7 +643,7 @@ const legendSwatch: CSSProperties = {
 
 const timelineRow: CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 11,
-  background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)',
+  background: 'rgba(var(--ink-rgb),0.04)', border: '1px solid rgba(var(--ink-rgb),0.07)',
   borderRadius: 14, padding: '11px 13px', marginBottom: 7,
 }
 

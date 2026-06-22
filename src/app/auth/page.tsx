@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 
 const inp: React.CSSProperties = {
   width: '100%', padding: '14px 16px', borderRadius: 14,
-  background: 'rgba(255,255,255,.05)', border: '0.5px solid rgba(255,255,255,.12)',
+  background: 'rgba(var(--ink-rgb),.05)', border: '0.5px solid rgba(var(--ink-rgb),.12)',
   color: '#F0EDE8', fontFamily: 'DM Sans, sans-serif', fontSize: 15, outline: 'none',
 }
 
@@ -99,7 +99,7 @@ export default function AuthPage() {
               <label style={{ fontSize:12, color:'var(--text3)', display:'block', marginBottom:6 }}>Nome</label>
               <input value={name} onChange={e => setName(e.target.value)} placeholder="Como te chamas?" style={inp}
                 onFocus={e => e.target.style.borderColor='rgba(232,168,56,.5)'}
-                onBlur={e  => e.target.style.borderColor='rgba(255,255,255,.12)'} />
+                onBlur={e  => e.target.style.borderColor='rgba(var(--ink-rgb),.12)'} />
             </div>
           )}
 
@@ -108,7 +108,7 @@ export default function AuthPage() {
             <label style={{ fontSize:12, color:'var(--text3)', display:'block', marginBottom:6 }}>Email</label>
             <input value={email} onChange={e => setEmail(e.target.value)} type="email" placeholder="o.teu@email.com" style={inp}
               onFocus={e => e.target.style.borderColor='rgba(232,168,56,.5)'}
-              onBlur={e  => e.target.style.borderColor='rgba(255,255,255,.12)'}
+              onBlur={e  => e.target.style.borderColor='rgba(var(--ink-rgb),.12)'}
               onKeyDown={e => e.key === 'Enter' && submit()} />
           </div>
 
@@ -120,7 +120,7 @@ export default function AuthPage() {
                 type={showPw ? 'text' : 'password'} placeholder="Mínimo 6 caracteres"
                 style={{ ...inp, paddingRight:48 }}
                 onFocus={e => e.target.style.borderColor='rgba(232,168,56,.5)'}
-                onBlur={e  => e.target.style.borderColor='rgba(255,255,255,.12)'}
+                onBlur={e  => e.target.style.borderColor='rgba(var(--ink-rgb),.12)'}
                 onKeyDown={e => e.key === 'Enter' && submit()} />
               <button onClick={() => setShowPw(v => !v)} style={{
                 position:'absolute', right:14, top:'50%', transform:'translateY(-50%)',

@@ -35,7 +35,7 @@ function SectionLabel({ children, style }: { children: React.ReactNode; style?: 
   return (
     <div style={{
       fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-      textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)',
+      textTransform: 'uppercase', color: 'rgba(var(--ink-rgb),0.3)',
       marginBottom: 10, marginTop: 18,
       ...style,
     }}>
@@ -53,9 +53,9 @@ function hexAlpha(hex: string, alpha: number): string {
 
 const iconBtn: CSSProperties = {
   width: 38, height: 38, borderRadius: 12,
-  background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)',
+  background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.08)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  color: 'rgba(255,255,255,0.6)', cursor: 'pointer',
+  color: 'rgba(var(--ink-rgb),0.6)', cursor: 'pointer',
 }
 
 function formatDeadline(endDate: string): string {
@@ -94,13 +94,13 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
     .slice(0, 4)
 
   return (
-    <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100dvh', padding: '0 22px 40px' }}>
+    <div style={{ fontFamily: FONT, background: 'var(--surface-page)', minHeight: '100dvh', padding: '0 22px 40px' }}>
 
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 6px' }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Objetivos</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 2 }}>
             {active.length} ativo{active.length !== 1 ? 's' : ''}
             {nextDeadline ? ` · Prazo: ${formatDeadline(nextDeadline)}` : ''}
           </div>
@@ -143,7 +143,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
               {focusGoal.title}
             </div>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--ink-rgb),0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6"/>
           </svg>
         </div>
@@ -156,7 +156,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
             textAlign: 'center', cursor: 'pointer',
           }}
         >
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 6 }}>Sem objetivos ativos</div>
+          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', marginBottom: 6 }}>Sem objetivos ativos</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#F5C842' }}>Criar primeiro objetivo</div>
         </div>
       )}
@@ -175,9 +175,9 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
               style={{
                 flex: 1, padding: '8px 6px', borderRadius: 11, cursor: 'pointer',
                 fontFamily: FONT, fontSize: 12, fontWeight: 700,
-                background: on ? 'rgba(245,200,66,0.14)' : 'rgba(255,255,255,0.04)',
-                border: on ? '1px solid rgba(245,200,66,0.5)' : '1px solid rgba(255,255,255,0.08)',
-                color: on ? '#F5C842' : 'rgba(255,255,255,0.5)',
+                background: on ? 'rgba(245,200,66,0.14)' : 'rgba(var(--ink-rgb),0.04)',
+                border: on ? '1px solid rgba(245,200,66,0.5)' : '1px solid rgba(var(--ink-rgb),0.08)',
+                color: on ? '#F5C842' : 'rgba(var(--ink-rgb),0.5)',
               }}
             >
               {GOAL_SIZE_META[size].label}
@@ -198,9 +198,9 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                 flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6,
                 padding: '7px 11px', borderRadius: 999, cursor: 'pointer',
                 fontFamily: FONT, fontSize: 12, fontWeight: 600,
-                background: on ? 'rgba(255,255,255,0.10)' : 'rgba(255,255,255,0.03)',
-                border: on ? '1px solid rgba(255,255,255,0.28)' : '1px solid rgba(255,255,255,0.08)',
-                color: on ? '#fff' : 'rgba(255,255,255,0.55)',
+                background: on ? 'rgba(var(--ink-rgb),0.10)' : 'rgba(var(--ink-rgb),0.03)',
+                border: on ? '1px solid rgba(var(--ink-rgb),0.28)' : '1px solid rgba(var(--ink-rgb),0.08)',
+                color: on ? '#fff' : 'rgba(var(--ink-rgb),0.55)',
                 whiteSpace: 'nowrap',
               }}
             >
@@ -220,8 +220,8 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
               key={title}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12,
-                background: 'rgba(255,255,255,0.03)',
-                border: '1px solid rgba(255,255,255,0.07)',
+                background: 'rgba(var(--ink-rgb),0.03)',
+                border: '1px solid rgba(var(--ink-rgb),0.07)',
                 borderRadius: 16, padding: '14px 14px',
               }}
             >
@@ -236,7 +236,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                 <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.25 }}>
                   {title}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 3, fontWeight: 500 }}>
+                <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 3, fontWeight: 500 }}>
                   {sugArea.label} · {GOAL_SIZE_META[sugSize].label.slice(0, -1).toLowerCase()} objetivo
                 </div>
               </div>
@@ -286,8 +286,8 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                   key={g.id}
                   onClick={() => onOpenGoal(g.id)}
                   style={{
-                    background: isPriority ? hexAlpha('#F5C842', 0.04) : 'rgba(255,255,255,0.03)',
-                    border: `1px solid ${isPriority ? 'rgba(245,200,66,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                    background: isPriority ? hexAlpha('#F5C842', 0.04) : 'rgba(var(--ink-rgb),0.03)',
+                    border: `1px solid ${isPriority ? 'rgba(245,200,66,0.2)' : 'rgba(var(--ink-rgb),0.07)'}`,
                     borderRadius: 20, padding: '18px 18px',
                     position: 'relative', overflow: 'hidden', cursor: 'pointer',
                   }}
@@ -317,7 +317,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                       <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 3, lineHeight: 1.2 }}>
                         {g.title}
                       </div>
-                      <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                      <div style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500 }}>
                         Prazo: {formatDeadline(g.end_date)}
                         {dl <= 14 && dl > 0 && <span style={{ color: '#FF6B6B', marginLeft: 6 }}>· {dl}d restantes</span>}
                       </div>
@@ -326,11 +326,11 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
 
                   {/* Área + contagem de marcos */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: msList.length > 0 ? 12 : 0 }}>
-                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+                    <span style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.45)' }}>
                       {area?.label ?? g.area}
                     </span>
                     {msList.length > 0 && (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.8)' }}>
                         {msDone} de {msList.length} marcos
                       </span>
                     )}
@@ -347,16 +347,16 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                             fontSize: 9, fontWeight: 800,
                             ...(m.done
                               ? { background: 'rgba(0,200,150,0.2)', color: '#00C896', border: '1.5px solid rgba(0,200,150,0.4)' }
-                              : { background: 'transparent', border: '1.5px solid rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.3)' }
+                              : { background: 'transparent', border: '1.5px solid rgba(var(--ink-rgb),0.2)', color: 'rgba(var(--ink-rgb),0.3)' }
                             ),
                           }}>
                             {m.done ? '✓' : String(mi + 1)}
                           </div>
                           <div style={{
                             fontSize: 12, fontWeight: 500,
-                            color: m.done ? 'rgba(255,255,255,0.45)' : 'rgba(255,255,255,0.8)',
+                            color: m.done ? 'rgba(var(--ink-rgb),0.45)' : 'rgba(var(--ink-rgb),0.8)',
                             textDecoration: m.done ? 'line-through' : 'none',
-                            textDecorationColor: 'rgba(255,255,255,0.2)',
+                            textDecorationColor: 'rgba(var(--ink-rgb),0.2)',
                           }}>
                             {m.title}
                           </div>
@@ -386,15 +386,15 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                   onClick={() => onOpenGoal(goal.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
-                    background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+                    background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.06)',
                     borderRadius: 14, padding: '12px 14px', cursor: 'pointer',
                   }}
                 >
                   <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: color }} />
-                  <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.8)' }}>
+                  <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.8)' }}>
                     {milestone.title}
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', flexShrink: 0 }}>
+                  <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.3)', flexShrink: 0 }}>
                     {dl <= 7 ? `${dl}d` : area?.label.split(' ')[0]}
                   </div>
                 </div>

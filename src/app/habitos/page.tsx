@@ -96,11 +96,11 @@ function difficultyFromXP(xp: number): Difficulty {
 // ── estilos do bottom sheet (design do hub) ──
 const sheetInput: CSSProperties = {
   width: '100%',
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.10)',
+  background: 'rgba(var(--ink-rgb),0.05)',
+  border: '1px solid rgba(var(--ink-rgb),0.10)',
   borderRadius: 13,
   padding: '13px 14px',
-  color: 'rgba(255,255,255,0.9)',
+  color: 'rgba(var(--ink-rgb),0.9)',
   fontFamily: FONT,
   fontSize: 14,
   fontWeight: 600,
@@ -112,7 +112,7 @@ const fieldLabel: CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(255,255,255,0.3)',
+  color: 'rgba(var(--ink-rgb),0.3)',
   display: 'block',
   margin: '16px 0 8px',
 }
@@ -267,7 +267,7 @@ export default function HabitosPage() {
   const inactiveHabits = habits.filter((h) => !h.active)
 
   return (
-    <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: '#07070F' }}>
+    <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: 'var(--surface-page)' }}>
       {toast && (
         <div
           style={{
@@ -275,7 +275,7 @@ export default function HabitosPage() {
             bottom: 88,
             left: '50%',
             transform: 'translateX(-50%)',
-            background: '#161825',
+            background: 'var(--surface-pop)',
             border: '1px solid rgba(0,200,150,.38)',
             borderRadius: 12,
             padding: '10px 18px',
@@ -304,7 +304,7 @@ export default function HabitosPage() {
       {/* Hábitos inativos: reativáveis via edição */}
       {inactiveHabits.length > 0 && (
         <div style={{ padding: '0 22px', fontFamily: FONT }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', margin: '18px 0 10px' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--ink-rgb),0.3)', margin: '18px 0 10px' }}>
             Inativos
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -316,8 +316,8 @@ export default function HabitosPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
-                  background: 'rgba(255,255,255,0.02)',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  background: 'rgba(var(--ink-rgb),0.02)',
+                  border: '1px solid rgba(var(--ink-rgb),0.06)',
                   borderRadius: 16,
                   padding: '12px 16px',
                   cursor: 'pointer',
@@ -326,7 +326,7 @@ export default function HabitosPage() {
                 }}
               >
                 <span style={{ fontSize: 15 }}>{AREA_META[h.area]?.icon}</span>
-                <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontSize: 13.5, fontWeight: 600, color: 'rgba(255,255,255,0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontSize: 13.5, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {h.name}
                 </span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#F5C842', flexShrink: 0 }}>reativar</span>
@@ -344,9 +344,9 @@ export default function HabitosPage() {
             disabled={saving}
             style={{
               width: '100%',
-              background: 'rgba(255,255,255,0.04)',
-              color: 'rgba(255,255,255,0.7)',
-              border: '1px dashed rgba(255,255,255,0.15)',
+              background: 'rgba(var(--ink-rgb),0.04)',
+              color: 'rgba(var(--ink-rgb),0.7)',
+              border: '1px dashed rgba(var(--ink-rgb),0.15)',
               borderRadius: 14,
               padding: 14,
               fontFamily: FONT,
@@ -371,9 +371,9 @@ export default function HabitosPage() {
               width: '100%',
               maxWidth: 448,
               margin: '0 auto',
-              background: '#11131C',
+              background: 'var(--surface-card)',
               borderRadius: '24px 24px 0 0',
-              borderTop: '1px solid rgba(255,255,255,0.12)',
+              borderTop: '1px solid rgba(var(--ink-rgb),0.12)',
               display: 'flex',
               flexDirection: 'column',
               maxHeight: 'min(86dvh, 720px)',
@@ -381,17 +381,17 @@ export default function HabitosPage() {
               boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
             }}
           >
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.18)', margin: '10px auto 0', flexShrink: 0 }} />
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(var(--ink-rgb),0.18)', margin: '10px auto 0', flexShrink: 0 }} />
 
             {/* Header fixo */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px 12px', borderBottom: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
               <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 17, color: '#fff', letterSpacing: '-0.3px' }}>
                 {editHabit ? 'Editar hábito' : 'Novo hábito'}
               </h2>
               <button
                 onClick={() => setShowForm(false)}
                 aria-label="Fechar"
-                style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(255,255,255,0.06)', border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.6)', fontSize: 14 }}
+                style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(var(--ink-rgb),0.06)', border: 'none', cursor: 'pointer', color: 'rgba(var(--ink-rgb),0.6)', fontSize: 14 }}
               >
                 ✕
               </button>
@@ -419,9 +419,9 @@ export default function HabitosPage() {
                       fontFamily: FONT,
                       fontWeight: 600,
                       textAlign: 'left',
-                      background: form.area === key ? `${meta.color}18` : 'rgba(255,255,255,0.03)',
-                      color: form.area === key ? meta.color : 'rgba(255,255,255,0.55)',
-                      border: form.area === key ? `1px solid ${meta.color}77` : '1px solid rgba(255,255,255,0.10)',
+                      background: form.area === key ? `${meta.color}18` : 'rgba(var(--ink-rgb),0.03)',
+                      color: form.area === key ? meta.color : 'rgba(var(--ink-rgb),0.55)',
+                      border: form.area === key ? `1px solid ${meta.color}77` : '1px solid rgba(var(--ink-rgb),0.10)',
                     }}
                   >
                     <span>{meta.icon}</span>
@@ -450,9 +450,9 @@ export default function HabitosPage() {
                         fontSize: 11.5,
                         fontFamily: FONT,
                         fontWeight: 600,
-                        background: active ? 'rgba(245,200,66,0.10)' : 'rgba(255,255,255,0.03)',
-                        color: active ? '#F5C842' : 'rgba(255,255,255,0.55)',
-                        border: active ? '1px solid rgba(245,200,66,0.45)' : '1px solid rgba(255,255,255,0.10)',
+                        background: active ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
+                        color: active ? '#F5C842' : 'rgba(var(--ink-rgb),0.55)',
+                        border: active ? '1px solid rgba(245,200,66,0.45)' : '1px solid rgba(var(--ink-rgb),0.10)',
                       }}
                     >
                       <span style={{ fontSize: 18, lineHeight: 1 }}>{t.icon}</span>
@@ -483,9 +483,9 @@ export default function HabitosPage() {
                       padding: '12px 8px',
                       cursor: 'pointer',
                       fontFamily: FONT,
-                      background: form.difficulty === item.key ? 'rgba(245,200,66,0.10)' : 'rgba(255,255,255,0.03)',
-                      border: form.difficulty === item.key ? '1px solid rgba(245,200,66,0.45)' : '1px solid rgba(255,255,255,0.10)',
-                      color: form.difficulty === item.key ? '#F5C842' : 'rgba(255,255,255,0.55)',
+                      background: form.difficulty === item.key ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
+                      border: form.difficulty === item.key ? '1px solid rgba(245,200,66,0.45)' : '1px solid rgba(var(--ink-rgb),0.10)',
+                      color: form.difficulty === item.key ? '#F5C842' : 'rgba(var(--ink-rgb),0.55)',
                     }}
                   >
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{item.label}</div>
@@ -501,16 +501,16 @@ export default function HabitosPage() {
                     onClick={() => applySuggestion(item.name, item.difficulty, item.time_window)}
                     style={{
                       textAlign: 'left',
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'rgba(var(--ink-rgb),0.03)',
+                      border: '1px solid rgba(var(--ink-rgb),0.08)',
                       borderRadius: 13,
                       padding: '11px 12px',
                       cursor: 'pointer',
                       fontFamily: FONT,
                     }}
                   >
-                    <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>{item.name}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>
+                    <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.85)', fontWeight: 600 }}>{item.name}</div>
+                    <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.35)', marginTop: 4 }}>
                       {item.time_window ?? 'Qualquer hora'} · {item.difficulty}
                     </div>
                   </button>
@@ -527,20 +527,20 @@ export default function HabitosPage() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 12,
-                      background: 'rgba(255,255,255,0.03)',
-                      border: '1px solid rgba(255,255,255,0.10)',
+                      background: 'rgba(var(--ink-rgb),0.03)',
+                      border: '1px solid rgba(var(--ink-rgb),0.10)',
                       borderRadius: 13,
                       padding: '12px 14px',
                       cursor: 'pointer',
                       fontFamily: FONT,
                     }}
                   >
-                    <span style={{ flex: 1, textAlign: 'left', fontSize: 13.5, fontWeight: 700, color: 'rgba(255,255,255,0.9)' }}>
+                    <span style={{ flex: 1, textAlign: 'left', fontSize: 13.5, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.9)' }}>
                       Hábito ativo
                     </span>
                     <span style={{
                       width: 44, height: 26, borderRadius: 13, position: 'relative', flexShrink: 0,
-                      background: form.active ? '#00D4C8' : 'rgba(255,255,255,0.1)',
+                      background: form.active ? '#00D4C8' : 'rgba(var(--ink-rgb),0.1)',
                       transition: 'background .2s',
                     }}>
                       <span style={{
@@ -548,7 +548,7 @@ export default function HabitosPage() {
                         left: form.active ? 'auto' : 3,
                         right: form.active ? 3 : 'auto',
                         width: 20, height: 20, borderRadius: '50%',
-                        background: form.active ? '#07070F' : 'rgba(255,255,255,0.4)',
+                        background: form.active ? 'var(--surface-page)' : 'rgba(var(--ink-rgb),0.4)',
                       }} />
                     </span>
                   </button>
@@ -583,14 +583,14 @@ export default function HabitosPage() {
             </div>
 
             {/* Footer fixo */}
-            <div style={{ padding: '12px 20px calc(20px + env(safe-area-inset-bottom))', background: '#11131C', borderTop: '1px solid rgba(255,255,255,0.06)', flexShrink: 0 }}>
+            <div style={{ padding: '12px 20px calc(20px + env(safe-area-inset-bottom))', background: 'var(--surface-card)', borderTop: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
               <button
                 onClick={save}
                 disabled={saving || !form.name.trim()}
                 style={{
                   width: '100%',
-                  background: form.name.trim() ? 'linear-gradient(135deg, #F5C842, #E0A82A)' : 'rgba(255,255,255,0.06)',
-                  color: form.name.trim() ? '#1A1200' : 'rgba(255,255,255,0.35)',
+                  background: form.name.trim() ? 'linear-gradient(135deg, #F5C842, #E0A82A)' : 'rgba(var(--ink-rgb),0.06)',
+                  color: form.name.trim() ? '#1A1200' : 'rgba(var(--ink-rgb),0.35)',
                   border: 'none',
                   borderRadius: 15,
                   padding: 15,
@@ -613,15 +613,15 @@ export default function HabitosPage() {
           style={{ position: 'fixed', inset: 0, zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.7)', padding: 24 }}
           onClick={(event) => event.target === event.currentTarget && setConfirmDelete(null)}
         >
-          <div style={{ width: '100%', maxWidth: 340, background: '#161825', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 20, padding: '22px 20px', fontFamily: FONT }}>
+          <div style={{ width: '100%', maxWidth: 340, background: 'var(--surface-pop)', border: '1px solid rgba(var(--ink-rgb),0.12)', borderRadius: 20, padding: '22px 20px', fontFamily: FONT }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Apagar hábito?</div>
-            <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.5, marginBottom: 18, overflowWrap: 'anywhere' }}>
+            <p style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.5)', lineHeight: 1.5, marginBottom: 18, overflowWrap: 'anywhere' }}>
               “{confirmDelete.name}” e o seu histórico de conclusões vão ser removidos. Esta ação é irreversível.
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => setConfirmDelete(null)}
-                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: '1px solid rgba(255,255,255,0.12)', background: 'rgba(255,255,255,0.04)', color: 'rgba(255,255,255,0.7)', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: '1px solid rgba(var(--ink-rgb),0.12)', background: 'rgba(var(--ink-rgb),0.04)', color: 'rgba(var(--ink-rgb),0.7)', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
               >
                 Cancelar
               </button>

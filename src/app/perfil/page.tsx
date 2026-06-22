@@ -226,11 +226,11 @@ export default function PerfilPage() {
   // ── Hub (tab resumo) ────────────────────────────────────────────────────────
   if (tab === 'resumo') {
     return (
-      <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: '#07070F' }}>
+      <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: 'var(--surface-page)' }}>
         {photoError && (
           <div style={{
             position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)',
-            background: '#161825', border: '1px solid rgba(226,75,74,.38)', borderRadius: 12,
+            background: 'var(--surface-pop)', border: '1px solid rgba(226,75,74,.38)', borderRadius: 12,
             padding: '10px 18px', fontSize: 13, color: '#E24B4A', zIndex: 10000, whiteSpace: 'nowrap',
           }}>
             {photoError}

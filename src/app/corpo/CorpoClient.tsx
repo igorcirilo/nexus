@@ -34,7 +34,7 @@ export default function CorpoClient({ userId, initialProfile, initialTrainingPla
   // Resumo: tela full-bleed fiel ao mockup (sem h1/tab bar; navegação pelos cards + bottom nav)
   if (tab === 'resumo') {
     return (
-      <main style={{ paddingBottom: 100, minHeight: '100vh', background: '#07070F' }}>
+      <main style={{ paddingBottom: 100, minHeight: '100vh', background: 'var(--surface-page)' }}>
         <BodyHub
           userId={userId}
           today={today}

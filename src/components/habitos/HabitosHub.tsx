@@ -43,14 +43,14 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
 
   return (
     <div
-      style={{ fontFamily: FONT, background: '#07070F', minHeight: '100dvh', padding: '0 22px 40px' }}
+      style={{ fontFamily: FONT, background: 'var(--surface-page)', minHeight: '100dvh', padding: '0 22px 40px' }}
       onClick={() => menuFor && setMenuFor(null)}
     >
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 6px' }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Hábitos</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', fontWeight: 500, marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 2 }}>
             {totalToday > 0 ? `${doneToday} de ${totalToday} concluídos hoje` : 'Sem hábitos ativos'}
           </div>
         </div>
@@ -66,9 +66,9 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
       {rings.length > 0 && (
         <div style={{ display: 'flex', gap: 10, marginBottom: 18, marginTop: 12 }}>
           {rings.map((a) => (
-            <div key={a.key} style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: '14px 12px', textAlign: 'center' }}>
+            <div key={a.key} style={{ flex: 1, background: 'rgba(var(--ink-rgb),0.04)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 16, padding: '14px 12px', textAlign: 'center' }}>
               <Ring pct={a.pct} color={a.color} />
-              <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontWeight: 500, marginTop: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</div>
+              <div style={{ fontSize: 10, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</div>
             </div>
           ))}
         </div>
@@ -84,7 +84,7 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
 
       {/* Grouped habit list */}
       {visibleAreas.length === 0 ? (
-        <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 16, padding: 20, textAlign: 'center', fontSize: 13, color: 'rgba(255,255,255,0.4)' }}>
+        <div style={{ background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 16, padding: 20, textAlign: 'center', fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)' }}>
           Nenhum hábito nesta área. Toca em + para criar.
         </div>
       ) : (
@@ -95,8 +95,8 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
             <div key={a.key} style={{ marginTop: idx === 0 ? 0 : 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(255,255,255,0.7)' }}>{a.label}</span>
-                <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', marginLeft: 'auto' }}>{a.done}/{a.total}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.7)' }}>{a.label}</span>
+                <span style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.3)', marginLeft: 'auto' }}>{a.done}/{a.total}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 6 }}>
                 {items.map((h) => (
@@ -120,17 +120,17 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
       {/* Area progress bars */}
       {areas.length > 0 && (
         <>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)', marginBottom: 10, marginTop: 22 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--ink-rgb),0.3)', marginBottom: 10, marginTop: 22 }}>
             Progresso por área
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {areas.map((a) => (
               <div key={a.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(255,255,255,0.6)', minWidth: 92, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</div>
-                <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.6)', minWidth: 92, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</div>
+                <div style={{ flex: 1, height: 6, background: 'rgba(var(--ink-rgb),0.07)', borderRadius: 10, overflow: 'hidden' }}>
                   <div style={{ height: '100%', borderRadius: 10, width: `${a.pct}%`, background: a.color }} />
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)', minWidth: 30, textAlign: 'right' }}>{a.pct}%</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.4)', minWidth: 30, textAlign: 'right' }}>{a.pct}%</div>
               </div>
             ))}
           </div>
@@ -158,8 +158,8 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
         display: 'flex',
         alignItems: 'center',
         gap: 14,
-        background: done ? 'rgba(0,200,150,0.05)' : 'rgba(255,255,255,0.03)',
-        border: `1px solid ${done ? 'rgba(0,200,150,0.15)' : 'rgba(255,255,255,0.07)'}`,
+        background: done ? 'rgba(0,200,150,0.05)' : 'rgba(var(--ink-rgb),0.03)',
+        border: `1px solid ${done ? 'rgba(0,200,150,0.15)' : 'rgba(var(--ink-rgb),0.07)'}`,
         borderRadius: 16,
         padding: '14px 12px 14px 16px',
         transition: 'all .2s',
@@ -175,7 +175,7 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
           height: 28,
           borderRadius: '50%',
           flexShrink: 0,
-          border: `2px solid ${done ? '#00C896' : 'rgba(255,255,255,0.2)'}`,
+          border: `2px solid ${done ? '#00C896' : 'rgba(var(--ink-rgb),0.2)'}`,
           background: done ? '#00C896' : 'transparent',
           color: done ? '#001A10' : 'transparent',
           display: 'flex',
@@ -194,10 +194,10 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
           style={{
             fontSize: 14,
             fontWeight: 600,
-            color: done ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.9)',
+            color: done ? 'rgba(var(--ink-rgb),0.55)' : 'rgba(var(--ink-rgb),0.9)',
             marginBottom: 3,
             textDecoration: done ? 'line-through' : 'none',
-            textDecorationColor: 'rgba(255,255,255,0.2)',
+            textDecorationColor: 'rgba(var(--ink-rgb),0.2)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -205,7 +205,7 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
         >
           {habit.name}
         </div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{habit.time_window || areaLabel}</span>
         </div>
       </div>
@@ -231,9 +231,9 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
       >
         <span style={{
           width: 30, height: 30, borderRadius: 10,
-          background: menuOpen ? 'rgba(245,200,66,0.10)' : 'rgba(255,255,255,0.04)',
-          border: `1px solid ${menuOpen ? 'rgba(245,200,66,0.4)' : 'rgba(255,255,255,0.06)'}`,
-          color: menuOpen ? '#F5C842' : 'rgba(255,255,255,0.35)',
+          background: menuOpen ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.04)',
+          border: `1px solid ${menuOpen ? 'rgba(245,200,66,0.4)' : 'rgba(var(--ink-rgb),0.06)'}`,
+          color: menuOpen ? '#F5C842' : 'rgba(var(--ink-rgb),0.35)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -247,7 +247,7 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
           onClick={(e) => e.stopPropagation()}
           style={{
             position: 'absolute', right: 10, top: 'calc(100% - 6px)', zIndex: 10, width: 190,
-            background: '#161825', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 16,
+            background: 'var(--surface-pop)', border: '1px solid rgba(var(--ink-rgb),0.12)', borderRadius: 16,
             boxShadow: '0 18px 50px rgba(0,0,0,0.65)', overflow: 'hidden',
           }}
         >
@@ -277,7 +277,7 @@ function Ring({ pct, color }: { pct: number; color: string }) {
   return (
     <div style={{ width: 54, height: 54, margin: '0 auto', position: 'relative' }}>
       <svg width="54" height="54" viewBox="0 0 54 54" style={{ transform: 'rotate(-90deg)' }}>
-        <circle cx="27" cy="27" r={r} fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="4" />
+        <circle cx="27" cy="27" r={r} fill="none" stroke="rgba(var(--ink-rgb),0.08)" strokeWidth="4" />
         <circle cx="27" cy="27" r={r} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset} />
       </svg>
       <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 13, fontWeight: 800, color: '#fff' }}>{pct}%</div>
@@ -295,8 +295,8 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
         fontWeight: 600,
         padding: '7px 14px',
         borderRadius: 20,
-        border: `1px solid ${active ? 'rgba(245,200,66,0.3)' : 'rgba(255,255,255,0.1)'}`,
-        color: active ? '#F5C842' : 'rgba(255,255,255,0.5)',
+        border: `1px solid ${active ? 'rgba(245,200,66,0.3)' : 'rgba(var(--ink-rgb),0.1)'}`,
+        color: active ? '#F5C842' : 'rgba(var(--ink-rgb),0.5)',
         background: active ? 'rgba(245,200,66,0.12)' : 'transparent',
         whiteSpace: 'nowrap',
         cursor: 'pointer',
@@ -329,10 +329,10 @@ const menuItem: CSSProperties = {
   fontSize: 13.5,
   fontWeight: 600,
   fontFamily: FONT,
-  color: 'rgba(255,255,255,0.9)',
+  color: 'rgba(var(--ink-rgb),0.9)',
   background: 'transparent',
   border: 'none',
-  borderBottom: '1px solid rgba(255,255,255,0.06)',
+  borderBottom: '1px solid rgba(var(--ink-rgb),0.06)',
   cursor: 'pointer',
   textAlign: 'left',
 }
