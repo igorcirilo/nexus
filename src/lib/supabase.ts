@@ -2,9 +2,10 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { format, endOfMonth } from 'date-fns'
-import type { HabitArea, WeeklyLeagueOverview, WeeklyLeagueStanding, ReaderMode, ReaderTheme } from '@/types'
+import type { HabitArea, ReaderMode, ReaderTheme } from '@/types'
+import { todayISO } from '@/lib/date'
 import { emitToast } from '@/lib/toast-events'
-import { computeRitmo, RITMO_WINDOW_DAYS, type RitmoDay } from '@/lib/ritmo'
+import { computeRitmo, buildRitmoDays, RITMO_WINDOW_DAYS } from '@/lib/ritmo'
 
 // NEXT_PUBLIC_* values are inlined at build time. During build/CI (and any
 // environment without them set) they are undefined, which makes createClient
@@ -101,7 +102,7 @@ export async function getRitmo(userId: string): Promise<number> {
   const days = RITMO_WINDOW_DAYS
   const since = new Date()
   since.setDate(since.getDate() - (days - 1))
-  const sinceStr = since.toISOString().split('T')[0]
+  const sinceStr = format(since, 'yyyy-MM-dd')
 
   const [{ data: habits }, { data: logs }, { data: checkins }] = await Promise.all([
     supabase.from('habits').select('id').eq('user_id', userId).eq('active', true),
@@ -116,13 +117,7 @@ export async function getRitmo(userId: string): Promise<number> {
   }
   const checkinDays = new Set((checkins ?? []).map((c: { date: string }) => c.date))
 
-  const arr: RitmoDay[] = []
-  for (let i = 0; i < days; i++) {
-    const d = new Date()
-    d.setDate(d.getDate() - i)
-    const ds = d.toISOString().split('T')[0]
-    arr.push({ habitsTotal, habitsDone: doneByDay[ds] ?? 0, checkin: checkinDays.has(ds) })
-  }
+  const arr = buildRitmoDays(new Date(), habitsTotal, doneByDay, checkinDays)
   return computeRitmo(arr)
 }
 
@@ -132,7 +127,7 @@ export async function saveFocusSession(
 ) {
   return supabase.from('focus_sessions').insert({
     user_id: userId, duration, task,
-    date: new Date().toISOString().split('T')[0],
+    date: todayISO(),
   })
 }
 
@@ -166,7 +161,7 @@ export async function awardBadge(userId: string, badgeKey: string) {
 export async function getWeeklyStats(userId: string) {
   const since = new Date()
   since.setDate(since.getDate() - 6)
-  const sinceStr = since.toISOString().split('T')[0]
+  const sinceStr = format(since, 'yyyy-MM-dd')
 
   const [{ data: logs }, { data: checkins }, { data: sessions }] = await Promise.all([
     supabase.from('habit_logs')
@@ -235,65 +230,6 @@ export async function getCalendarData(userId: string, year: number, month: numbe
   return { logs: logs ?? [], checkins: checkins ?? [] }
 }
 
-// ── Desafio semanal dinâmico ───────────────────────────────
-export async function getDynamicWeeklyChallenge(userId: string) {
-  const since = new Date()
-  since.setDate(since.getDate() - 13)
-  const sinceStr = since.toISOString().split('T')[0]
-
-  const [{ data: habits }, { data: logs }] = await Promise.all([
-    supabase.from('habits').select('id, area, name').eq('user_id', userId).eq('active', true),
-    supabase.from('habit_logs').select('habit_id, completed, date')
-      .eq('user_id', userId).gte('date', sinceStr),
-  ])
-
-  if (!habits || habits.length === 0) {
-    return { title: 'Semana da Consistência', area: 'corpo', done: 0, total: 7 }
-  }
-
-  const areaMap: Record<string, { ids: string[]; done: number; total: number }> = {}
-  for (const h of habits as { id: string; area: string }[]) {
-    if (!areaMap[h.area]) areaMap[h.area] = { ids: [], done: 0, total: 0 }
-    areaMap[h.area].ids.push(h.id)
-  }
-
-  for (const log of logs as { habit_id: string; completed: boolean }[]) {
-    for (const [, data] of Object.entries(areaMap)) {
-      if (data.ids.includes(log.habit_id)) {
-        data.total++
-        if (log.completed) data.done++
-      }
-    }
-  }
-
-  let worstArea = 'corpo'
-  let worstPct  = 100
-  for (const [area, data] of Object.entries(areaMap)) {
-    const pct = data.total > 0 ? data.done / data.total : 0
-    if (pct < worstPct) { worstPct = pct; worstArea = area }
-  }
-
-  const AREA_NAMES: Record<string, string> = {
-    corpo: 'Saúde & Corpo', produtividade: 'Foco Total',
-    carreira: 'Desenvolvimento', financas: 'Finanças',
-    idiomas: 'Idiomas', emocoes: 'Equilíbrio', relacionamentos: 'Relações',
-  }
-
-  const thisWeek = new Date()
-  thisWeek.setDate(thisWeek.getDate() - thisWeek.getDay())
-  const weekStr  = thisWeek.toISOString().split('T')[0]
-  const weekLogs = (logs as { habit_id: string; completed: boolean; date: string }[])
-    .filter(l => l.date >= weekStr && areaMap[worstArea]?.ids.includes(l.habit_id) && l.completed)
-  const doneDays = new Set(weekLogs.map(l => l.date)).size
-
-  return {
-    title: `Semana de ${AREA_NAMES[worstArea] ?? worstArea}`,
-    area: worstArea,
-    done: doneDays,
-    total: 7,
-  }
-}
-
 // ── Objectivos 90 dias ─────────────────────────────────────
 export async function saveGoal90(payload: Record<string, unknown>) {
   if (payload.id) {
@@ -314,14 +250,6 @@ export async function getMilestones(goalId: string) {
     .eq('goal_id', goalId)
     .order('due_date')
   return data ?? []
-}
-
-export async function saveMilestone(payload: Record<string, unknown>) {
-  if (payload.id) {
-    const { id, ...rest } = payload
-    return supabase.from('goal_milestones').update(rest).eq('id', id)
-  }
-  return supabase.from('goal_milestones').insert(payload)
 }
 
 export async function toggleMilestone(id: string, done: boolean) {
@@ -422,7 +350,7 @@ export async function getTransactions(userId: string, months = 1) {
   const since = new Date()
   since.setMonth(since.getMonth() - months + 1)
   since.setDate(1)
-  const sinceStr = since.toISOString().split('T')[0]
+  const sinceStr = format(since, 'yyyy-MM-dd')
 
   const { data, error } = await supabase
     .from('transactions')
@@ -442,7 +370,7 @@ export async function getTransactionsByMonth(userId: string, numMonths = 6) {
   const since = new Date()
   since.setMonth(since.getMonth() - numMonths + 1)
   since.setDate(1)
-  const sinceStr = since.toISOString().split('T')[0]
+  const sinceStr = format(since, 'yyyy-MM-dd')
 
   const { data, error } = await supabase
     .from('transactions')
@@ -806,56 +734,6 @@ export async function checkAndAwardBadges(
   return toAward.map((key) => ({ key, name: BADGE_NAMES[key] ?? key }))
 }
 
-// ── Bónus de login diário ──────────────────────────────────
-export async function claimLoginBonus(userId: string): Promise<boolean> {
-  const today = new Date().toISOString().split('T')[0]
-
-  const { data: prof } = await supabase
-    .from('profiles')
-    .select('last_login_bonus')
-    .eq('id', userId)
-    .single()
-
-  if (!prof || prof.last_login_bonus === today) return false
-
-  await supabase
-    .from('profiles')
-    .update({ last_login_bonus: today })
-    .eq('id', userId)
-
-  // Sem bónus de XP: o login apenas marca presença do dia.
-  return true
-}
-
-// ── Liga semanal de consistência ───────────────────────────
-// Conta os compromissos cumpridos desde a última segunda-feira (check-ins,
-// hábitos completos, sessões de foco e tarefas de programa). É um inteiro
-// objetivo e não inflável — substitui o XP semanal.
-export async function getWeeklyConsistencyPoints(userId: string): Promise<number> {
-  const now = new Date()
-  const day = now.getDay() // 0=dom, 1=seg...
-  const diffToMonday = day === 0 ? 6 : day - 1
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - diffToMonday)
-  monday.setHours(0, 0, 0, 0)
-  const mondayStr = monday.toISOString().split('T')[0]
-  const mondayIso = monday.toISOString()
-
-  const [checkins, habits, focus, tasks] = await Promise.all([
-    supabase.from('checkins').select('id', { count: 'exact', head: true })
-      .eq('user_id', userId).gte('date', mondayStr),
-    supabase.from('habit_logs').select('id', { count: 'exact', head: true })
-      .eq('user_id', userId).eq('completed', true).gte('date', mondayStr),
-    supabase.from('focus_sessions').select('id', { count: 'exact', head: true })
-      .eq('user_id', userId).gte('date', mondayStr),
-    supabase.from('program_tasks').select('id', { count: 'exact', head: true })
-      .eq('user_id', userId).eq('status', 'completed').gte('completed_at', mondayIso),
-  ])
-
-  return (checkins.count ?? 0) + (habits.count ?? 0) + (focus.count ?? 0) + (tasks.count ?? 0)
-}
-
-
 // ── Quick actions ───────────────────────────────────────────
 export async function createHabitQuick(payload: {
   user_id: string
@@ -877,155 +755,6 @@ export async function createHabitQuick(payload: {
 
   if (error) reportError('createHabitQuick error', error.message)
   return { data, error }
-}
-
-function getWeekWindow(base = new Date()) {
-  const now = new Date(base)
-  const day = now.getDay()
-  const diffToMonday = day === 0 ? 6 : day - 1
-  const monday = new Date(now)
-  monday.setDate(now.getDate() - diffToMonday)
-  monday.setHours(0, 0, 0, 0)
-
-  const sunday = new Date(monday)
-  sunday.setDate(monday.getDate() + 6)
-  sunday.setHours(23, 59, 59, 999)
-
-  const prevMonday = new Date(monday)
-  prevMonday.setDate(monday.getDate() - 7)
-  const prevSunday = new Date(sunday)
-  prevSunday.setDate(sunday.getDate() - 7)
-
-  const toDate = (d: Date) => d.toISOString().split('T')[0]
-  return {
-    weekStart: toDate(monday),
-    weekEnd: toDate(sunday),
-    prevWeekStart: toDate(prevMonday),
-    prevWeekEnd: toDate(prevSunday),
-  }
-}
-
-function getLeagueTier(points: number): WeeklyLeagueStanding['tier'] {
-  if (points >= 60) return 'Lenda'
-  if (points >= 35) return 'Ouro'
-  if (points >= 15) return 'Prata'
-  return 'Bronze'
-}
-
-export async function ensureWeeklyLeagueSnapshot(userId: string) {
-  const { weekStart, weekEnd } = getWeekWindow()
-  const points = await getWeeklyConsistencyPoints(userId)
-  const tier = getLeagueTier(points)
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('username, level, title')
-    .eq('id', userId)
-    .single()
-
-  const { data, error } = await supabase
-    .from('weekly_league_snapshots')
-    .upsert({
-      user_id: userId,
-      week_start: weekStart,
-      week_end: weekEnd,
-      points,
-      tier,
-      username: profile?.username ?? 'Guerreiro',
-      level: profile?.level ?? 1,
-      title: profile?.title ?? 'Recruta',
-      updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,week_start' })
-    .select()
-    .single()
-
-  if (error) {
-    reportError('ensureWeeklyLeagueSnapshot error', error.message)
-    return { data: null, error }
-  }
-
-  return { data, error: null }
-}
-
-export async function getWeeklyLeagueOverview(userId: string): Promise<WeeklyLeagueOverview | null> {
-  const { weekStart, weekEnd, prevWeekStart } = getWeekWindow()
-
-  const snapshot = await ensureWeeklyLeagueSnapshot(userId)
-  if (snapshot.error) return null
-
-  const { data: rows, error } = await supabase
-    .from('weekly_league_snapshots')
-    .select('user_id, week_start, week_end, points, tier, username, level, title, updated_at')
-    .eq('week_start', weekStart)
-    .order('points', { ascending: false })
-    .order('updated_at', { ascending: true })
-
-  if (error) {
-    reportError('getWeeklyLeagueOverview current error', error.message)
-    return null
-  }
-
-  const standings = (rows ?? []).map((row, index) => ({
-    user_id: row.user_id as string,
-    week_start: row.week_start as string,
-    week_end: row.week_end as string,
-    points: row.points as number,
-    tier: row.tier as WeeklyLeagueStanding['tier'],
-    username: (row.username as string | null) ?? 'Guerreiro',
-    level: (row.level as number | null) ?? 1,
-    title: (row.title as string | null) ?? 'Recruta',
-    updated_at: row.updated_at as string | undefined,
-    rank: index + 1,
-  }))
-
-  const me = standings.find(row => row.user_id === userId) ?? null
-
-  const { data: previousRows } = await supabase
-    .from('weekly_league_snapshots')
-    .select('user_id, week_start, week_end, points, tier, username, level, title, updated_at')
-    .eq('week_start', prevWeekStart)
-    .order('points', { ascending: false })
-    .order('updated_at', { ascending: true })
-
-  const previousStandings = (previousRows ?? []).map((row, index) => ({
-    user_id: row.user_id as string,
-    week_start: row.week_start as string,
-    week_end: row.week_end as string,
-    points: row.points as number,
-    tier: row.tier as WeeklyLeagueStanding['tier'],
-    username: (row.username as string | null) ?? 'Guerreiro',
-    level: (row.level as number | null) ?? 1,
-    title: (row.title as string | null) ?? 'Recruta',
-    updated_at: row.updated_at as string | undefined,
-    rank: index + 1,
-  }))
-  const previousMe = previousStandings.find(row => row.user_id === userId) ?? null
-
-  const { data: historyRows } = await supabase
-    .from('weekly_league_snapshots')
-    .select('week_start, week_end, points, tier')
-    .eq('user_id', userId)
-    .order('week_start', { ascending: false })
-    .limit(4)
-
-  return {
-    week_start: weekStart,
-    week_end: weekEnd,
-    total_players: standings.length,
-    top: standings.slice(0, 5),
-    me,
-    previous_rank: previousMe?.rank ?? null,
-    previous_points: previousMe?.points ?? null,
-    history: (historyRows ?? []).map(row => ({
-      week_start: row.week_start as string,
-      week_end: row.week_end as string,
-      points: row.points as number,
-      tier: row.tier as WeeklyLeagueStanding['tier'],
-      rank: row.week_start === weekStart ? me?.rank ?? null : previousRows
-        ? previousStandings.find(item => item.user_id === userId && item.week_start === row.week_start)?.rank ?? null
-        : null,
-    })),
-  }
 }
 
 // ── Streak Recovery (freeze semanal) ───────────────────────
@@ -1063,7 +792,7 @@ export async function canClaimStreakRecovery(userId: string): Promise<boolean> {
   // Verificar se teve atividade nos últimos 2 dias
   const cutoff = new Date()
   cutoff.setDate(cutoff.getDate() - 2)
-  const cutoffStr = cutoff.toISOString().split('T')[0]
+  const cutoffStr = format(cutoff, 'yyyy-MM-dd')
 
   const { data: logs } = await supabase
     .from('habit_logs')
@@ -1117,7 +846,7 @@ export async function getReadingSessionsThisWeek(userId: string) {
   const daysFromMon = dayOfWeek === 0 ? 6 : dayOfWeek - 1
   const monday      = new Date(now)
   monday.setDate(now.getDate() - daysFromMon)
-  const mondayStr   = monday.toISOString().split('T')[0]
+  const mondayStr   = format(monday, 'yyyy-MM-dd')
 
   const { data, error } = await supabase
     .from('reading_sessions')
@@ -1133,12 +862,13 @@ export async function getReadingSessionsThisWeek(userId: string) {
 export async function getTrainingCount30d(userId: string): Promise<number> {
   const since = new Date()
   since.setDate(since.getDate() - 30)
-  const sinceStr = since.toISOString().split('T')[0]
+  const sinceStr = format(since, 'yyyy-MM-dd')
 
   const { count, error } = await supabase
     .from('training_entries')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', userId)
+    .eq('completed', true)
     .gte('date', sinceStr)
 
   if (error) reportError('getTrainingCount30d error', error.message)
@@ -1148,7 +878,7 @@ export async function getTrainingCount30d(userId: string): Promise<number> {
 export async function getReadingPages30d(userId: string): Promise<number> {
   const since = new Date()
   since.setDate(since.getDate() - 30)
-  const sinceStr = since.toISOString().split('T')[0]
+  const sinceStr = format(since, 'yyyy-MM-dd')
 
   const { data, error } = await supabase
     .from('reading_sessions')

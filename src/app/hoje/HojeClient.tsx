@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { todayISO } from '@/lib/date'
+import { todayISO, phaseForHour } from '@/lib/date'
 import Nav from '@/components/Nav'
 import RitmoBar from '@/components/RitmoBar'
 import FeedbackToast, { triggerToast } from '@/components/FeedbackToast'
@@ -24,7 +24,6 @@ import {
   toggleHabitLog,
   createHabitQuick,
   checkAndAwardBadges,
-  claimLoginBonus,
   canClaimStreakRecovery,
   claimStreakRecovery,
   supabase,
@@ -123,32 +122,24 @@ export default function HojeClient({
         }
       }
 
+      // Recovery: avaliado a partir do perfil do SERVIDOR, antes de qualquer
+      // atividade. A ofensiva já não é mexida ao abrir a app (ver P1.2), por
+      // isso este sinal mantém-se fiel ao estado real do utilizador.
       if (initialProfile && initialProfile.streak_current === 0 && initialProfile.streak_best > 0) {
         setShowRecovery(true)
         setCanRecover(await canClaimStreakRecovery(userId))
       }
 
-      await updateStreak(userId)
-      // Lê só as colunas recalculadas pelo RPC e funde no perfil já carregado.
-      const { data: streakFields } = await supabase
-        .from('profiles')
-        .select('streak_current, streak_best, streak_last_date, level, title')
-        .eq('id', userId)
-        .single()
-      if (!cancelled && streakFields) {
-        setProfile((prev) => (prev ? { ...prev, ...streakFields } : prev))
-      }
-
       const ritmoNow = await getRitmo(userId)
       if (!cancelled) setRitmo(ritmoNow)
 
-      await claimLoginBonus(userId)
-
-      const streakForBadges = streakFields ?? initialProfile
-      if (streakForBadges) {
+      // Badges são idempotentes: recalculados a partir do estado REAL já
+      // carregado (sem inflar a ofensiva). A ofensiva/level-up só avançam com
+      // atividade real — ver handleToggleHabit e checkin/finish.
+      if (initialProfile) {
         const newBadges = await checkAndAwardBadges(userId, {
-          streak_current: streakForBadges.streak_current,
-          streak_best: streakForBadges.streak_best,
+          streak_current: initialProfile.streak_current,
+          streak_best: initialProfile.streak_best,
           ritmo: ritmoNow,
         })
         if (!cancelled && newBadges.length > 0) setPendingBadges(newBadges)
@@ -186,13 +177,49 @@ export default function HojeClient({
 
   async function handleToggleHabit(id: string, done: boolean) {
     // Update otimista; o log usa a data local do dispositivo.
+    const prevHabits = habits
     setHabits((prev) => prev.map((h) => (h.id === id ? { ...h, habit_logs: [{ completed: done, date: today }] } : h)))
-    await toggleHabitLog(userId, id, today, done)
-    if (done) {
-      const h = habits.find((x) => x.id === id)
-      if (h) triggerToast(`${cleanDisplayText(h.name)} — feito`)
+    const { error } = await toggleHabitLog(userId, id, today, done)
+    if (error) {
+      // Reverte o update otimista se a escrita falhar (P2.8).
+      setHabits(prevHabits)
+      triggerToast('Não foi possível guardar. Tenta de novo.')
+      return
     }
-    setRitmo(await getRitmo(userId))
+
+    if (!done) {
+      // Desmarcar não conta como atividade: não mexe na ofensiva.
+      setRitmo(await getRitmo(userId))
+      return
+    }
+
+    const h = prevHabits.find((x) => x.id === id)
+    if (h) triggerToast(`${cleanDisplayText(h.name)} — feito`)
+
+    // Atividade real concluída → avança a ofensiva e recalcula nível/badges.
+    const prevLevel = profile?.level ?? 1
+    await updateStreak(userId)
+    const { data: streakFields } = await supabase
+      .from('profiles')
+      .select('streak_current, streak_best, streak_last_date, level, title')
+      .eq('id', userId)
+      .single()
+    const ritmoNow = await getRitmo(userId)
+    setRitmo(ritmoNow)
+
+    if (streakFields) {
+      setProfile((prev) => (prev ? { ...prev, ...streakFields } : prev))
+      // Level-up: dispara a celebração só quando o nível realmente sobe (P2.1).
+      if (streakFields.level > prevLevel) {
+        setLevelUpData({ level: streakFields.level, title: streakFields.title })
+      }
+      const newBadges = await checkAndAwardBadges(userId, {
+        streak_current: streakFields.streak_current,
+        streak_best: streakFields.streak_best,
+        ritmo: ritmoNow,
+      })
+      if (newBadges.length > 0) setPendingBadges(newBadges)
+    }
   }
 
   async function handleCreateManualHabit(name: string, area: HabitArea) {
@@ -211,6 +238,8 @@ export default function HojeClient({
   // Backfill para utilizadores legados (tinham programa, sem hábitos): gera os
   // hábitos a partir da última avaliação guardada.
   async function handleBackfill() {
+    // Evita disparos concorrentes (duplo-clique) enquanto a geração corre.
+    if (backfilling) return
     setBackfilling(true)
     try {
       const { data: assess } = await supabase
@@ -241,7 +270,7 @@ export default function HojeClient({
   const doneCnt = habits.filter(isDone).length
   const totalHabits = habits.length
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
-  const currentPhase = hour < 12 ? 'manha' : hour < 18 ? 'tarde' : 'noite'
+  const currentPhase = phaseForHour(hour)
   const checkinPending = !todayCheckins.some((c) => c.phase === currentPhase)
   const habitViews: TodayHabitView[] = habits.map((h) => ({
     id: h.id,
@@ -259,7 +288,7 @@ export default function HojeClient({
         habitsDone: doneCnt,
         habitsTotal: totalHabits,
         missionPct,
-        phase: hour < 13 ? 'manha' : hour < 19 ? 'tarde' : 'noite',
+        phase: phaseForHour(hour),
         hour,
       })
     : { body: '...', action: '...' }

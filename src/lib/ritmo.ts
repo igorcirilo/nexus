@@ -6,6 +6,8 @@
 // à perda é o motor anti-procrastinação. Ao contrário do XP, não é uma moeda
 // acumulável nem auto-reportável: mede cumprimento de compromissos objetivos.
 
+import { localDateKey } from '@/lib/date'
+
 export interface RitmoDay {
   /** Nº de hábitos ativos nesse dia (denominador). */
   habitsTotal: number
@@ -28,6 +30,30 @@ export function dayScore(d: RitmoDay): number {
   }
   // Sem hábitos definidos: o check-in diário sustenta o ritmo sozinho.
   return d.checkin ? 1 : 0
+}
+
+/**
+ * Constrói a janela de dias do Ritmo (índice 0 = hoje, fuso LOCAL) a partir
+ * de dados já indexados por chave de data local 'yyyy-MM-dd'.
+ *
+ * Parte pura (sem BD) para ser testável: a chave usa componentes locais
+ * (localDateKey), alinhada com como a UI grava os logs — evita o off-by-one
+ * de agrupar por UTC em fusos negativos.
+ */
+export function buildRitmoDays(
+  now: Date,
+  habitsTotal: number,
+  doneByDay: Record<string, number>,
+  checkinDays: Set<string>,
+): RitmoDay[] {
+  const arr: RitmoDay[] = []
+  for (let i = 0; i < RITMO_WINDOW_DAYS; i++) {
+    const d = new Date(now)
+    d.setDate(d.getDate() - i)
+    const ds = localDateKey(d)
+    arr.push({ habitsTotal, habitsDone: doneByDay[ds] ?? 0, checkin: checkinDays.has(ds) })
+  }
+  return arr
 }
 
 /**

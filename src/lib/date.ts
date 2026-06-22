@@ -10,9 +10,14 @@ import { format } from 'date-fns'
  *   (que o JS interpreta como meia-noite UTC e desloca o dia em fusos negativos).
  */
 
+/** Chave de data LOCAL 'yyyy-MM-dd' para um Date (componentes do fuso local). */
+export function localDateKey(date: Date): string {
+  return format(date, 'yyyy-MM-dd')
+}
+
 /** Data local de hoje no formato 'yyyy-MM-dd' (fuso do dispositivo). */
 export function todayISO(): string {
-  return format(new Date(), 'yyyy-MM-dd')
+  return localDateKey(new Date())
 }
 
 /**
@@ -21,6 +26,19 @@ export function todayISO(): string {
  */
 export function parseLocalDate(dateStr: string): Date {
   return new Date(`${dateStr}T12:00:00`)
+}
+
+export type DayPhase = 'manha' | 'tarde' | 'noite'
+
+/**
+ * Fase do dia a partir da hora (0–23). Fonte única de verdade para os limites
+ * manhã/tarde/noite, partilhada pelo Hoje (mentor) e pelo check-in.
+ * Limites: manhã < 12, tarde < 18, noite caso contrário.
+ */
+export function phaseForHour(hour: number): DayPhase {
+  if (hour < 12) return 'manha'
+  if (hour < 18) return 'tarde'
+  return 'noite'
 }
 
 /** Formata uma string de data 'yyyy-MM-dd' de forma segura quanto a fuso. */

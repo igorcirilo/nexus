@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react'
 import type { Book, BookProgress, BookHighlight } from '@/types'
+import { todayISO } from '@/lib/date'
 
 const FONT = 'Inter, sans-serif'
 
@@ -80,7 +81,7 @@ export default function LeituraHub({
   const curPage   = currentProgress?.current_page ?? 1
   const pageCount = currentBook?.raw_content?.pageCount ?? 0
   const DAY_LABELS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM']
-  const todayStr   = new Date().toISOString().split('T')[0]
+  const todayStr   = todayISO()
 
   return (
     <div style={{ fontFamily: FONT, background: '#07070F', minHeight: '100vh', padding: '0 22px 28px' }}>
