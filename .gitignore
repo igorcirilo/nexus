@@ -54,3 +54,5 @@ yarn-error.log*
 # ── Cache ───────────────────────────────────────────────────
 .eslintcache
 .stylelintcache
+public/worker-*.js
+public/worker-*.js.map
