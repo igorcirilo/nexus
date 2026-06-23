@@ -45,26 +45,41 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
   ])
 }
 
-// `navigator.serviceWorker.ready` fica pendente PARA SEMPRE se nenhum SW activar
-// — daí o toggle ficar "a processar". Aqui garantimos o registo e limitamos a
-// espera com timeout, devolvendo null em vez de bloquear.
-async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
-  if (!('serviceWorker' in navigator)) return null
-
-  // 1) Já há um SW activo? Usa-o de imediato.
-  const existing = await navigator.serviceWorker.getRegistration()
-  if (existing?.active) return existing
-
-  // 2) Garante o registo (o next-pwa fá-lo, mas pode ainda não ter corrido).
+// Regista o SW (idempotente). Exportado para correr no arranque da app, já que
+// o auto-registo do next-pwa não é fiável no App Router.
+export async function registerServiceWorker(): Promise<void> {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
   try {
     await navigator.serviceWorker.register('/sw.js')
-  } catch {
-    // ignora — `ready` ainda pode resolver de um registo em curso
+  } catch (e) {
+    console.error('[push] registo do service worker falhou:', e)
+  }
+}
+
+// `navigator.serviceWorker.ready` fica pendente PARA SEMPRE se nenhum SW activar
+// — daí o toggle ficar "a processar". Aqui garantimos o registo, limitamos a
+// espera com timeout e devolvemos também o motivo da falha (para diagnóstico).
+async function ensureRegistration(): Promise<{ reg: ServiceWorkerRegistration | null; err?: string }> {
+  if (!('serviceWorker' in navigator)) return { reg: null, err: 'sem suporte a service worker' }
+
+  const existing = await navigator.serviceWorker.getRegistration()
+  if (existing?.active) return { reg: existing }
+
+  let err: string | undefined
+  try {
+    await navigator.serviceWorker.register('/sw.js')
+  } catch (e) {
+    err = (e as Error)?.message || 'registo falhou'
   }
 
-  // 3) Espera a activação, mas nunca além de 12s.
-  const reg = await withTimeout(navigator.serviceWorker.ready, 12000)
-  return reg ?? (await navigator.serviceWorker.getRegistration()) ?? null
+  const ready = await withTimeout(navigator.serviceWorker.ready, 12000)
+  const reg = ready ?? (await navigator.serviceWorker.getRegistration()) ?? null
+  return { reg, err: reg ? undefined : err ?? 'timeout (12s)' }
+}
+
+async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
+  const { reg } = await ensureRegistration()
+  return reg
 }
 
 // Reflete o estado real (existe subscrição activa neste dispositivo?).
@@ -83,6 +98,7 @@ export async function isPushEnabled(): Promise<boolean> {
 type EnableResult = {
   ok: boolean
   error?: 'unsupported' | 'missing-vapid' | 'denied' | 'no-sw' | 'ios-install' | string
+  detail?: string
 }
 
 export async function enablePush(userId: string): Promise<EnableResult> {
@@ -93,8 +109,8 @@ export async function enablePush(userId: string): Promise<EnableResult> {
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return { ok: false, error: 'denied' }
 
-  const reg = await getRegistration()
-  if (!reg) return { ok: false, error: 'no-sw' }
+  const { reg, err } = await ensureRegistration()
+  if (!reg) return { ok: false, error: 'no-sw', detail: err }
 
   let sub = await reg.pushManager.getSubscription()
   if (!sub) {
