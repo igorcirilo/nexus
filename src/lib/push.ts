@@ -45,29 +45,27 @@ function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
   ])
 }
 
-// Regista o SW (idempotente). Exportado para correr no arranque da app, já que
-// o auto-registo do next-pwa não é fiável no App Router.
+// Regista o SW de push (idempotente). Exportado para correr no arranque da app.
+// Usamos um SW mínimo dedicado (/push-worker.js) em vez do SW pesado do next-pwa,
+// que não instalava de forma fiável no iOS.
 export async function registerServiceWorker(): Promise<void> {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return
   try {
-    await navigator.serviceWorker.register('/sw.js')
+    await navigator.serviceWorker.register('/push-worker.js')
   } catch (e) {
     console.error('[push] registo do service worker falhou:', e)
   }
 }
 
 // `navigator.serviceWorker.ready` fica pendente PARA SEMPRE se nenhum SW activar
-// — daí o toggle ficar "a processar". Aqui garantimos o registo, limitamos a
-// espera com timeout e devolvemos também o motivo da falha (para diagnóstico).
+// — daí o toggle ficar "a processar". Aqui garantimos o registo do SW mínimo,
+// limitamos a espera com timeout e devolvemos o motivo da falha (diagnóstico).
 async function ensureRegistration(): Promise<{ reg: ServiceWorkerRegistration | null; err?: string }> {
   if (!('serviceWorker' in navigator)) return { reg: null, err: 'sem suporte a service worker' }
 
-  const existing = await navigator.serviceWorker.getRegistration()
-  if (existing?.active) return { reg: existing }
-
   let err: string | undefined
   try {
-    await navigator.serviceWorker.register('/sw.js')
+    await navigator.serviceWorker.register('/push-worker.js')
   } catch (e) {
     err = (e as Error)?.message || 'registo falhou'
   }

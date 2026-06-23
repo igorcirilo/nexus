@@ -3,7 +3,9 @@ import withPWA from 'next-pwa'
 
 const pwaConfig = withPWA({
   dest: 'public',
-  register: true,
+  // O registo do SW é feito por nós (src/lib/push.ts → /push-worker.js), um SW
+  // mínimo dedicado ao push. O SW pesado do next-pwa não instalava no iOS.
+  register: false,
   skipWaiting: true,
   disable: process.env.NODE_ENV === 'development',
   runtimeCaching: [
