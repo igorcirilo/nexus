@@ -105,7 +105,7 @@ export default function AddTaskSheet({ open, saving = false, onClose, onCreate }
             border: 'none',
             borderRadius: 14,
             background: 'var(--gold)',
-            color: 'var(--bg0)',
+            color: 'var(--on-bright)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',

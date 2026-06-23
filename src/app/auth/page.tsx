@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 const inp: React.CSSProperties = {
   width: '100%', padding: '14px 16px', borderRadius: 14,
   background: 'rgba(var(--ink-rgb),.05)', border: '0.5px solid rgba(var(--ink-rgb),.12)',
-  color: '#F0EDE8', fontFamily: 'DM Sans, sans-serif', fontSize: 15, outline: 'none',
+  color: 'var(--text1)', fontFamily: 'DM Sans, sans-serif', fontSize: 15, outline: 'none',
 }
 
 export default function AuthPage() {

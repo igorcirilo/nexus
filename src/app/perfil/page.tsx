@@ -271,7 +271,7 @@ export default function PerfilPage() {
               </div>
               <div style={{ padding: '12px 24px calc(20px + env(safe-area-inset-bottom))', background: 'var(--bg1)', borderTop: '0.5px solid var(--border)', display: 'flex', gap: 10 }}>
                 <button onClick={() => setEditSection(null)} style={{ flex: 1, padding: '14px 0', borderRadius: 14, border: '0.5px solid var(--border)', background: 'var(--bg3)', color: 'var(--text2)', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-                <button onClick={saveSection} disabled={saving} style={{ flex: 1, padding: '14px 0', borderRadius: 14, border: 'none', background: 'var(--gold)', color: 'var(--bg0)', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+                <button onClick={saveSection} disabled={saving} style={{ flex: 1, padding: '14px 0', borderRadius: 14, border: 'none', background: 'var(--gold)', color: 'var(--on-bright)', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'A guardar…' : 'Guardar'}
                 </button>
               </div>
@@ -345,7 +345,7 @@ export default function PerfilPage() {
           disabled={saving}
           style={{
             background: 'var(--gold)',
-            color: 'var(--bg0)',
+            color: 'var(--on-bright)',
             border: 'none',
             borderRadius: 12,
             padding: '10px 20px',
@@ -428,7 +428,7 @@ export default function PerfilPage() {
           style={{
             width: '100%',
             background: 'var(--gold)',
-            color: 'var(--bg0)',
+            color: 'var(--on-bright)',
             border: 'none',
             borderRadius: 16,
             padding: '15px',

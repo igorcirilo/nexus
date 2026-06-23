@@ -131,7 +131,7 @@ export default function LembretesPage() {
           <p style={{ fontSize: 12, color: 'var(--text3)' }}>{reminders.filter(r => r.active).length} activos</p>
         </div>
         <button onClick={() => { setForm(EMPTY); setShowForm(true) }} style={{
-          background: 'var(--gold)', color: 'var(--bg0)', border: 'none', borderRadius: 12,
+          background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 12,
           padding: '10px 18px', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer',
         }}>+ Novo</button>
       </div>
@@ -143,7 +143,7 @@ export default function LembretesPage() {
           <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Sem lembretes</div>
           <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6 }}>Adiciona lembretes para os check-ins ou cria os teus.</p>
           <button onClick={addDefault} style={{
-            width: '100%', background: 'var(--gold)', color: 'var(--bg0)', border: 'none',
+            width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
             borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginBottom: 10,
           }}>Adicionar lembretes padrão</button>
           <button onClick={() => setShowForm(true)} style={{
@@ -282,7 +282,7 @@ export default function LembretesPage() {
             </div>
 
             <button onClick={save} disabled={saving || !form.title.trim()} style={{
-              width: '100%', background: 'var(--gold)', color: 'var(--bg0)', border: 'none',
+              width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
               borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14,
               cursor: 'pointer', opacity: form.title.trim() ? 1 : 0.5,
             }}>

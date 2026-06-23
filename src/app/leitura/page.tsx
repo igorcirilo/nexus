@@ -6,6 +6,7 @@ import Nav from '@/components/Nav'
 import LeituraHub from '@/components/leitura/LeituraHub'
 import FileImportModal from '@/components/FileImportModal'
 import { supabase, getBooks, getBookProgress, getBookHighlights, saveBook, getReadingSessionsThisWeek } from '@/lib/supabase'
+import { darkCardInk } from '@/lib/theme'
 import type { Book, BookProgress, BookHighlight, FileImportResult } from '@/types'
 
 interface WeeklyStats {
@@ -254,7 +255,7 @@ export default function LeituraPage() {
           }}>
             <div style={{ padding:'20px 20px 14px', borderBottom:'1px solid rgba(var(--ink-rgb),0.06)', display:'flex', justifyContent:'space-between', alignItems:'center' }}>
               <div>
-                <div style={{ fontSize:18, fontWeight:800, color:'#fff' }}>Biblioteca</div>
+                <div style={{ fontSize:18, fontWeight:800, color: 'var(--ink)' }}>Biblioteca</div>
                 <div style={{ fontSize:12, color:'rgba(var(--ink-rgb),0.35)', marginTop:2 }}>
                   {books.length} livro{books.length !== 1 ? 's' : ''}
                 </div>
@@ -309,6 +310,7 @@ export default function LeituraPage() {
                       }}
                     >
                       <div style={{
+                        ...darkCardInk,
                         width:52, height:70, borderRadius:8, flexShrink:0,
                         background:grad, display:'flex', alignItems:'center', justifyContent:'center',
                         color:'rgba(var(--ink-rgb),0.9)', fontWeight:900, fontSize:20,
@@ -317,7 +319,7 @@ export default function LeituraPage() {
                         {(book.cover_label ?? book.title.charAt(0)).toUpperCase()}
                       </div>
                       <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:15, fontWeight:700, color:'#fff', marginBottom:3, lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                        <div style={{ fontSize:15, fontWeight:700, color: 'var(--ink)', marginBottom:3, lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                           {book.title}
                         </div>
                         <div style={{ fontSize:11, color:'rgba(var(--ink-rgb),0.35)', marginBottom:10 }}>

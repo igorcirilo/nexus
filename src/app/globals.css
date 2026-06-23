@@ -18,6 +18,10 @@
   /* "ink" = a cor de primeiro plano (texto/overlays) usada como rgba(var(--ink-rgb),α).
      Branca no escuro, escura no claro — faz texto E overlays inverterem juntos. */
   --ink-rgb: 255,255,255;
+  --ink: #FFFFFF;            /* texto sólido (títulos) — segue o tema */
+  --on-accent: #FFFFFF;      /* texto sobre botões/accents — sempre branco */
+  --on-bright: #0D0F14;      /* texto sobre botões claros (dourado) — sempre escuro */
+  --card-rgb: 28,32,48;      /* base das superfícies de card (gradientes) */
   --border: rgba(var(--ink-rgb),0.07);
   /* superfícies opacas (página / cards / popovers) */
   --surface-page: #07070F;
@@ -50,6 +54,8 @@
   --text2:  #5A6072;
   --text3:  #8A90A0;
   --ink-rgb: 24,27,35;
+  --ink: #181B23;
+  --card-rgb: 255,255,255;
   --border: rgba(var(--ink-rgb),0.12);
   --surface-page: #F5F6F9;
   --surface-card: #FFFFFF;
@@ -134,7 +140,7 @@ body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; 
 .card-accent { background: var(--bg2); border: 0.5px solid rgba(127,119,221,.22);        border-radius: 16px; }
 
 .btn-primary {
-  width: 100%; background: var(--gold); color: var(--bg0);
+  width: 100%; background: var(--gold); color: var(--on-bright);
   border: none; border-radius: 16px; padding: 15px;
   font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
   cursor: pointer; transition: all .15s; letter-spacing: .3px; display: block;

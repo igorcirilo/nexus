@@ -171,7 +171,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                 onClick={onImport}
                 style={{
                   background: 'var(--teal)',
-                  color: '#fff',
+                  color: 'var(--on-accent)',
                   border: 'none',
                   borderRadius: 10,
                   padding: '12px 24px',

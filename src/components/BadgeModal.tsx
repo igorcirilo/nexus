@@ -72,7 +72,7 @@ export default function BadgeModal({ badges, onClose }: Props) {
         <button
           onClick={onClose}
           style={{
-            background: 'var(--gold)', color: 'var(--bg0)',
+            background: 'var(--gold)', color: 'var(--on-bright)',
             border: 'none', borderRadius: 12,
             padding: '13px 36px',
             fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14,

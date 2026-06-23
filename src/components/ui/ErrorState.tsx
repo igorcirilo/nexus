@@ -69,7 +69,7 @@ export default function ErrorState({
             border: 'none',
             borderRadius: 14,
             background: 'linear-gradient(180deg, #F4C85A, var(--gold))',
-            color: 'var(--bg0)',
+            color: 'var(--on-bright)',
             fontFamily: 'Syne, sans-serif',
             fontWeight: 800,
             fontSize: 15,

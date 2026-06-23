@@ -270,7 +270,7 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
             Cancelar
           </button>
           <button onClick={() => onConfirm(editedPlan)} style={{
-            flex: 2, background: 'var(--gold)', color: 'var(--bg0)',
+            flex: 2, background: 'var(--gold)', color: 'var(--on-bright)',
             border: 'none', borderRadius: 12, padding: 13,
             fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer',
           }}>

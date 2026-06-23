@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Profile, UserBadge } from '@/types'
-import { getTheme, toggleTheme } from '@/lib/theme'
+import { getTheme, toggleTheme, darkCardInk } from '@/lib/theme'
 
 const FONT = 'Inter, sans-serif'
 
@@ -75,7 +75,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
 
       {/* ── Hero Section ── */}
       <div style={{
-        background: 'linear-gradient(180deg, #10102A 0%, var(--surface-page) 100%)',
+        background: 'linear-gradient(180deg, rgba(127,119,221,0.20) 0%, var(--surface-page) 100%)',
         padding: '40px 22px 28px',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         position: 'relative',
@@ -160,7 +160,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         </div>
 
         {/* Username */}
-        <div style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 4, letterSpacing: '-0.3px' }}>
+        <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', marginBottom: 4, letterSpacing: '-0.3px' }}>
           {profile.username ?? 'Sem nome'}
         </div>
 
@@ -222,6 +222,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         {/* ── Streak banner ── */}
         {profile.streak_current > 0 && (
           <div style={{
+            ...darkCardInk,
             background: 'linear-gradient(135deg, #1A1000 0%, #201600 100%)',
             border: '1px solid rgba(245,200,66,0.2)',
             borderRadius: 18, padding: '16px 18px', marginTop: 20,

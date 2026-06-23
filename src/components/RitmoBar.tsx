@@ -36,7 +36,7 @@ export default function RitmoBar({ ritmo, level, title, streakBest }: Props) {
         style={{
           padding: '17px 16px',
           borderRadius: 22,
-          background: 'linear-gradient(135deg, rgba(28,32,48,.98), rgba(20,23,32,.98))',
+          background: 'linear-gradient(135deg, rgba(var(--card-rgb),.98), rgba(var(--card-rgb),.98))',
           border: '0.5px solid var(--border)',
           boxShadow: '0 14px 40px rgba(0,0,0,.16)',
         }}

@@ -503,7 +503,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#fff',
+                        color: 'var(--on-accent)',
                         fontSize: 13,
                         fontWeight: 700,
                         padding: 0,
@@ -748,7 +748,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                         background: save.done ? 'var(--teal)' : 'transparent',
                         cursor: 'pointer', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: '#fff', fontSize: 13, fontWeight: 700, padding: 0,
+                        color: 'var(--on-accent)', fontSize: 13, fontWeight: 700, padding: 0,
                       }}
                     >
                       {save.done ? '✓' : ''}

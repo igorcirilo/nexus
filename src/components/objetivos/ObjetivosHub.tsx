@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
+import { darkCardInk } from '@/lib/theme'
 import { AREA_META } from '@/types'
 import type { Goal90, HabitArea } from '@/types'
 import { GOAL_SUGGESTIONS, GOAL_SIZE_META, GOAL_SIZE_ORDER, type GoalSize } from '@/lib/goal-suggestions'
@@ -99,7 +100,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 6px' }}>
         <div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Objetivos</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Objetivos</div>
           <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 2 }}>
             {active.length} ativo{active.length !== 1 ? 's' : ''}
             {nextDeadline ? ` · Prazo: ${formatDeadline(nextDeadline)}` : ''}
@@ -118,6 +119,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
         <div
           onClick={() => onOpenGoal(focusGoal.id)}
           style={{
+            ...darkCardInk,
             background: 'linear-gradient(135deg, #1A0E00 0%, #201200 100%)',
             border: '1px solid rgba(245,200,66,0.2)',
             borderRadius: 20, padding: '16px 18px', margin: '14px 0',
@@ -139,7 +141,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
             <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(245,200,66,0.6)', marginBottom: 3 }}>
               Foco principal agora
             </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {focusGoal.title}
             </div>
           </div>
@@ -233,7 +235,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                 {sugArea.icon}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', lineHeight: 1.25 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.25 }}>
                   {title}
                 </div>
                 <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 3, fontWeight: 500 }}>
@@ -314,7 +316,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                       {area?.icon ?? '🎯'}
                     </div>
                     <div style={{ flex: 1, minWidth: 0, paddingRight: isPriority ? 52 : 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: '#fff', marginBottom: 3, lineHeight: 1.2 }}>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 3, lineHeight: 1.2 }}>
                         {g.title}
                       </div>
                       <div style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500 }}>

@@ -15,7 +15,7 @@ const CATEGORIES = Object.entries(AREA_META) as [HabitArea, { label: string; ico
 
 const inp: React.CSSProperties = {
   width: '100%', background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.10)',
-  borderRadius: 13, padding: '12px 14px', color: '#fff',
+  borderRadius: 13, padding: '12px 14px', color: 'var(--ink)',
   fontFamily: FONT, fontSize: 14, outline: 'none',
 }
 
@@ -177,7 +177,7 @@ export default function ObjetivosPage() {
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(var(--ink-rgb),0.18)', margin: '10px auto 0', flexShrink: 0 }} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
-          <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 17, color: '#fff', letterSpacing: '-0.3px' }}>
+          <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
             {editGoal ? 'Editar objectivo' : 'Novo objectivo'}
           </h2>
           <button onClick={() => setShowForm(false)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(var(--ink-rgb),0.06)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'rgba(var(--ink-rgb),0.6)' }}>✕</button>
@@ -268,7 +268,7 @@ export default function ObjetivosPage() {
                   {area?.icon ?? '🎯'}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 16, color: '#fff', letterSpacing: '-0.3px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>
+                  <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--ink)', letterSpacing: '-0.3px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>
                     {openGoal.title}
                   </div>
                   <div style={{ fontSize: 11.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 2 }}>
@@ -379,7 +379,7 @@ export default function ObjetivosPage() {
           onClick={e => e.target === e.currentTarget && setConfirmDelete(null)}
         >
           <div style={{ width: '100%', maxWidth: 340, background: 'var(--surface-pop)', border: '1px solid rgba(var(--ink-rgb),0.12)', borderRadius: 20, padding: '22px 20px', fontFamily: FONT }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Apagar objetivo?</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>Apagar objetivo?</div>
             <p style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.5)', lineHeight: 1.5, marginBottom: 18, overflowWrap: 'anywhere' }}>
               “{confirmDelete.title}” e os seus marcos vão ser removidos. Esta ação é irreversível.
             </p>
@@ -392,7 +392,7 @@ export default function ObjetivosPage() {
               </button>
               <button
                 onClick={() => remove(confirmDelete.id)}
-                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: 'none', background: '#E24B4A', color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: 'none', background: '#E24B4A', color: 'var(--on-accent)', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
               >
                 Apagar
               </button>

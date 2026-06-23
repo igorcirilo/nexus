@@ -50,7 +50,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map(t => (
           <div key={t.id} style={{
             background: BG[t.type],
-            color: '#fff',
+            color: 'var(--on-accent)',
             padding: '11px 16px',
             borderRadius: 12,
             fontFamily: 'DM Sans, sans-serif',

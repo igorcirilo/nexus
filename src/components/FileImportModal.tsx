@@ -456,7 +456,7 @@ export default function FileImportModal({
               onClick={handleConfirm}
               style={{
                 background: !result || !onConfirm ? 'rgba(232,168,56,.35)' : 'var(--gold)',
-                color: 'var(--bg0)',
+                color: 'var(--on-bright)',
                 border: 'none',
                 borderRadius: 12,
                 padding: '10px 16px',

@@ -19,6 +19,7 @@ import {
 } from '@/lib/csv-parser'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
 import { logError } from '@/lib/log'
+import { darkCardInk } from '@/lib/theme'
 import { format, startOfMonth, endOfMonth, subMonths, subDays, addMonths, getDaysInMonth, getDate } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import type { Profile, Transaction, FinancialImportPreview, FinancialImportCandidate } from '@/types'
@@ -51,7 +52,7 @@ const sheetLabel: React.CSSProperties = {
 }
 const sheetInp: React.CSSProperties = {
   width:'100%', background:'rgba(var(--ink-rgb),0.05)', border:'1px solid rgba(var(--ink-rgb),0.10)',
-  borderRadius:13, padding:'12px 14px', color:'#fff',
+  borderRadius:13, padding:'12px 14px', color: 'var(--ink)',
   fontFamily:'Inter, sans-serif', fontSize:14, fontWeight:600, outline:'none',
 }
 
@@ -74,7 +75,7 @@ function Sheet({ icon, title, onClose, children, footer, tall }: {
         <div style={{ width:40, height:4, borderRadius:2, background:'rgba(var(--ink-rgb),0.18)', margin:'10px auto 0', flexShrink:0 }} />
         <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 20px 12px', borderBottom:'1px solid rgba(var(--ink-rgb),0.06)', flexShrink:0 }}>
           {icon && <span style={{ fontSize:20 }}>{icon}</span>}
-          <div style={{ flex:1, fontWeight:800, fontSize:17, color:'#fff', letterSpacing:'-0.3px' }}>{title}</div>
+          <div style={{ flex:1, fontWeight:800, fontSize:17, color: 'var(--ink)', letterSpacing:'-0.3px' }}>{title}</div>
           <button onClick={onClose} aria-label="Fechar" style={{ width:30, height:30, borderRadius:10, background:'rgba(var(--ink-rgb),0.06)', border:'none', cursor:'pointer', fontSize:14, color:'rgba(var(--ink-rgb),0.6)' }}>✕</button>
         </div>
         <div style={{ overflowY:'auto', flex:1, padding:'4px 20px 16px' }}>{children}</div>
@@ -117,11 +118,11 @@ const inp: React.CSSProperties = {
 const hubInp: React.CSSProperties = {
   width: '100%', background: 'rgba(var(--ink-rgb),0.05)',
   border: '1px solid rgba(var(--ink-rgb),0.08)',
-  borderRadius: 12, padding: '11px 14px', color: '#fff',
+  borderRadius: 12, padding: '11px 14px', color: 'var(--ink)',
   fontFamily: 'Inter, sans-serif', fontSize: 14, outline: 'none',
 }
 const TT: React.CSSProperties = {
-  background:'var(--bg2)', border:'0.5px solid rgba(var(--ink-rgb),.1)', borderRadius:10, color:'#F0EDE8', fontSize:12,
+  background:'var(--bg2)', border:'0.5px solid rgba(var(--ink-rgb),.1)', borderRadius:10, color:'var(--text1)', fontSize:12,
 }
 
 export default function FinancasPage() {
@@ -513,7 +514,7 @@ export default function FinancasPage() {
             </div>
             <div style={{display:'flex',gap:10}}>
               <button onClick={()=>setCsvPreview(null)} style={{flex:1,background:'var(--bg3)',color:'var(--text2)',border:'none',borderRadius:12,padding:13,fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:13,cursor:'pointer'}}>Cancelar</button>
-              <button onClick={confirmCsvImport} disabled={csvImporting} style={{flex:2,background:'var(--gold)',color:'var(--bg0)',border:'none',borderRadius:12,padding:13,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',opacity:csvImporting?.6:1}}>
+              <button onClick={confirmCsvImport} disabled={csvImporting} style={{flex:2,background:'var(--gold)',color:'var(--on-bright)',border:'none',borderRadius:12,padding:13,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',opacity:csvImporting?.6:1}}>
                 {csvImporting?'A importar...':`Importar ${csvPreview.length} transações`}
               </button>
             </div>
@@ -553,7 +554,7 @@ export default function FinancasPage() {
                   } : null)}
                   style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '0.5px solid var(--border)', cursor: 'pointer', opacity: c.selected ? 1 : 0.45 }}
                 >
-                  <div style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, background: c.selected ? 'var(--teal)' : 'var(--bg2)', border: c.selected ? 'none' : '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 700 }}>
+                  <div style={{ width: 18, height: 18, borderRadius: 5, flexShrink: 0, background: c.selected ? 'var(--teal)' : 'var(--bg2)', border: c.selected ? 'none' : '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--on-accent)', fontSize: 11, fontWeight: 700 }}>
                     {c.selected ? '✓' : ''}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -573,7 +574,7 @@ export default function FinancasPage() {
               <button
                 disabled={csvImporting}
                 onClick={confirmPdfImport}
-                style={{ width: '100%', padding: 14, background: 'var(--teal)', color: '#fff', border: 'none', borderRadius: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
+                style={{ width: '100%', padding: 14, background: 'var(--teal)', color: 'var(--on-accent)', border: 'none', borderRadius: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
               >
                 {csvImporting ? 'A importar…' : `Importar ${pdfPreview.candidates.filter(c => c.selected).length} transações`}
               </button>
@@ -585,7 +586,7 @@ export default function FinancasPage() {
       {/* ── Header: título + menu de importação + registar ── */}
       <div style={{padding:'28px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div>
-          <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:28,marginBottom:3,color:'#fff',letterSpacing:'-0.5px'}}>Finanças</h1>
+          <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:28,marginBottom:3,color: 'var(--ink)',letterSpacing:'-0.5px'}}>Finanças</h1>
           <p style={{fontSize:12,color:'rgba(var(--ink-rgb),0.4)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
         </div>
         <div style={{display:'flex',gap:8,position:'relative'}}>
@@ -625,7 +626,7 @@ export default function FinancasPage() {
         type="button"
         onClick={()=>{ if(moreOpen){setMoreOpen(false);return} setShowMovimentos(true) }}
         aria-label="Ver movimentos"
-        style={{display:'block',width:'calc(100% - 40px)',textAlign:'left',cursor:'pointer',fontFamily:'Inter, sans-serif',margin:'14px 20px 0',background:'linear-gradient(135deg, #131022 0%, #0E1A26 100%)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:22,padding:18}}
+        style={{display:'block',width:'calc(100% - 40px)',textAlign:'left',cursor:'pointer',fontFamily:'Inter, sans-serif',margin:'14px 20px 0',...darkCardInk,background:'linear-gradient(135deg, #131022 0%, #0E1A26 100%)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:22,padding:18}}
       >
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
           <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,212,200,0.85)'}}>💎 Saldo do mês</div>
@@ -655,7 +656,7 @@ export default function FinancasPage() {
             <>
               <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:9}}>
                 <span style={{fontSize:15}}>📋</span>
-                <span style={{fontSize:13,fontWeight:700,color:'#fff'}}>{format(new Date(),'MMMM',{locale:pt}).replace(/^./,c=>c.toUpperCase())}</span>
+                <span style={{fontSize:13,fontWeight:700,color: 'var(--ink)'}}>{format(new Date(),'MMMM',{locale:pt}).replace(/^./,c=>c.toUpperCase())}</span>
                 <span style={{marginLeft:'auto',fontSize:13,fontWeight:800,color:budgetPct>=100?'#E24B4A':budgetOnPace?'#00C896':'#F5C842'}}>{budgetPct}% usado</span>
               </div>
               <div style={{height:7,background:'rgba(var(--ink-rgb),0.08)',borderRadius:10,overflow:'hidden'}}>
@@ -707,9 +708,9 @@ export default function FinancasPage() {
                       <circle cx="29" cy="29" r="24" fill="none" stroke="rgba(157,92,245,0.15)" strokeWidth="6"/>
                       <circle cx="29" cy="29" r="24" fill="none" stroke="#9D5CF5" strokeWidth="6" strokeLinecap="round" strokeDasharray={2*Math.PI*24} strokeDashoffset={2*Math.PI*24*(1-pct/100)}/>
                     </svg>
-                    <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color:'#fff'}}>{pct}%</div>
+                    <div style={{position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:800,color: 'var(--ink)'}}>{pct}%</div>
                   </div>
-                  <div style={{fontSize:13,fontWeight:800,color:'#fff'}}>{fmt(currentSavings)}</div>
+                  <div style={{fontSize:13,fontWeight:800,color: 'var(--ink)'}}>{fmt(currentSavings)}</div>
                   <div style={{fontSize:9.5,color:'rgba(var(--ink-rgb),0.4)',marginTop:2}}>
                     {monthsCovered!==null?`≈ ${monthsCovered.toLocaleString('pt-PT',{maximumFractionDigits:1})} meses cobertos`:`de ${fmt(reserveGoal)}`}
                   </div>
@@ -743,7 +744,7 @@ export default function FinancasPage() {
                     </div>
                     <div style={{fontSize:9.5,color:'rgba(var(--ink-rgb),0.4)'}}>{done?'meta atingida 🎉':`faltam ${fmt(savingsGoal-cur)} · ${daysLeft} dias`}</div>
                   </div>
-                  <div style={{fontSize:13,fontWeight:800,color:'#fff'}}>{fmt(cur)} <span style={{color:'rgba(var(--ink-rgb),0.3)',fontSize:10}}>/ {fmt(savingsGoal)}</span></div>
+                  <div style={{fontSize:13,fontWeight:800,color: 'var(--ink)'}}>{fmt(cur)} <span style={{color:'rgba(var(--ink-rgb),0.3)',fontSize:10}}>/ {fmt(savingsGoal)}</span></div>
                   <div style={{fontSize:9.5,fontWeight:700,marginTop:2,color:done||pace?'#00C896':'#F5C842'}}>{done?'✓ atingida':pace?'no ritmo':'abaixo do ritmo'}</div>
                 </>
               )
@@ -780,7 +781,7 @@ export default function FinancasPage() {
                   {catEmoji(t.category)}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12.5,fontWeight:600,color:'#fff'}}>{t.category}</div>
+                  <div style={{fontSize:12.5,fontWeight:600,color: 'var(--ink)'}}>{t.category}</div>
                   <div style={{fontSize:10,color:'rgba(var(--ink-rgb),0.4)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{dayLabel(t.date)}{t.description?` · ${t.description}`:''}</div>
                 </div>
                 <div style={{fontWeight:800,fontSize:13,color:t.type==='entrada'?'#00C896':'#E24B4A',flexShrink:0}}>
@@ -812,7 +813,7 @@ export default function FinancasPage() {
             <input
               value={txQuery} onChange={e=>setTxQuery(e.target.value)}
               placeholder="Pesquisar movimentos…"
-              style={{flex:1,background:'transparent',border:'none',outline:'none',padding:'12px 0',color:'#fff',fontSize:13,fontFamily:'Inter, sans-serif'}}
+              style={{flex:1,background:'transparent',border:'none',outline:'none',padding:'12px 0',color: 'var(--ink)',fontSize:13,fontFamily:'Inter, sans-serif'}}
             />
             {txQuery && <button onClick={()=>setTxQuery('')} style={{background:'none',border:'none',cursor:'pointer',color:'rgba(var(--ink-rgb),0.4)',fontSize:13,padding:4}}>✕</button>}
           </div>
@@ -843,7 +844,7 @@ export default function FinancasPage() {
           {filterActive && filteredTxs.length>0 && (
             <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',background:'rgba(245,200,66,0.06)',border:'1px solid rgba(245,200,66,0.2)',borderRadius:13,padding:'11px 14px',margin:'10px 0 2px'}}>
               <span style={{fontSize:12,color:'rgba(var(--ink-rgb),0.6)'}}>
-                <b style={{color:'#fff'}}>{filteredTxs.length} movimento{filteredTxs.length!==1?'s':''}</b>
+                <b style={{color: 'var(--ink)'}}>{filteredTxs.length} movimento{filteredTxs.length!==1?'s':''}</b>
                 {txCat?` · ${txCat}`:''}
               </span>
               <span style={{fontSize:14,fontWeight:800,color:filteredTotal>=0?'#00C896':'#E24B4A'}}>
@@ -883,7 +884,7 @@ export default function FinancasPage() {
                         {catEmoji(t.category)}
                       </div>
                       <div style={{flex:1,minWidth:0}}>
-                        <div style={{fontSize:13.5,fontWeight:600,color:'#fff'}}>{t.category}</div>
+                        <div style={{fontSize:13.5,fontWeight:600,color: 'var(--ink)'}}>{t.category}</div>
                         {t.description&&<div style={{fontSize:10.5,color:'rgba(var(--ink-rgb),0.4)',marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{t.description}</div>}
                       </div>
                       <div style={{fontWeight:800,fontSize:14,color:t.type==='entrada'?'#00C896':'#E24B4A',flexShrink:0}}>
@@ -916,6 +917,7 @@ export default function FinancasPage() {
             <>
               {/* Gauge global do mês */}
               <div style={{
+                ...darkCardInk,
                 background:'linear-gradient(135deg, #0E1A14 0%, #0D1F1A 60%, #0E1626 100%)',
                 border:'1px solid rgba(0,200,150,0.22)',borderRadius:22,padding:18,
                 display:'flex',gap:16,alignItems:'center',marginBottom:14,
@@ -927,7 +929,7 @@ export default function FinancasPage() {
                       strokeDasharray={2*Math.PI*38} strokeDashoffset={2*Math.PI*38*(1-budgetPct/100)}/>
                   </svg>
                   <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                    <div style={{fontSize:18,fontWeight:800,color:'#fff'}}>{budgetPct}%</div>
+                    <div style={{fontSize:18,fontWeight:800,color: 'var(--ink)'}}>{budgetPct}%</div>
                     <div style={{fontSize:8.5,color:'rgba(var(--ink-rgb),0.4)',fontWeight:600}}>USADO</div>
                   </div>
                 </div>
@@ -935,11 +937,11 @@ export default function FinancasPage() {
                   <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,200,150,0.85)',display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
                     📋 Orçamento de {format(new Date(),'MMMM',{locale:pt})}
                   </div>
-                  <div style={{fontSize:21,fontWeight:900,letterSpacing:'-0.5px',color:'#fff'}}>
+                  <div style={{fontSize:21,fontWeight:900,letterSpacing:'-0.5px',color: 'var(--ink)'}}>
                     {fmt(totalSpentBudgeted)} <span style={{fontSize:13,fontWeight:600,color:'rgba(var(--ink-rgb),0.4)'}}>de {fmt(totalBudget)}</span>
                   </div>
                   <div style={{fontSize:11.5,color:'rgba(var(--ink-rgb),0.55)',marginTop:5,lineHeight:1.45}}>
-                    Restam <b style={{color:'#fff'}}>{fmt(Math.max(0,totalBudget-totalSpentBudgeted))}</b> para {daysLeft} dias ·{' '}
+                    Restam <b style={{color: 'var(--ink)'}}>{fmt(Math.max(0,totalBudget-totalSpentBudgeted))}</b> para {daysLeft} dias ·{' '}
                     <b style={{color:budgetOnPace?'#00C896':'#F5C842'}}>{budgetOnPace?'dentro do ritmo':'acima do ritmo'}</b>
                   </div>
                 </div>
@@ -960,7 +962,7 @@ export default function FinancasPage() {
                       <div style={{width:32,height:32,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,background:over?'rgba(226,75,74,0.12)':warn?'rgba(245,200,66,0.12)':'rgba(var(--ink-rgb),0.06)'}}>
                         {catEmoji(cat)}
                       </div>
-                      <div style={{fontSize:13,fontWeight:700,color:'#fff'}}>{cat}</div>
+                      <div style={{fontSize:13,fontWeight:700,color: 'var(--ink)'}}>{cat}</div>
                       {over&&<span style={{fontSize:9.5,fontWeight:800,borderRadius:7,padding:'3px 7px',background:'rgba(226,75,74,0.12)',color:'#E24B4A',flexShrink:0}}>+{fmt(spent-budget)} acima</span>}
                       {warn&&<span style={{fontSize:9.5,fontWeight:800,borderRadius:7,padding:'3px 7px',background:'rgba(245,200,66,0.12)',color:'#F5C842',flexShrink:0}}>atenção</span>}
                       <div style={{marginLeft:'auto',fontSize:12.5,fontWeight:700,color:'rgba(var(--ink-rgb),0.75)',flexShrink:0}}>
@@ -1020,9 +1022,9 @@ export default function FinancasPage() {
                   {budgetSuggestions.map(({cat,avg,suggested})=>(
                     <div key={cat} style={{display:'flex',alignItems:'center',gap:10,background:'rgba(var(--ink-rgb),0.04)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:15,padding:'12px 14px',marginBottom:8}}>
                       <span style={{fontSize:16}}>{catEmoji(cat)}</span>
-                      <span style={{fontSize:13,fontWeight:700,color:'#fff'}}>{cat}</span>
+                      <span style={{fontSize:13,fontWeight:700,color: 'var(--ink)'}}>{cat}</span>
                       <span style={{marginLeft:'auto',fontSize:11.5,color:'rgba(var(--ink-rgb),0.35)',fontWeight:600}}>média {fmt(avg)} →</span>
-                      <span style={{fontSize:13,fontWeight:800,color:'#fff'}}>{fmt(suggested)}</span>
+                      <span style={{fontSize:13,fontWeight:800,color: 'var(--ink)'}}>{fmt(suggested)}</span>
                       <button onClick={()=>saveBudget(cat,String(suggested))} style={{fontSize:10,fontWeight:800,borderRadius:8,padding:'5px 10px',background:'rgba(0,200,150,0.12)',color:'#00C896',border:'none',cursor:'pointer'}}>Aplicar</button>
                     </div>
                   ))}
@@ -1201,13 +1203,13 @@ export default function FinancasPage() {
           onClick={e=>e.target===e.currentTarget&&setConfirmDeleteTx(null)}
         >
           <div style={{width:'100%',maxWidth:340,background:'var(--surface-pop)',border:'1px solid rgba(var(--ink-rgb),0.12)',borderRadius:20,padding:'22px 20px',fontFamily:'Inter, sans-serif'}}>
-            <div style={{fontSize:16,fontWeight:800,color:'#fff',marginBottom:8}}>Apagar movimento?</div>
+            <div style={{fontSize:16,fontWeight:800,color: 'var(--ink)',marginBottom:8}}>Apagar movimento?</div>
             <p style={{fontSize:13,color:'rgba(var(--ink-rgb),0.5)',lineHeight:1.5,marginBottom:18,overflowWrap:'anywhere'}}>
               {confirmDeleteTx.category}{confirmDeleteTx.description?` · ${confirmDeleteTx.description}`:''} ({confirmDeleteTx.type==='entrada'?'+':'−'}{fmt(confirmDeleteTx.amount)}) vai ser removido. Esta ação é irreversível.
             </p>
             <div style={{display:'flex',gap:10}}>
               <button onClick={()=>setConfirmDeleteTx(null)} style={{flex:1,padding:'12px 0',borderRadius:13,border:'1px solid rgba(var(--ink-rgb),0.12)',background:'rgba(var(--ink-rgb),0.04)',color:'rgba(var(--ink-rgb),0.7)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>Cancelar</button>
-              <button onClick={removeTxConfirmed} style={{flex:1,padding:'12px 0',borderRadius:13,border:'none',background:'#E24B4A',color:'#fff',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>Apagar</button>
+              <button onClick={removeTxConfirmed} style={{flex:1,padding:'12px 0',borderRadius:13,border:'none',background:'#E24B4A',color: 'var(--on-accent)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>Apagar</button>
             </div>
           </div>
         </div>
@@ -1235,11 +1237,11 @@ export default function FinancasPage() {
             }>
             <div style={{textAlign:'center',margin:'10px 0 2px'}}>
               <div style={{display:'inline-flex',alignItems:'center',gap:4}}>
-                <span style={{fontSize:30,fontWeight:900,color:'#fff'}}>€</span>
+                <span style={{fontSize:30,fontWeight:900,color: 'var(--ink)'}}>€</span>
                 <input
                   type="number" step="1" value={budgetVal} onChange={e=>setBudgetVal(e.target.value)}
                   placeholder="0" aria-label="Valor do orçamento"
-                  style={{width:130,background:'transparent',border:'none',outline:'none',fontSize:34,fontWeight:900,letterSpacing:'-1px',color:'#fff',fontFamily:'Inter, sans-serif'}}
+                  style={{width:130,background:'transparent',border:'none',outline:'none',fontSize:34,fontWeight:900,letterSpacing:'-1px',color: 'var(--ink)',fontFamily:'Inter, sans-serif'}}
                 />
               </div>
               <div style={{fontSize:11,color:'rgba(var(--ink-rgb),0.3)',fontWeight:600,marginTop:2}}>por mês</div>
@@ -1301,11 +1303,11 @@ export default function FinancasPage() {
           }>
           <div style={{textAlign:'center',margin:'10px 0 2px'}}>
             <div style={{display:'inline-flex',alignItems:'center',gap:4}}>
-              <span style={{fontSize:30,fontWeight:900,color:'#fff'}}>€</span>
+              <span style={{fontSize:30,fontWeight:900,color: 'var(--ink)'}}>€</span>
               <input
                 type="number" step="50" value={gReserve} onChange={e=>setGReserve(e.target.value)}
                 placeholder="5000" aria-label="Objetivo da reserva"
-                style={{width:150,background:'transparent',border:'none',outline:'none',fontSize:34,fontWeight:900,letterSpacing:'-1px',color:'#fff',fontFamily:'Inter, sans-serif'}}
+                style={{width:150,background:'transparent',border:'none',outline:'none',fontSize:34,fontWeight:900,letterSpacing:'-1px',color: 'var(--ink)',fontFamily:'Inter, sans-serif'}}
               />
             </div>
             <div style={{fontSize:11,color:'rgba(var(--ink-rgb),0.3)',fontWeight:600,marginTop:2}}>objetivo da reserva</div>
@@ -1335,11 +1337,11 @@ export default function FinancasPage() {
           }>
           <div style={{textAlign:'center',margin:'10px 0 2px'}}>
             <div style={{display:'inline-flex',alignItems:'center',gap:4}}>
-              <span style={{fontSize:30,fontWeight:900,color:'#fff'}}>€</span>
+              <span style={{fontSize:30,fontWeight:900,color: 'var(--ink)'}}>€</span>
               <input
                 type="number" step="10" value={gSave} onChange={e=>setGSave(e.target.value)}
                 placeholder="300" aria-label="Meta de poupança mensal"
-                style={{width:130,background:'transparent',border:'none',outline:'none',fontSize:34,fontWeight:900,letterSpacing:'-1px',color:'#fff',fontFamily:'Inter, sans-serif'}}
+                style={{width:130,background:'transparent',border:'none',outline:'none',fontSize:34,fontWeight:900,letterSpacing:'-1px',color: 'var(--ink)',fontFamily:'Inter, sans-serif'}}
               />
             </div>
             <div style={{fontSize:11,color:'rgba(var(--ink-rgb),0.3)',fontWeight:600,marginTop:2}}>por mês</div>

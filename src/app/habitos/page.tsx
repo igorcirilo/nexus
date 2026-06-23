@@ -385,7 +385,7 @@ export default function HabitosPage() {
 
             {/* Header fixo */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
-              <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 17, color: '#fff', letterSpacing: '-0.3px' }}>
+              <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
                 {editHabit ? 'Editar hábito' : 'Novo hábito'}
               </h2>
               <button
@@ -614,7 +614,7 @@ export default function HabitosPage() {
           onClick={(event) => event.target === event.currentTarget && setConfirmDelete(null)}
         >
           <div style={{ width: '100%', maxWidth: 340, background: 'var(--surface-pop)', border: '1px solid rgba(var(--ink-rgb),0.12)', borderRadius: 20, padding: '22px 20px', fontFamily: FONT }}>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Apagar hábito?</div>
+            <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>Apagar hábito?</div>
             <p style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.5)', lineHeight: 1.5, marginBottom: 18, overflowWrap: 'anywhere' }}>
               “{confirmDelete.name}” e o seu histórico de conclusões vão ser removidos. Esta ação é irreversível.
             </p>
@@ -627,7 +627,7 @@ export default function HabitosPage() {
               </button>
               <button
                 onClick={remove}
-                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: 'none', background: '#E24B4A', color: '#fff', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: 'none', background: '#E24B4A', color: 'var(--on-accent)', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
               >
                 Apagar
               </button>

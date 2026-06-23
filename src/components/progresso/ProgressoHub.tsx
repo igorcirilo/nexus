@@ -1,6 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
+import { darkCardInk } from '@/lib/theme'
 import { nextStreakThreshold, levelFromStreak, STREAK_THRESHOLDS } from '@/types'
 import type { Profile, UserBadge } from '@/types'
 
@@ -101,7 +102,7 @@ export default function ProgressoHub({
 
       {/* Header */}
       <div style={{ padding: '20px 0 4px' }}>
-        <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Progresso</div>
+        <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Progresso</div>
         <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 2 }}>
           Nível {level} · {profile.title}
         </div>
@@ -111,6 +112,7 @@ export default function ProgressoHub({
       <div
         onClick={onDashboard}
         style={{
+          ...darkCardInk,
           background: 'linear-gradient(135deg, #130D2A 0%, #1A0E3A 50%, #0D1A2E 100%)',
           border: '1px solid rgba(157,92,245,0.25)',
           borderRadius: 26, padding: '24px 22px',
@@ -139,7 +141,7 @@ export default function ProgressoHub({
               {profile.title}
             </div>
             <div style={{ fontSize: 14, color: 'rgba(var(--ink-rgb),0.5)', fontWeight: 500 }}>Nível atual</div>
-            <div style={{ fontSize: 52, fontWeight: 900, color: '#fff', letterSpacing: '-3px', lineHeight: 1 }}>{level}</div>
+            <div style={{ fontSize: 52, fontWeight: 900, color: 'var(--ink)', letterSpacing: '-3px', lineHeight: 1 }}>{level}</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.75)', marginTop: 4 }}>
               {nextThr != null ? `${daysToNext} dias de ofensiva → Nível ${level + 1}` : 'Nível máximo'}
             </div>
@@ -157,7 +159,7 @@ export default function ProgressoHub({
                 />
               </svg>
               <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', textAlign: 'center' }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>{levelPct}%</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{levelPct}%</div>
                 <div style={{ fontSize: 9, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500 }}>nível</div>
               </div>
             </div>

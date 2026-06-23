@@ -89,7 +89,7 @@ export default function NightSummaryCard({
         style={{
           width: '100%',
           background: 'var(--gold)',
-          color: 'var(--bg0)',
+          color: 'var(--on-bright)',
           border: 'none',
           borderRadius: 12,
           padding: '12px 14px',

@@ -49,7 +49,7 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 6px' }}>
         <div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Hábitos</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Hábitos</div>
           <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 2 }}>
             {totalToday > 0 ? `${doneToday} de ${totalToday} concluídos hoje` : 'Sem hábitos ativos'}
           </div>
@@ -280,7 +280,7 @@ function Ring({ pct, color }: { pct: number; color: string }) {
         <circle cx="27" cy="27" r={r} fill="none" stroke="rgba(var(--ink-rgb),0.08)" strokeWidth="4" />
         <circle cx="27" cy="27" r={r} fill="none" stroke={color} strokeWidth="4" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset} />
       </svg>
-      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 13, fontWeight: 800, color: '#fff' }}>{pct}%</div>
+      <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', fontSize: 13, fontWeight: 800, color: 'var(--ink)' }}>{pct}%</div>
     </div>
   )
 }

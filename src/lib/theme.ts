@@ -1,7 +1,18 @@
 // Gestão do tema (claro/escuro) — persiste em localStorage e aplica
 // data-theme no <html>. O script inline no layout evita flash no arranque.
 
+import type { CSSProperties } from 'react'
+
 export type Theme = 'dark' | 'light'
+
+// Fixa o primeiro-plano a branco dentro de cards escuros "hero" (gradientes
+// vibrantes que se mantêm escuros nos dois temas). Espalhar no style do card
+// faz todo o texto/overlays interno (var(--ink) / rgba(var(--ink-rgb),…))
+// continuar branco mesmo no tema claro.
+export const darkCardInk = {
+  '--ink': '#fff',
+  '--ink-rgb': '255,255,255',
+} as unknown as CSSProperties
 
 const STORAGE_KEY = 'nexus-theme'
 const EVENT = 'nexus-theme-change'

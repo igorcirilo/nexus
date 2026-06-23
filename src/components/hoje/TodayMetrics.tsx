@@ -25,7 +25,7 @@ export default function TodayMetrics({ metrics }: TodayMetricsProps) {
             minHeight: 104,
             padding: '12px 8px',
             borderRadius: 18,
-            background: 'linear-gradient(135deg, rgba(28,32,48,.98), rgba(20,23,32,.98))',
+            background: 'linear-gradient(135deg, rgba(var(--card-rgb),.98), rgba(var(--card-rgb),.98))',
             border: '0.5px solid var(--border)',
             display: 'grid',
             gridTemplateColumns: '36px minmax(0, 1fr)',

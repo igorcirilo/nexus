@@ -212,7 +212,7 @@ export default function AnaliseInicialPage() {
                     Nível {spec.level} · {spec.label}
                   </span>
                   {isSuggested && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--bg0)', background: 'var(--gold)', borderRadius: 100, padding: '2px 7px' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--on-bright)', background: 'var(--gold)', borderRadius: 100, padding: '2px 7px' }}>
                       Sugerido
                     </span>
                   )}

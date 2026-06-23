@@ -259,7 +259,7 @@ export default function CheckinPage() {
               <button
                 onClick={() => setActivePhase(activePhase === 'manha' ? 'tarde' : 'noite')}
                 style={{
-                  width: '100%', background: 'var(--gold)', color: 'var(--bg0)',
+                  width: '100%', background: 'var(--gold)', color: 'var(--on-bright)',
                   border: 'none', borderRadius: 14, padding: 14,
                   fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                 }}
@@ -307,7 +307,7 @@ export default function CheckinPage() {
                 <button
                   onClick={() => setStep(2)}
                   style={{
-                    width: '100%', background: 'var(--gold)', color: 'var(--bg0)', border: 'none',
+                    width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
                     borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
@@ -355,7 +355,7 @@ export default function CheckinPage() {
                   disabled={submitting}
                   onClick={() => finish('manha')}
                   style={{
-                    width: '100%', background: 'var(--gold)', color: 'var(--bg0)', border: 'none',
+                    width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
                     borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
@@ -425,7 +425,7 @@ export default function CheckinPage() {
                   disabled={submitting}
                   onClick={() => finish('tarde')}
                   style={{
-                    width: '100%', marginTop: 14, background: 'var(--gold)', color: 'var(--bg0)', border: 'none',
+                    width: '100%', marginTop: 14, background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
                     borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
@@ -485,7 +485,7 @@ export default function CheckinPage() {
                 <button
                   onClick={() => setStep(2)}
                   style={{
-                    width: '100%', marginTop: 14, background: 'var(--gold)', color: 'var(--bg0)', border: 'none',
+                    width: '100%', marginTop: 14, background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
                     borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
@@ -503,7 +503,7 @@ export default function CheckinPage() {
                   disabled={submitting}
                   onClick={() => nightTasks.length > 0 ? setStep(3) : finish('noite')}
                   style={{
-                    width: '100%', background: 'var(--gold)', color: 'var(--bg0)', border: 'none',
+                    width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
                     borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700,
                     fontSize: 14, cursor: 'pointer',
                   }}
@@ -586,7 +586,7 @@ export default function CheckinPage() {
                     disabled={submitting}
                     onClick={() => finish('noite')}
                     style={{
-                      width: '100%', padding: 17, background: 'var(--accent)', color: '#fff', border: 'none',
+                      width: '100%', padding: 17, background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
                       borderRadius: 16, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, cursor: 'pointer',
                     }}
                   >

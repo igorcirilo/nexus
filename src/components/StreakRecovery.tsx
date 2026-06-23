@@ -53,7 +53,7 @@ export default function StreakRecovery({ prevBest, canRecover, onRecover, onDism
           <button
             onClick={onRecover}
             style={{
-              width: '100%', background: 'var(--gold)', color: 'var(--bg0)',
+              width: '100%', background: 'var(--gold)', color: 'var(--on-bright)',
               border: 'none', borderRadius: 12, padding: '12px',
               fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13,
               cursor: 'pointer', marginBottom: 8,

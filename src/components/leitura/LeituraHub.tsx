@@ -1,6 +1,7 @@
 'use client'
 
 import type { CSSProperties } from 'react'
+import { darkCardInk } from '@/lib/theme'
 import type { Book, BookProgress, BookHighlight } from '@/types'
 
 const FONT = 'Inter, sans-serif'
@@ -88,7 +89,7 @@ export default function LeituraHub({
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 18px' }}>
         <div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Leitura</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Leitura</div>
           <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 2 }}>
             {stats.total > 0
               ? `${stats.total} livro${stats.total !== 1 ? 's' : ''} na biblioteca`
@@ -122,6 +123,7 @@ export default function LeituraHub({
 
           {/* Cover */}
           <div style={{
+            ...darkCardInk,
             width: 84, height: 112, borderRadius: 10, flexShrink: 0,
             background: COVER_GRADIENTS[0],
             display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -141,7 +143,7 @@ export default function LeituraHub({
             }}>
               Lendo agora
             </div>
-            <div style={{ fontSize: 17, fontWeight: 800, color: '#fff', lineHeight: 1.3, marginBottom: 4 }}>
+            <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', lineHeight: 1.3, marginBottom: 4 }}>
               {currentBook.title}
             </div>
             {currentBook.author && (
@@ -187,7 +189,7 @@ export default function LeituraHub({
         borderRadius: 20, padding: '18px 20px',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Esta semana</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Esta semana</div>
           <div style={{
             fontSize: 13, fontWeight: 700,
             color: weeklyStats.daysWithReading >= 5 ? '#00C896'
@@ -229,7 +231,7 @@ export default function LeituraHub({
       <SectionLabel style={{ marginTop: 18 }}>Estatísticas</SectionLabel>
       <div style={{ display: 'flex', gap: 10 }}>
         {[
-          { label: 'min esta semana',   value: weeklyStats.totalMinutes  || '—', color: '#fff'    },
+          { label: 'min esta semana',   value: weeklyStats.totalMinutes  || '—', color: 'var(--ink)'    },
           { label: 'min / dia (média)', value: weeklyStats.avgMinPerDay  || '—', color: '#F5C842' },
           { label: 'livros concluídos', value: stats.completed,                  color: '#00C896' },
         ].map(s => (
@@ -291,6 +293,7 @@ export default function LeituraHub({
                 style={{ flexShrink: 0, width: 90, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, cursor: 'pointer' }}
               >
                 <div style={{
+                  ...darkCardInk,
                   width: 68, height: 90, borderRadius: 8,
                   background: COVER_GRADIENTS[(i + 1) % COVER_GRADIENTS.length],
                   boxShadow: '0 4px 14px rgba(0,0,0,0.5)',

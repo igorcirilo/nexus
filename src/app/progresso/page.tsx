@@ -161,7 +161,7 @@ export default function ProgressoPage() {
   const earned  = new Set(badges.map(b => b.badge_key))
   const TT: React.CSSProperties = {
     background:'var(--bg2)', border:'0.5px solid rgba(var(--ink-rgb),.1)',
-    borderRadius:10, color:'#F0EDE8', fontSize:12,
+    borderRadius:10, color:'var(--text1)', fontSize:12,
   }
 
   if (loading || !profile) return (
@@ -204,7 +204,7 @@ export default function ProgressoPage() {
             Progresso
           </button>
         </div>
-        <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:24,marginBottom:4,lineHeight:1.2,color:'#fff'}}>
+        <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:24,marginBottom:4,lineHeight:1.2,color: 'var(--ink)'}}>
           Dashboard
         </h1>
         <p style={{fontSize:12,color:'rgba(var(--ink-rgb),0.4)',marginBottom:4,lineHeight:1.4}}>
@@ -344,7 +344,7 @@ export default function ProgressoPage() {
             {/* Consistência semanal */}
             <div style={{background:'rgba(var(--ink-rgb),0.04)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
-                <div style={{fontFamily:'Inter, sans-serif',fontSize:13,fontWeight:700,color:'#fff'}}>Consistência semanal</div>
+                <div style={{fontFamily:'Inter, sans-serif',fontSize:13,fontWeight:700,color: 'var(--ink)'}}>Consistência semanal</div>
                 <div style={{fontSize:20,fontWeight:800,color:'#00C896'}}>{stats.consistency}%</div>
               </div>
               {(() => {

@@ -22,7 +22,7 @@ const sheetLabel: CSSProperties = {
 }
 const sheetInp: CSSProperties = {
   width: '100%', background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.10)',
-  borderRadius: 13, padding: '12px 14px', color: '#fff',
+  borderRadius: 13, padding: '12px 14px', color: 'var(--ink)',
   fontFamily: FONT, fontSize: 14, fontWeight: 600, outline: 'none',
 }
 
@@ -61,7 +61,7 @@ function Sheet({ icon, title, sub, onClose, children, footer, tall }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
           {icon && <span style={{ fontSize: 20 }}>{icon}</span>}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 800, fontSize: 17, color: '#fff', letterSpacing: '-0.3px' }}>{title}</div>
+            <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.3px' }}>{title}</div>
             {sub && <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>{sub}</div>}
           </div>
           <button onClick={onClose} aria-label="Fechar" style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(var(--ink-rgb),0.06)', border: 'none', cursor: 'pointer', fontSize: 15, color: 'rgba(var(--ink-rgb),0.6)', flexShrink: 0, touchAction: 'manipulation' }}>✕</button>
@@ -142,7 +142,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 20px 6px' }}>
         <div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#fff', letterSpacing: '-0.5px' }}>Calendário</div>
+          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Calendário</div>
           <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 2 }}>
             {c.currentStreak > 0 ? `🔥 ${c.currentStreak} dias de sequência` : 'Marca hábitos para criar sequência'}
           </div>
@@ -159,7 +159,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
       {/* ── Navegação de mês/semana + toggle ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px 0' }}>
         <button onClick={() => (c.viewMode === 'month' ? c.changeMonth(-1) : c.changeWeek(-1))} aria-label="Anterior" style={navArrow}>‹</button>
-        <div style={{ flex: 1, textAlign: 'center', fontSize: 14.5, fontWeight: 800, color: '#fff' }}>{monthLabel}</div>
+        <div style={{ flex: 1, textAlign: 'center', fontSize: 14.5, fontWeight: 800, color: 'var(--ink)' }}>{monthLabel}</div>
         <button onClick={() => (c.viewMode === 'month' ? c.changeMonth(1) : c.changeWeek(1))} aria-label="Seguinte" style={navArrow}>›</button>
         <div style={{ display: 'flex', background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 11, padding: 3, gap: 3 }}>
           {(['month', 'week'] as const).map(m => (
@@ -273,7 +273,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
               <div key={e.id} style={{ ...timelineRow, borderLeft: `3px solid ${e.color}` }}>
                 <span style={{ fontSize: 16 }}>📅</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflowWrap: 'anywhere' }}>{e.title}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{e.title}</div>
                   <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
                     {e.all_day ? 'Todo o dia' : e.time ? `${e.time.slice(0, 5)}${e.end_time ? ` – ${e.end_time.slice(0, 5)}` : ''}` : 'Sem hora'}
                   </div>
@@ -285,7 +285,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
               <div key={r.id} style={{ ...timelineRow, borderLeft: '3px solid #F5C842' }}>
                 <span style={{ fontSize: 16 }}>🔔</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflowWrap: 'anywhere' }}>{r.title}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{r.title}</div>
                   <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
                     {r.time.slice(0, 5)} · {r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
                   </div>
@@ -424,7 +424,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                   <div key={e.id} style={{ ...timelineRow, borderLeft: `3px solid ${e.color}` }}>
                     <span style={{ fontSize: 16 }}>📅</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflowWrap: 'anywhere' }}>{e.title}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{e.title}</div>
                       <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
                         {e.all_day ? 'Todo o dia' : e.time ? `${e.time.slice(0, 5)}${e.end_time ? ` – ${e.end_time.slice(0, 5)}` : ''}` : 'Sem hora'}
                         {e.description ? ` · ${e.description}` : ''}
@@ -465,7 +465,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.08)', borderRadius: 14, padding: '11px 13px', opacity: r.active ? 1 : 0.5 }}>
                   <span style={{ fontSize: 16 }}>🔔</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', overflowWrap: 'anywhere' }}>{r.title}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{r.title}</div>
                     <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
                       {r.time.slice(0, 5)} · {r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
                     </div>
