@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Profile, UserBadge } from '@/types'
 import { getTheme, toggleTheme, darkCardInk } from '@/lib/theme'
+import { enablePush, disablePush, isPushEnabled } from '@/lib/push'
+import { emitToast } from '@/lib/toast-events'
 
 const FONT = 'Inter, sans-serif'
 
@@ -63,6 +65,44 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
     if (typeof localStorage === 'undefined') return false
     return localStorage.getItem('nexus-notif') === '1'
   })
+  const [notifBusy, setNotifBusy] = useState(false)
+  // Reconcilia o estado do toggle com a subscrição real do dispositivo.
+  useEffect(() => {
+    isPushEnabled().then((on) => {
+      setNotifEnabled(on)
+      localStorage.setItem('nexus-notif', on ? '1' : '0')
+    }).catch(() => {})
+  }, [])
+
+  async function toggleNotifications() {
+    if (notifBusy) return
+    setNotifBusy(true)
+    try {
+      if (!notifEnabled) {
+        const res = await enablePush(profile.id)
+        if (!res.ok) {
+          const msg =
+            res.error === 'denied' ? 'Permissão de notificações negada no navegador.'
+            : res.error === 'unsupported' ? 'Este dispositivo/navegador não suporta notificações push.'
+            : res.error === 'missing-vapid' ? 'Notificações ainda não configuradas no servidor.'
+            : 'Não foi possível ativar as notificações.'
+          emitToast(msg, 'error')
+          return
+        }
+        localStorage.setItem('nexus-notif', '1')
+        setNotifEnabled(true)
+        emitToast('Notificações ativadas!', 'success')
+      } else {
+        await disablePush(profile.id)
+        localStorage.setItem('nexus-notif', '0')
+        setNotifEnabled(false)
+        emitToast('Notificações desativadas.', 'info')
+      }
+    } finally {
+      setNotifBusy(false)
+    }
+  }
+
   // Começa em 'dark' no servidor; sincroniza com o tema real após montar.
   const [isDark, setIsDark] = useState(true)
   useEffect(() => { setIsDark(getTheme() === 'dark') }, [])
@@ -469,14 +509,8 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
 
           {/* Notifications toggle */}
           <button
-            onClick={() => {
-              const next = !notifEnabled
-              if (next && typeof Notification !== 'undefined') {
-                Notification.requestPermission()
-              }
-              localStorage.setItem('nexus-notif', next ? '1' : '0')
-              setNotifEnabled(next)
-            }}
+            onClick={toggleNotifications}
+            disabled={notifBusy}
             style={{
               display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'left',
               background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.06)',
@@ -496,7 +530,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text1)', marginBottom: 2 }}>Notificações</div>
-              <div style={{ fontSize: 11, color: 'var(--text3)' }}>{notifEnabled ? 'Ativas' : 'Desativadas'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)' }}>{notifBusy ? 'A processar…' : notifEnabled ? 'Ativas' : 'Desativadas'}</div>
             </div>
             <div style={{
               width: 44, height: 26, borderRadius: 13,
