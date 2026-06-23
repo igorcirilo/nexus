@@ -49,7 +49,7 @@ function SectionLabel({ children, style }: { children: React.ReactNode; style?: 
   return (
     <div style={{
       fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-      textTransform: 'uppercase', color: 'rgba(var(--ink-rgb),0.3)',
+      textTransform: 'uppercase', color: 'var(--text3)',
       marginBottom: 10, marginTop: 18,
       ...style,
     }}>
@@ -60,9 +60,9 @@ function SectionLabel({ children, style }: { children: React.ReactNode; style?: 
 
 const iconBtn: CSSProperties = {
   width: 38, height: 38, borderRadius: 12,
-  background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.08)',
+  background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.08)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  color: 'rgba(var(--ink-rgb),0.6)', cursor: 'pointer',
+  color: 'var(--text1)', cursor: 'pointer',
 }
 
 export default function LeituraHub({
@@ -90,7 +90,7 @@ export default function LeituraHub({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 18px' }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Leitura</div>
-          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
             {stats.total > 0
               ? `${stats.total} livro${stats.total !== 1 ? 's' : ''} na biblioteca`
               : 'Biblioteca vazia'}
@@ -109,7 +109,7 @@ export default function LeituraHub({
         <div
           onClick={() => onOpenBook(currentBook.id)}
           style={{
-            background: 'linear-gradient(135deg, var(--surface-card) 0%, #141428 100%)',
+            background: 'var(--surface-card)',
             border: '1px solid rgba(var(--ink-rgb),0.08)',
             borderRadius: 24, padding: 20, marginBottom: 14,
             display: 'flex', gap: 16, alignItems: 'flex-start',
@@ -127,7 +127,7 @@ export default function LeituraHub({
             width: 84, height: 112, borderRadius: 10, flexShrink: 0,
             background: COVER_GRADIENTS[0],
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'rgba(var(--ink-rgb),0.9)', fontWeight: 900, fontSize: 28,
+            color: 'var(--text1)', fontWeight: 900, fontSize: 28,
             boxShadow: '4px 6px 20px rgba(0,0,0,0.5)',
             fontFamily: FONT,
           }}>
@@ -147,22 +147,22 @@ export default function LeituraHub({
               {currentBook.title}
             </div>
             {currentBook.author && (
-              <div style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.45)', marginBottom: 14 }}>
+              <div style={{ fontSize: 12, color: 'var(--text2)', marginBottom: 14 }}>
                 {currentBook.author}
               </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.8)' }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text1)' }}>
                 {pageCount > 0 ? `Pág. ${curPage} / ${pageCount}` : `Pág. ${curPage}`}
               </span>
               <span style={{ fontSize: 12, fontWeight: 700, color: '#F5C842' }}>{pct}%</span>
             </div>
-            <div style={{ height: 6, background: 'rgba(var(--ink-rgb),0.08)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{ height: 6, background: 'var(--surface-3)', borderRadius: 6, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${pct}%`,
                 background: 'linear-gradient(90deg, #F5C842, #E07B2A)', borderRadius: 6 }} />
             </div>
             {weeklyStats.pagesPerDay > 0 && pageCount > 0 && pct < 100 && (
-              <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.3)', marginTop: 7 }}>
+              <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 7 }}>
                 Conclusão em ~{Math.ceil((pageCount - curPage) / weeklyStats.pagesPerDay)} dias no seu ritmo
               </div>
             )}
@@ -177,7 +177,7 @@ export default function LeituraHub({
             textAlign: 'center', cursor: 'pointer',
           }}
         >
-          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', marginBottom: 8 }}>Nenhum livro em leitura</div>
+          <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>Nenhum livro em leitura</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#F5C842' }}>Importar ebook PDF</div>
         </div>
       )}
@@ -185,7 +185,7 @@ export default function LeituraHub({
       {/* ── Meta semanal ── */}
       <SectionLabel style={{ marginTop: 18 }}>Meta semanal</SectionLabel>
       <div style={{
-        background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.07)',
+        background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)',
         borderRadius: 20, padding: '18px 20px',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -210,7 +210,7 @@ export default function LeituraHub({
             } else if (isToday) {
               circleStyle = { width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, background:'#F5C842', color:'#0A0800', border:'none' }
             } else {
-              circleStyle = { width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, background:'rgba(var(--ink-rgb),0.05)', color:'rgba(var(--ink-rgb),0.25)', border:'1px solid rgba(var(--ink-rgb),0.08)' }
+              circleStyle = { width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, background:'var(--surface-3)', color:'var(--text3)', border:'1px solid rgba(var(--ink-rgb),0.08)' }
             }
             return (
               <div key={d.date} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
@@ -236,11 +236,11 @@ export default function LeituraHub({
           { label: 'livros concluídos', value: stats.completed,                  color: '#00C896' },
         ].map(s => (
           <div key={s.label} style={{
-            flex:1, background:'rgba(var(--ink-rgb),0.04)', border:'1px solid rgba(var(--ink-rgb),0.07)',
+            flex:1, background:'var(--surface-2)', border:'1px solid rgba(var(--ink-rgb),0.07)',
             borderRadius:16, padding:'14px 12px', textAlign:'center',
           }}>
             <div style={{ fontSize:22, fontWeight:800, color:s.color }}>{s.value}</div>
-            <div style={{ fontSize:10, color:'rgba(var(--ink-rgb),0.4)', fontWeight:500, marginTop:3 }}>{s.label}</div>
+            <div style={{ fontSize:10, color:'var(--text2)', fontWeight:500, marginTop:3 }}>{s.label}</div>
           </div>
         ))}
       </div>
@@ -255,7 +255,7 @@ export default function LeituraHub({
                 key={h.id}
                 onClick={() => currentBook && onHighlightClick(currentBook.id, h.page)}
                 style={{
-                  background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.07)',
+                  background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)',
                   borderRadius: 16, padding: '14px 16px', position: 'relative', cursor: 'pointer',
                 }}
               >
@@ -264,13 +264,13 @@ export default function LeituraHub({
                   borderRadius: '0 3px 3px 0', background: NOTE_COLORS[i % NOTE_COLORS.length],
                 }} />
                 <div style={{
-                  fontSize: 13, fontWeight: 500, color: 'rgba(var(--ink-rgb),0.8)',
+                  fontSize: 13, fontWeight: 500, color: 'var(--text1)',
                   lineHeight: 1.6, fontStyle: 'italic', marginBottom: 8, paddingLeft: 10,
                 }}>
                   &ldquo;{h.excerpt}&rdquo;
                 </div>
                 <div style={{
-                  fontSize: 10, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.3)',
+                  fontSize: 10, fontWeight: 700, color: 'var(--text3)',
                   textTransform: 'uppercase', letterSpacing: '0.06em', paddingLeft: 10,
                 }}>
                   Pág. {h.page} · {currentBook?.title ?? ''}
@@ -298,13 +298,13 @@ export default function LeituraHub({
                   background: COVER_GRADIENTS[(i + 1) % COVER_GRADIENTS.length],
                   boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  color: 'rgba(var(--ink-rgb),0.8)', fontWeight: 900, fontSize: 22,
+                  color: 'var(--text1)', fontWeight: 900, fontSize: 22,
                   fontFamily: FONT,
                 }}>
                   {(book.cover_label ?? book.title.charAt(0)).toUpperCase()}
                 </div>
                 <div style={{
-                  fontSize: 11, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.7)',
+                  fontSize: 11, fontWeight: 600, color: 'var(--text1)',
                   textAlign: 'center', lineHeight: 1.3,
                   display: '-webkit-box', WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical', overflow: 'hidden',
@@ -322,8 +322,8 @@ export default function LeituraHub({
         onClick={onLibrary}
         style={{ marginTop:10, display:'flex', justifyContent:'center', alignItems:'center', gap:6, padding:'10px 0', cursor:'pointer' }}
       >
-        <span style={{ fontSize:13, color:'rgba(var(--ink-rgb),0.35)', fontWeight:500 }}>Ver biblioteca completa</span>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--ink-rgb),0.35)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <span style={{ fontSize:13, color:'var(--text3)', fontWeight:500 }}>Ver biblioteca completa</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="9 18 15 12 9 6"/>
         </svg>
       </div>

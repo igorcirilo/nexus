@@ -194,7 +194,7 @@ export default function ProgressoPage() {
       <div style={{padding:'28px 20px 0'}}>
         <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:4}}>
           <button onClick={()=>setTab('resumo')} style={{
-            background:'none',border:'none',cursor:'pointer',color:'rgba(var(--ink-rgb),0.4)',
+            background:'none',border:'none',cursor:'pointer',color:'var(--text2)',
             display:'flex',alignItems:'center',gap:4,fontSize:13,padding:'4px 0',
             fontFamily:'Inter, sans-serif',
           }}>
@@ -207,7 +207,7 @@ export default function ProgressoPage() {
         <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:24,marginBottom:4,lineHeight:1.2,color: 'var(--ink)'}}>
           Dashboard
         </h1>
-        <p style={{fontSize:12,color:'rgba(var(--ink-rgb),0.4)',marginBottom:4,lineHeight:1.4}}>
+        <p style={{fontSize:12,color:'var(--text2)',marginBottom:4,lineHeight:1.4}}>
           Evolução semanal, consistência e comparação contigo mesmo.
         </p>
       </div>
@@ -219,12 +219,12 @@ export default function ProgressoPage() {
         <>
           {/* Header check-ins */}
           <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',padding:'16px 20px 0'}}>
-            <div style={{fontSize:12,color:'rgba(var(--ink-rgb),0.4)'}}>Esta semana</div>
+            <div style={{fontSize:12,color:'var(--text2)'}}>Esta semana</div>
             <div style={{textAlign:'right'}}>
               <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:18,color:'#F5C842',lineHeight:1}}>
                 {stats.checkinsToday}/3
               </div>
-              <div style={{fontSize:11,color:'rgba(var(--ink-rgb),0.4)'}}>check-ins hoje</div>
+              <div style={{fontSize:11,color:'var(--text2)'}}>check-ins hoje</div>
             </div>
           </div>
 
@@ -252,13 +252,13 @@ export default function ProgressoPage() {
                 sub:stats.sleep>=7?'Dentro do ideal':stats.sleep>0?'Abaixo do ideal':'Sem dados',
               },
             ].map(({l,v,c,trend,sub,up})=>(
-              <div key={l} style={{background:'rgba(var(--ink-rgb),0.04)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:14}}>
-                <div style={{fontSize:11,color:'rgba(var(--ink-rgb),0.4)',marginBottom:4}}>{l}</div>
+              <div key={l} style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:14}}>
+                <div style={{fontSize:11,color:'var(--text2)',marginBottom:4}}>{l}</div>
                 <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:22,color:c,marginBottom:3,lineHeight:1}}>
                   {v}
                 </div>
                 {trend && <div style={{fontSize:11,color:up?'#00C896':'#E24B4A'}}>{trend}</div>}
-                {sub   && <div style={{fontSize:11,color:'rgba(var(--ink-rgb),0.4)'}}>{sub}</div>}
+                {sub   && <div style={{fontSize:11,color:'var(--text2)'}}>{sub}</div>}
               </div>
             ))}
           </div>
@@ -266,8 +266,8 @@ export default function ProgressoPage() {
           {/* Mentor */}
           <div style={{
             margin:'10px 20px 0',padding:'14px 16px',borderRadius:14,
-            background:'rgba(var(--ink-rgb),0.04)',border:'1px solid rgba(0,200,150,0.15)',
-            fontSize:13,color:'rgba(var(--ink-rgb),0.7)',lineHeight:1.6,
+            background:'var(--surface-2)',border:'1px solid rgba(0,200,150,0.15)',
+            fontSize:13,color:'var(--text1)',lineHeight:1.6,
           }}>
             <span style={{color:'#00C896',fontWeight:500}}>Mentor: </span>
             {stats.consistency>=80
@@ -287,11 +287,11 @@ export default function ProgressoPage() {
           <div style={{padding:'12px 20px 0'}}>
 
             {/* Atividade diária */}
-            <div style={{background:'rgba(var(--ink-rgb),0.04)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
-              <div style={{fontSize:12,color:'rgba(var(--ink-rgb),0.4)',marginBottom:8}}>Atividade diária — hábitos + check-ins</div>
+            <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
+              <div style={{fontSize:12,color:'var(--text2)',marginBottom:8}}>Atividade diária — hábitos + check-ins</div>
               <div style={{display:'flex',gap:14,marginBottom:10}}>
                 {([['#534AB7','Hábitos'],['#E8A838','Check-ins']] as [string,string][]).map(([c,l])=>(
-                  <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'rgba(var(--ink-rgb),0.4)'}}>
+                  <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text2)'}}>
                     <div style={{width:10,height:10,borderRadius:2,background:c}}/>{l}
                   </div>
                 ))}
@@ -314,11 +314,11 @@ export default function ProgressoPage() {
             </div>
 
             {/* Energia + Sono */}
-            <div style={{background:'rgba(var(--ink-rgb),0.04)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
-              <div style={{fontSize:12,color:'rgba(var(--ink-rgb),0.4)',marginBottom:8}}>Energia e Sono — 7 dias</div>
+            <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
+              <div style={{fontSize:12,color:'var(--text2)',marginBottom:8}}>Energia e Sono — 7 dias</div>
               <div style={{display:'flex',gap:14,marginBottom:10}}>
                 {([['#00C896','Energia'],['#9D5CF5','Sono (h)']] as [string,string][]).map(([c,l])=>(
-                  <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'rgba(var(--ink-rgb),0.4)'}}>
+                  <div key={l} style={{display:'flex',alignItems:'center',gap:5,fontSize:11,color:'var(--text2)'}}>
                     <div style={{width:10,height:10,borderRadius:2,background:c}}/>{l}
                   </div>
                 ))}
@@ -342,7 +342,7 @@ export default function ProgressoPage() {
             </div>
 
             {/* Consistência semanal */}
-            <div style={{background:'rgba(var(--ink-rgb),0.04)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
+            <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'16px',marginBottom:12}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
                 <div style={{fontFamily:'Inter, sans-serif',fontSize:13,fontWeight:700,color: 'var(--ink)'}}>Consistência semanal</div>
                 <div style={{fontSize:20,fontWeight:800,color:'#00C896'}}>{stats.consistency}%</div>
@@ -372,8 +372,8 @@ export default function ProgressoPage() {
             </div>
 
             {/* Resumo da semana */}
-            <div style={{background:'rgba(var(--ink-rgb),0.04)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'14px 16px',marginBottom:12}}>
-              <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'rgba(var(--ink-rgb),0.3)',marginBottom:10}}>Resumo da semana</div>
+            <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'14px 16px',marginBottom:12}}>
+              <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text3)',marginBottom:10}}>Resumo da semana</div>
               {[
                 {l:'Hábitos concluídos', v:`${stats.thisDone} de ${stats.thisTotal}`, c:stats.consistency>=70?'#00C896':'#F5C842'},
                 {l:'Check-ins da semana',v:`${xpData.reduce((a,d)=>a+d.ci,0)}`,       c:'#9D5CF5'},
@@ -381,7 +381,7 @@ export default function ProgressoPage() {
                 {l:'Streak actual',      v:`${profile.streak_current} dias 🔥`,        c:'#F5C842'},
               ].map(({l,v,c})=>(
                 <div key={l} style={{display:'flex',justifyContent:'space-between',fontSize:13,marginBottom:6}}>
-                  <span style={{color:'rgba(var(--ink-rgb),0.6)'}}>{l}</span>
+                  <span style={{color:'var(--text1)'}}>{l}</span>
                   <span style={{color:c,fontFamily:'Inter, sans-serif',fontWeight:600,lineHeight:1}}>{v}</span>
                 </div>
               ))}

@@ -18,10 +18,10 @@ const PHASE_EMOJI: Record<string, string> = { manha: '🌅', tarde: '☀️', no
 
 const sheetLabel: CSSProperties = {
   fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-  color: 'rgba(var(--ink-rgb),0.3)', display: 'block', margin: '16px 0 8px', fontFamily: FONT,
+  color: 'var(--text3)', display: 'block', margin: '16px 0 8px', fontFamily: FONT,
 }
 const sheetInp: CSSProperties = {
-  width: '100%', background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.10)',
+  width: '100%', background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.10)',
   borderRadius: 13, padding: '12px 14px', color: 'var(--ink)',
   fontFamily: FONT, fontSize: 14, fontWeight: 600, outline: 'none',
 }
@@ -57,14 +57,14 @@ function Sheet({ icon, title, sub, onClose, children, footer, tall }: {
         maxHeight: tall ? '92dvh' : 'min(86dvh, 720px)',
         fontFamily: FONT, boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
       }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(var(--ink-rgb),0.18)', margin: '10px auto 0', flexShrink: 0 }} />
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '10px auto 0', flexShrink: 0 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
           {icon && <span style={{ fontSize: 20 }}>{icon}</span>}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.3px' }}>{title}</div>
-            {sub && <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>{sub}</div>}
+            {sub && <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 1 }}>{sub}</div>}
           </div>
-          <button onClick={onClose} aria-label="Fechar" style={{ width: 44, height: 44, borderRadius: 12, background: 'rgba(var(--ink-rgb),0.06)', border: 'none', cursor: 'pointer', fontSize: 15, color: 'rgba(var(--ink-rgb),0.6)', flexShrink: 0, touchAction: 'manipulation' }}>✕</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text1)', flexShrink: 0, touchAction: 'manipulation' }}>✕</button>
         </div>
         <div style={{ overflowY: 'auto', flex: 1, padding: '4px 20px 16px' }}>{children}</div>
         {footer && (
@@ -143,7 +143,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 20px 6px' }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Calendário</div>
-          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, marginTop: 2 }}>
             {c.currentStreak > 0 ? `🔥 ${c.currentStreak} dias de sequência` : 'Marca hábitos para criar sequência'}
           </div>
         </div>
@@ -161,7 +161,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
         <button onClick={() => (c.viewMode === 'month' ? c.changeMonth(-1) : c.changeWeek(-1))} aria-label="Anterior" style={navArrow}>‹</button>
         <div style={{ flex: 1, textAlign: 'center', fontSize: 14.5, fontWeight: 800, color: 'var(--ink)' }}>{monthLabel}</div>
         <button onClick={() => (c.viewMode === 'month' ? c.changeMonth(1) : c.changeWeek(1))} aria-label="Seguinte" style={navArrow}>›</button>
-        <div style={{ display: 'flex', background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 11, padding: 3, gap: 3 }}>
+        <div style={{ display: 'flex', background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 11, padding: 3, gap: 3 }}>
           {(['month', 'week'] as const).map(m => (
             <button key={m} onClick={() => c.setViewMode(m)} style={{
               padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
@@ -173,10 +173,10 @@ export default function CalendarioClient({ userId }: { userId: string }) {
       </div>
 
       {/* ── Grelha ── */}
-      <div role="grid" aria-label={`Calendário de ${monthLabel}`} style={{ margin: '10px 20px 0', background: 'rgba(var(--ink-rgb),0.04)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 18, padding: '12px 10px 10px' }}>
+      <div role="grid" aria-label={`Calendário de ${monthLabel}`} style={{ margin: '10px 20px 0', background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 18, padding: '12px 10px 10px' }}>
         <div role="row" style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', marginBottom: 6 }}>
           {DAYS_MIN.map((d, i) => (
-            <span key={i} role="columnheader" style={{ textAlign: 'center', fontSize: 9.5, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.3)', letterSpacing: '.06em' }}>{d}</span>
+            <span key={i} role="columnheader" style={{ textAlign: 'center', fontSize: 9.5, fontWeight: 700, color: 'var(--text3)', letterSpacing: '.06em' }}>{d}</span>
           ))}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 3 }}>
@@ -221,7 +221,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
             )
           })}
         </div>
-        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 10, fontSize: 9.5, color: 'rgba(var(--ink-rgb),0.3)' }}>
+        <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 10, fontSize: 9.5, color: 'var(--text3)' }}>
           <span><i style={{ ...legendSwatch, background: 'rgba(0,200,150,0.85)' }} />completo</span>
           <span><i style={{ ...legendSwatch, background: 'rgba(0,200,150,0.30)' }} />parcial</span>
           <span><i style={{ ...legendSwatch, background: 'transparent', border: '1.5px solid #F5C842' }} />hoje</span>
@@ -264,7 +264,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           </button>
         </div>
         {todayEvents.length === 0 && todayReminders.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '20px 0', color: 'rgba(var(--ink-rgb),0.35)', background: 'rgba(var(--ink-rgb),0.03)', border: '1px dashed rgba(var(--ink-rgb),0.10)', borderRadius: 16, fontSize: 12.5 }}>
+          <div style={{ textAlign: 'center', padding: '20px 0', color: 'var(--text3)', background: 'var(--surface-2)', border: '1px dashed rgba(var(--ink-rgb),0.10)', borderRadius: 16, fontSize: 12.5 }}>
             Nada agendado para hoje. Toca em + para criar.
           </div>
         ) : (
@@ -274,7 +274,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 <span style={{ fontSize: 16 }}>📅</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{e.title}</div>
-                  <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
+                  <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 1 }}>
                     {e.all_day ? 'Todo o dia' : e.time ? `${e.time.slice(0, 5)}${e.end_time ? ` – ${e.end_time.slice(0, 5)}` : ''}` : 'Sem hora'}
                   </div>
                 </div>
@@ -286,7 +286,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 <span style={{ fontSize: 16 }}>🔔</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{r.title}</div>
-                  <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
+                  <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 1 }}>
                     {r.time.slice(0, 5)} · {r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
                   </div>
                 </div>
@@ -298,7 +298,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
 
         {/* ── Mentor: padrões semanais ── */}
         {c.insights.length > 0 && (
-          <div style={{ marginTop: 14, background: 'rgba(0,200,150,0.05)', border: '1px solid rgba(0,200,150,0.15)', borderRadius: 14, padding: '12px 14px', fontSize: 12, lineHeight: 1.6, color: 'rgba(var(--ink-rgb),0.7)' }}>
+          <div style={{ marginTop: 14, background: 'rgba(0,200,150,0.05)', border: '1px solid rgba(0,200,150,0.15)', borderRadius: 14, padding: '12px 14px', fontSize: 12, lineHeight: 1.6, color: 'var(--text1)' }}>
             <b style={{ color: '#00C896' }}>Mentor:</b> {c.insights.slice(0, 2).join(' ')}
           </div>
         )}
@@ -322,7 +322,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           }
         >
           {c.panelLoad ? (
-            <div style={{ textAlign: 'center', padding: '30px 0', color: 'rgba(var(--ink-rgb),0.35)', fontSize: 13 }}>a carregar…</div>
+            <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--text3)', fontSize: 13 }}>a carregar…</div>
           ) : (
             <>
               {/* Hábitos */}
@@ -330,7 +330,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 <>
                   <label style={{ ...sheetLabel, marginTop: 12 }}>
                     Hábitos · {c.selHabits.filter(h => h.habit_logs?.[0]?.completed).length}/{c.selHabits.length}
-                    {!canEditSel && <span style={{ marginLeft: 8, textTransform: 'none', letterSpacing: 0, color: 'rgba(var(--ink-rgb),0.25)' }}>dia futuro</span>}
+                    {!canEditSel && <span style={{ marginLeft: 8, textTransform: 'none', letterSpacing: 0, color: 'var(--text3)' }}>dia futuro</span>}
                   </label>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                     {c.selHabits.map(h => {
@@ -396,8 +396,8 @@ export default function CalendarioClient({ userId }: { userId: string }) {
 
               {/* Quick check-in */}
               {c.quickPhase && canEditSel && (
-                <div style={{ marginTop: 10, background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.10)', borderRadius: 13, padding: '12px 14px' }}>
-                  <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 600, marginBottom: 8 }}>Energia · {c.quickEnergy}/10</div>
+                <div style={{ marginTop: 10, background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.10)', borderRadius: 13, padding: '12px 14px' }}>
+                  <div style={{ fontSize: 11, color: 'var(--text2)', fontWeight: 600, marginBottom: 8 }}>Energia · {c.quickEnergy}/10</div>
                   <input type="range" min={1} max={10} value={c.quickEnergy} onChange={e => c.setQuickEnergy(+e.target.value)} style={{ width: '100%', accentColor: '#00D4C8' }} />
                   {c.quickPhase === 'manha' && (
                     <input value={c.quickMission} onChange={e => c.setQuickMission(e.target.value)} placeholder="O que queres conquistar hoje?" style={{ ...sheetInp, marginTop: 10, fontSize: 13 }} />
@@ -418,14 +418,14 @@ export default function CalendarioClient({ userId }: { userId: string }) {
               {/* Agenda do dia */}
               <label style={sheetLabel}>Agenda</label>
               {c.selEvents.length === 0 ? (
-                <div style={{ fontSize: 12.5, color: 'rgba(var(--ink-rgb),0.3)', padding: '4px 0 8px' }}>Sem eventos neste dia.</div>
+                <div style={{ fontSize: 12.5, color: 'var(--text3)', padding: '4px 0 8px' }}>Sem eventos neste dia.</div>
               ) : (
                 c.selEvents.map(e => (
                   <div key={e.id} style={{ ...timelineRow, borderLeft: `3px solid ${e.color}` }}>
                     <span style={{ fontSize: 16 }}>📅</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{e.title}</div>
-                      <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
+                      <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 1 }}>
                         {e.all_day ? 'Todo o dia' : e.time ? `${e.time.slice(0, 5)}${e.end_time ? ` – ${e.end_time.slice(0, 5)}` : ''}` : 'Sem hora'}
                         {e.description ? ` · ${e.description}` : ''}
                       </div>
@@ -456,17 +456,17 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           }
         >
           {c.reminders.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '26px 0', color: 'rgba(var(--ink-rgb),0.35)', fontSize: 13 }}>
+            <div style={{ textAlign: 'center', padding: '26px 0', color: 'var(--text3)', fontSize: 13 }}>
               Sem alertas. Cria o primeiro para receberes lembretes.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12 }}>
               {c.reminders.map(r => (
-                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.08)', borderRadius: 14, padding: '11px 13px', opacity: r.active ? 1 : 0.5 }}>
+                <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.08)', borderRadius: 14, padding: '11px 13px', opacity: r.active ? 1 : 0.5 }}>
                   <span style={{ fontSize: 16 }}>🔔</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{r.title}</div>
-                    <div style={{ fontSize: 10.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 1 }}>
+                    <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 1 }}>
                       {r.time.slice(0, 5)} · {r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
                     </div>
                   </div>
@@ -577,7 +577,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 ))}
               </div>
               {c.evRecurrence !== 'none' && (
-                <div style={{ marginTop: 10, fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', lineHeight: 1.5 }}>
+                <div style={{ marginTop: 10, fontSize: 11, color: 'var(--text2)', lineHeight: 1.5 }}>
                   {c.evRecurrence === 'diario' ? 'Cria o evento nos próximos 14 dias.' : c.evRecurrence === 'semanal' ? 'Cria o evento nas próximas 12 semanas.' : 'Cria o evento nos próximos 6 meses.'}
                 </div>
               )}
@@ -611,7 +611,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 })}
               </div>
 
-              <div style={{ marginTop: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.18)', borderRadius: 13, padding: '11px 13px', fontSize: 11.5, lineHeight: 1.5, color: 'rgba(var(--ink-rgb),0.55)' }}>
+              <div style={{ marginTop: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.18)', borderRadius: 13, padding: '11px 13px', fontSize: 11.5, lineHeight: 1.5, color: 'var(--text2)' }}>
                 💡 Recebes uma notificação à hora marcada, nos dias escolhidos.
               </div>
             </>
@@ -626,15 +626,15 @@ export default function CalendarioClient({ userId }: { userId: string }) {
 
 const navArrow: CSSProperties = {
   width: 44, height: 44, borderRadius: 12,
-  background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.10)',
+  background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.10)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  color: 'rgba(var(--ink-rgb),0.6)', fontSize: 18, cursor: 'pointer', fontFamily: FONT,
+  color: 'var(--text1)', fontSize: 18, cursor: 'pointer', fontFamily: FONT,
   touchAction: 'manipulation',
 }
 
 const secLabel: CSSProperties = {
   fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-  color: 'rgba(var(--ink-rgb),0.3)', margin: '20px 0 10px',
+  color: 'var(--text3)', margin: '20px 0 10px',
 }
 
 const legendSwatch: CSSProperties = {
@@ -643,7 +643,7 @@ const legendSwatch: CSSProperties = {
 
 const timelineRow: CSSProperties = {
   display: 'flex', alignItems: 'center', gap: 11,
-  background: 'rgba(var(--ink-rgb),0.04)', border: '1px solid rgba(var(--ink-rgb),0.07)',
+  background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)',
   borderRadius: 14, padding: '11px 13px', marginBottom: 7,
 }
 

@@ -64,7 +64,7 @@ export default function RitmoBar({ ritmo, level, title, streakBest }: Props) {
               </div>
             </div>
 
-            <div style={{ background: 'rgba(var(--ink-rgb),.14)', borderRadius: 100, height: 8, position: 'relative', overflow: 'hidden' }}>
+            <div style={{ background: 'var(--surface-3)', borderRadius: 100, height: 8, position: 'relative', overflow: 'hidden' }}>
               <div
                 style={{
                   position: 'absolute',

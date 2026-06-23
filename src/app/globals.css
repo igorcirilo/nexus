@@ -27,6 +27,8 @@
   --surface-page: #07070F;
   --surface-card: #11131C;
   --surface-pop:  #161825;
+  --surface-2: rgba(255,255,255,0.04);  /* painel/card subtil elevado */
+  --surface-3: rgba(255,255,255,0.08);  /* chips / inputs / barras */
   --text-xs: 10px;
   --text-sm: 12px;
   --text-base: 14px;
@@ -46,20 +48,30 @@
 
 /* ── Tema claro ────────────────────────────────────────── */
 :root[data-theme="light"] {
-  --bg0:    #F5F6F9;
+  --bg0:    #EEF1F6;
   --bg1:    #FFFFFF;
   --bg2:    #FFFFFF;
-  --bg3:    #ECEEF3;
-  --text1:  #181B23;
-  --text2:  #5A6072;
-  --text3:  #8A90A0;
-  --ink-rgb: 24,27,35;
-  --ink: #181B23;
+  --bg3:    #E6EAF1;
+  --text1:  #0F172A;   /* títulos / valores — quase preto */
+  --text2:  #475569;   /* secundário legível (slate-600) */
+  --text3:  #64748B;   /* terciário (slate-500) */
+  --ink-rgb: 15,23,42; /* slate-900 — bordas / ícones / overlays */
+  --ink: #0F172A;
   --card-rgb: 255,255,255;
-  --border: rgba(var(--ink-rgb),0.12);
-  --surface-page: #F5F6F9;
+  --border: rgba(15,23,42,0.10);
+  --surface-page: #EEF1F6;  /* página cinza suave */
   --surface-card: #FFFFFF;
   --surface-pop:  #FFFFFF;
+  --surface-2: #FFFFFF;     /* cards brancos que "saltam" da página */
+  --surface-3: #E9EDF3;     /* chips / inputs / barras — cinza claro */
+}
+
+/* Sombra suave para destacar cards no tema claro */
+:root[data-theme="light"] .card,
+:root[data-theme="light"] .card-gold,
+:root[data-theme="light"] .card-teal,
+:root[data-theme="light"] .card-accent {
+  box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 6px 16px rgba(15,23,42,0.06);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

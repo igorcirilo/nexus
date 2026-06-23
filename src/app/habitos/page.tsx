@@ -96,11 +96,11 @@ function difficultyFromXP(xp: number): Difficulty {
 // ── estilos do bottom sheet (design do hub) ──
 const sheetInput: CSSProperties = {
   width: '100%',
-  background: 'rgba(var(--ink-rgb),0.05)',
+  background: 'var(--surface-2)',
   border: '1px solid rgba(var(--ink-rgb),0.10)',
   borderRadius: 13,
   padding: '13px 14px',
-  color: 'rgba(var(--ink-rgb),0.9)',
+  color: 'var(--text1)',
   fontFamily: FONT,
   fontSize: 14,
   fontWeight: 600,
@@ -112,7 +112,7 @@ const fieldLabel: CSSProperties = {
   fontWeight: 700,
   letterSpacing: '0.07em',
   textTransform: 'uppercase',
-  color: 'rgba(var(--ink-rgb),0.3)',
+  color: 'var(--text3)',
   display: 'block',
   margin: '16px 0 8px',
 }
@@ -304,7 +304,7 @@ export default function HabitosPage() {
       {/* Hábitos inativos: reativáveis via edição */}
       {inactiveHabits.length > 0 && (
         <div style={{ padding: '0 22px', fontFamily: FONT }}>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--ink-rgb),0.3)', margin: '18px 0 10px' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text3)', margin: '18px 0 10px' }}>
             Inativos
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -316,7 +316,7 @@ export default function HabitosPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: 12,
-                  background: 'rgba(var(--ink-rgb),0.02)',
+                  background: 'var(--surface-2)',
                   border: '1px solid rgba(var(--ink-rgb),0.06)',
                   borderRadius: 16,
                   padding: '12px 16px',
@@ -326,7 +326,7 @@ export default function HabitosPage() {
                 }}
               >
                 <span style={{ fontSize: 15 }}>{AREA_META[h.area]?.icon}</span>
-                <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontSize: 13.5, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.7)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontSize: 13.5, fontWeight: 600, color: 'var(--text1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {h.name}
                 </span>
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#F5C842', flexShrink: 0 }}>reativar</span>
@@ -344,8 +344,8 @@ export default function HabitosPage() {
             disabled={saving}
             style={{
               width: '100%',
-              background: 'rgba(var(--ink-rgb),0.04)',
-              color: 'rgba(var(--ink-rgb),0.7)',
+              background: 'var(--surface-2)',
+              color: 'var(--text1)',
               border: '1px dashed rgba(var(--ink-rgb),0.15)',
               borderRadius: 14,
               padding: 14,
@@ -381,7 +381,7 @@ export default function HabitosPage() {
               boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
             }}
           >
-            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(var(--ink-rgb),0.18)', margin: '10px auto 0', flexShrink: 0 }} />
+            <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '10px auto 0', flexShrink: 0 }} />
 
             {/* Header fixo */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
@@ -391,7 +391,7 @@ export default function HabitosPage() {
               <button
                 onClick={() => setShowForm(false)}
                 aria-label="Fechar"
-                style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(var(--ink-rgb),0.06)', border: 'none', cursor: 'pointer', color: 'rgba(var(--ink-rgb),0.6)', fontSize: 14 }}
+                style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', fontSize: 14 }}
               >
                 ✕
               </button>
@@ -420,7 +420,7 @@ export default function HabitosPage() {
                       fontWeight: 600,
                       textAlign: 'left',
                       background: form.area === key ? `${meta.color}18` : 'rgba(var(--ink-rgb),0.03)',
-                      color: form.area === key ? meta.color : 'rgba(var(--ink-rgb),0.55)',
+                      color: form.area === key ? meta.color : 'var(--text2)',
                       border: form.area === key ? `1px solid ${meta.color}77` : '1px solid rgba(var(--ink-rgb),0.10)',
                     }}
                   >
@@ -501,7 +501,7 @@ export default function HabitosPage() {
                     onClick={() => applySuggestion(item.name, item.difficulty, item.time_window)}
                     style={{
                       textAlign: 'left',
-                      background: 'rgba(var(--ink-rgb),0.03)',
+                      background: 'var(--surface-2)',
                       border: '1px solid rgba(var(--ink-rgb),0.08)',
                       borderRadius: 13,
                       padding: '11px 12px',
@@ -509,8 +509,8 @@ export default function HabitosPage() {
                       fontFamily: FONT,
                     }}
                   >
-                    <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.85)', fontWeight: 600 }}>{item.name}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.35)', marginTop: 4 }}>
+                    <div style={{ fontSize: 13, color: 'var(--text1)', fontWeight: 600 }}>{item.name}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>
                       {item.time_window ?? 'Qualquer hora'} · {item.difficulty}
                     </div>
                   </button>
@@ -527,7 +527,7 @@ export default function HabitosPage() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: 12,
-                      background: 'rgba(var(--ink-rgb),0.03)',
+                      background: 'var(--surface-2)',
                       border: '1px solid rgba(var(--ink-rgb),0.10)',
                       borderRadius: 13,
                       padding: '12px 14px',
@@ -535,7 +535,7 @@ export default function HabitosPage() {
                       fontFamily: FONT,
                     }}
                   >
-                    <span style={{ flex: 1, textAlign: 'left', fontSize: 13.5, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.9)' }}>
+                    <span style={{ flex: 1, textAlign: 'left', fontSize: 13.5, fontWeight: 700, color: 'var(--text1)' }}>
                       Hábito ativo
                     </span>
                     <span style={{
@@ -615,13 +615,13 @@ export default function HabitosPage() {
         >
           <div style={{ width: '100%', maxWidth: 340, background: 'var(--surface-pop)', border: '1px solid rgba(var(--ink-rgb),0.12)', borderRadius: 20, padding: '22px 20px', fontFamily: FONT }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>Apagar hábito?</div>
-            <p style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.5)', lineHeight: 1.5, marginBottom: 18, overflowWrap: 'anywhere' }}>
+            <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 18, overflowWrap: 'anywhere' }}>
               “{confirmDelete.name}” e o seu histórico de conclusões vão ser removidos. Esta ação é irreversível.
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => setConfirmDelete(null)}
-                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: '1px solid rgba(var(--ink-rgb),0.12)', background: 'rgba(var(--ink-rgb),0.04)', color: 'rgba(var(--ink-rgb),0.7)', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: '1px solid rgba(var(--ink-rgb),0.12)', background: 'var(--surface-2)', color: 'var(--text1)', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
               >
                 Cancelar
               </button>

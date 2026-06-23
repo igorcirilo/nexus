@@ -12,6 +12,11 @@ export type Theme = 'dark' | 'light'
 export const darkCardInk = {
   '--ink': '#fff',
   '--ink-rgb': '255,255,255',
+  '--text1': '#fff',
+  '--text2': 'rgba(255,255,255,0.72)',
+  '--text3': 'rgba(255,255,255,0.5)',
+  '--surface-2': 'rgba(255,255,255,0.06)',
+  '--surface-3': 'rgba(255,255,255,0.10)',
 } as unknown as CSSProperties
 
 const STORAGE_KEY = 'nexus-theme'

@@ -221,7 +221,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 6px' }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Corpo</div>
-          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 2 }}>{headerSub}</div>
+          <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, marginTop: 2 }}>{headerSub}</div>
         </div>
         <button
           onClick={() => onNavigate('treino')}
@@ -230,12 +230,12 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
             width: 40,
             height: 40,
             borderRadius: '50%',
-            background: 'rgba(var(--ink-rgb),0.05)',
+            background: 'var(--surface-2)',
             border: '1px solid rgba(var(--ink-rgb),0.08)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'rgba(var(--ink-rgb),0.6)',
+            color: 'var(--text1)',
             cursor: 'pointer',
           }}
         >
@@ -278,19 +278,19 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
             <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-1.5px', lineHeight: 1 }}>
               {latest ? fmt1(Number(latest.weight_kg)) : '--'}
             </div>
-            <div style={{ fontSize: 14, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 2 }}>kg · Peso atual</div>
+            <div style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500, marginTop: 2 }}>kg · Peso atual</div>
             {monthDelta !== null && (
               <div
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
-                  background: 'rgba(var(--ink-rgb),0.06)',
+                  background: 'var(--surface-3)',
                   borderRadius: 8,
                   padding: '4px 8px',
                   fontSize: 12,
                   fontWeight: 700,
-                  color: 'rgba(var(--ink-rgb),0.7)',
+                  color: 'var(--text1)',
                   marginTop: 8,
                 }}
               >
@@ -329,7 +329,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
       <div
         onClick={() => onNavigate('treino')}
         style={{
-          background: 'rgba(var(--ink-rgb),0.03)',
+          background: 'var(--surface-2)',
           border: '1px solid rgba(var(--ink-rgb),0.07)',
           borderRadius: 20,
           padding: '18px 20px',
@@ -350,7 +350,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
                   )}
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{workout.sectionTitle}</div>
-                <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.45)', marginTop: 2 }}>
+                <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
                   {workout.total} exercícios · {workout.done} concluídos
                 </div>
               </div>
@@ -383,21 +383,21 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
                     justifyContent: 'space-between',
                     gap: 10,
                     padding: '10px 12px',
-                    background: 'rgba(var(--ink-rgb),0.03)',
+                    background: 'var(--surface-2)',
                     borderRadius: 12,
                   }}
                 >
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.85)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text1)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {ex.name}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-                    {ex.detail && <div style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.35)' }}>{ex.detail}</div>}
+                    {ex.detail && <div style={{ fontSize: 12, color: 'var(--text3)' }}>{ex.detail}</div>}
                     {ex.done && <div style={{ color: '#00C896', fontSize: 14, fontWeight: 700 }}>✓</div>}
                   </div>
                 </div>
               ))}
               {workout.total > 4 && (
-                <div style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.3)', textAlign: 'center', paddingTop: 2 }}>
+                <div style={{ fontSize: 12, color: 'var(--text3)', textAlign: 'center', paddingTop: 2 }}>
                   +{workout.total - 4} exercícios
                 </div>
               )}
@@ -407,7 +407,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Nenhum treino selecionado</div>
-              <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.45)', marginTop: 2 }}>Escolhe o treino de hoje</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>Escolhe o treino de hoje</div>
             </div>
             <div
               style={{
@@ -465,7 +465,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
         <div
           onClick={() => onNavigate('dieta')}
           style={{
-            background: 'rgba(var(--ink-rgb),0.03)',
+            background: 'var(--surface-2)',
             border: '1px solid rgba(var(--ink-rgb),0.07)',
             borderRadius: 16,
             padding: '18px 20px',
@@ -479,9 +479,9 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
         >
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Sem plano alimentar</div>
-            <div style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 2 }}>Importa um plano para acompanhar</div>
+            <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>Importa um plano para acompanhar</div>
           </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--ink-rgb),0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6" />
           </svg>
         </div>
@@ -579,7 +579,7 @@ function HeroStat({ value, label }: { value: string; label: string }) {
   return (
     <div
       style={{
-        background: 'rgba(var(--ink-rgb),0.04)',
+        background: 'var(--surface-2)',
         border: '1px solid rgba(var(--ink-rgb),0.07)',
         borderRadius: 14,
         padding: '10px 14px',
@@ -588,7 +588,7 @@ function HeroStat({ value, label }: { value: string; label: string }) {
       }}
     >
       <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{value}</div>
-      <div style={{ fontSize: 10, color: 'rgba(var(--ink-rgb),0.35)', fontWeight: 500, marginTop: 1 }}>{label}</div>
+      <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 500, marginTop: 1 }}>{label}</div>
     </div>
   )
 }
@@ -601,7 +601,7 @@ function SectionLabel({ children, style }: { children: ReactNode; style?: CSSPro
         fontWeight: 700,
         letterSpacing: '0.1em',
         textTransform: 'uppercase',
-        color: 'rgba(var(--ink-rgb),0.3)',
+        color: 'var(--text3)',
         marginBottom: 10,
         marginTop: 18,
         ...style,
@@ -617,7 +617,7 @@ function MacroCard({ color, value, unit, name, pct }: { color: string; value: st
     <div
       style={{
         flex: 1,
-        background: 'rgba(var(--ink-rgb),0.04)',
+        background: 'var(--surface-2)',
         border: '1px solid rgba(var(--ink-rgb),0.07)',
         borderRadius: 16,
         padding: '14px 12px',
@@ -626,8 +626,8 @@ function MacroCard({ color, value, unit, name, pct }: { color: string; value: st
     >
       <div style={{ height: 4, borderRadius: 4, marginBottom: 8, width: `${pct}%`, minWidth: 8, background: `linear-gradient(90deg, ${color}, transparent)` }} />
       <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{value}</div>
-      <div style={{ fontSize: 10, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{unit}</div>
-      <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.3)', fontWeight: 500, marginTop: 4 }}>{name}</div>
+      <div style={{ fontSize: 10, color: 'var(--text2)', fontWeight: 500, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{unit}</div>
+      <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 500, marginTop: 4 }}>{name}</div>
     </div>
   )
 }

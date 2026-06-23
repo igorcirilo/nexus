@@ -39,7 +39,7 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div style={{
       fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-      textTransform: 'uppercase', color: 'rgba(var(--ink-rgb),0.3)',
+      textTransform: 'uppercase', color: 'var(--text3)',
       marginBottom: 10, marginTop: 20,
     }}>
       {children}
@@ -169,7 +169,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
           display: 'flex', alignItems: 'center', gap: 6, marginBottom: 20,
         }}>
           {(profile.title) && (
-            <div style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500 }}>
+            <div style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 500 }}>
               {profile.title} ·
             </div>
           )}
@@ -185,10 +185,10 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         {/* Ritmo bar */}
         <div style={{ width: '100%', maxWidth: 320, marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-            <span style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)' }}>Ritmo {ritmo}</span>
-            <span style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)' }}>Nível {profile.level} · {profile.title}</span>
+            <span style={{ fontSize: 11, color: 'var(--text2)' }}>Ritmo {ritmo}</span>
+            <span style={{ fontSize: 11, color: 'var(--text2)' }}>Nível {profile.level} · {profile.title}</span>
           </div>
-          <div style={{ height: 6, background: 'rgba(var(--ink-rgb),0.07)', borderRadius: 6, overflow: 'hidden' }}>
+          <div style={{ height: 6, background: 'var(--surface-3)', borderRadius: 6, overflow: 'hidden' }}>
             <div style={{
               height: '100%', width: `${ritmoPct}%`,
               background: 'linear-gradient(90deg, #9D5CF5, #00D4C8)', borderRadius: 6,
@@ -205,13 +205,13 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
             { label: 'Badges',    value: earnedBadges.length,      icon: '🎖️', color: '#9D5CF5' },
           ].map(s => (
             <div key={s.label} style={{
-              flex: 1, background: 'rgba(var(--ink-rgb),0.04)',
+              flex: 1, background: 'var(--surface-2)',
               border: '1px solid rgba(var(--ink-rgb),0.07)',
               borderRadius: 14, padding: '11px 6px', textAlign: 'center',
             }}>
               <div style={{ fontSize: 16, lineHeight: 1, marginBottom: 4 }}>{s.icon}</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 10, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 3 }}>{s.label}</div>
+              <div style={{ fontSize: 10, color: 'var(--text2)', fontWeight: 500, marginTop: 3 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -246,8 +246,8 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
               </div>
             </div>
             <div style={{ textAlign: 'right', flexShrink: 0 }}>
-              <div style={{ fontSize: 10, color: 'rgba(var(--ink-rgb),0.3)', marginBottom: 2 }}>Máximo</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: 'rgba(var(--ink-rgb),0.6)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text3)', marginBottom: 2 }}>Máximo</div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--text1)' }}>
                 {profile.streak_best}d
               </div>
             </div>
@@ -270,7 +270,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                 <div style={{ fontSize: 28, fontWeight: 900, color: '#00C896', lineHeight: 1 }}>
                   {journeyData.trainingCount30d}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.3)', marginTop: 4 }}>sessões</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>sessões</div>
               </div>
               <div style={{
                 flex: 1, background: 'rgba(157,92,245,0.07)',
@@ -283,7 +283,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                 <div style={{ fontSize: 28, fontWeight: 900, color: '#9D5CF5', lineHeight: 1 }}>
                   {journeyData.readingPages30d}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.3)', marginTop: 4 }}>páginas</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>páginas</div>
               </div>
             </div>
           </>
@@ -306,7 +306,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                   {b.icon}
                 </div>
                 <div style={{
-                  fontSize: 10, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.6)',
+                  fontSize: 10, fontWeight: 600, color: 'var(--text1)',
                   textAlign: 'center', lineHeight: 1.3,
                   display: '-webkit-box', WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical', overflow: 'hidden',
@@ -321,15 +321,15 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
               }}>
                 <div style={{
                   width: 52, height: 52, borderRadius: 16,
-                  background: 'rgba(var(--ink-rgb),0.04)', border: '1px solid rgba(var(--ink-rgb),0.08)',
+                  background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.08)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--ink-rgb),0.4)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                   </svg>
                 </div>
-                <div style={{ fontSize: 10, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.6)', textAlign: 'center', lineHeight: 1.3 }}>
+                <div style={{ fontSize: 10, fontWeight: 600, color: 'var(--text1)', textAlign: 'center', lineHeight: 1.3 }}>
                   {b.name}
                 </div>
               </div>
@@ -337,10 +337,10 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
           </div>
         ) : (
           <div style={{
-            background: 'rgba(var(--ink-rgb),0.03)', border: '1px dashed rgba(var(--ink-rgb),0.08)',
+            background: 'var(--surface-2)', border: '1px dashed rgba(var(--ink-rgb),0.08)',
             borderRadius: 16, padding: '18px 16px', textAlign: 'center',
           }}>
-            <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.3)' }}>Faz check-in diário para desbloquear conquistas</div>
+            <div style={{ fontSize: 13, color: 'var(--text3)' }}>Faz check-in diário para desbloquear conquistas</div>
           </div>
         )}
 
@@ -357,7 +357,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
               href={item.href}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                background: 'rgba(var(--ink-rgb),0.03)',
+                background: 'var(--surface-2)',
                 border: '1px solid rgba(var(--ink-rgb),0.06)',
                 borderRadius: idx === 0 ? '14px 14px 4px 4px' : idx === arr.length - 1 ? '4px 4px 14px 14px' : '4px',
                 padding: '14px 16px', textDecoration: 'none', fontFamily: FONT,
@@ -371,10 +371,10 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                 {item.icon}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.9)', marginBottom: 2 }}>{item.label}</div>
-                <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.35)', fontWeight: 400 }}>{item.sub}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text1)', marginBottom: 2 }}>{item.label}</div>
+                <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>{item.sub}</div>
               </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--ink-rgb),0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
             </a>
@@ -390,7 +390,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
               onClick={() => onEdit(item.section)}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                background: 'rgba(var(--ink-rgb),0.03)',
+                background: 'var(--surface-2)',
                 border: '1px solid rgba(var(--ink-rgb),0.06)',
                 borderRadius: NAV_SECTIONS.length === 1 ? 14 : idx === 0 ? '14px 14px 4px 4px' : idx === NAV_SECTIONS.length - 1 ? '4px 4px 14px 14px' : '4px',
                 padding: '14px 16px',
@@ -407,14 +407,14 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                 {item.icon}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.9)', marginBottom: 2 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text1)', marginBottom: 2 }}>
                   {item.label}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.35)', fontWeight: 400 }}>
+                <div style={{ fontSize: 11, color: 'var(--text3)', fontWeight: 400 }}>
                   {item.sub}
                 </div>
               </div>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--ink-rgb),0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6"/>
               </svg>
             </button>
@@ -429,7 +429,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
             onClick={() => setIsDark(toggleTheme() === 'dark')}
             style={{
               display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'left',
-              background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.06)',
+              background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.06)',
               borderRadius: '14px 14px 4px 4px', padding: '14px 16px', cursor: 'pointer',
               fontFamily: FONT,
             } as CSSProperties}
@@ -451,8 +451,8 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.9)', marginBottom: 2 }}>{isDark ? 'Modo escuro' : 'Modo claro'}</div>
-              <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.35)' }}>Toca para alternar</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text1)', marginBottom: 2 }}>{isDark ? 'Modo escuro' : 'Modo claro'}</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)' }}>Toca para alternar</div>
             </div>
             <div style={{
               width: 44, height: 26, borderRadius: 13,
@@ -479,7 +479,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
             }}
             style={{
               display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'left',
-              background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.06)',
+              background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.06)',
               borderRadius: '4px 4px 14px 14px', padding: '14px 16px', cursor: 'pointer',
               fontFamily: FONT,
             } as CSSProperties}
@@ -495,8 +495,8 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
               </svg>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.9)', marginBottom: 2 }}>Notificações</div>
-              <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.35)' }}>{notifEnabled ? 'Ativas' : 'Desativadas'}</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text1)', marginBottom: 2 }}>Notificações</div>
+              <div style={{ fontSize: 11, color: 'var(--text3)' }}>{notifEnabled ? 'Ativas' : 'Desativadas'}</div>
             </div>
             <div style={{
               width: 44, height: 26, borderRadius: 13,
@@ -530,7 +530,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
           Terminar sessão
         </button>
 
-        <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.2)', textAlign: 'center', marginTop: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--text3)', textAlign: 'center', marginTop: 8 }}>
           {email}
         </div>
 

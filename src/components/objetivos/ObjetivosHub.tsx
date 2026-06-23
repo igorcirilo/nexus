@@ -36,7 +36,7 @@ function SectionLabel({ children, style }: { children: React.ReactNode; style?: 
   return (
     <div style={{
       fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
-      textTransform: 'uppercase', color: 'rgba(var(--ink-rgb),0.3)',
+      textTransform: 'uppercase', color: 'var(--text3)',
       marginBottom: 10, marginTop: 18,
       ...style,
     }}>
@@ -54,9 +54,9 @@ function hexAlpha(hex: string, alpha: number): string {
 
 const iconBtn: CSSProperties = {
   width: 38, height: 38, borderRadius: 12,
-  background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.08)',
+  background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.08)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  color: 'rgba(var(--ink-rgb),0.6)', cursor: 'pointer',
+  color: 'var(--text1)', cursor: 'pointer',
 }
 
 function formatDeadline(endDate: string): string {
@@ -101,7 +101,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 6px' }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Objetivos</div>
-          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>
             {active.length} ativo{active.length !== 1 ? 's' : ''}
             {nextDeadline ? ` · Prazo: ${formatDeadline(nextDeadline)}` : ''}
           </div>
@@ -145,7 +145,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
               {focusGoal.title}
             </div>
           </div>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(var(--ink-rgb),0.3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6"/>
           </svg>
         </div>
@@ -158,7 +158,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
             textAlign: 'center', cursor: 'pointer',
           }}
         >
-          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', marginBottom: 6 }}>Sem objetivos ativos</div>
+          <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 6 }}>Sem objetivos ativos</div>
           <div style={{ fontSize: 13, fontWeight: 700, color: '#F5C842' }}>Criar primeiro objetivo</div>
         </div>
       )}
@@ -222,7 +222,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
               key={title}
               style={{
                 display: 'flex', alignItems: 'center', gap: 12,
-                background: 'rgba(var(--ink-rgb),0.03)',
+                background: 'var(--surface-2)',
                 border: '1px solid rgba(var(--ink-rgb),0.07)',
                 borderRadius: 16, padding: '14px 14px',
               }}
@@ -238,7 +238,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.25 }}>
                   {title}
                 </div>
-                <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 3, fontWeight: 500 }}>
+                <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 3, fontWeight: 500 }}>
                   {sugArea.label} · {GOAL_SIZE_META[sugSize].label.slice(0, -1).toLowerCase()} objetivo
                 </div>
               </div>
@@ -319,7 +319,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                       <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 3, lineHeight: 1.2 }}>
                         {g.title}
                       </div>
-                      <div style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500 }}>
+                      <div style={{ fontSize: 12, color: 'var(--text2)', fontWeight: 500 }}>
                         Prazo: {formatDeadline(g.end_date)}
                         {dl <= 14 && dl > 0 && <span style={{ color: '#FF6B6B', marginLeft: 6 }}>· {dl}d restantes</span>}
                       </div>
@@ -328,11 +328,11 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
 
                   {/* Área + contagem de marcos */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: msList.length > 0 ? 12 : 0 }}>
-                    <span style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.45)' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text2)' }}>
                       {area?.label ?? g.area}
                     </span>
                     {msList.length > 0 && (
-                      <span style={{ fontSize: 12, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.8)' }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text1)' }}>
                         {msDone} de {msList.length} marcos
                       </span>
                     )}
@@ -349,7 +349,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                             fontSize: 9, fontWeight: 800,
                             ...(m.done
                               ? { background: 'rgba(0,200,150,0.2)', color: '#00C896', border: '1.5px solid rgba(0,200,150,0.4)' }
-                              : { background: 'transparent', border: '1.5px solid rgba(var(--ink-rgb),0.2)', color: 'rgba(var(--ink-rgb),0.3)' }
+                              : { background: 'transparent', border: '1.5px solid rgba(var(--ink-rgb),0.2)', color: 'var(--text3)' }
                             ),
                           }}>
                             {m.done ? '✓' : String(mi + 1)}
@@ -388,15 +388,15 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                   onClick={() => onOpenGoal(goal.id)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 12,
-                    background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.06)',
+                    background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.06)',
                     borderRadius: 14, padding: '12px 14px', cursor: 'pointer',
                   }}
                 >
                   <div style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: color }} />
-                  <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.8)' }}>
+                  <div style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--text1)' }}>
                     {milestone.title}
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.3)', flexShrink: 0 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text3)', flexShrink: 0 }}>
                     {dl <= 7 ? `${dl}d` : area?.label.split(' ')[0]}
                   </div>
                 </div>

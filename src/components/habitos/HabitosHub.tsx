@@ -50,7 +50,7 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 0 6px' }}>
         <div>
           <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Hábitos</div>
-          <div style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 2 }}>
+          <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, marginTop: 2 }}>
             {totalToday > 0 ? `${doneToday} de ${totalToday} concluídos hoje` : 'Sem hábitos ativos'}
           </div>
         </div>
@@ -66,9 +66,9 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
       {rings.length > 0 && (
         <div style={{ display: 'flex', gap: 10, marginBottom: 18, marginTop: 12 }}>
           {rings.map((a) => (
-            <div key={a.key} style={{ flex: 1, background: 'rgba(var(--ink-rgb),0.04)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 16, padding: '14px 12px', textAlign: 'center' }}>
+            <div key={a.key} style={{ flex: 1, background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 16, padding: '14px 12px', textAlign: 'center' }}>
               <Ring pct={a.pct} color={a.color} />
-              <div style={{ fontSize: 10, color: 'rgba(var(--ink-rgb),0.4)', fontWeight: 500, marginTop: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</div>
+              <div style={{ fontSize: 10, color: 'var(--text2)', fontWeight: 500, marginTop: 8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</div>
             </div>
           ))}
         </div>
@@ -84,7 +84,7 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
 
       {/* Grouped habit list */}
       {visibleAreas.length === 0 ? (
-        <div style={{ background: 'rgba(var(--ink-rgb),0.03)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 16, padding: 20, textAlign: 'center', fontSize: 13, color: 'rgba(var(--ink-rgb),0.4)' }}>
+        <div style={{ background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 16, padding: 20, textAlign: 'center', fontSize: 13, color: 'var(--text2)' }}>
           Nenhum hábito nesta área. Toca em + para criar.
         </div>
       ) : (
@@ -95,8 +95,8 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
             <div key={a.key} style={{ marginTop: idx === 0 ? 0 : 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: a.color, flexShrink: 0 }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.7)' }}>{a.label}</span>
-                <span style={{ fontSize: 12, color: 'rgba(var(--ink-rgb),0.3)', marginLeft: 'auto' }}>{a.done}/{a.total}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text1)' }}>{a.label}</span>
+                <span style={{ fontSize: 12, color: 'var(--text3)', marginLeft: 'auto' }}>{a.done}/{a.total}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 6 }}>
                 {items.map((h) => (
@@ -120,17 +120,17 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
       {/* Area progress bars */}
       {areas.length > 0 && (
         <>
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(var(--ink-rgb),0.3)', marginBottom: 10, marginTop: 22 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text3)', marginBottom: 10, marginTop: 22 }}>
             Progresso por área
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {areas.map((a) => (
               <div key={a.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'rgba(var(--ink-rgb),0.6)', minWidth: 92, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</div>
-                <div style={{ flex: 1, height: 6, background: 'rgba(var(--ink-rgb),0.07)', borderRadius: 10, overflow: 'hidden' }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text1)', minWidth: 92, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</div>
+                <div style={{ flex: 1, height: 6, background: 'var(--surface-3)', borderRadius: 10, overflow: 'hidden' }}>
                   <div style={{ height: '100%', borderRadius: 10, width: `${a.pct}%`, background: a.color }} />
                 </div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(var(--ink-rgb),0.4)', minWidth: 30, textAlign: 'right' }}>{a.pct}%</div>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', minWidth: 30, textAlign: 'right' }}>{a.pct}%</div>
               </div>
             ))}
           </div>
@@ -205,7 +205,7 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
         >
           {habit.name}
         </div>
-        <div style={{ fontSize: 11, color: 'rgba(var(--ink-rgb),0.3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{habit.time_window || areaLabel}</span>
         </div>
       </div>
@@ -329,7 +329,7 @@ const menuItem: CSSProperties = {
   fontSize: 13.5,
   fontWeight: 600,
   fontFamily: FONT,
-  color: 'rgba(var(--ink-rgb),0.9)',
+  color: 'var(--text1)',
   background: 'transparent',
   border: 'none',
   borderBottom: '1px solid rgba(var(--ink-rgb),0.06)',

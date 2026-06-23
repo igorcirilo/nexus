@@ -14,14 +14,14 @@ const FONT = 'Inter, sans-serif'
 const CATEGORIES = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
 
 const inp: React.CSSProperties = {
-  width: '100%', background: 'rgba(var(--ink-rgb),0.05)', border: '1px solid rgba(var(--ink-rgb),0.10)',
+  width: '100%', background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.10)',
   borderRadius: 13, padding: '12px 14px', color: 'var(--ink)',
   fontFamily: FONT, fontSize: 14, outline: 'none',
 }
 
 const fieldLabel: React.CSSProperties = {
   fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
-  color: 'rgba(var(--ink-rgb),0.3)', display: 'block', marginBottom: 8, fontFamily: FONT,
+  color: 'var(--text3)', display: 'block', marginBottom: 8, fontFamily: FONT,
 }
 
 function daysLeftOf(endDate: string): number {
@@ -174,13 +174,13 @@ export default function ObjetivosPage() {
         display: 'flex', flexDirection: 'column', maxHeight: 'min(86dvh, 720px)',
         boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
       }}>
-        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(var(--ink-rgb),0.18)', margin: '10px auto 0', flexShrink: 0 }} />
+        <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '10px auto 0', flexShrink: 0 }} />
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
           <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
             {editGoal ? 'Editar objectivo' : 'Novo objectivo'}
           </h2>
-          <button onClick={() => setShowForm(false)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(var(--ink-rgb),0.06)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'rgba(var(--ink-rgb),0.6)' }}>✕</button>
+          <button onClick={() => setShowForm(false)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text1)' }}>✕</button>
         </div>
 
         <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px' }}>
@@ -196,7 +196,7 @@ export default function ObjetivosPage() {
                 borderRadius: 13, cursor: 'pointer', textAlign: 'left',
                 background: fArea === key ? `${meta.color}18` : 'rgba(var(--ink-rgb),0.03)',
                 border: fArea === key ? `1px solid ${meta.color}77` : '1px solid rgba(var(--ink-rgb),0.10)',
-                color: fArea === key ? meta.color : 'rgba(var(--ink-rgb),0.55)',
+                color: fArea === key ? meta.color : 'var(--text2)',
                 fontSize: 13, fontWeight: 600, fontFamily: FONT,
               }}>
                 <span style={{ fontSize: 15 }}>{meta.icon}</span>{meta.label}
@@ -256,7 +256,7 @@ export default function ObjetivosPage() {
               display: 'flex', flexDirection: 'column', maxHeight: 'min(86dvh, 720px)',
               fontFamily: FONT, boxShadow: '0 -20px 60px rgba(0,0,0,0.6)',
             }}>
-              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'rgba(var(--ink-rgb),0.18)', margin: '10px auto 0', flexShrink: 0 }} />
+              <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '10px auto 0', flexShrink: 0 }} />
 
               {/* Header fixo */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
@@ -271,24 +271,24 @@ export default function ObjetivosPage() {
                   <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--ink)', letterSpacing: '-0.3px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>
                     {openGoal.title}
                   </div>
-                  <div style={{ fontSize: 11.5, color: 'rgba(var(--ink-rgb),0.4)', marginTop: 2 }}>
+                  <div style={{ fontSize: 11.5, color: 'var(--text2)', marginTop: 2 }}>
                     {area?.label ?? openGoal.area} · {dl > 0 ? `${dl} dias restantes` : 'Terminou'}
                   </div>
                 </div>
-                <button onClick={() => setOpenGoalId(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'rgba(var(--ink-rgb),0.06)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'rgba(var(--ink-rgb),0.6)', flexShrink: 0 }}>✕</button>
+                <button onClick={() => setOpenGoalId(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text1)', flexShrink: 0 }}>✕</button>
               </div>
 
               {/* Corpo scrollável */}
               <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px' }}>
                 {/* Período */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'rgba(var(--ink-rgb),0.35)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text3)' }}>
                   <span>Início · {format(new Date(openGoal.start_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
                   <span>Fim · {format(new Date(openGoal.end_date + 'T12:00:00'), 'dd/MM/yyyy')}</span>
                 </div>
 
                 {/* Marcos */}
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'rgba(var(--ink-rgb),0.3)', margin: '20px 0 10px' }}>
-                  Marcos {msList.length > 0 && <span style={{ color: 'rgba(var(--ink-rgb),0.45)' }}>· {msDone}/{msList.length}</span>}
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text3)', margin: '20px 0 10px' }}>
+                  Marcos {msList.length > 0 && <span style={{ color: 'var(--text2)' }}>· {msDone}/{msList.length}</span>}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {msList.map(m => (
@@ -380,13 +380,13 @@ export default function ObjetivosPage() {
         >
           <div style={{ width: '100%', maxWidth: 340, background: 'var(--surface-pop)', border: '1px solid rgba(var(--ink-rgb),0.12)', borderRadius: 20, padding: '22px 20px', fontFamily: FONT }}>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>Apagar objetivo?</div>
-            <p style={{ fontSize: 13, color: 'rgba(var(--ink-rgb),0.5)', lineHeight: 1.5, marginBottom: 18, overflowWrap: 'anywhere' }}>
+            <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.5, marginBottom: 18, overflowWrap: 'anywhere' }}>
               “{confirmDelete.title}” e os seus marcos vão ser removidos. Esta ação é irreversível.
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => setConfirmDelete(null)}
-                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: '1px solid rgba(var(--ink-rgb),0.12)', background: 'rgba(var(--ink-rgb),0.04)', color: 'rgba(var(--ink-rgb),0.7)', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
+                style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: '1px solid rgba(var(--ink-rgb),0.12)', background: 'var(--surface-2)', color: 'var(--text1)', fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
               >
                 Cancelar
               </button>
