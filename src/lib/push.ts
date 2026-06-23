@@ -6,11 +6,14 @@ import { supabase } from '@/lib/supabase'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
 
-function urlBase64ToUint8Array(base64String: string): Uint8Array {
+function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
   const raw = atob(base64)
-  const arr = new Uint8Array(raw.length)
+  // Aloca um ArrayBuffer concreto (não ArrayBufferLike) para satisfazer o tipo
+  // BufferSource exigido por pushManager.subscribe nas libs recentes do TS.
+  const buffer = new ArrayBuffer(raw.length)
+  const arr = new Uint8Array(buffer)
   for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i)
   return arr
 }
@@ -64,17 +67,15 @@ export async function enablePush(userId: string): Promise<EnableResult> {
   }
 
   const json = sub.toJSON()
-  if (!json.endpoint || !json.keys?.p256dh || !json.keys?.auth) {
+  const endpoint = json.endpoint
+  const p256dh = json.keys?.p256dh
+  const auth = json.keys?.auth
+  if (!endpoint || !p256dh || !auth) {
     return { ok: false, error: 'no-sw' }
   }
 
   const { error } = await supabase.from('push_subscriptions').upsert(
-    {
-      user_id: userId,
-      endpoint: json.endpoint,
-      p256dh: json.keys.p256dh,
-      auth: json.keys.auth,
-    },
+    { user_id: userId, endpoint, p256dh, auth },
     { onConflict: 'endpoint' }
   )
 
