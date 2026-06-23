@@ -131,12 +131,40 @@ export async function enablePush(userId: string): Promise<EnableResult> {
   }
 
   const { error } = await supabase.from('push_subscriptions').upsert(
-    { user_id: userId, endpoint, p256dh, auth },
+    { user_id: userId, endpoint, p256dh, auth, timezone: deviceTimezone() },
     { onConflict: 'endpoint' }
   )
 
   if (error) return { ok: false, error: error.message }
   return { ok: true }
+}
+
+// Fuso horário do dispositivo (ex.: "Europe/Lisbon"). Guardado na subscrição
+// para a Edge Function disparar os lembretes na hora local de cada utilizador.
+function deviceTimezone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  } catch {
+    return 'UTC'
+  }
+}
+
+// Mantém o fuso da subscrição alinhado com o telemóvel. Chamado no arranque do
+// Perfil para que subscrições antigas (sem fuso) passem a usar o fuso real.
+export async function syncTimezone(userId: string): Promise<void> {
+  if (!pushSupported()) return
+  try {
+    const reg = await navigator.serviceWorker.getRegistration()
+    const sub = await reg?.pushManager.getSubscription()
+    if (!sub) return
+    await supabase
+      .from('push_subscriptions')
+      .update({ timezone: deviceTimezone() })
+      .eq('endpoint', sub.endpoint)
+      .eq('user_id', userId)
+  } catch {
+    // silencioso — é só sincronização best-effort
+  }
 }
 
 export async function disablePush(userId: string): Promise<void> {

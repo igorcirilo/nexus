@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Profile, UserBadge } from '@/types'
 import { getTheme, toggleTheme, darkCardInk } from '@/lib/theme'
-import { enablePush, disablePush, isPushEnabled } from '@/lib/push'
+import { enablePush, disablePush, isPushEnabled, syncTimezone } from '@/lib/push'
 import { emitToast } from '@/lib/toast-events'
 
 const FONT = 'Inter, sans-serif'
@@ -71,6 +71,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
     isPushEnabled().then((on) => {
       setNotifEnabled(on)
       localStorage.setItem('nexus-notif', on ? '1' : '0')
+      if (on) syncTimezone(profile.id)
     }).catch(() => {})
   }, [])
 
