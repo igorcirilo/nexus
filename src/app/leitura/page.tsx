@@ -7,6 +7,7 @@ import LeituraHub from '@/components/leitura/LeituraHub'
 import FileImportModal from '@/components/FileImportModal'
 import { supabase, getBooks, getBookProgress, getBookHighlights, saveBook, getReadingSessionsThisWeek } from '@/lib/supabase'
 import { darkCardInk } from '@/lib/theme'
+import { localDateKey } from '@/lib/date'
 import type { Book, BookProgress, BookHighlight, FileImportResult } from '@/types'
 
 interface WeeklyStats {
@@ -77,7 +78,7 @@ export default function LeituraPage() {
       days: Array.from({ length: 7 }, (_, i) => {
         const d = new Date(monday)
         d.setDate(monday.getDate() + i)
-        return { date: d.toISOString().split('T')[0], minutes: 0 }
+        return { date: localDateKey(d), minutes: 0 }
       }),
       totalMinutes: 0, daysWithReading: 0, avgMinPerDay: 0, pagesPerDay: 0,
     }
@@ -122,7 +123,7 @@ export default function LeituraPage() {
     const weekDays = Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday2)
       d.setDate(monday2.getDate() + i)
-      return d.toISOString().split('T')[0]
+      return localDateKey(d)
     })
 
     const minByDate:   Record<string, number> = {}

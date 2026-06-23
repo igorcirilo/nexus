@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import Nav from '@/components/Nav'
+import { todayISO } from '@/lib/date'
 import {
   supabase,
   deleteBookBookmark,
@@ -86,6 +87,7 @@ export default function LeituraReaderPage() {
   const currentPageRef   = useRef(1)
   const touchStartX      = useRef<number | null>(null)
   const headerTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hydrated         = useRef(false)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -126,6 +128,11 @@ export default function LeituraReaderPage() {
       setResumePrompt(clamp(savedPage, 1, maxPage))
     }
     // else default page 1 already set
+
+    // Só após resolver a página inicial é que permitimos persistir alterações.
+    // Evita que o efeito de persistência grave current_page=1 no paint inicial,
+    // apagando a página guardada antes de o utilizador tocar em "Retomar".
+    hydrated.current = true
   }
 
   useEffect(() => {
@@ -194,7 +201,7 @@ export default function LeituraReaderPage() {
   // ── Persist progress ──────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (!userId || !bookId || !book) return
+    if (!userId || !bookId || !book || !hydrated.current) return
     const pct = Math.round((currentPage / Math.max(pageCount, 1)) * 100)
     saveBookProgress({ user_id: userId, book_id: bookId, current_page: currentPage, progress_pct: pct })
   }, [userId, bookId, book, currentPage, pageCount])
@@ -215,7 +222,7 @@ export default function LeituraReaderPage() {
       const pagesRead = Math.max(0, currentPageRef.current - start.page)
       void saveReadingSession({
         user_id: userId, book_id: bookId,
-        date: new Date().toISOString().split('T')[0],
+        date: todayISO(),
         duration_minutes: durationMinutes, pages_read: pagesRead,
       })
     }

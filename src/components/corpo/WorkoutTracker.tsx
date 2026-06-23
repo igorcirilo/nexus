@@ -21,7 +21,7 @@ import type { TrainingPlan, FileImportResult } from '@/types'
 
 type ExerciseLoad = { weight: string; reps: string }
 type ExerciseSave = { done: boolean; sets: ExerciseLoad[] }
-type NotesV2 = { v: 2; sectionIdx: number; exercises: Record<string, ExerciseSave> }
+type NotesV2 = { v: 2; sectionIdx: number; exercises: Record<string, ExerciseSave>; extras?: TrainingExercisePlan[] }
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -100,6 +100,15 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   const [newExtraName, setNewExtraName] = useState('')
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Mantém os extras correntes acessíveis dentro de persistEntry sem os
+  // colocar nas deps do callback (evita debounces obsoletos).
+  const extrasRef = useRef<TrainingExercisePlan[]>([])
+  // Evita re-gravar logo a seguir a restaurar os extras do servidor.
+  const extrasHydrated = useRef(false)
+
+  useEffect(() => {
+    extrasRef.current = extras
+  }, [extras])
 
   // ── On mount: restore from sessionStorage (sem abrir modal automaticamente) ──
   // O seletor de treino só abre por ação explícita do utilizador (botão
@@ -144,6 +153,10 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
       )
       const notesV2 = parseNotes(entry?.notes ?? null)
       setSaves(notesV2.exercises)
+      const restoredExtras = notesV2.extras ?? []
+      extrasRef.current = restoredExtras
+      extrasHydrated.current = false
+      setExtras(restoredExtras)
 
       const prevEntry = prev as { notes: string | null } | null
       const prevNotes = parseNotes(prevEntry?.notes ?? null)
@@ -172,7 +185,8 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
     async (newSaves: Record<string, ExerciseSave>, si: number) => {
       if (!planId) return
       const doneCount = Object.values(newSaves).filter(s => s.done).length
-      const notesV2: NotesV2 = { v: 2, sectionIdx: si, exercises: newSaves }
+      // Persiste também os exercícios extra para sobreviverem ao reload (P2.3).
+      const notesV2: NotesV2 = { v: 2, sectionIdx: si, exercises: newSaves, extras: extrasRef.current }
       setSaving(true)
       await upsertTrainingEntry({
         user_id: userId,
@@ -190,6 +204,18 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(() => persistEntry(newSaves, sectionIdx), 800)
   }
+
+  // Persiste a lista de extras quando muda (adição/remoção). O guard de
+  // hidratação evita uma gravação redundante logo após restaurar do servidor.
+  useEffect(() => {
+    if (!planId) return
+    if (!extrasHydrated.current) {
+      extrasHydrated.current = true
+      return
+    }
+    persistEntry(saves, sectionIdx)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [extras])
 
   // ── Exercise state helpers ───────────────────────────────────────────────────
 
@@ -323,8 +349,11 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   const parsedPlan = getParsed(currentPlan)
   const currentSection = parsedPlan?.sections[sectionIdx] ?? null
   const exercises = currentSection?.exercises ?? []
-  const doneCount = exercises.filter(e => saves[e.id]?.done).length
-  const totalCount = exercises.length
+  // Conta plano + extras em ambos os lados (barra e persistência) — P2.3.
+  const doneCount =
+    exercises.filter(e => saves[e.id]?.done).length +
+    extras.filter(e => saves[e.id]?.done).length
+  const totalCount = exercises.length + extras.length
 
   // ── Render ────────────────────────────────────────────────────────────────────
 
