@@ -7,6 +7,7 @@ import './globals.css'
 // QuickAction + Pomodoro — cliente only, não aparece em /auth e /onboarding
 const GlobalUI    = dynamic(() => import('@/components/GlobalUI'), { ssr: false })
 const ToastClient = dynamic(() => import('@/components/Toast').then(m => ({ default: m.ToastProvider })), { ssr: false })
+const ServiceWorkerRegister = dynamic(() => import('@/components/ServiceWorkerRegister'), { ssr: false })
 
 export const metadata: Metadata = {
   title: 'NEXUS — Evolução Pessoal',
@@ -37,6 +38,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <ToastClient>
+          <ServiceWorkerRegister />
           <div className="nexus-layout">
             <div className="nexus-sidebar">
               <Sidebar />

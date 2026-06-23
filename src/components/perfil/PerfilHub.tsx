@@ -86,7 +86,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
             : res.error === 'unsupported' ? 'Este dispositivo/navegador não suporta notificações push.'
             : res.error === 'ios-install' ? 'No iPhone, instala primeiro a app no ecrã inicial (Partilhar → Adicionar ao ecrã principal).'
             : res.error === 'missing-vapid' ? 'Notificações ainda não configuradas no servidor.'
-            : res.error === 'no-sw' ? 'O serviço de notificações ainda não arrancou. Recarrega a página e tenta de novo.'
+            : res.error === 'no-sw' ? `O serviço de notificações ainda não arrancou${res.detail ? ` (${res.detail})` : ''}. Recarrega a página e tenta de novo.`
             : 'Não foi possível ativar as notificações.'
           emitToast(msg, 'error')
           return
