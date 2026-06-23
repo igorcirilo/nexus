@@ -27,10 +27,44 @@ export function pushSupported(): boolean {
   )
 }
 
+// No iOS o Web Push só existe quando a app está instalada no ecrã inicial
+// (modo standalone). Em separador do Safari fica "preso"/indisponível.
+function isIosNotInstalled(): boolean {
+  if (typeof navigator === 'undefined' || typeof window === 'undefined') return false
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent || '')
+  const standalone =
+    (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
+    window.matchMedia?.('(display-mode: standalone)').matches === true
+  return isIos && !standalone
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T | null> {
+  return Promise.race([
+    p,
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), ms)),
+  ])
+}
+
+// `navigator.serviceWorker.ready` fica pendente PARA SEMPRE se nenhum SW activar
+// — daí o toggle ficar "a processar". Aqui garantimos o registo e limitamos a
+// espera com timeout, devolvendo null em vez de bloquear.
 async function getRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return null
-  // O next-pwa regista o SW; esperamos que esteja pronto antes de subscrever.
-  return navigator.serviceWorker.ready
+
+  // 1) Já há um SW activo? Usa-o de imediato.
+  const existing = await navigator.serviceWorker.getRegistration()
+  if (existing?.active) return existing
+
+  // 2) Garante o registo (o next-pwa fá-lo, mas pode ainda não ter corrido).
+  try {
+    await navigator.serviceWorker.register('/sw.js')
+  } catch {
+    // ignora — `ready` ainda pode resolver de um registo em curso
+  }
+
+  // 3) Espera a activação, mas nunca além de 12s.
+  const reg = await withTimeout(navigator.serviceWorker.ready, 12000)
+  return reg ?? (await navigator.serviceWorker.getRegistration()) ?? null
 }
 
 // Reflete o estado real (existe subscrição activa neste dispositivo?).
@@ -46,11 +80,15 @@ export async function isPushEnabled(): Promise<boolean> {
   }
 }
 
-type EnableResult = { ok: boolean; error?: 'unsupported' | 'missing-vapid' | 'denied' | 'no-sw' | string }
+type EnableResult = {
+  ok: boolean
+  error?: 'unsupported' | 'missing-vapid' | 'denied' | 'no-sw' | 'ios-install' | string
+}
 
 export async function enablePush(userId: string): Promise<EnableResult> {
   if (!pushSupported()) return { ok: false, error: 'unsupported' }
   if (!VAPID_PUBLIC_KEY) return { ok: false, error: 'missing-vapid' }
+  if (isIosNotInstalled()) return { ok: false, error: 'ios-install' }
 
   const permission = await Notification.requestPermission()
   if (permission !== 'granted') return { ok: false, error: 'denied' }
@@ -60,10 +98,14 @@ export async function enablePush(userId: string): Promise<EnableResult> {
 
   let sub = await reg.pushManager.getSubscription()
   if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-    })
+    try {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      })
+    } catch (e) {
+      return { ok: false, error: (e as Error)?.message || 'subscribe-failed' }
+    }
   }
 
   const json = sub.toJSON()
