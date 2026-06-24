@@ -1,15 +1,13 @@
 // supabase/functions/send-reminders/index.ts
 //
 // Disparada pelo pg_cron a cada minuto (ver supabase/notifications_push_v1.sql).
-// Lê os lembretes activos cuja hora/dia batem com o instante actual (no fuso
-// REMINDER_TZ) e envia Web Push para todas as subscrições do utilizador.
+// Para cada utilizador, calcula a hora actual no fuso do seu dispositivo
+// (push_subscriptions.timezone) e envia Web Push dos lembretes que batem
+// hora/dia agora. Sem fuso global hardcoded — cada um recebe na sua hora local.
 //
-// Tudo dentro do free tier do Supabase: Edge Functions (500k invocações/mês) +
-// pg_cron a cada minuto. Não usa o cron do Vercel (limitado a 1×/dia no Hobby).
-//
-// Secrets necessários (Supabase → Edge Functions → Manage secrets):
-//   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT (mailto:...), CRON_SECRET
-// Injetados automaticamente: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+// Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CRON_SECRET
+// Injetados: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+// REMINDER_TZ é apenas fallback para subscrições antigas sem fuso.
 
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import webpush from 'npm:web-push@3.6.7'
@@ -20,7 +18,7 @@ const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? ''
 const VAPID_PUBLIC = Deno.env.get('VAPID_PUBLIC_KEY') ?? ''
 const VAPID_PRIVATE = Deno.env.get('VAPID_PRIVATE_KEY') ?? ''
 const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') ?? 'mailto:admin@nexus.app'
-const TZ = Deno.env.get('REMINDER_TZ') ?? 'America/Sao_Paulo'
+const FALLBACK_TZ = Deno.env.get('REMINDER_TZ') ?? 'UTC'
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC, VAPID_PRIVATE)
@@ -56,6 +54,17 @@ function urlForType(type: string): string {
   return '/hoje'
 }
 
+interface Reminder {
+  id: string
+  user_id: string
+  title: string
+  description: string | null
+  time: string | null
+  days: string[] | null
+  type: string
+  last_sent_at: string | null
+}
+
 Deno.serve(async (req) => {
   if (CRON_SECRET && req.headers.get('x-cron-secret') !== CRON_SECRET) {
     return new Response('forbidden', { status: 403 })
@@ -65,18 +74,15 @@ Deno.serve(async (req) => {
   }
 
   const supabase = createClient(SUPABASE_URL, SERVICE_ROLE)
-  const { hhmm, dow } = nowParts(TZ)
 
   // Início do minuto actual — barreira contra reenvios duplicados.
   const minuteStart = new Date()
   minuteStart.setSeconds(0, 0)
 
-  // Lembretes activos agendados para hoje (dia da semana actual).
   const { data: reminders, error } = await supabase
     .from('reminders')
     .select('id, user_id, title, description, time, days, type, last_sent_at')
     .eq('active', true)
-    .contains('days', [String(dow)])
 
   if (error) {
     return new Response(JSON.stringify({ error: error.message }), {
@@ -85,47 +91,64 @@ Deno.serve(async (req) => {
     })
   }
 
-  const due = (reminders ?? []).filter((r) => {
-    if (!r.time || String(r.time).slice(0, 5) !== hhmm) return false
-    if (r.last_sent_at && new Date(r.last_sent_at) >= minuteStart) return false
-    return true
-  })
-
-  let sent = 0
-  for (const r of due) {
-    const { data: subs } = await supabase
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth')
-      .eq('user_id', r.user_id)
-
-    const payload = JSON.stringify({
-      title: r.title || 'NEXUS',
-      body: r.description || defaultBody(r.type),
-      url: urlForType(r.type),
-      tag: `reminder-${r.id}`,
-    })
-
-    for (const s of subs ?? []) {
-      try {
-        await webpush.sendNotification(
-          { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
-          payload
-        )
-        sent++
-      } catch (e) {
-        const status = (e as { statusCode?: number }).statusCode
-        // 404/410 = subscrição morta (browser desinstalado / permissão revogada).
-        if (status === 404 || status === 410) {
-          await supabase.from('push_subscriptions').delete().eq('endpoint', s.endpoint)
-        }
-      }
-    }
-
-    // Marca como enviado para não repetir no próximo tick do mesmo minuto.
-    await supabase.from('reminders').update({ last_sent_at: new Date().toISOString() }).eq('id', r.id)
+  // Agrupa por utilizador (cada um tem o seu fuso).
+  const byUser = new Map<string, Reminder[]>()
+  for (const r of (reminders ?? []) as Reminder[]) {
+    const arr = byUser.get(r.user_id) ?? []
+    arr.push(r)
+    byUser.set(r.user_id, arr)
   }
 
-  return new Response(JSON.stringify({ ok: true, time: hhmm, dow, due: due.length, sent }), {
+  let due = 0
+  let sent = 0
+
+  for (const [userId, list] of byUser) {
+    const { data: subs } = await supabase
+      .from('push_subscriptions')
+      .select('endpoint, p256dh, auth, timezone, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+
+    if (!subs || subs.length === 0) continue
+
+    // Fuso do dispositivo mais recente; fallback para subscrições antigas.
+    const tz = subs.find((s) => s.timezone)?.timezone || FALLBACK_TZ
+    const { hhmm, dow } = nowParts(tz)
+
+    for (const r of list) {
+      const days = (r.days ?? []).map(String)
+      if (!days.includes(String(dow))) continue
+      if (!r.time || String(r.time).slice(0, 5) !== hhmm) continue
+      if (r.last_sent_at && new Date(r.last_sent_at) >= minuteStart) continue
+
+      due++
+      const payload = JSON.stringify({
+        title: r.title || 'NEXUS',
+        body: r.description || defaultBody(r.type),
+        url: urlForType(r.type),
+        tag: `reminder-${r.id}`,
+      })
+
+      for (const s of subs) {
+        try {
+          await webpush.sendNotification(
+            { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
+            payload
+          )
+          sent++
+        } catch (e) {
+          const status = (e as { statusCode?: number }).statusCode
+          if (status === 404 || status === 410) {
+            await supabase.from('push_subscriptions').delete().eq('endpoint', s.endpoint)
+          }
+        }
+      }
+
+      await supabase.from('reminders').update({ last_sent_at: new Date().toISOString() }).eq('id', r.id)
+    }
+  }
+
+  return new Response(JSON.stringify({ ok: true, due, sent }), {
     headers: { 'Content-Type': 'application/json' },
   })
 })

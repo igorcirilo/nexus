@@ -83,5 +83,6 @@ select cron.unschedule('nexus-send-reminders');
 ## Notas
 - Cada dispositivo/navegador gera a sua própria subscrição (várias linhas por user, ok).
 - Subscrições mortas (HTTP 404/410) são apagadas automaticamente no envio.
-- O fuso é global (`REMINDER_TZ`). Se um dia houver users noutros fusos, passa a
-  guardar o fuso no perfil e ajusta a query da função.
+- **Fuso por dispositivo**: cada subscrição guarda `timezone` (ex.: `Europe/Lisbon`),
+  capturado do browser. A função dispara na hora local de cada utilizador.
+  `REMINDER_TZ` é apenas fallback para subscrições antigas sem fuso.
