@@ -4,7 +4,9 @@
 // Para cada utilizador, calcula a hora actual no fuso do seu dispositivo
 // (push_subscriptions.timezone) e envia Web Push de:
 //   • lembretes recorrentes (reminders) que batem hora/dia agora;
-//   • eventos da agenda (agenda_events) que batem data/hora agora.
+//   • eventos da agenda (agenda_events) que batem data/hora agora;
+//   • hábitos ativos (habits) cuja hora extraída de time_window bate agora
+//     e que ainda não foram concluídos hoje.
 // Sem fuso global hardcoded — cada um recebe na sua hora local.
 //
 // Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CRON_SECRET
@@ -66,6 +68,15 @@ function urlForType(type: string): string {
   return '/hoje'
 }
 
+// time_window é texto livre. Extrai a 1ª hora HH:MM que encontrar (ex.
+// '07:00-09:00' → '07:00'); rótulos sem hora ('Manhã', 'Todo o dia') → null.
+function parseHabitTime(tw: string | null): string | null {
+  if (!tw) return null
+  const m = tw.match(/(\d{1,2}):(\d{2})/)
+  if (!m) return null
+  return `${m[1].padStart(2, '0')}:${m[2]}`
+}
+
 interface Reminder {
   id: string
   user_id: string
@@ -86,6 +97,14 @@ interface AgendaEvent {
   time: string | null
   all_day: boolean
   notified_at: string | null
+}
+
+interface Habit {
+  id: string
+  user_id: string
+  name: string
+  time_window: string | null
+  last_notified_at: string | null
 }
 
 interface Sub {
@@ -119,7 +138,7 @@ Deno.serve(async (req) => {
     new Date(minuteStart.getTime() + dayMs),
   ].map((d) => d.toISOString().slice(0, 10))
 
-  const [remindersRes, eventsRes] = await Promise.all([
+  const [remindersRes, eventsRes, habitsRes] = await Promise.all([
     supabase
       .from('reminders')
       .select('id, user_id, title, description, time, days, type, last_sent_at')
@@ -129,6 +148,10 @@ Deno.serve(async (req) => {
       .select('id, user_id, title, description, date, time, all_day, notified_at')
       .is('notified_at', null)
       .in('date', dateWindow),
+    supabase
+      .from('habits')
+      .select('id, user_id, name, time_window, last_notified_at')
+      .eq('active', true),
   ])
 
   if (remindersRes.error) {
@@ -153,7 +176,18 @@ Deno.serve(async (req) => {
     eventByUser.set(e.user_id, arr)
   }
 
-  const userIds = new Set<string>([...reminderByUser.keys(), ...eventByUser.keys()])
+  const habitByUser = new Map<string, Habit[]>()
+  for (const h of (habitsRes.data ?? []) as Habit[]) {
+    const arr = habitByUser.get(h.user_id) ?? []
+    arr.push(h)
+    habitByUser.set(h.user_id, arr)
+  }
+
+  const userIds = new Set<string>([
+    ...reminderByUser.keys(),
+    ...eventByUser.keys(),
+    ...habitByUser.keys(),
+  ])
 
   let due = 0
   let sent = 0
@@ -221,6 +255,36 @@ Deno.serve(async (req) => {
       }))
 
       await supabase.from('agenda_events').update({ notified_at: new Date().toISOString() }).eq('id', e.id)
+    }
+
+    // ── Hábitos ────────────────────────────────────────────────────────────
+    const dueHabits = (habitByUser.get(userId) ?? []).filter((h) => {
+      if (h.last_notified_at && new Date(h.last_notified_at) >= minuteStart) return false
+      return parseHabitTime(h.time_window) === hhmm
+    })
+
+    if (dueHabits.length > 0) {
+      // Não chatear com hábitos já concluídos hoje (na data local do utilizador).
+      const { data: logs } = await supabase
+        .from('habit_logs')
+        .select('habit_id')
+        .eq('user_id', userId)
+        .eq('date', date)
+        .eq('completed', true)
+      const done = new Set((logs ?? []).map((l) => l.habit_id as string))
+
+      for (const h of dueHabits) {
+        if (done.has(h.id)) continue
+
+        await deliver(JSON.stringify({
+          title: h.name || 'Hábito',
+          body: 'Está na hora deste hábito ✅',
+          url: '/habitos',
+          tag: `habit-${h.id}`,
+        }))
+
+        await supabase.from('habits').update({ last_notified_at: new Date().toISOString() }).eq('id', h.id)
+      }
     }
   }
 
