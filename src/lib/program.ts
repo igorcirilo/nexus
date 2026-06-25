@@ -436,3 +436,41 @@ export async function getTasksForDate(
 
   return getProgramTasks(day.id)
 }
+
+/**
+ * Tarefas do programa de dias ANTERIORES a `date` ainda pendentes — usadas pelo
+ * assistente para sinalizar "tarefas atrasadas". Só do programa ativo.
+ */
+export async function getOverdueProgramTasks(
+  userId: string,
+  date: string,
+  client?: SupabaseClient,
+): Promise<ProgramTask[]> {
+  const supabase = await resolveClient(client)
+
+  const { data: prog } = await supabase
+    .from('programs')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle()
+
+  if (!prog) return []
+
+  const { data: days } = await supabase
+    .from('program_days')
+    .select('id')
+    .eq('program_id', prog.id)
+    .lt('date', date)
+
+  const dayIds = (days ?? []).map((d) => d.id as string)
+  if (dayIds.length === 0) return []
+
+  const { data: tasks } = await supabase
+    .from('program_tasks')
+    .select(PROGRAM_TASK_COLUMNS)
+    .in('day_id', dayIds)
+    .eq('status', 'pending')
+
+  return (tasks ?? []) as ProgramTask[]
+}

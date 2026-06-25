@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { todayISO, phaseForHour } from '@/lib/date'
 import Nav from '@/components/Nav'
 import RitmoBar from '@/components/RitmoBar'
@@ -14,6 +14,8 @@ import AddTaskSheet from '@/components/hoje/AddTaskSheet'
 import TodayCommandPanel from '@/components/hoje/TodayCommandPanel'
 import TodayMissionPanel from '@/components/hoje/TodayMissionPanel'
 import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
+import DayPlanPanel from '@/components/hoje/DayPlanPanel'
+import AttentionPanel from '@/components/hoje/AttentionPanel'
 import Icon from '@/components/ui/Icon'
 import {
   getProfile,
@@ -26,14 +28,22 @@ import {
   checkAndAwardBadges,
   canClaimStreakRecovery,
   claimStreakRecovery,
+  getGoals90,
+  getAgendaEvents,
+  getLatestAreaScores,
+  getUncategorizedTxCount,
   supabase,
+  type AgendaEvent,
 } from '@/lib/supabase'
+import { getTasksForDate, getOverdueProgramTasks } from '@/lib/program'
+import { buildDayPlan } from '@/lib/day-planner'
+import { detectPendencias } from '@/lib/pendencias'
 import { getMentorMessage } from '@/lib/mentor'
 import { repairMojibake } from '@/lib/text'
 import { calculateScores } from '@/lib/profile-assessment'
 import { suggestHabitLevel, generateHabitsFromAssessment } from '@/lib/assessment-to-habits'
 import { AREA_META } from '@/types'
-import type { Profile, Checkin, Habit, HabitArea, Answers } from '@/types'
+import type { Profile, Checkin, Habit, HabitArea, Answers, ProgramTask, Goal90 } from '@/types'
 import StreakRecovery from '@/components/StreakRecovery'
 
 type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[] }
@@ -96,6 +106,17 @@ export default function HojeClient({
   // "Adiar" o card "Agora": esconde-o até a app ser reaberta (sessionStorage
   // limpa quando a app fecha, por iso o card volta numa nova sessão).
   const [commandDismissed, setCommandDismissed] = useState(false)
+  // Assistente (Fase 1): dados externos do planeador, carregados no cliente
+  // (usam o client de browser com sessão). O plano/pendências são derivados
+  // por useMemo, por isso reagem ao marcar hábitos sem novo fetch.
+  const [plannerData, setPlannerData] = useState<{
+    tasks: ProgramTask[]
+    events: AgendaEvent[]
+    goals: Goal90[]
+    overdueTasks: ProgramTask[]
+    areaScores: Partial<Record<HabitArea, number>>
+    uncategorizedTx: number
+  } | null>(null)
   const today = todayISO()
   const hour = new Date().getHours()
 
@@ -164,6 +185,30 @@ export default function HojeClient({
     setCommandDismissed(true)
     sessionStorage.setItem('hoje-command-dismissed', today)
   }
+
+  // Carrega os dados do planeador uma vez (no cliente, com sessão). Falhas são
+  // silenciosas — o card simplesmente não aparece, sem partir o resto da página.
+  useEffect(() => {
+    let cancelled = false
+    async function loadPlanner() {
+      const [tasks, agenda, goals, overdueTasks, areaScores, uncategorizedTx] = await Promise.all([
+        getTasksForDate(userId, today),
+        getAgendaEvents(userId, new Date().getFullYear(), new Date().getMonth() + 1),
+        getGoals90(userId) as Promise<Goal90[]>,
+        getOverdueProgramTasks(userId, today),
+        getLatestAreaScores(userId),
+        getUncategorizedTxCount(userId),
+      ])
+      if (cancelled) return
+      const events = agenda.filter((e) => e.date === today)
+      setPlannerData({ tasks, events, goals, overdueTasks, areaScores, uncategorizedTx })
+    }
+    loadPlanner().catch((err) => console.error('[hoje] planeador falhou:', err))
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [today])
 
   async function handleStreakRecover() {
     const success = await claimStreakRecovery(userId)
@@ -281,6 +326,36 @@ export default function HojeClient({
     done: isDone(h),
   }))
 
+  // Plano do dia e pendências derivados (memo): reagem a marcar hábitos/check-in
+  // sem refazer o fetch. null/[] enquanto os dados externos não carregam.
+  const dayPlan = useMemo(() => {
+    if (!plannerData) return null
+    return buildDayPlan({
+      phase: phaseForHour(hour),
+      hour,
+      energy: profile?.energy_today ?? null,
+      programTasks: plannerData.tasks,
+      habits,
+      events: plannerData.events,
+      goals: plannerData.goals,
+      areaScores: plannerData.areaScores,
+    })
+  }, [plannerData, habits, profile?.energy_today, hour])
+
+  const pendencias = useMemo(() => {
+    if (!plannerData) return []
+    return detectPendencias({
+      hour,
+      habits,
+      hasCheckinToday: todayCheckins.length > 0,
+      streakCurrent: profile?.streak_current ?? 0,
+      overdueTasks: plannerData.overdueTasks,
+      goals: plannerData.goals,
+      todayISO: today,
+      uncategorizedTx: plannerData.uncategorizedTx,
+    })
+  }, [plannerData, habits, todayCheckins, profile?.streak_current, hour, today])
+
   const mentorMsg = profile
     ? getMentorMessage({
         energy: profile.energy_today,
@@ -353,6 +428,10 @@ export default function HojeClient({
           onProgress={setMissionPct}
         />
       )}
+
+      {/* Assistente: plano do dia + pendências (Fase 1). */}
+      {dayPlan && <DayPlanPanel plan={dayPlan} />}
+      <AttentionPanel pendencias={pendencias} />
 
       {/* Card "Agora": some quando o check-in fica concluído; "Depois" adia-o
           até a app ser reaberta. */}

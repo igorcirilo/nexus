@@ -2,7 +2,7 @@
 // Helpers de Web Push no cliente: subscrever o browser, guardar a subscrição no
 // Supabase e cancelar. A entrega em si é feita pela Edge Function `send-reminders`
 // (agendada por pg_cron). Ver docs/SETUP_NOTIFICATIONS.md.
-import { supabase } from '@/lib/supabase'
+import { supabase, ensureSummaryReminders } from '@/lib/supabase'
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
 
@@ -136,6 +136,10 @@ export async function enablePush(userId: string): Promise<EnableResult> {
   )
 
   if (error) return { ok: false, error: error.message }
+
+  // Opt-in dos resumos diários: ao ativar notificações criamos (uma vez) os
+  // lembretes de resumo manhã/noite. Best-effort — não bloqueia a subscrição.
+  await ensureSummaryReminders(userId).catch(() => {})
   return { ok: true }
 }
 

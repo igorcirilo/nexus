@@ -196,6 +196,33 @@ export async function getReminders(userId: string) {
   return data ?? []
 }
 
+/**
+ * Semeia os dois lembretes de resumo diário (manhã/noite) se ainda não
+ * existirem. Opt-in: chamado quando o utilizador ativa as notificações. Ficam
+ * como lembretes normais — o utilizador pode editá-los ou desligá-los em
+ * /lembretes. O corpo é gerado dinamicamente pela Edge Function send-reminders.
+ */
+export async function ensureSummaryReminders(userId: string) {
+  const { data: existing } = await supabase
+    .from('reminders')
+    .select('type')
+    .eq('user_id', userId)
+    .in('type', ['resumo_manha', 'resumo_noite'])
+
+  const have = new Set((existing ?? []).map((r) => (r as { type: string }).type))
+  const allDays = ['0', '1', '2', '3', '4', '5', '6'] // dom..sáb
+  const rows: Record<string, unknown>[] = []
+  if (!have.has('resumo_manha')) {
+    rows.push({ user_id: userId, title: 'Resumo da manhã', type: 'resumo_manha', time: '07:00', days: allDays, active: true })
+  }
+  if (!have.has('resumo_noite')) {
+    rows.push({ user_id: userId, title: 'Resumo da noite', type: 'resumo_noite', time: '21:00', days: allDays, active: true })
+  }
+  if (rows.length === 0) return
+  const { error } = await supabase.from('reminders').insert(rows)
+  if (error) reportError('ensureSummaryReminders error', error.message)
+}
+
 export async function saveReminder(payload: Record<string, unknown>) {
   if (payload.id) {
     const { id, ...rest } = payload
@@ -888,4 +915,46 @@ export async function getReadingPages30d(userId: string): Promise<number> {
 
   if (error) reportError('getReadingPages30d error', error.message)
   return (data ?? []).reduce((sum, r) => sum + (r.pages_read ?? 0), 0)
+}
+
+// ── Assistente (Fase 1): dados de apoio ao planeador do dia ────────────────
+/**
+ * Últimos scores por área de vida (0–100), um por área (snapshot mais recente).
+ * Usado pelo planeador para reforçar áreas fracas. Áreas sem score ficam de fora.
+ */
+export async function getLatestAreaScores(userId: string): Promise<Partial<Record<HabitArea, number>>> {
+  const { data, error } = await supabase
+    .from('life_area_scores')
+    .select('area, score, snapshot_at')
+    .eq('user_id', userId)
+    .order('snapshot_at', { ascending: false })
+
+  if (error) {
+    reportError('getLatestAreaScores error', error.message)
+    return {}
+  }
+  const out: Partial<Record<HabitArea, number>> = {}
+  for (const row of (data ?? []) as { area: HabitArea; score: number }[]) {
+    if (out[row.area] == null) out[row.area] = row.score
+  }
+  return out
+}
+
+/**
+ * Nº de transações ainda por categorizar (categoria 'Outro', o default do
+ * import quando a heurística não reconhece a descrição). Sinaliza pendência
+ * de revisão no /financas.
+ */
+export async function getUncategorizedTxCount(userId: string): Promise<number> {
+  const { count, error } = await supabase
+    .from('transactions')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('category', 'Outro')
+
+  if (error) {
+    reportError('getUncategorizedTxCount error', error.message)
+    return 0
+  }
+  return count ?? 0
 }

@@ -44,6 +44,8 @@ function defaultBody(type: string): string {
     case 'checkin_tarde': return 'Pausa para o check-in da tarde 🌤️'
     case 'checkin_noite': return 'Fecha o dia com o check-in da noite 🌙'
     case 'habito': return 'Não te esqueças do teu hábito de hoje ✅'
+    case 'resumo_manha': return 'Bom dia — o teu plano de hoje está pronto ☀️'
+    case 'resumo_noite': return 'Vê como correu o dia e prepara amanhã 🌙'
     default: return 'Tens um lembrete no NEXUS 🔔'
   }
 }
@@ -52,6 +54,68 @@ function urlForType(type: string): string {
   if (type?.startsWith('checkin')) return '/checkin'
   if (type === 'habito') return '/habitos'
   return '/hoje'
+}
+
+// Chave de data 'yyyy-MM-dd' no fuso do utilizador, com deslocamento de dias.
+function dateKeyInTz(tz: string, offsetDays = 0): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() + offsetDays)
+  // en-CA formata como yyyy-MM-dd.
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(d)
+}
+
+// deno-lint-ignore no-explicit-any
+async function countTodayTasks(supabase: any, userId: string, today: string): Promise<number> {
+  const { data: prog } = await supabase
+    .from('programs').select('id').eq('user_id', userId).eq('status', 'active').maybeSingle()
+  if (!prog) return 0
+  const { data: day } = await supabase
+    .from('program_days').select('id').eq('program_id', prog.id).eq('date', today).maybeSingle()
+  if (!day) return 0
+  const { count } = await supabase
+    .from('program_tasks').select('id', { count: 'exact', head: true })
+    .eq('day_id', day.id).eq('status', 'pending')
+  return count ?? 0
+}
+
+/**
+ * Corpo dinâmico dos resumos diários (template, sem IA). Manhã = plano de hoje;
+ * noite = fecho + agenda de amanhã. Espelha a lógica de day-planner/pendencias.
+ */
+// deno-lint-ignore no-explicit-any
+async function buildSummaryBody(supabase: any, userId: string, type: string, tz: string): Promise<string> {
+  const today = dateKeyInTz(tz, 0)
+
+  if (type === 'resumo_manha') {
+    const [{ data: habits }, nTasks, { data: events }] = await Promise.all([
+      supabase.from('habits').select('id').eq('user_id', userId).eq('active', true),
+      countTodayTasks(supabase, userId, today),
+      supabase.from('agenda_events').select('title, time').eq('user_id', userId).eq('date', today).order('time'),
+    ])
+    const nHabits = (habits ?? []).length
+    const ev = (events ?? [])[0]
+    const evTxt = ev ? ` Primeiro evento: ${ev.title}${ev.time ? ' às ' + String(ev.time).slice(0, 5) : ''}.` : ''
+    return `Bom dia. Hoje: ${nTasks} ${nTasks === 1 ? 'tarefa' : 'tarefas'} e ${nHabits} ${nHabits === 1 ? 'hábito' : 'hábitos'}.${evTxt}`
+  }
+
+  // resumo_noite
+  const [{ data: habits }, { data: logs }] = await Promise.all([
+    supabase.from('habits').select('id').eq('user_id', userId).eq('active', true),
+    supabase.from('habit_logs').select('habit_id').eq('user_id', userId).eq('date', today).eq('completed', true),
+  ])
+  const total = (habits ?? []).length
+  const done = (logs ?? []).length
+  const tomorrow = dateKeyInTz(tz, 1)
+  const { count: nTomorrow } = await supabase
+    .from('agenda_events').select('id', { count: 'exact', head: true })
+    .eq('user_id', userId).eq('date', tomorrow)
+  const tmTxt = (nTomorrow ?? 0) > 0 ? ` Amanhã: ${nTomorrow} ${nTomorrow === 1 ? 'evento' : 'eventos'}.` : ''
+  return `Fecho do dia: ${done}/${total} hábitos cumpridos.${tmTxt}`
 }
 
 interface Reminder {
@@ -122,9 +186,19 @@ Deno.serve(async (req) => {
       if (r.last_sent_at && new Date(r.last_sent_at) >= minuteStart) continue
 
       due++
+      // Resumos diários: corpo gerado a partir dos dados reais do utilizador.
+      // Outros lembretes: descrição própria ou texto por defeito do tipo.
+      let body = r.description || defaultBody(r.type)
+      if (r.type === 'resumo_manha' || r.type === 'resumo_noite') {
+        try {
+          body = await buildSummaryBody(supabase, userId, r.type, tz)
+        } catch (_e) {
+          body = defaultBody(r.type) // fallback seguro se a query falhar
+        }
+      }
       const payload = JSON.stringify({
         title: r.title || 'NEXUS',
-        body: r.description || defaultBody(r.type),
+        body,
         url: urlForType(r.type),
         tag: `reminder-${r.id}`,
       })
