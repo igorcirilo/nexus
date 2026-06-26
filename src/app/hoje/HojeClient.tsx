@@ -11,7 +11,6 @@ import LevelUpModal from '@/components/LevelUpModal'
 import BadgeModal from '@/components/BadgeModal'
 import EmptyState from '@/components/EmptyState'
 import AddTaskSheet from '@/components/hoje/AddTaskSheet'
-import TodayCommandPanel from '@/components/hoje/TodayCommandPanel'
 import TodayMissionPanel from '@/components/hoje/TodayMissionPanel'
 import DayPlanPanel from '@/components/hoje/DayPlanPanel'
 import AttentionPanel from '@/components/hoje/AttentionPanel'
@@ -47,14 +46,6 @@ import StreakRecovery from '@/components/StreakRecovery'
 type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[] }
 
 const cleanDisplayText = repairMojibake
-
-function cleanActionText(value: string) {
-  const text = cleanDisplayText(value)
-    .replace(/^Pr\S*ximo passo:\s*/i, '')
-    .replace(/\s+Isso j\S* \S* progresso\.$/i, '')
-    .trim()
-  return text ? text.charAt(0).toLocaleUpperCase('pt-PT') + text.slice(1) : text
-}
 
 function seedProfile(initial: Profile | null, checkins: Checkin[]): Profile | null {
   if (!initial) return null
@@ -101,9 +92,6 @@ export default function HojeClient({
   const [addSaving, setAddSaving] = useState(false)
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
   const [pendingBadges, setPendingBadges] = useState<{ key: string; name: string }[]>([])
-  // "Adiar" o card "Agora": esconde-o até a app ser reaberta (sessionStorage
-  // limpa quando a app fecha, por iso o card volta numa nova sessão).
-  const [commandDismissed, setCommandDismissed] = useState(false)
   // Assistente (Fase 1): dados externos do planeador, carregados no cliente
   // (usam o client de browser com sessão). O plano/pendências são derivados
   // por useMemo, por isso reagem ao marcar hábitos sem novo fetch.
@@ -171,18 +159,6 @@ export default function HojeClient({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
-
-  // Lê o estado de "adiado" guardado para esta sessão/dia.
-  useEffect(() => {
-    if (sessionStorage.getItem('hoje-command-dismissed') === today) {
-      setCommandDismissed(true)
-    }
-  }, [today])
-
-  function handleDismissCommand() {
-    setCommandDismissed(true)
-    sessionStorage.setItem('hoje-command-dismissed', today)
-  }
 
   // Carrega os dados do planeador uma vez (no cliente, com sessão). Falhas são
   // silenciosas — o card simplesmente não aparece, sem partir o resto da página.
@@ -357,7 +333,6 @@ export default function HojeClient({
         hour,
       })
     : { body: '...', action: '...' }
-  const primaryAction = cleanActionText(mentorMsg.action)
 
   return (
     <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', animation: 'fadeUp .3s ease' }}>
@@ -411,27 +386,24 @@ export default function HojeClient({
       {/* Topo: nível + missão do dia. */}
       {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
 
+      {/* Missão assistiva: quando não há missão, sugere o foco do dia + check-in;
+          o coaching do mentor vive aqui (funde o antigo card "Agora"). */}
       {profile && (
         <TodayMissionPanel
-          mission={profile.mission_today || 'Definir a missão no check-in da manhã'}
+          mission={profile.mission_today?.trim() ? profile.mission_today : null}
+          suggestion={dayPlan.focusSuggestion}
+          coaching={mentorMsg.body}
           progress={missionPct}
           onProgress={setMissionPct}
+          checkinPending={checkinPending}
+          onCheckin={() => {
+            window.location.href = '/checkin'
+          }}
         />
       )}
 
       {/* Assistente: pendências do dia (Fase 1). */}
       <AttentionPanel pendencias={pendencias} />
-
-      {/* Card "Agora": some quando o check-in fica concluído; "Depois" adia-o
-          até a app ser reaberta. */}
-      {checkinPending && !commandDismissed && (
-        <TodayCommandPanel
-          action={primaryAction}
-          context={mentorMsg.body}
-          checkinPending={checkinPending}
-          onDismiss={handleDismissCommand}
-        />
-      )}
 
       {/* Lista única "O teu dia": hábitos marcáveis + tarefas/eventos/objetivos. */}
       {noHabits ? (

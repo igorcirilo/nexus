@@ -71,13 +71,6 @@ export default function DayPlanPanel({ plan, habitProgress, onToggleHabit, onAdd
           <p style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--text2)' }}>{plan.capacityHint}</p>
         )}
 
-        {plan.focusSuggestion && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 14, background: 'rgba(232,168,56,.1)', border: '0.5px solid rgba(232,168,56,.24)' }}>
-            <Icon name="zap" size={16} color="var(--gold)" />
-            <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text1)' }}>{plan.focusSuggestion}</p>
-          </div>
-        )}
-
         {plan.items.map((item) =>
           item.kind === 'habit' ? (
             <HabitRow
@@ -98,9 +91,9 @@ export default function DayPlanPanel({ plan, habitProgress, onToggleHabit, onAdd
 
 function Header({ progress }: { progress: { done: number; total: number } }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 2 }}>
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, minWidth: 0 }}>
-        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, lineHeight: 1.2, color: 'var(--text1)' }}>
+        <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 21, lineHeight: 1.35, letterSpacing: '-0.01em', color: 'var(--text1)' }}>
           O teu dia
         </h2>
         {progress.total > 0 && (
