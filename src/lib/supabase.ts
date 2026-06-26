@@ -58,6 +58,23 @@ export async function getHabitsWithLogs(userId: string, date: string, client: Su
   return habits ?? []
 }
 
+// Matéria-prima para a deteção de lacunas (mentor): hábitos ativos + logs
+// concluídos desde `sinceStr`. Leitura pura — o cálculo vive em lib/gaps.
+export async function getHabitActivity(
+  userId: string,
+  sinceStr: string,
+  client: SupabaseClient = supabase,
+) {
+  const [{ data: habits }, { data: logs }] = await Promise.all([
+    client.from('habits').select('id, name, area, created_at').eq('user_id', userId).eq('active', true),
+    client.from('habit_logs').select('habit_id, date').eq('user_id', userId).eq('completed', true).gte('date', sinceStr),
+  ])
+  return {
+    habits: (habits ?? []) as { id: string; name: string; area: import('@/types').HabitArea; created_at: string }[],
+    logs: (logs ?? []) as { habit_id: string; date: string }[],
+  }
+}
+
 export async function toggleHabitLog(
   userId: string,
   habitId: string,
