@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { todayISO, phaseForHour } from '@/lib/date'
 import Nav from '@/components/Nav'
-import RitmoBar from '@/components/RitmoBar'
 import FeedbackToast, { triggerToast } from '@/components/FeedbackToast'
 import AvatarXP from '@/components/AvatarXP'
 import NightSummaryCard from '@/components/NightSummaryCard'
@@ -11,8 +10,8 @@ import LevelUpModal from '@/components/LevelUpModal'
 import BadgeModal from '@/components/BadgeModal'
 import EmptyState from '@/components/EmptyState'
 import AddTaskSheet from '@/components/hoje/AddTaskSheet'
-import TodayCommandPanel from '@/components/hoje/TodayCommandPanel'
-import TodayMissionPanel from '@/components/hoje/TodayMissionPanel'
+import MentorInsight from '@/components/hoje/MentorInsight'
+import CaptureBar from '@/components/hoje/CaptureBar'
 import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
 import Icon from '@/components/ui/Icon'
 import {
@@ -79,7 +78,6 @@ export default function HojeClient({
   initialHabits,
   initialNoHabits,
 }: HojeClientProps) {
-  // Estado inicial vem do servidor → primeiro paint já com dados reais.
   const [profile, setProfile] = useState<Profile | null>(() => seedProfile(initialProfile, initialCheckins))
   const [ritmo, setRitmo] = useState(0)
   const [missionPct, setMissionPct] = useState(0)
@@ -93,22 +91,15 @@ export default function HojeClient({
   const [addSaving, setAddSaving] = useState(false)
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
   const [pendingBadges, setPendingBadges] = useState<{ key: string; name: string }[]>([])
-  // "Adiar" o card "Agora": esconde-o até a app ser reaberta (sessionStorage
-  // limpa quando a app fecha, por iso o card volta numa nova sessão).
   const [commandDismissed, setCommandDismissed] = useState(false)
+
   const today = todayISO()
   const hour = new Date().getHours()
-
   const greeting = hour < 12 ? 'Bom dia' : hour < 18 ? 'Boa tarde' : 'Boa noite'
 
-  // Efeitos de gamificação (mutações) — correm uma vez no cliente, nunca no
-  // render do servidor. Não bloqueiam a página: falhas só são registadas.
   useEffect(() => {
     let cancelled = false
     async function runSideEffects() {
-      // Reconciliação de fuso: o servidor calcula "hoje" no SEU fuso (UTC em
-      // produção). Se a data local do dispositivo diferir, recarrega os dados
-      // sensíveis à data (check-ins + hábitos do dia).
       const dateMismatch = today !== serverToday
       if (dateMismatch) {
         const [freshCheckins, freshHabits] = await Promise.all([
@@ -122,9 +113,6 @@ export default function HojeClient({
         }
       }
 
-      // Recovery: avaliado a partir do perfil do SERVIDOR, antes de qualquer
-      // atividade. A ofensiva já não é mexida ao abrir a app (ver P1.2), por
-      // isso este sinal mantém-se fiel ao estado real do utilizador.
       if (initialProfile && initialProfile.streak_current === 0 && initialProfile.streak_best > 0) {
         setShowRecovery(true)
         setCanRecover(await canClaimStreakRecovery(userId))
@@ -133,9 +121,6 @@ export default function HojeClient({
       const ritmoNow = await getRitmo(userId)
       if (!cancelled) setRitmo(ritmoNow)
 
-      // Badges são idempotentes: recalculados a partir do estado REAL já
-      // carregado (sem inflar a ofensiva). A ofensiva/level-up só avançam com
-      // atividade real — ver handleToggleHabit e checkin/finish.
       if (initialProfile) {
         const newBadges = await checkAndAwardBadges(userId, {
           streak_current: initialProfile.streak_current,
@@ -153,7 +138,6 @@ export default function HojeClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Lê o estado de "adiado" guardado para esta sessão/dia.
   useEffect(() => {
     if (sessionStorage.getItem('hoje-command-dismissed') === today) {
       setCommandDismissed(true)
@@ -176,19 +160,16 @@ export default function HojeClient({
   }
 
   async function handleToggleHabit(id: string, done: boolean) {
-    // Update otimista; o log usa a data local do dispositivo.
     const prevHabits = habits
     setHabits((prev) => prev.map((h) => (h.id === id ? { ...h, habit_logs: [{ completed: done, date: today }] } : h)))
     const { error } = await toggleHabitLog(userId, id, today, done)
     if (error) {
-      // Reverte o update otimista se a escrita falhar (P2.8).
       setHabits(prevHabits)
       triggerToast('Não foi possível guardar. Tenta de novo.')
       return
     }
 
     if (!done) {
-      // Desmarcar não conta como atividade: não mexe na ofensiva.
       setRitmo(await getRitmo(userId))
       return
     }
@@ -196,7 +177,6 @@ export default function HojeClient({
     const h = prevHabits.find((x) => x.id === id)
     if (h) triggerToast(`${cleanDisplayText(h.name)} — feito`)
 
-    // Atividade real concluída → avança a ofensiva e recalcula nível/badges.
     const prevLevel = profile?.level ?? 1
     await updateStreak(userId)
     const { data: streakFields } = await supabase
@@ -209,7 +189,6 @@ export default function HojeClient({
 
     if (streakFields) {
       setProfile((prev) => (prev ? { ...prev, ...streakFields } : prev))
-      // Level-up: dispara a celebração só quando o nível realmente sobe (P2.1).
       if (streakFields.level > prevLevel) {
         setLevelUpData({ level: streakFields.level, title: streakFields.title })
       }
@@ -235,10 +214,7 @@ export default function HojeClient({
     }
   }
 
-  // Backfill para utilizadores legados (tinham programa, sem hábitos): gera os
-  // hábitos a partir da última avaliação guardada.
   async function handleBackfill() {
-    // Evita disparos concorrentes (duplo-clique) enquanto a geração corre.
     if (backfilling) return
     setBackfilling(true)
     try {
@@ -320,53 +296,105 @@ export default function HojeClient({
 
       <AddTaskSheet open={addOpen} saving={addSaving} onClose={() => setAddOpen(false)} onCreate={handleCreateManualHabit} />
 
-      <header style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+      {/* ── Header compacto ────────────────────────────────────────── */}
+      <header
+        style={{
+          padding: '28px 20px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 14,
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
           {profile && <AvatarXP level={profile.level} size={48} avatarUrl={profile.avatar_url} />}
           <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 2 }}>
-              {greeting}, {profile?.username ?? 'Guerreiro'}
-            </p>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>Hoje</h1>
+            <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 1 }}>{greeting}</p>
+            <h1
+              style={{
+                fontFamily: 'Syne, sans-serif',
+                fontWeight: 700,
+                fontSize: 22,
+                lineHeight: 1.1,
+                marginBottom: 3,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {profile?.username ?? 'Guerreiro'}
+            </h1>
+            {profile && (
+              <p style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1 }}>
+                Nível {profile.level} · {profile.title}
+                {ritmo > 0 ? ` · Ritmo ${ritmo}` : ''}
+              </p>
+            )}
           </div>
         </div>
 
-        <a href="/progresso" aria-label="Ver progresso" style={{ minWidth: 116, minHeight: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg, rgba(var(--card-rgb),.96), rgba(var(--card-rgb),.96))', border: '0.5px solid rgba(var(--ink-rgb),.08)', borderRadius: 18, padding: '8px 12px', color: 'var(--gold)', boxShadow: '0 14px 38px rgba(0,0,0,.22)', textDecoration: 'none', touchAction: 'manipulation' }}>
-          <Icon name="flame" size={24} style={{ animation: 'flame 1.8s ease-in-out infinite', transformOrigin: 'bottom center' }} />
+        {/* Ofensiva pill — link para progresso */}
+        <a
+          href="/progresso"
+          aria-label={`Ofensiva: ${profile?.streak_current ?? 0} dias`}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '10px 14px',
+            borderRadius: 18,
+            background: 'linear-gradient(135deg, rgba(var(--card-rgb),.96), rgba(var(--card-rgb),.96))',
+            border: '0.5px solid rgba(var(--ink-rgb),.08)',
+            boxShadow: '0 10px 30px rgba(0,0,0,.18)',
+            textDecoration: 'none',
+            touchAction: 'manipulation',
+            flexShrink: 0,
+          }}
+        >
+          <Icon
+            name="flame"
+            size={20}
+            style={{
+              animation: 'flame 1.8s ease-in-out infinite',
+              transformOrigin: 'bottom center',
+              color: 'var(--gold)',
+            }}
+          />
           <div>
-            <div style={{ fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--gold)', lineHeight: 1 }}>
-              {profile?.streak_current ?? 0} dias
+            <div
+              style={{
+                fontFamily: 'var(--font-dm), "DM Sans", sans-serif',
+                fontWeight: 700,
+                fontSize: 18,
+                color: 'var(--gold)',
+                lineHeight: 1,
+              }}
+            >
+              {profile?.streak_current ?? 0}
             </div>
-            <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 4, lineHeight: 1 }}>sequência</div>
+            <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2, lineHeight: 1 }}>dias</div>
           </div>
-          <Icon name="chevron-right" size={16} color="var(--text3)" />
         </a>
       </header>
 
-      {/* Topo: nível + missão do dia. */}
-      {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
-
-      {profile && (
-        <TodayMissionPanel
-          mission={profile.mission_today || 'Definir a missão no check-in da manhã'}
-          progress={missionPct}
-          onProgress={setMissionPct}
-        />
-      )}
-
-      {/* Card "Agora": some quando o check-in fica concluído; "Depois" adia-o
-          até a app ser reaberta. */}
-      {checkinPending && !commandDismissed && (
-        <TodayCommandPanel
-          action={primaryAction}
-          context={mentorMsg.body}
+      {/* ── Sinal único do mentor (missão + orientação) ─────────────── */}
+      {!nightCheckin && profile && (
+        <MentorInsight
+          phase={currentPhase}
+          mission={profile.mission_today}
+          missionProgress={missionPct}
+          mentorBody={mentorMsg.body}
+          primaryAction={primaryAction}
           checkinPending={checkinPending}
+          dismissed={commandDismissed}
           onDismiss={handleDismissCommand}
+          onMissionProgress={setMissionPct}
         />
       )}
 
+      {/* ── Anel diário de hábitos ───────────────────────────────────── */}
       {noHabits ? (
-        <div style={{ padding: '0 20px' }}>
+        <div style={{ padding: '16px 20px 0' }}>
           <EmptyState
             icon="target"
             title="Vamos configurar os teus hábitos"
@@ -384,6 +412,10 @@ export default function HojeClient({
         />
       )}
 
+      {/* ── Captura / conversa com o Nexus ──────────────────────────── */}
+      <CaptureBar />
+
+      {/* ── Resumo de fim de dia (substitui mentor quando noite concluída) */}
       {profile && nightCheckin && (
         <NightSummaryCard
           ritmo={ritmo}

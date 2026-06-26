@@ -50,7 +50,7 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
           boxShadow: '0 14px 40px rgba(0,0,0,.14)',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 2 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 10 }}>
           <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, lineHeight: 1.2, color: 'var(--text1)' }}>
             Hábitos de hoje
           </h2>
@@ -72,6 +72,42 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
             Ver todos
           </a>
         </div>
+
+        {/* Barra de progresso glanceável */}
+        {totalCount > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+            <div
+              style={{
+                flex: 1,
+                height: 4,
+                borderRadius: 2,
+                background: 'var(--bg3)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${(doneCount / totalCount) * 100}%`,
+                  background: doneCount === totalCount ? 'var(--teal)' : 'var(--gold)',
+                  borderRadius: 2,
+                  transition: 'width 0.3s ease',
+                }}
+              />
+            </div>
+            <span
+              style={{
+                fontSize: 13,
+                fontWeight: 700,
+                color: doneCount === totalCount ? 'var(--teal)' : 'var(--text2)',
+                minWidth: 32,
+                textAlign: 'right',
+              }}
+            >
+              {doneCount}/{totalCount}
+            </span>
+          </div>
+        )}
 
         {habits.map((h) => {
           const isSaving = savingId === h.id
