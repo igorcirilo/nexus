@@ -33,6 +33,8 @@ export type PlanItemKind = 'task' | 'habit' | 'event' | 'milestone'
 
 export interface PlanItem {
   id: string
+  /** Id da entidade subjacente (sem prefixo) — usado p.ex. para marcar hábitos. */
+  sourceId: string
   kind: PlanItemKind
   label: string
   area?: HabitArea
@@ -169,6 +171,7 @@ export function buildDayPlan(input: PlannerInput): DayPlan {
   for (const ev of input.events) {
     raw.push({
       id: `event-${ev.id}`,
+      sourceId: ev.id,
       kind: 'event',
       label: ev.title,
       scheduledAt: ev.all_day ? null : ev.time,
@@ -185,6 +188,7 @@ export function buildDayPlan(input: PlannerInput): DayPlan {
       withDifficulty(
         {
           id: `task-${t.id}`,
+          sourceId: t.id,
           kind: 'task',
           label: t.title,
           area: t.area,
@@ -203,6 +207,7 @@ export function buildDayPlan(input: PlannerInput): DayPlan {
       withDifficulty(
         {
           id: `habit-${h.id}`,
+          sourceId: h.id,
           kind: 'habit',
           label: h.name,
           area: h.area,
@@ -221,6 +226,7 @@ export function buildDayPlan(input: PlannerInput): DayPlan {
     if (g.status !== 'active') continue
     raw.push({
       id: `goal-${g.id}`,
+      sourceId: g.id,
       kind: 'milestone',
       label: g.title,
       area: g.area,

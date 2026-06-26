@@ -156,10 +156,23 @@ describe('buildDayPlan', () => {
   it('item concluído tem prioridade 0', () => {
     expect(
       prioritize(
-        { id: 'x', kind: 'habit', label: 'X', priority: 0, isPriority: false, done: true } as PlanItem,
+        { id: 'x', sourceId: 'x', kind: 'habit', label: 'X', priority: 0, isPriority: false, done: true } as PlanItem,
         input(),
       ),
     ).toBe(0)
+  })
+
+  it('expõe o sourceId cru (sem prefixo) para cada tipo', () => {
+    const plan = buildDayPlan(
+      input({
+        programTasks: [task({ id: 't9' })],
+        habits: [habit({ id: 'h9' })],
+        events: [event({ id: 'e9' })],
+        goals: [goal({ id: 'g9' })],
+      }),
+    )
+    const byKind = Object.fromEntries(plan.items.map((i) => [i.kind, i.sourceId]))
+    expect(byKind).toEqual({ task: 't9', habit: 'h9', event: 'e9', milestone: 'g9' })
   })
 
   it('inclui tarefas, hábitos, eventos e milestones de objetivos ativos', () => {

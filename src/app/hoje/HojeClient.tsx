@@ -13,7 +13,6 @@ import EmptyState from '@/components/EmptyState'
 import AddTaskSheet from '@/components/hoje/AddTaskSheet'
 import TodayCommandPanel from '@/components/hoje/TodayCommandPanel'
 import TodayMissionPanel from '@/components/hoje/TodayMissionPanel'
-import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
 import DayPlanPanel from '@/components/hoje/DayPlanPanel'
 import AttentionPanel from '@/components/hoje/AttentionPanel'
 import Icon from '@/components/ui/Icon'
@@ -42,7 +41,6 @@ import { getMentorMessage } from '@/lib/mentor'
 import { repairMojibake } from '@/lib/text'
 import { calculateScores } from '@/lib/profile-assessment'
 import { suggestHabitLevel, generateHabitsFromAssessment } from '@/lib/assessment-to-habits'
-import { AREA_META } from '@/types'
 import type { Profile, Checkin, Habit, HabitArea, Answers, ProgramTask, Goal90 } from '@/types'
 import StreakRecovery from '@/components/StreakRecovery'
 
@@ -317,28 +315,20 @@ export default function HojeClient({
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
   const currentPhase = phaseForHour(hour)
   const checkinPending = !todayCheckins.some((c) => c.phase === currentPhase)
-  const habitViews: TodayHabitView[] = habits.map((h) => ({
-    id: h.id,
-    name: cleanDisplayText(h.name),
-    areaLabel: AREA_META[h.area]?.label ?? h.area,
-    color: AREA_META[h.area]?.color ?? 'var(--teal)',
-    timeWindow: h.time_window,
-    done: isDone(h),
-  }))
 
   // Plano do dia e pendências derivados (memo): reagem a marcar hábitos/check-in
-  // sem refazer o fetch. null/[] enquanto os dados externos não carregam.
+  // sem refazer o fetch. O plano renderiza já com os hábitos (vindos do servidor)
+  // e enriquece com tarefas/eventos/objetivos quando os dados externos chegam.
   const dayPlan = useMemo(() => {
-    if (!plannerData) return null
     return buildDayPlan({
       phase: phaseForHour(hour),
       hour,
       energy: profile?.energy_today ?? null,
-      programTasks: plannerData.tasks,
+      programTasks: plannerData?.tasks ?? [],
       habits,
-      events: plannerData.events,
-      goals: plannerData.goals,
-      areaScores: plannerData.areaScores,
+      events: plannerData?.events ?? [],
+      goals: plannerData?.goals ?? [],
+      areaScores: plannerData?.areaScores ?? {},
     })
   }, [plannerData, habits, profile?.energy_today, hour])
 
@@ -429,8 +419,7 @@ export default function HojeClient({
         />
       )}
 
-      {/* Assistente: plano do dia + pendências (Fase 1). */}
-      {dayPlan && <DayPlanPanel plan={dayPlan} />}
+      {/* Assistente: pendências do dia (Fase 1). */}
       <AttentionPanel pendencias={pendencias} />
 
       {/* Card "Agora": some quando o check-in fica concluído; "Depois" adia-o
@@ -444,6 +433,7 @@ export default function HojeClient({
         />
       )}
 
+      {/* Lista única "O teu dia": hábitos marcáveis + tarefas/eventos/objetivos. */}
       {noHabits ? (
         <div style={{ padding: '0 20px' }}>
           <EmptyState
@@ -454,11 +444,10 @@ export default function HojeClient({
           />
         </div>
       ) : (
-        <TodayHabitList
-          habits={habitViews}
-          doneCount={doneCnt}
-          totalCount={totalHabits}
-          onToggle={handleToggleHabit}
+        <DayPlanPanel
+          plan={dayPlan}
+          habitProgress={{ done: doneCnt, total: totalHabits }}
+          onToggleHabit={handleToggleHabit}
           onAddHabit={() => setAddOpen(true)}
         />
       )}
