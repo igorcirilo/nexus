@@ -15,6 +15,14 @@ export function daysClean(quitDate: string, today: string = todayISO()): number 
   return Math.max(0, Math.round((now - start) / 86400000))
 }
 
+/** Marcos de motivação (em dias) para a barra de progresso. */
+export const MILESTONES = [1, 3, 7, 14, 30, 60, 90, 180, 365]
+
+/** Próximo marco acima dos dias atuais, ou null se já passou o último. */
+export function nextMilestone(days: number): number | null {
+  return MILESTONES.find((m) => m > days) ?? null
+}
+
 export async function getQuitHabits(userId: string): Promise<QuitHabit[]> {
   const { data } = await supabase
     .from('quit_habits')

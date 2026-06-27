@@ -11,19 +11,13 @@ import {
   registerRelapse,
   deleteQuitHabit,
   daysClean,
+  nextMilestone,
 } from '@/lib/quit-habits'
 import { AREA_META } from '@/types'
 import type { QuitHabit, HabitArea } from '@/types'
 
 const FONT = 'Inter, sans-serif'
 const AREAS = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
-
-/** Marcos de motivação (em dias). */
-const MILESTONES = [1, 3, 7, 14, 30, 60, 90, 180, 365]
-
-function nextMilestone(days: number): number | null {
-  return MILESTONES.find((m) => m > days) ?? null
-}
 
 const SUGGESTIONS = ['Redes sociais em excesso', 'Procrastinar', 'Açúcar', 'Fumar', 'Roer as unhas', 'Fast food', 'Álcool', 'Compras por impulso']
 
