@@ -35,6 +35,7 @@ interface Props {
   onPhotoSelect?: (file: File) => void
   photoUploading?: boolean
   journeyData?: { trainingCount30d: number; readingPages30d: number }
+  onOpenAchievements?: () => void
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -56,7 +57,7 @@ function hexAlpha(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
-export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEditAll, onLogout, onPhotoSelect, photoUploading, journeyData }: Props) {
+export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEditAll, onLogout, onPhotoSelect, photoUploading, journeyData, onOpenAchievements }: Props) {
   const earnedKeys = new Set(badges.map(b => b.badge_key))
   const earnedBadges = ALL_BADGES.filter(b => earnedKeys.has(b.key))
   const lockedBadges = ALL_BADGES.filter(b => !earnedKeys.has(b.key))
@@ -333,7 +334,14 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         )}
 
         {/* ── Conquistas ── */}
-        <SectionLabel>Conquistas</SectionLabel>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <SectionLabel>Conquistas</SectionLabel>
+          {onOpenAchievements && (
+            <button onClick={onOpenAchievements} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--gold)', fontFamily: 'inherit', marginTop: 10 }}>
+              Conquistas &amp; Metas ›
+            </button>
+          )}
+        </div>
         {earnedBadges.length > 0 ? (
           <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
             {earnedBadges.map(b => (

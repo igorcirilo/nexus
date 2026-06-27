@@ -2,12 +2,13 @@
 // src/app/perfil/page.tsx
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
-import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d, getRitmo } from '@/lib/supabase'
+import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d, getRitmo, getGoals90 } from '@/lib/supabase'
 import { emitToast } from '@/lib/toast-events'
 import { normalizeProfileForm } from '@/lib/profile-form'
 import { useRouter } from 'next/navigation'
-import type { Profile, UserBadge } from '@/types'
+import type { Profile, UserBadge, Goal90 } from '@/types'
 import PerfilHub from '@/components/perfil/PerfilHub'
+import AchievementsGoalsModal from '@/components/perfil/AchievementsGoalsModal'
 import HabitLevelCard from '@/components/perfil/HabitLevelCard'
 
 type AppTab = 'resumo' | 'editar'
@@ -53,6 +54,8 @@ const LOCKED_BADGES = [
 export default function PerfilPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [badges, setBadges] = useState<UserBadge[]>([])
+  const [goals, setGoals] = useState<Goal90[]>([])
+  const [showAchievements, setShowAchievements] = useState(false)
   const [journeyData, setJourneyData] = useState<{ trainingCount30d: number; readingPages30d: number } | undefined>(undefined)
   const [tab, setTab] = useState<AppTab>('resumo')
   const [editSection, setEditSection] = useState<Section | null>(null)
@@ -74,15 +77,17 @@ export default function PerfilPage() {
         return
       }
 
-      const [prof, userBadges, trainingCount, readingPages, ritmoNow] = await Promise.all([
+      const [prof, userBadges, trainingCount, readingPages, ritmoNow, userGoals] = await Promise.all([
         getProfile(user.id),
         getUserBadges(user.id),
         getTrainingCount30d(user.id),
         getReadingPages30d(user.id),
         getRitmo(user.id),
+        getGoals90(user.id),
       ])
       setProfile(prof)
       setBadges((userBadges ?? []) as UserBadge[])
+      setGoals((userGoals ?? []) as Goal90[])
       setRitmo(ritmoNow)
       setJourneyData({ trainingCount30d: trainingCount, readingPages30d: readingPages })
       setEmail(user.email ?? '')
@@ -256,7 +261,12 @@ export default function PerfilPage() {
           onPhotoSelect={handlePhotoSelect}
           photoUploading={photoUploading}
           journeyData={journeyData}
+          onOpenAchievements={() => setShowAchievements(true)}
         />
+
+        {showAchievements && (
+          <AchievementsGoalsModal badges={badges} goals={goals} onClose={() => setShowAchievements(false)} />
+        )}
 
         {editSection && (
           <div
