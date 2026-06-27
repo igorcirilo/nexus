@@ -16,6 +16,7 @@ import {
 } from '@/lib/stats'
 import { AREA_META } from '@/types'
 import { localDateKey } from '@/lib/date'
+import WeeklyDashboard from '@/components/estatisticas/WeeklyDashboard'
 import type { Profile, HabitArea } from '@/types'
 
 const FONT = 'Inter, sans-serif'
@@ -27,6 +28,8 @@ export default function EstatisticasPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState<ActivityStats | null>(null)
   const [areas, setAreas] = useState<AreaRow[]>([])
+  const [userId, setUserId] = useState<string | null>(null)
+  const [showDashboard, setShowDashboard] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -44,6 +47,7 @@ export default function EstatisticasPage() {
         supabase.from('habit_logs').select('habit_id, completed, date').eq('user_id', user.id).eq('completed', true).gte('date', localDateKey(since28)),
       ])
       setProfile(prof as Profile)
+      setUserId(user.id)
       setStats(s)
       setAreas(computeAreas((habits ?? []) as { id: string; area: string }[], (logs28 ?? []) as { habit_id: string }[]))
       setLoading(false)
@@ -130,6 +134,28 @@ export default function EstatisticasPage() {
                   ))}
                 </div>
               </>
+            )}
+
+            {/* Dashboard semanal (gráficos detalhados) — abre num botão */}
+            <SecTitle>Dashboard semanal</SecTitle>
+            {showDashboard && userId ? (
+              <WeeklyDashboard userId={userId} streakCurrent={profile?.streak_current ?? 0} />
+            ) : (
+              <button
+                onClick={() => setShowDashboard(true)}
+                style={{
+                  width: '100%', background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.08)',
+                  borderRadius: 16, padding: '16px', cursor: 'pointer', fontFamily: FONT,
+                  display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
+                }}
+              >
+                <span style={{ fontSize: 22 }}>📊</span>
+                <span style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text1)' }}>Ver dashboard detalhado</span>
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Atividade, energia, sono e resumo da semana</span>
+                </span>
+                <span style={{ fontSize: 18, color: 'var(--text3)' }}>›</span>
+              </button>
             )}
           </>
         )}
