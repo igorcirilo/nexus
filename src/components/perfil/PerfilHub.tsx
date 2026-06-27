@@ -35,6 +35,7 @@ interface Props {
   onPhotoSelect?: (file: File) => void
   photoUploading?: boolean
   journeyData?: { trainingCount30d: number; readingPages30d: number }
+  onOpenAchievements?: () => void
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -56,7 +57,7 @@ function hexAlpha(hex: string, alpha: number) {
   return `rgba(${r},${g},${b},${alpha})`
 }
 
-export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEditAll, onLogout, onPhotoSelect, photoUploading, journeyData }: Props) {
+export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEditAll, onLogout, onPhotoSelect, photoUploading, journeyData, onOpenAchievements }: Props) {
   const earnedKeys = new Set(badges.map(b => b.badge_key))
   const earnedBadges = ALL_BADGES.filter(b => earnedKeys.has(b.key))
   const lockedBadges = ALL_BADGES.filter(b => !earnedKeys.has(b.key))
@@ -333,7 +334,14 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         )}
 
         {/* ── Conquistas ── */}
-        <SectionLabel>Conquistas</SectionLabel>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <SectionLabel>Conquistas</SectionLabel>
+          {onOpenAchievements && (
+            <button onClick={onOpenAchievements} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--gold)', fontFamily: 'inherit', marginTop: 10 }}>
+              Conquistas &amp; Metas ›
+            </button>
+          )}
+        </div>
         {earnedBadges.length > 0 ? (
           <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
             {earnedBadges.map(b => (
@@ -392,7 +400,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {[
             { href: '/habitos',   label: 'Hábitos',   sub: 'Os teus hábitos diários',      icon: '✅', color: '#00C896' },
-            { href: '/progresso', label: 'Progresso', sub: 'Evolução, estatísticas e ligas', icon: '📈', color: '#00D4C8' },
+            { href: '/estatisticas', label: 'Estatísticas', sub: 'Consistência, heatmap e áreas', icon: '📈', color: '#00D4C8' },
             { href: '/objetivos', label: 'Objetivos', sub: 'Metas e desafios de longo prazo', icon: '🎯', color: '#F5C842' },
           ].map((item, idx, arr) => (
             <a

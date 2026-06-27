@@ -32,9 +32,10 @@ interface Props {
   onAdd: () => void
   onEdit: (habitId: string) => void
   onDelete: (habitId: string) => void
+  onOpenLibrary?: () => void
 }
 
-export default function HabitosHub({ habits, areas, doneToday, totalToday, onToggle, onAdd, onEdit, onDelete }: Props) {
+export default function HabitosHub({ habits, areas, doneToday, totalToday, onToggle, onAdd, onEdit, onDelete, onOpenLibrary }: Props) {
   const [filter, setFilter] = useState<string>('all')
   const [menuFor, setMenuFor] = useState<string | null>(null)
 
@@ -54,12 +55,22 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
             {totalToday > 0 ? `${doneToday} de ${totalToday} concluídos hoje` : 'Sem hábitos ativos'}
           </div>
         </div>
-        <button onClick={onAdd} aria-label="Novo hábito" style={plusBtn}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {onOpenLibrary && (
+            <button onClick={onOpenLibrary} aria-label="Biblioteca de hábitos" style={libBtn}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+              </svg>
+            </button>
+          )}
+          <button onClick={onAdd} aria-label="Novo hábito" style={plusBtn}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {/* Progress rings */}
@@ -317,6 +328,19 @@ const plusBtn: CSSProperties = {
   alignItems: 'center',
   justifyContent: 'center',
   color: '#F5C842',
+  cursor: 'pointer',
+}
+
+const libBtn: CSSProperties = {
+  width: 38,
+  height: 38,
+  borderRadius: 12,
+  background: 'rgba(var(--ink-rgb),0.05)',
+  border: '1px solid rgba(var(--ink-rgb),0.12)',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  color: 'var(--text2)',
   cursor: 'pointer',
 }
 

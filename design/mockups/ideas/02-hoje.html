@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pt-PT"><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
+  body{background:#04040A;display:flex;padding:46px}
+  .phone{width:412px;height:980px;background:#07070F;border-radius:46px;overflow:hidden;position:relative;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 40px 120px rgba(0,0,0,.9);padding:0 20px}
+  .label{position:absolute;top:-30px;left:0;font-size:13px;font-weight:700;color:#9BA0B0}
+  .sb{display:flex;justify-content:space-between;align-items:center;padding:18px 6px 0;font-size:13px;font-weight:700;color:#F0EDE8}
+  .head{display:flex;align-items:center;justify-content:space-between;margin-top:18px}
+  .head .hi{font-size:13px;color:#7E8496;font-weight:600}
+  .head h1{font-size:26px;font-weight:800;color:#F6F4EF;letter-spacing:-.4px;margin-top:2px}
+  .av{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#E8A838,#7F77DD);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}
+  /* hero progress */
+  .hero{margin-top:18px;background:linear-gradient(135deg,rgba(232,168,56,.14),rgba(127,119,221,.10));border:1px solid rgba(255,255,255,.08);border-radius:22px;padding:18px;display:flex;align-items:center;gap:18px}
+  .ring{width:78px;height:78px;flex-shrink:0;position:relative}
+  .ring svg{transform:rotate(-90deg)}
+  .ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .ring .c b{font-size:22px;font-weight:800;color:#F6F4EF;line-height:1}
+  .ring .c span{font-size:10px;color:#9BA0B0;margin-top:2px}
+  .hero .t b{font-size:16px;font-weight:800;color:#F0EDE8}
+  .hero .t p{font-size:12.5px;color:#9BA0B0;margin-top:4px;line-height:1.45}
+  .hero .chips{display:flex;gap:7px;margin-top:10px}
+  .hchip{font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.06);color:#C7C3BC}
+  .hchip.fire{background:rgba(232,168,56,.16);color:#F2C45A}
+  .gh{display:flex;align-items:center;justify-content:space-between;margin:24px 4px 12px}
+  .gh b{font-size:13px;font-weight:800;letter-spacing:.04em;color:#C7C3BC}
+  .gh .gt{font-size:11px;color:#5A6070;font-weight:700}
+  .list{display:flex;flex-direction:column;gap:10px}
+  .card{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:15px 15px}
+  .card.done{background:rgba(30,203,180,.06);border-color:rgba(30,203,180,.18)}
+  .tick{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;color:transparent}
+  .card.done .tick{background:#1ECBB4;border-color:#1ECBB4;color:#04241F}
+  .ic{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+  .body{flex:1;min-width:0}
+  .body b{font-size:14.5px;font-weight:700;color:#F0EDE8;display:block}
+  .card.done .body b{color:#8A8F9E;text-decoration:line-through;text-decoration-color:rgba(255,255,255,.2)}
+  .meta{display:flex;align-items:center;gap:8px;margin-top:4px;font-size:11.5px;color:#7E8496;font-weight:600}
+  .dot{width:7px;height:7px;border-radius:50%}
+  .flame{margin-left:auto;font-size:11.5px;font-weight:800;color:#E8A838;display:flex;align-items:center;gap:3px;flex-shrink:0}
+  .nav{position:absolute;left:0;right:0;bottom:0;height:74px;background:rgba(17,19,28,.96);border-top:.5px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-around;padding:0 28px}
+  .nav i{width:24px;height:24px;border-radius:7px;background:rgba(255,255,255,.10)}
+  .nav i.on{background:#E8A838}
+  .fab{width:54px;height:54px;border-radius:50%;background:linear-gradient(135deg,#F2C45A,#E8A838);margin-top:-22px;display:flex;align-items:center;justify-content:center;color:#1A1200;font-size:28px;box-shadow:0 6px 22px rgba(232,168,56,.5)}
+</style></head>
+<body>
+  <div class="phone">
+    <div class="label">Hoje — hábitos em cards de lista, agrupados por período</div>
+    <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+    <div class="head"><div><div class="hi">Sexta, 27 de junho</div><h1>Bom dia, Igor</h1></div><div class="av">IC</div></div>
+
+    <div class="hero">
+      <div class="ring">
+        <svg width="78" height="78"><circle cx="39" cy="39" r="33" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="7"/><circle cx="39" cy="39" r="33" fill="none" stroke="#E8A838" stroke-width="7" stroke-linecap="round" stroke-dasharray="207" stroke-dashoffset="78"/></svg>
+        <div class="c"><b>62%</b><span>do dia</span></div>
+      </div>
+      <div class="t"><b>5 de 8 hábitos</b><p>Bom ritmo. Falta o bloco de foco e a leitura para fechares o dia.</p>
+        <div class="chips"><span class="hchip fire">🔥 12 dias</span><span class="hchip">+85 XP hoje</span></div>
+      </div>
+    </div>
+
+    <div class="gh"><b>MANHÃ</b><span class="gt">3/3</span></div>
+    <div class="list">
+      <div class="card done"><div class="tick">✓</div><div class="ic" style="background:rgba(30,203,180,.14)">💧</div><div class="body"><b>Beber 2L de água</b><div class="meta"><span class="dot" style="background:#1ECBB4"></span>Todo o dia</div></div></div>
+      <div class="card done"><div class="tick">✓</div><div class="ic" style="background:rgba(30,203,180,.14)">🏋️</div><div class="body"><b>Treino completo</b><div class="meta"><span class="dot" style="background:#1ECBB4"></span>07:00–08:30</div></div><div class="flame">🔥 12</div></div>
+    </div>
+
+    <div class="gh"><b>TARDE</b><span class="gt">1/2</span></div>
+    <div class="list">
+      <div class="card"><div class="tick">✓</div><div class="ic" style="background:rgba(127,119,221,.16)">🎯</div><div class="body"><b>Bloco de foco 50 min</b><div class="meta"><span class="dot" style="background:#7F77DD"></span>Tarde · Média</div></div><div class="flame">🔥 6</div></div>
+      <div class="card"><div class="tick">✓</div><div class="ic" style="background:rgba(232,168,56,.16)">📚</div><div class="body"><b>Leitura técnica 20 min</b><div class="meta"><span class="dot" style="background:#E8A838"></span>Noite · Fácil</div></div></div>
+    </div>
+
+    <div class="nav"><i></i><i></i><div class="fab">＋</div><i class="on"></i><i></i></div>
+  </div>
+</body></html>

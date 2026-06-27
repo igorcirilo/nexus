@@ -11,8 +11,8 @@ import LevelUpModal from '@/components/LevelUpModal'
 import BadgeModal from '@/components/BadgeModal'
 import EmptyState from '@/components/EmptyState'
 import AddTaskSheet from '@/components/hoje/AddTaskSheet'
-import TodayCommandPanel from '@/components/hoje/TodayCommandPanel'
-import TodayMissionPanel from '@/components/hoje/TodayMissionPanel'
+import ProactiveAssistant from '@/components/hoje/ProactiveAssistant'
+import MetricsGrid from '@/components/hoje/MetricsGrid'
 import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
 import Icon from '@/components/ui/Icon'
 import {
@@ -26,27 +26,26 @@ import {
   checkAndAwardBadges,
   canClaimStreakRecovery,
   claimStreakRecovery,
+  getGoals90,
+  getAgendaEvents,
   supabase,
 } from '@/lib/supabase'
+import type { AgendaEvent } from '@/lib/supabase'
 import { getMentorMessage } from '@/lib/mentor'
+import { buildDayPlan } from '@/lib/day-planner'
+import { detectPendencias } from '@/lib/pendencias'
+import { getHojeMetrics } from '@/lib/hoje-metrics'
+import type { HojeMetrics } from '@/lib/hoje-metrics'
 import { repairMojibake } from '@/lib/text'
 import { calculateScores } from '@/lib/profile-assessment'
 import { suggestHabitLevel, generateHabitsFromAssessment } from '@/lib/assessment-to-habits'
 import { AREA_META } from '@/types'
-import type { Profile, Checkin, Habit, HabitArea, Answers } from '@/types'
+import type { Profile, Checkin, Habit, HabitArea, Answers, Goal90 } from '@/types'
 import StreakRecovery from '@/components/StreakRecovery'
 
 type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[] }
 
 const cleanDisplayText = repairMojibake
-
-function cleanActionText(value: string) {
-  const text = cleanDisplayText(value)
-    .replace(/^Pr\S*ximo passo:\s*/i, '')
-    .replace(/\s+Isso j\S* \S* progresso\.$/i, '')
-    .trim()
-  return text ? text.charAt(0).toLocaleUpperCase('pt-PT') + text.slice(1) : text
-}
 
 function seedProfile(initial: Profile | null, checkins: Checkin[]): Profile | null {
   if (!initial) return null
@@ -93,9 +92,9 @@ export default function HojeClient({
   const [addSaving, setAddSaving] = useState(false)
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
   const [pendingBadges, setPendingBadges] = useState<{ key: string; name: string }[]>([])
-  // "Adiar" o card "Agora": esconde-o até a app ser reaberta (sessionStorage
-  // limpa quando a app fecha, por iso o card volta numa nova sessão).
-  const [commandDismissed, setCommandDismissed] = useState(false)
+  const [metrics, setMetrics] = useState<HojeMetrics | null>(null)
+  const [goals, setGoals] = useState<Goal90[]>([])
+  const [events, setEvents] = useState<AgendaEvent[]>([])
   const today = todayISO()
   const hour = new Date().getHours()
 
@@ -153,17 +152,27 @@ export default function HojeClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Lê o estado de "adiado" guardado para esta sessão/dia.
+  // Dados do assistente (objetivos + agenda de hoje) e da grelha de métricas.
   useEffect(() => {
-    if (sessionStorage.getItem('hoje-command-dismissed') === today) {
-      setCommandDismissed(true)
+    let cancelled = false
+    const now = new Date()
+    Promise.all([
+      getHojeMetrics(userId),
+      getGoals90(userId),
+      getAgendaEvents(userId, now.getFullYear(), now.getMonth() + 1),
+    ])
+      .then(([m, g, ev]) => {
+        if (cancelled) return
+        setMetrics(m)
+        setGoals((g ?? []) as Goal90[])
+        setEvents(((ev ?? []) as AgendaEvent[]).filter((e) => e.date === today))
+      })
+      .catch((err) => console.error('[hoje] métricas/assistente falharam:', err))
+    return () => {
+      cancelled = true
     }
-  }, [today])
-
-  function handleDismissCommand() {
-    setCommandDismissed(true)
-    sessionStorage.setItem('hoje-command-dismissed', today)
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   async function handleStreakRecover() {
     const success = await claimStreakRecovery(userId)
@@ -271,7 +280,6 @@ export default function HojeClient({
   const totalHabits = habits.length
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
   const currentPhase = phaseForHour(hour)
-  const checkinPending = !todayCheckins.some((c) => c.phase === currentPhase)
   const habitViews: TodayHabitView[] = habits.map((h) => ({
     id: h.id,
     name: cleanDisplayText(h.name),
@@ -288,11 +296,37 @@ export default function HojeClient({
         habitsDone: doneCnt,
         habitsTotal: totalHabits,
         missionPct,
-        phase: phaseForHour(hour),
+        phase: currentPhase,
         hour,
       })
     : { body: '...', action: '...' }
-  const primaryAction = cleanActionText(mentorMsg.action)
+
+  // Assistente proativo: plano do dia priorizado + pendências (lógica pura).
+  const dayPlan = buildDayPlan({
+    phase: currentPhase,
+    hour,
+    energy: profile?.energy_today ?? null,
+    programTasks: [],
+    habits,
+    events,
+    goals,
+    areaScores: {},
+  })
+  const pendencias = detectPendencias({
+    hour,
+    habits,
+    hasCheckinToday: todayCheckins.length > 0,
+    streakCurrent: profile?.streak_current ?? 0,
+    overdueTasks: [],
+    goals,
+    todayISO: today,
+    uncategorizedTx: 0,
+  })
+  const focusPhrase = dayPlan.focusSuggestion ?? dayPlan.capacityHint
+
+  function scrollToHabits() {
+    document.getElementById('hoje-habitos')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   return (
     <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', animation: 'fadeUp .3s ease' }}>
@@ -331,7 +365,7 @@ export default function HojeClient({
           </div>
         </div>
 
-        <a href="/progresso" aria-label="Ver progresso" style={{ minWidth: 116, minHeight: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg, rgba(var(--card-rgb),.96), rgba(var(--card-rgb),.96))', border: '0.5px solid rgba(var(--ink-rgb),.08)', borderRadius: 18, padding: '8px 12px', color: 'var(--gold)', boxShadow: '0 14px 38px rgba(0,0,0,.22)', textDecoration: 'none', touchAction: 'manipulation' }}>
+        <a href="/estatisticas" aria-label="Ver progresso" style={{ minWidth: 116, minHeight: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg, rgba(var(--card-rgb),.96), rgba(var(--card-rgb),.96))', border: '0.5px solid rgba(var(--ink-rgb),.08)', borderRadius: 18, padding: '8px 12px', color: 'var(--gold)', boxShadow: '0 14px 38px rgba(0,0,0,.22)', textDecoration: 'none', touchAction: 'manipulation' }}>
           <Icon name="flame" size={24} style={{ animation: 'flame 1.8s ease-in-out infinite', transformOrigin: 'bottom center' }} />
           <div>
             <div style={{ fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--gold)', lineHeight: 1 }}>
@@ -343,27 +377,20 @@ export default function HojeClient({
         </a>
       </header>
 
-      {/* Topo: nível + missão do dia. */}
+      {/* Topo: nível + ritmo. */}
       {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
 
-      {profile && (
-        <TodayMissionPanel
-          mission={profile.mission_today || 'Definir a missão no check-in da manhã'}
-          progress={missionPct}
-          onProgress={setMissionPct}
-        />
-      )}
-
-      {/* Card "Agora": some quando o check-in fica concluído; "Depois" adia-o
-          até a app ser reaberta. */}
-      {checkinPending && !commandDismissed && (
-        <TodayCommandPanel
-          action={primaryAction}
-          context={mentorMsg.body}
-          checkinPending={checkinPending}
-          onDismiss={handleDismissCommand}
-        />
-      )}
+      {/* Assistente proativo (mentor): missão do dia, mensagem, foco e pendências. */}
+      <ProactiveAssistant
+        message={cleanDisplayText(mentorMsg.body)}
+        focusPhrase={focusPhrase ? cleanDisplayText(focusPhrase) : null}
+        planCount={dayPlan.items.length}
+        pendencias={pendencias}
+        onFocusClick={scrollToHabits}
+        mission={profile?.mission_today ? cleanDisplayText(profile.mission_today) : null}
+        missionPct={missionPct}
+        onMissionProgress={setMissionPct}
+      />
 
       {noHabits ? (
         <div style={{ padding: '0 20px' }}>
@@ -375,14 +402,19 @@ export default function HojeClient({
           />
         </div>
       ) : (
-        <TodayHabitList
-          habits={habitViews}
-          doneCount={doneCnt}
-          totalCount={totalHabits}
-          onToggle={handleToggleHabit}
-          onAddHabit={() => setAddOpen(true)}
-        />
+        <div id="hoje-habitos">
+          <TodayHabitList
+            habits={habitViews}
+            doneCount={doneCnt}
+            totalCount={totalHabits}
+            onToggle={handleToggleHabit}
+            onAddHabit={() => setAddOpen(true)}
+          />
+        </div>
       )}
+
+      {/* Grelha 2x3 com as métricas das páginas principais. */}
+      {!noHabits && metrics && <MetricsGrid metrics={metrics} />}
 
       {profile && nightCheckin && (
         <NightSummaryCard
@@ -391,7 +423,7 @@ export default function HojeClient({
           habitsTotal={totalHabits}
           streak={profile.streak_current}
           onVerProgresso={() => {
-            window.location.href = '/progresso'
+            window.location.href = '/estatisticas'
           }}
         />
       )}

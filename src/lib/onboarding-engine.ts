@@ -169,10 +169,10 @@ export const ONBOARDING_QUESTIONS: Question[] = [
     area: ['corpo', 'produtividade'],
     weight: 1,
     options: [
-      { id: 'manha', label: 'Manhã', score_value: 1.0 },
-      { id: 'tarde', label: 'Tarde', score_value: 0.75 },
-      { id: 'noite', label: 'Noite', score_value: 0.5 },
-      { id: 'variado', label: 'Varia muito', score_value: 0.5 },
+      { id: 'manha', label: 'Manhã', score_value: 1.0, icon: '🌅', hint: 'Acordo cheio de energia' },
+      { id: 'tarde', label: 'Tarde', score_value: 0.75, icon: '☀️', hint: 'Rendo melhor a meio do dia' },
+      { id: 'noite', label: 'Noite', score_value: 0.5, icon: '🌙', hint: 'Sou mais ativo à noite' },
+      { id: 'variado', label: 'Varia muito', score_value: 0.5, icon: '🔄', hint: 'Adapto-me ao dia' },
     ],
   },
   {

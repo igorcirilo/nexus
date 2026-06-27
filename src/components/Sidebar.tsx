@@ -11,7 +11,7 @@ const ITEMS = [
   { href: '/leitura',   label: 'Leitura',     icon: BookIcon     },
   { href: '/habitos',   label: 'Hábitos',     icon: CheckIcon    },
   { href: '/objetivos', label: 'Objectivos',  icon: TargetIcon   },
-  { href: '/progresso', label: 'Progresso',   icon: ActivityIcon },
+  { href: '/estatisticas', label: 'Estatísticas', icon: ActivityIcon },
   { href: '/perfil',    label: 'Perfil',      icon: UserIcon     },
 ]
 
@@ -29,7 +29,7 @@ export default function Sidebar() {
       </div>
       <nav style={{ display:'flex', flexDirection:'column', gap:3 }}>
         {ITEMS.map(({ href, label, icon: Icon }) => {
-          const active = path === href || (href === '/progresso' && (path === '/evolucao' || path === '/dashboard'))
+          const active = path === href || (href === '/estatisticas' && (path === '/evolucao' || path === '/dashboard' || path === '/progresso'))
           return (
             <Link key={href} href={href} style={{
               display:'flex', alignItems:'center', gap:10,

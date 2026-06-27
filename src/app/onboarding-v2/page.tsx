@@ -2,17 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { ONBOARDING_QUESTIONS, saveDraft, loadDraft, submitAssessment } from '@/lib/onboarding-engine'
 import { QuestionRenderer } from '@/components/onboarding/QuestionRenderer'
 import { ProgressBar } from '@/components/onboarding/ProgressBar'
+import CommitmentContract from '@/components/onboarding/CommitmentContract'
 import { logError } from '@/lib/log'
 import type { Answers } from '@/types'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key'
-)
 
 const TOTAL = ONBOARDING_QUESTIONS.length
 
@@ -21,6 +17,8 @@ export default function OnboardingV2Page() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [answers, setAnswers] = useState<Partial<Answers>>({})
   const [userId, setUserId] = useState<string | null>(null)
+  const [username, setUsername] = useState('Eu')
+  const [showContract, setShowContract] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -34,7 +32,7 @@ export default function OnboardingV2Page() {
 
       const { data: profile } = await supabase
         .from('profiles')
-        .select('onboarded, onboarding_version, program_id, habit_level')
+        .select('onboarded, onboarding_version, program_id, habit_level, username')
         .eq('id', data.user.id)
         .single()
 
@@ -44,6 +42,7 @@ export default function OnboardingV2Page() {
         return
       }
 
+      if (profile?.username) setUsername(profile.username as string)
       setUserId(data.user.id)
     }
 
@@ -76,6 +75,11 @@ export default function OnboardingV2Page() {
       return
     }
 
+    // Última pergunta respondida → ecrã de contrato antes de submeter.
+    setShowContract(true)
+  }
+
+  const doSubmit = async () => {
     if (!userId) return
     setLoading(true)
     setError(null)
@@ -89,13 +93,17 @@ export default function OnboardingV2Page() {
     } catch (e) {
       setError('Erro ao salvar suas respostas. Tente novamente.')
       logError('onboarding-v2: submeter assessment', e)
-    } finally {
+      setShowContract(false)
       setLoading(false)
     }
   }
 
   const handleBack = () => {
     if (currentIndex > 0) setCurrentIndex(i => i - 1)
+  }
+
+  if (showContract) {
+    return <CommitmentContract name={username} loading={loading} onAccept={doSubmit} />
   }
 
   return (

@@ -79,6 +79,31 @@ export interface HabitLog {
   completed_at: string | null
 }
 
+/** Mau hábito a largar — rastreio de "dias sem recair". */
+export interface QuitHabit {
+  id: string
+  user_id: string
+  name: string
+  area: HabitArea | null
+  /** Motivação pessoal para largar (opcional). */
+  motivation: string | null
+  /** Data desde a qual está limpo (reinicia a cada recaída). 'yyyy-MM-dd'. */
+  quit_date: string
+  /** Melhor sequência de dias sem recair alcançada. */
+  best_streak: number
+  active: boolean
+  created_at: string
+}
+
+export interface QuitRelapse {
+  id: string
+  user_id: string
+  quit_habit_id: string
+  date: string
+  note: string | null
+  created_at: string
+}
+
 export type CheckinPhase = 'manha' | 'tarde' | 'noite'
 
 export interface Checkin {
@@ -488,6 +513,8 @@ export type QuestionOption = {
   id: string
   label: string
   score_value: number   // 0.0–1.0
+  icon?: string         // emoji opcional (UI de cartões maiores)
+  hint?: string         // subtítulo opcional do cartão
 }
 
 export type Question = {

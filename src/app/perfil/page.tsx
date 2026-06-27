@@ -2,12 +2,14 @@
 // src/app/perfil/page.tsx
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
-import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d, getRitmo } from '@/lib/supabase'
+import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d, getRitmo, getGoals90 } from '@/lib/supabase'
 import { emitToast } from '@/lib/toast-events'
 import { normalizeProfileForm } from '@/lib/profile-form'
+import { clearDraft } from '@/lib/onboarding-engine'
 import { useRouter } from 'next/navigation'
-import type { Profile, UserBadge } from '@/types'
+import type { Profile, UserBadge, Goal90 } from '@/types'
 import PerfilHub from '@/components/perfil/PerfilHub'
+import AchievementsGoalsModal from '@/components/perfil/AchievementsGoalsModal'
 import HabitLevelCard from '@/components/perfil/HabitLevelCard'
 
 type AppTab = 'resumo' | 'editar'
@@ -53,6 +55,8 @@ const LOCKED_BADGES = [
 export default function PerfilPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [badges, setBadges] = useState<UserBadge[]>([])
+  const [goals, setGoals] = useState<Goal90[]>([])
+  const [showAchievements, setShowAchievements] = useState(false)
   const [journeyData, setJourneyData] = useState<{ trainingCount30d: number; readingPages30d: number } | undefined>(undefined)
   const [tab, setTab] = useState<AppTab>('resumo')
   const [editSection, setEditSection] = useState<Section | null>(null)
@@ -74,15 +78,17 @@ export default function PerfilPage() {
         return
       }
 
-      const [prof, userBadges, trainingCount, readingPages, ritmoNow] = await Promise.all([
+      const [prof, userBadges, trainingCount, readingPages, ritmoNow, userGoals] = await Promise.all([
         getProfile(user.id),
         getUserBadges(user.id),
         getTrainingCount30d(user.id),
         getReadingPages30d(user.id),
         getRitmo(user.id),
+        getGoals90(user.id),
       ])
       setProfile(prof)
       setBadges((userBadges ?? []) as UserBadge[])
+      setGoals((userGoals ?? []) as Goal90[])
       setRitmo(ritmoNow)
       setJourneyData({ trainingCount30d: trainingCount, readingPages30d: readingPages })
       setEmail(user.email ?? '')
@@ -256,7 +262,12 @@ export default function PerfilPage() {
           onPhotoSelect={handlePhotoSelect}
           photoUploading={photoUploading}
           journeyData={journeyData}
+          onOpenAchievements={() => setShowAchievements(true)}
         />
+
+        {showAchievements && (
+          <AchievementsGoalsModal badges={badges} goals={goals} onClose={() => setShowAchievements(false)} />
+        )}
 
         {editSection && (
           <div
@@ -493,6 +504,9 @@ export default function PerfilPage() {
             if (!confirm2) return
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
+            // Apaga dados + assessments e repõe o perfil para um estado de
+            // onboarding LIMPO (sem habit_level/program_id pendentes, que antes
+            // deixavam o utilizador preso entre /hoje e o onboarding).
             await Promise.all([
               supabase.from('habit_logs').delete().eq('user_id', user.id),
               supabase.from('habits').delete().eq('user_id', user.id),
@@ -503,12 +517,15 @@ export default function PerfilPage() {
               supabase.from('reminders').delete().eq('user_id', user.id),
               supabase.from('transactions').delete().eq('user_id', user.id),
               supabase.from('agenda_events').delete().eq('user_id', user.id),
+              supabase.from('user_assessments').delete().eq('user_id', user.id),
               supabase.from('profiles').update({
                 level: 1, title: 'Recruta', streak_current: 0, streak_best: 0,
-                streak_last_date: null, mission_today: null, energy_today: 5, onboarded: false,
+                streak_last_date: null, mission_today: null, energy_today: 5,
+                onboarded: false, habit_level: null, program_id: null, onboarding_version: null,
               }).eq('id', user.id),
             ])
-            window.location.href = '/onboarding'
+            clearDraft()
+            window.location.href = '/onboarding-v2'
           }}
           style={{
             width: '100%', border: '0.5px solid rgba(226,75,74,.4)', borderRadius: 12,
