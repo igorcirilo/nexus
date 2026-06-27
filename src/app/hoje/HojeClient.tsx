@@ -13,7 +13,6 @@ import EmptyState from '@/components/EmptyState'
 import AddTaskSheet from '@/components/hoje/AddTaskSheet'
 import ProactiveAssistant from '@/components/hoje/ProactiveAssistant'
 import MetricsGrid from '@/components/hoje/MetricsGrid'
-import TodayMissionPanel from '@/components/hoje/TodayMissionPanel'
 import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
 import Icon from '@/components/ui/Icon'
 import {
@@ -366,7 +365,7 @@ export default function HojeClient({
           </div>
         </div>
 
-        <a href="/progresso" aria-label="Ver progresso" style={{ minWidth: 116, minHeight: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg, rgba(var(--card-rgb),.96), rgba(var(--card-rgb),.96))', border: '0.5px solid rgba(var(--ink-rgb),.08)', borderRadius: 18, padding: '8px 12px', color: 'var(--gold)', boxShadow: '0 14px 38px rgba(0,0,0,.22)', textDecoration: 'none', touchAction: 'manipulation' }}>
+        <a href="/estatisticas" aria-label="Ver progresso" style={{ minWidth: 116, minHeight: 58, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'linear-gradient(135deg, rgba(var(--card-rgb),.96), rgba(var(--card-rgb),.96))', border: '0.5px solid rgba(var(--ink-rgb),.08)', borderRadius: 18, padding: '8px 12px', color: 'var(--gold)', boxShadow: '0 14px 38px rgba(0,0,0,.22)', textDecoration: 'none', touchAction: 'manipulation' }}>
           <Icon name="flame" size={24} style={{ animation: 'flame 1.8s ease-in-out infinite', transformOrigin: 'bottom center' }} />
           <div>
             <div style={{ fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--gold)', lineHeight: 1 }}>
@@ -378,24 +377,19 @@ export default function HojeClient({
         </a>
       </header>
 
-      {/* Topo: nível + missão do dia. */}
+      {/* Topo: nível + ritmo. */}
       {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
 
-      {profile && (
-        <TodayMissionPanel
-          mission={profile.mission_today || 'Definir a missão no check-in da manhã'}
-          progress={missionPct}
-          onProgress={setMissionPct}
-        />
-      )}
-
-      {/* Assistente proativo (mentor): mensagem, foco e pendências do dia. */}
+      {/* Assistente proativo (mentor): missão do dia, mensagem, foco e pendências. */}
       <ProactiveAssistant
         message={cleanDisplayText(mentorMsg.body)}
         focusPhrase={focusPhrase ? cleanDisplayText(focusPhrase) : null}
         planCount={dayPlan.items.length}
         pendencias={pendencias}
         onFocusClick={scrollToHabits}
+        mission={profile?.mission_today ? cleanDisplayText(profile.mission_today) : null}
+        missionPct={missionPct}
+        onMissionProgress={setMissionPct}
       />
 
       {noHabits ? (
@@ -429,7 +423,7 @@ export default function HojeClient({
           habitsTotal={totalHabits}
           streak={profile.streak_current}
           onVerProgresso={() => {
-            window.location.href = '/progresso'
+            window.location.href = '/estatisticas'
           }}
         />
       )}

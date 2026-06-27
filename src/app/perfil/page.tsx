@@ -5,6 +5,7 @@ import Nav from '@/components/Nav'
 import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d, getRitmo, getGoals90 } from '@/lib/supabase'
 import { emitToast } from '@/lib/toast-events'
 import { normalizeProfileForm } from '@/lib/profile-form'
+import { clearDraft } from '@/lib/onboarding-engine'
 import { useRouter } from 'next/navigation'
 import type { Profile, UserBadge, Goal90 } from '@/types'
 import PerfilHub from '@/components/perfil/PerfilHub'
@@ -503,6 +504,9 @@ export default function PerfilPage() {
             if (!confirm2) return
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
+            // Apaga dados + assessments e repõe o perfil para um estado de
+            // onboarding LIMPO (sem habit_level/program_id pendentes, que antes
+            // deixavam o utilizador preso entre /hoje e o onboarding).
             await Promise.all([
               supabase.from('habit_logs').delete().eq('user_id', user.id),
               supabase.from('habits').delete().eq('user_id', user.id),
@@ -513,12 +517,15 @@ export default function PerfilPage() {
               supabase.from('reminders').delete().eq('user_id', user.id),
               supabase.from('transactions').delete().eq('user_id', user.id),
               supabase.from('agenda_events').delete().eq('user_id', user.id),
+              supabase.from('user_assessments').delete().eq('user_id', user.id),
               supabase.from('profiles').update({
                 level: 1, title: 'Recruta', streak_current: 0, streak_best: 0,
-                streak_last_date: null, mission_today: null, energy_today: 5, onboarded: false,
+                streak_last_date: null, mission_today: null, energy_today: 5,
+                onboarded: false, habit_level: null, program_id: null, onboarding_version: null,
               }).eq('id', user.id),
             ])
-            window.location.href = '/onboarding'
+            clearDraft()
+            window.location.href = '/onboarding-v2'
           }}
           style={{
             width: '100%', border: '0.5px solid rgba(226,75,74,.4)', borderRadius: 12,

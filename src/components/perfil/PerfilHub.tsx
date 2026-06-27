@@ -400,7 +400,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {[
             { href: '/habitos',   label: 'Hábitos',   sub: 'Os teus hábitos diários',      icon: '✅', color: '#00C896' },
-            { href: '/progresso', label: 'Progresso', sub: 'Evolução, estatísticas e ligas', icon: '📈', color: '#00D4C8' },
+            { href: '/estatisticas', label: 'Estatísticas', sub: 'Consistência, heatmap e áreas', icon: '📈', color: '#00D4C8' },
             { href: '/objetivos', label: 'Objetivos', sub: 'Metas e desafios de longo prazo', icon: '🎯', color: '#F5C842' },
           ].map((item, idx, arr) => (
             <a

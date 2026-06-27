@@ -14,14 +14,19 @@ import {
   lastDays,
   type ActivityStats,
 } from '@/lib/stats'
-import type { Profile } from '@/types'
+import { AREA_META } from '@/types'
+import { localDateKey } from '@/lib/date'
+import type { Profile, HabitArea } from '@/types'
 
 const FONT = 'Inter, sans-serif'
 const HEAT = ['rgba(var(--ink-rgb),0.05)', 'rgba(232,168,56,0.28)', 'rgba(232,168,56,0.5)', 'rgba(232,168,56,0.72)', '#E8A838']
 
+type AreaRow = { key: string; label: string; icon: string; color: string; pct: number }
+
 export default function EstatisticasPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState<ActivityStats | null>(null)
+  const [areas, setAreas] = useState<AreaRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -30,9 +35,17 @@ export default function EstatisticasPage() {
         window.location.href = '/auth'
         return
       }
-      const [prof, s] = await Promise.all([getProfile(user.id), getActivityStats(user.id, 63)])
+      const since28 = new Date()
+      since28.setDate(since28.getDate() - 27)
+      const [prof, s, { data: habits }, { data: logs28 }] = await Promise.all([
+        getProfile(user.id),
+        getActivityStats(user.id, 63),
+        supabase.from('habits').select('id, area').eq('user_id', user.id).eq('active', true),
+        supabase.from('habit_logs').select('habit_id, completed, date').eq('user_id', user.id).eq('completed', true).gte('date', localDateKey(since28)),
+      ])
       setProfile(prof as Profile)
       setStats(s)
+      setAreas(computeAreas((habits ?? []) as { id: string; area: string }[], (logs28 ?? []) as { habit_id: string }[]))
       setLoading(false)
     })
   }, [])
@@ -47,7 +60,7 @@ export default function EstatisticasPage() {
     <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: 'var(--surface-page)', fontFamily: FONT }}>
       <div style={{ padding: '0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '22px 0 4px' }}>
-          <Link href="/progresso" aria-label="Voltar" style={backBtn}>‹</Link>
+          <Link href="/hoje" aria-label="Voltar" style={backBtn}>‹</Link>
           <div>
             <h1 style={{ fontSize: 25, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.4px' }}>Estatísticas</h1>
             <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, marginTop: 2 }}>A tua consistência ao longo do tempo</div>
@@ -99,6 +112,25 @@ export default function EstatisticasPage() {
                 ))}
               </div>
             </div>
+
+            {/* Áreas da vida (últimos 28 dias) */}
+            {areas.length > 0 && (
+              <>
+                <SecTitle>Áreas da vida · 28 dias</SecTitle>
+                <div style={{ ...panel, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {areas.map((a) => (
+                    <div key={a.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: 15, width: 22, textAlign: 'center', flexShrink: 0 }}>{a.icon}</span>
+                      <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text1)', minWidth: 96, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</span>
+                      <div style={{ flex: 1, height: 6, background: 'var(--surface-3)', borderRadius: 10, overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${a.pct}%`, borderRadius: 10, background: a.color }} />
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', minWidth: 30, textAlign: 'right' }}>{a.pct}%</span>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
@@ -119,6 +151,24 @@ function RegCard({ emoji, value, label, color }: { emoji: string; value: number 
 
 function SecTitle({ children }: { children: React.ReactNode }) {
   return <div style={{ margin: '24px 4px 12px', fontSize: 12, fontWeight: 800, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text3)' }}>{children}</div>
+}
+
+/** Progresso por área (últimos 28 dias) a partir dos hábitos e conclusões. */
+function computeAreas(habits: { id: string; area: string }[], logs: { habit_id: string }[]): AreaRow[] {
+  const idsByArea: Record<string, string[]> = {}
+  for (const h of habits) (idsByArea[h.area] ??= []).push(h.id)
+  const doneByHabit: Record<string, number> = {}
+  for (const l of logs) doneByHabit[l.habit_id] = (doneByHabit[l.habit_id] ?? 0) + 1
+
+  return (Object.keys(AREA_META) as HabitArea[])
+    .map((key) => {
+      const ids = idsByArea[key] ?? []
+      const total = ids.length * 28
+      const done = ids.reduce((sum, id) => sum + (doneByHabit[id] ?? 0), 0)
+      const meta = AREA_META[key]
+      return { key, label: meta.label, icon: meta.icon, color: meta.color, pct: total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0 }
+    })
+    .filter((a) => (idsByArea[a.key] ?? []).length > 0)
 }
 
 const MONTHS_PT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez']
