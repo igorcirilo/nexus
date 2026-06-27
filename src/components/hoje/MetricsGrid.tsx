@@ -70,7 +70,7 @@ export default function MetricsGrid({ metrics }: Props) {
         />
         {/* Ritmo / sequência */}
         <MetricCard
-          href="/progresso"
+          href="/estatisticas"
           color="#E8A838"
           icon="🔥"
           trend={ritmo.best > 0 ? `recorde ${ritmo.best}` : undefined}
