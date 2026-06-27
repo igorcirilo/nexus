@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="pt-PT"><head><meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;font-family:'Inter',sans-serif}
+  body{background:#04040A;display:flex;padding:46px}
+  .phone{width:412px;height:1366px;background:#07070F;border-radius:46px;overflow:hidden;position:relative;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 40px 120px rgba(0,0,0,.9);padding:0 20px}
+  .label{position:absolute;top:-30px;left:0;font-size:13px;font-weight:700;color:#9BA0B0}
+  .sb{display:flex;justify-content:space-between;align-items:center;padding:18px 6px 0;font-size:13px;font-weight:700;color:#F0EDE8}
+  .head{display:flex;align-items:center;justify-content:space-between;margin-top:16px}
+  .head .hi{font-size:13px;color:#7E8496;font-weight:600}
+  .head h1{font-size:25px;font-weight:800;color:#F6F4EF;letter-spacing:-.4px;margin-top:2px}
+  .av{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,#E8A838,#7F77DD);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:16px}
+
+  /* ── Assistente proativo (mentor) ── */
+  .asst{margin-top:16px;border-radius:22px;padding:18px;background:linear-gradient(135deg,rgba(127,119,221,.20),rgba(30,203,180,.10));border:1px solid rgba(127,119,221,.35);position:relative;overflow:hidden}
+  .asst .glow{position:absolute;top:-40px;right:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(127,119,221,.45),transparent 70%)}
+  .asst .row1{display:flex;align-items:center;gap:11px;position:relative}
+  .orb{width:38px;height:38px;border-radius:12px;background:linear-gradient(135deg,#9C94EC,#1ECBB4);display:flex;align-items:center;justify-content:center;font-size:19px;box-shadow:0 0 18px rgba(127,119,221,.6)}
+  .asst .row1 b{font-size:13px;font-weight:800;color:#D7D4FF;letter-spacing:.04em}
+  .asst .row1 .tag{margin-left:auto;font-size:10.5px;font-weight:700;color:#9BA0B0;background:rgba(255,255,255,.08);padding:4px 9px;border-radius:20px}
+  .asst .msg{position:relative;margin-top:13px;font-size:15px;line-height:1.45;color:#F2F0FA;font-weight:600}
+  .asst .focus{position:relative;margin-top:14px;display:flex;align-items:center;gap:11px;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.10);border-radius:14px;padding:12px 13px}
+  .asst .focus .play{width:30px;height:30px;border-radius:9px;background:rgba(30,203,180,.18);color:#1ECBB4;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+  .asst .focus .t b{display:block;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#8E93B5;font-weight:800}
+  .asst .focus .t span{display:block;font-size:13.5px;color:#F0EDE8;font-weight:700;margin-top:2px}
+  .asst .focus .go{margin-left:auto;font-size:18px;color:#9BA0B0;flex-shrink:0}
+  .asst .chips{position:relative;display:flex;gap:7px;margin-top:11px;flex-wrap:wrap}
+  .ach{font-size:11px;font-weight:700;padding:5px 10px;border-radius:20px;display:flex;align-items:center;gap:5px}
+  .ach.warn{background:rgba(232,168,56,.16);color:#F2C45A}
+  .ach.ok{background:rgba(30,203,180,.16);color:#5FE3D0}
+  .ach.risk{background:rgba(226,75,74,.16);color:#F08A89}
+
+  /* ── Hábitos (compacto) ── */
+  .gh{display:flex;align-items:center;justify-content:space-between;margin:22px 4px 12px}
+  .gh b{font-size:13px;font-weight:800;letter-spacing:.04em;color:#C7C3BC}
+  .gh .see{font-size:11.5px;color:#E8A838;font-weight:700}
+  .list{display:flex;flex-direction:column;gap:9px}
+  .card{display:flex;align-items:center;gap:13px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:13px 14px}
+  .card.done{background:rgba(30,203,180,.06);border-color:rgba(30,203,180,.18)}
+  .tick{width:28px;height:28px;border-radius:50%;border:2px solid rgba(255,255,255,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:transparent}
+  .card.done .tick{background:#1ECBB4;border-color:#1ECBB4;color:#04241F}
+  .ic{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+  .body{flex:1;min-width:0}
+  .body b{font-size:14px;font-weight:700;color:#F0EDE8;display:block}
+  .card.done .body b{color:#8A8F9E;text-decoration:line-through;text-decoration-color:rgba(255,255,255,.2)}
+  .meta{font-size:11px;color:#7E8496;font-weight:600;margin-top:3px}
+  .flame{margin-left:auto;font-size:11px;font-weight:800;color:#E8A838;flex-shrink:0}
+  .star{margin-left:auto;font-size:11px;font-weight:800;color:#9C94EC;flex-shrink:0}
+
+  /* ── 6 cards de métricas 2x3 ── */
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-top:2px}
+  .mc{aspect-ratio:1/1;border-radius:20px;padding:15px;border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;position:relative;overflow:hidden}
+  .mc .top{display:flex;align-items:center;justify-content:space-between}
+  .mc .mi{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:19px}
+  .mc .trend{font-size:11px;font-weight:800;padding:3px 8px;border-radius:20px}
+  .mc .val{font-size:30px;font-weight:800;letter-spacing:-1px;margin-top:auto;line-height:1;color:#F6F4EF}
+  .mc .val small{font-size:15px;font-weight:700;color:#9BA0B0}
+  .mc .k{font-size:11px;font-weight:700;color:#9BA0B0;margin-top:6px}
+  .mc .sub{font-size:11px;font-weight:600;color:#7E8496;margin-top:2px}
+  .nav{position:absolute;left:0;right:0;bottom:0;height:72px;background:rgba(17,19,28,.96);border-top:.5px solid rgba(255,255,255,.07)}
+</style></head>
+<body>
+  <div class="phone">
+    <div class="label">Hoje (v2) — assistente proativo + hábitos + 6 métricas (2×3)</div>
+    <div class="sb"><span>9:41</span><span>● ● ●</span></div>
+    <div class="head"><div><div class="hi">Sexta, 27 de junho</div><h1>Bom dia, Igor</h1></div><div class="av">IC</div></div>
+
+    <!-- ASSISTENTE PROATIVO (mentor antes dos hábitos) -->
+    <div class="asst">
+      <div class="glow"></div>
+      <div class="row1"><div class="orb">✦</div><b>O TEU ASSISTENTE</b><span class="tag">Plano de hoje · 8 itens</span></div>
+      <div class="msg">Boa energia hoje. Aproveita a manhã para o trabalho mais difícil — é a decisão mais inteligente que podes tomar.</div>
+      <div class="focus">
+        <div class="play">▶</div>
+        <div class="t"><b>Foco agora</b><span>Começa por: Treino completo</span></div>
+        <div class="go">›</div>
+      </div>
+      <div class="chips">
+        <span class="ach warn">⚠️ 3 hábitos por fazer</span>
+        <span class="ach ok">✓ Check-in feito</span>
+        <span class="ach risk">🔴 1 objetivo parado há 6d</span>
+      </div>
+    </div>
+
+    <!-- HÁBITOS (UI atual, compacta) -->
+    <div class="gh"><b>O teu dia · 5/8</b><span class="see">Ver todos ›</span></div>
+    <div class="list">
+      <div class="card done"><div class="tick">✓</div><div class="ic" style="background:rgba(30,203,180,.14)">💧</div><div class="body"><b>Beber 2L de água</b><div class="meta">Todo o dia</div></div></div>
+      <div class="card"><div class="tick">✓</div><div class="ic" style="background:rgba(127,119,221,.16)">🎯</div><div class="body"><b>Bloco de foco 50 min</b><div class="meta">Tarde · Média</div></div><div class="flame">🔥 6</div></div>
+      <div class="card"><div class="tick">✓</div><div class="ic" style="background:rgba(232,168,56,.16)">📚</div><div class="body"><b>Leitura técnica 20 min</b><div class="meta">Noite · Fácil</div></div></div>
+    </div>
+
+    <!-- 6 MÉTRICAS PRINCIPAIS (2x3) -->
+    <div class="gh"><b>Os teus números</b></div>
+    <div class="grid">
+      <div class="mc" style="background:linear-gradient(135deg,rgba(30,203,180,.14),rgba(30,203,180,.04))">
+        <div class="top"><div class="mi" style="background:rgba(30,203,180,.18)">💪</div><span class="trend" style="background:rgba(30,203,180,.18);color:#5FE3D0">▼ 0.6kg</span></div>
+        <div class="val">78,4<small> kg</small></div><div class="k">Corpo · peso</div><div class="sub">Treino: Peito & Tríceps</div>
+      </div>
+      <div class="mc" style="background:linear-gradient(135deg,rgba(29,158,117,.14),rgba(29,158,117,.04))">
+        <div class="top"><div class="mi" style="background:rgba(29,158,117,.18)">💰</div><span class="trend" style="background:rgba(29,158,117,.18);color:#5FD3A6">+12%</span></div>
+        <div class="val">+1 240<small> €</small></div><div class="k">Finanças · saldo</div><div class="sub">Junho · 84% do orçamento</div>
+      </div>
+      <div class="mc" style="background:linear-gradient(135deg,rgba(232,168,56,.13),rgba(232,168,56,.04))">
+        <div class="top"><div class="mi" style="background:rgba(232,168,56,.18)">📖</div><span class="trend" style="background:rgba(232,168,56,.18);color:#F2C45A">64%</span></div>
+        <div class="val">210<small> /328</small></div><div class="k">Leitura · página</div><div class="sub">Hábitos Atómicos</div>
+      </div>
+      <div class="mc" style="background:linear-gradient(135deg,rgba(133,183,235,.13),rgba(133,183,235,.04))">
+        <div class="top"><div class="mi" style="background:rgba(133,183,235,.18)">📅</div><span class="trend" style="background:rgba(133,183,235,.18);color:#A9CBF2">hoje</span></div>
+        <div class="val">14:00</div><div class="k">Agenda · próximo</div><div class="sub">Reunião de equipa</div>
+      </div>
+      <div class="mc" style="background:linear-gradient(135deg,rgba(232,168,56,.14),rgba(226,136,75,.05))">
+        <div class="top"><div class="mi" style="background:rgba(232,168,56,.18)">🔥</div><span class="trend" style="background:rgba(232,168,56,.18);color:#F2C45A">recorde 28</span></div>
+        <div class="val">12<small> dias</small></div><div class="k">Ritmo · sequência</div><div class="sub">86% taxa de sucesso</div>
+      </div>
+      <div class="mc" style="background:linear-gradient(135deg,rgba(127,119,221,.16),rgba(127,119,221,.05))">
+        <div class="top"><div class="mi" style="background:rgba(127,119,221,.2)">🎯</div><span class="trend" style="background:rgba(127,119,221,.2);color:#B4ACF5">68%</span></div>
+        <div class="val">Sem 6<small> /9</small></div><div class="k">Objetivo em foco</div><div class="sub">Treinar 4x por semana</div>
+      </div>
+    </div>
+
+    <div class="nav"></div>
+  </div>
+</body></html>
