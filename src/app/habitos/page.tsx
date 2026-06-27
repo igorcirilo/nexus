@@ -2,10 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
+import Link from 'next/link'
 import Nav from '@/components/Nav'
 import HabitosHub from '@/components/habitos/HabitosHub'
+import HabitLibrarySheet from '@/components/habitos/HabitLibrarySheet'
 import { supabase, getHabitsWithLogs, toggleHabitLog } from '@/lib/supabase'
 import { todayISO } from '@/lib/date'
+import { XP_BY_DIFFICULTY, normalizeForSearch } from '@/lib/habit-library'
+import type { LibraryHabit } from '@/lib/habit-library'
 import { AREA_META } from '@/types'
 import type { Habit, HabitArea } from '@/types'
 
@@ -121,6 +125,8 @@ export default function HabitosPage() {
   const [habits, setHabits] = useState<Habit[]>([])
   const [userId, setUserId] = useState<string | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [showLibrary, setShowLibrary] = useState(false)
+  const [libBusyKey, setLibBusyKey] = useState<string | null>(null)
   const [editHabit, setEditHabit] = useState<Habit | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<Habit | null>(null)
   const [form, setForm] = useState<FormState>(EMPTY)
@@ -235,6 +241,25 @@ export default function HabitosPage() {
     showToast('Hábito removido.')
   }
 
+  async function addFromLibrary(h: LibraryHabit) {
+    if (!userId || libBusyKey) return
+    setLibBusyKey(h.key)
+    await supabase.from('habits').insert({
+      user_id: userId,
+      name: h.name,
+      area: h.area,
+      difficulty: h.difficulty,
+      xp_reward: XP_BY_DIFFICULTY[h.difficulty],
+      time_window: h.time_window,
+      active: true,
+      source: 'manual',
+      catalog_key: h.key,
+    })
+    await reload(userId)
+    setLibBusyKey(null)
+    showToast(`“${h.name}” adicionado!`)
+  }
+
   async function addDefaults() {
     if (!userId) return
     setSaving(true)
@@ -245,6 +270,13 @@ export default function HabitosPage() {
   }
 
   const suggestions = useMemo(() => SUGGESTIONS[form.area], [form.area])
+
+  // Para a Biblioteca: o que o utilizador já tem (por catalog_key e por nome).
+  const existingLibKeys = useMemo(
+    () => new Set(habits.map((h) => h.catalog_key).filter((k): k is string => Boolean(k))),
+    [habits],
+  )
+  const existingNames = useMemo(() => new Set(habits.map((h) => normalizeForSearch(h.name))), [habits])
 
   // ── Dados do tracker diário ──
   const todayList = todayHabits.map((h) => ({
@@ -299,7 +331,32 @@ export default function HabitosPage() {
         onAdd={openNew}
         onEdit={openEdit}
         onDelete={requestDelete}
+        onOpenLibrary={() => setShowLibrary(true)}
       />
+
+      {/* Entrada: largar maus hábitos */}
+      <div style={{ padding: '4px 22px 0', fontFamily: FONT }}>
+        <Link
+          href="/largar"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            background: 'var(--surface-2)',
+            border: '1px solid rgba(226,75,74,0.18)',
+            borderRadius: 16,
+            padding: '14px 16px',
+            textDecoration: 'none',
+          }}
+        >
+          <span style={{ fontSize: 20, flexShrink: 0 }}>🚭</span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text1)' }}>Largar um mau hábito</span>
+            <span style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Conta os dias sem recair</span>
+          </span>
+          <span style={{ fontSize: 18, color: 'var(--text3)', flexShrink: 0 }}>›</span>
+        </Link>
+      </div>
 
       {/* Hábitos inativos: reativáveis via edição */}
       {inactiveHabits.length > 0 && (
@@ -358,6 +415,17 @@ export default function HabitosPage() {
             {saving ? 'A adicionar…' : 'Adicionar hábitos de exemplo'}
           </button>
         </div>
+      )}
+
+      {/* ── Biblioteca de hábitos ── */}
+      {showLibrary && (
+        <HabitLibrarySheet
+          existingKeys={existingLibKeys}
+          existingNames={existingNames}
+          busyKey={libBusyKey}
+          onAdd={addFromLibrary}
+          onClose={() => setShowLibrary(false)}
+        />
       )}
 
       {/* ── Bottom sheet: novo / editar hábito ── */}
