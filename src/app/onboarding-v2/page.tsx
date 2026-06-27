@@ -21,8 +21,11 @@ export default function OnboardingV2Page() {
 
   useEffect(() => {
     async function loadUser() {
-      const { data } = await supabase.auth.getUser()
-      if (!data.user) {
+      // getSession() lê a sessão local dos cookies (sem round-trip de rede), ao
+      // contrário de getUser() — evita o falso "deslogado" logo após a cadeia de
+      // redirects login → /hoje → /onboarding-v2 (@supabase/ssr 0.1.0).
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.user) {
         router.replace('/auth')
         return
       }
@@ -30,7 +33,7 @@ export default function OnboardingV2Page() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('onboarded, onboarding_version, program_id, habit_level')
-        .eq('id', data.user.id)
+        .eq('id', session.user.id)
         .single()
 
       // Já concluiu: tem hábitos por nível (novo) ou um programa (legado).
@@ -39,7 +42,7 @@ export default function OnboardingV2Page() {
         return
       }
 
-      setUserId(data.user.id)
+      setUserId(session.user.id)
     }
 
     loadUser()
