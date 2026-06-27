@@ -43,7 +43,7 @@ export function SingleQuestion({ question, value, onChange }: Props) {
         {question.text}
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {question.options?.map((opt) => {
           const selected = value === opt.id
           return (
@@ -54,17 +54,40 @@ export function SingleQuestion({ question, value, onChange }: Props) {
                 width: '100%',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
+                gap: 14,
                 background: selected ? 'rgba(127,119,221,.10)' : 'var(--bg2)',
                 border: selected ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
-                borderRadius: 12,
-                padding: '14px 16px',
+                borderRadius: 14,
+                padding: opt.icon ? '14px 16px' : '14px 16px',
                 cursor: 'pointer',
                 transition: 'all .2s ease',
+                textAlign: 'left',
               }}
             >
-              <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 14, color: selected ? 'var(--accent)' : 'var(--text1)' }}>
-                {opt.label}
+              {opt.icon && (
+                <span
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 13,
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 22,
+                    background: selected ? 'rgba(127,119,221,.18)' : 'rgba(var(--ink-rgb),.05)',
+                  }}
+                >
+                  {opt.icon}
+                </span>
+              )}
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', fontFamily: 'DM Sans, sans-serif', fontWeight: opt.hint ? 700 : 400, fontSize: opt.hint ? 15 : 14, color: selected ? 'var(--accent)' : 'var(--text1)' }}>
+                  {opt.label}
+                </span>
+                {opt.hint && (
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--text2)', marginTop: 3 }}>{opt.hint}</span>
+                )}
               </span>
               {selected ? <CheckIcon /> : <span style={{ width: 18, height: 18, borderRadius: '50%', border: '0.5px solid var(--border)', flexShrink: 0 }} />}
             </button>

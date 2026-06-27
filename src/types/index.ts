@@ -513,6 +513,8 @@ export type QuestionOption = {
   id: string
   label: string
   score_value: number   // 0.0–1.0
+  icon?: string         // emoji opcional (UI de cartões maiores)
+  hint?: string         // subtítulo opcional do cartão
 }
 
 export type Question = {
