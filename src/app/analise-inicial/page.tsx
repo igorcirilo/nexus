@@ -48,12 +48,14 @@ export default function AnaliseInicialPage() {
       return
     }
 
-    supabase.auth.getUser().then(({ data }) => {
-      if (!data.user) {
+    // getSession() lê a sessão local (cookies) sem round-trip de rede — evita o
+    // falso "deslogado" que mandava para /auth a meio do onboarding.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user) {
         router.replace('/auth')
         return
       }
-      setUserId(data.user.id)
+      setUserId(session.user.id)
       const parsed = JSON.parse(answersRaw) as Answers
       const sc = calculateScores(parsed)
       const suggested = suggestHabitLevel(parsed, sc)

@@ -60,14 +60,15 @@ export default function ProgramaPage() {
   useEffect(() => {
     let active = true
 
-    supabase.auth.getUser().then(async ({ data }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!active) return
-      if (!data.user) {
+      const user = session?.user
+      if (!user) {
         router.replace('/auth')
         return
       }
 
-      const result = await getProgramWithWeeks(data.user.id)
+      const result = await getProgramWithWeeks(user.id)
       if (!active) return
 
       if (!result) {
