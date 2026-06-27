@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { calculateScores } from '@/lib/profile-assessment'
 import {
   generateHabitsFromAssessment,
@@ -13,11 +13,6 @@ import {
 } from '@/lib/assessment-to-habits'
 import { logError } from '@/lib/log'
 import type { AreaScores, HabitArea, Answers } from '@/types'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key'
-)
 
 const AREA_LABELS: Record<HabitArea, string> = {
   corpo: 'Saúde e Corpo',

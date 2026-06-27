@@ -2,17 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabase'
 import { ONBOARDING_QUESTIONS, saveDraft, loadDraft, submitAssessment } from '@/lib/onboarding-engine'
 import { QuestionRenderer } from '@/components/onboarding/QuestionRenderer'
 import { ProgressBar } from '@/components/onboarding/ProgressBar'
 import { logError } from '@/lib/log'
 import type { Answers } from '@/types'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co',
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key'
-)
 
 const TOTAL = ONBOARDING_QUESTIONS.length
 
