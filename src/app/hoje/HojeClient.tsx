@@ -1,28 +1,31 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { format } from 'date-fns'
 import { todayISO, phaseForHour } from '@/lib/date'
 import Nav from '@/components/Nav'
-import RitmoBar from '@/components/RitmoBar'
 import FeedbackToast, { triggerToast } from '@/components/FeedbackToast'
 import AvatarXP from '@/components/AvatarXP'
 import NightSummaryCard from '@/components/NightSummaryCard'
 import LevelUpModal from '@/components/LevelUpModal'
 import BadgeModal from '@/components/BadgeModal'
 import EmptyState from '@/components/EmptyState'
+import Icon from '@/components/ui/Icon'
 import AddTaskSheet from '@/components/hoje/AddTaskSheet'
-import DailyRing from '@/components/hoje/DailyRing'
+import MentorRead from '@/components/hoje/MentorRead'
 import NextActionCard from '@/components/hoje/NextActionCard'
-import GapCard from '@/components/hoje/GapCard'
+import DailyRing from '@/components/hoje/DailyRing'
 import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
+import AgendaToday from '@/components/hoje/AgendaToday'
+import LifeGrid from '@/components/hoje/LifeGrid'
+import Goal90Card from '@/components/hoje/Goal90Card'
+import InsightCard from '@/components/hoje/InsightCard'
+import CaptureBar from '@/components/hoje/CaptureBar'
 import {
   getProfile,
   getRitmo,
   updateStreak,
   getCheckinsForDate,
   getHabitsWithLogs,
-  getHabitActivity,
   toggleHabitLog,
   createHabitQuick,
   checkAndAwardBadges,
@@ -31,7 +34,8 @@ import {
   supabase,
 } from '@/lib/supabase'
 import { getNextAction } from '@/lib/next-action'
-import { detectGap, type Gap } from '@/lib/gaps'
+import { buildMentorRead } from '@/lib/mentor-read'
+import { getHomeExtras, type HomeExtras } from '@/lib/home-extras'
 import { repairMojibake } from '@/lib/text'
 import { calculateScores } from '@/lib/profile-assessment'
 import { suggestHabitLevel, generateHabitsFromAssessment } from '@/lib/assessment-to-habits'
@@ -92,7 +96,8 @@ export default function HojeClient({
   const [levelUpData, setLevelUpData] = useState<{ level: number; title: string } | null>(null)
   const [pendingBadges, setPendingBadges] = useState<{ key: string; name: string }[]>([])
   const [nextBusy, setNextBusy] = useState(false)
-  const [gap, setGap] = useState<Gap | null>(null)
+  // Sinais dos outros domínios (agenda, finanças, leitura, objetivo, insight).
+  const [extras, setExtras] = useState<HomeExtras | null>(null)
   const today = todayISO()
   const hour = new Date().getHours()
 
@@ -120,8 +125,7 @@ export default function HojeClient({
       }
 
       // Recovery: avaliado a partir do perfil do SERVIDOR, antes de qualquer
-      // atividade. A ofensiva já não é mexida ao abrir a app (ver P1.2), por
-      // isso este sinal mantém-se fiel ao estado real do utilizador.
+      // atividade.
       if (initialProfile && initialProfile.streak_current === 0 && initialProfile.streak_best > 0) {
         setShowRecovery(true)
         setCanRecover(await canClaimStreakRecovery(userId))
@@ -130,9 +134,6 @@ export default function HojeClient({
       const ritmoNow = await getRitmo(userId)
       if (!cancelled) setRitmo(ritmoNow)
 
-      // Badges são idempotentes: recalculados a partir do estado REAL já
-      // carregado (sem inflar a ofensiva). A ofensiva/level-up só avançam com
-      // atividade real — ver handleToggleHabit e checkin/finish.
       if (initialProfile) {
         const newBadges = await checkAndAwardBadges(userId, {
           streak_current: initialProfile.streak_current,
@@ -150,37 +151,20 @@ export default function HojeClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Mentor de lacuna: deteta (determinístico) a área deixada cair há mais
-  // tempo. Uma por dia — fica adiada por hoje quando o utilizador a dispensa.
+  // Sinais dos outros domínios (read-only, defensivo). Carrega após o paint
+  // inicial para não bloquear o essencial (estado + hábitos).
   useEffect(() => {
-    if (typeof window !== 'undefined' && localStorage.getItem('hoje-gap-dismissed') === today) return
     let cancelled = false
-    async function detect() {
-      const since = new Date()
-      since.setDate(since.getDate() - 30)
-      const { habits: actHabits, logs } = await getHabitActivity(userId, format(since, 'yyyy-MM-dd'))
-      const found = detectGap(
-        actHabits.map((h) => ({ ...h, name: cleanDisplayText(h.name) })),
-        logs,
-        today,
-      )
-      if (!cancelled) setGap(found)
-    }
-    detect().catch((err) => console.error('[hoje] deteção de lacuna falhou:', err))
+    getHomeExtras(userId, today, initialProfile)
+      .then((e) => {
+        if (!cancelled) setExtras(e)
+      })
+      .catch((err) => console.error('[hoje] sinais dos domínios falharam:', err))
     return () => {
       cancelled = true
     }
-  }, [today, userId])
-
-  function dismissGap() {
-    setGap(null)
-    if (typeof window !== 'undefined') localStorage.setItem('hoje-gap-dismissed', today)
-  }
-
-  function showGapInList() {
-    dismissGap()
-    scrollToHabits()
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId, today])
 
   async function handleStreakRecover() {
     const success = await claimStreakRecovery(userId)
@@ -193,19 +177,16 @@ export default function HojeClient({
   }
 
   async function handleToggleHabit(id: string, done: boolean) {
-    // Update otimista; o log usa a data local do dispositivo.
     const prevHabits = habits
     setHabits((prev) => prev.map((h) => (h.id === id ? { ...h, habit_logs: [{ completed: done, date: today }] } : h)))
     const { error } = await toggleHabitLog(userId, id, today, done)
     if (error) {
-      // Reverte o update otimista se a escrita falhar (P2.8).
       setHabits(prevHabits)
       triggerToast('Não foi possível guardar. Tenta de novo.')
       return
     }
 
     if (!done) {
-      // Desmarcar não conta como atividade: não mexe na ofensiva.
       setRitmo(await getRitmo(userId))
       return
     }
@@ -213,7 +194,6 @@ export default function HojeClient({
     const h = prevHabits.find((x) => x.id === id)
     if (h) triggerToast(`${cleanDisplayText(h.name)} — feito`)
 
-    // Atividade real concluída → avança a ofensiva e recalcula nível/badges.
     const prevLevel = profile?.level ?? 1
     await updateStreak(userId)
     const { data: streakFields } = await supabase
@@ -226,7 +206,6 @@ export default function HojeClient({
 
     if (streakFields) {
       setProfile((prev) => (prev ? { ...prev, ...streakFields } : prev))
-      // Level-up: dispara a celebração só quando o nível realmente sobe (P2.1).
       if (streakFields.level > prevLevel) {
         setLevelUpData({ level: streakFields.level, title: streakFields.title })
       }
@@ -252,10 +231,7 @@ export default function HojeClient({
     }
   }
 
-  // Backfill para utilizadores legados (tinham programa, sem hábitos): gera os
-  // hábitos a partir da última avaliação guardada.
   async function handleBackfill() {
-    // Evita disparos concorrentes (duplo-clique) enquanto a geração corre.
     if (backfilling) return
     setBackfilling(true)
     try {
@@ -286,7 +262,6 @@ export default function HojeClient({
 
   const doneCnt = habits.filter(isDone).length
   const totalHabits = habits.length
-  const allDone = totalHabits > 0 && doneCnt === totalHabits
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
   const currentPhase = phaseForHour(hour)
   const checkinPending = !todayCheckins.some((c) => c.phase === currentPhase)
@@ -299,8 +274,18 @@ export default function HojeClient({
     done: isDone(h),
   }))
 
-  // "A seguir": o condutor único, escolhido de forma determinística a partir do
-  // estado real do dia.
+  // Leitura do dia (ORIENTA): lê o estado real + o próximo evento/lembrete.
+  const mentorRead = buildMentorRead({
+    phase: currentPhase,
+    energy: profile?.energy_today ?? 0,
+    streak: profile?.streak_current ?? 0,
+    habitsLeft: totalHabits - doneCnt,
+    habitsTotal: totalHabits,
+    nextEvent: extras?.nextEvent ?? null,
+    reminder: extras?.reminder ?? null,
+  })
+
+  // "Agora": o condutor único, determinístico.
   const nextAction = getNextAction({
     phase: currentPhase,
     checkinPending,
@@ -310,7 +295,6 @@ export default function HojeClient({
     habits: habitViews.map((h) => ({ id: h.id, name: h.name, done: h.done })),
     nightCheckinDone: Boolean(nightCheckin),
   })
-  // Postura adaptativa: o Construtor (em ritmo) recebe um cartão colapsado.
   const compactPosture = (profile?.streak_current ?? 0) >= 7 && ritmo >= 60
 
   function handleNextAction() {
@@ -326,10 +310,8 @@ export default function HojeClient({
     handleToggleHabit(nextAction.habitId, true).finally(() => setNextBusy(false))
   }
 
-  const gapMeta = gap ? AREA_META[gap.area] : null
-
   return (
-    <main style={{ paddingBottom: 'calc(120px + env(safe-area-inset-bottom))', minHeight: '100dvh', animation: 'fadeUp .3s ease' }}>
+    <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', animation: 'fadeUp .3s ease' }}>
       <FeedbackToast />
 
       {levelUpData && (
@@ -354,21 +336,33 @@ export default function HojeClient({
 
       <AddTaskSheet open={addOpen} saving={addSaving} onClose={() => setAddOpen(false)} onCreate={handleCreateManualHabit} />
 
-      {/* Cabeçalho leve: identidade, sem competir com a âncora. */}
-      <header style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
-        {profile && <AvatarXP level={profile.level} size={48} avatarUrl={profile.avatar_url} />}
-        <div style={{ minWidth: 0 }}>
-          <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 2 }}>
-            {greeting}, {profile?.username ?? 'Guerreiro'}
-          </p>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>Hoje</h1>
+      {/* Cabeçalho: identidade + momentum (MOTIVA), discreto. */}
+      <header style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
+          {profile && <AvatarXP level={profile.level} size={48} avatarUrl={profile.avatar_url} />}
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 2 }}>
+              {greeting}, {profile?.username ?? 'Guerreiro'}
+            </p>
+            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>Hoje</h1>
+          </div>
         </div>
+
+        <a href="/progresso" aria-label="Ver progresso" style={{ display: 'flex', gap: 8, textDecoration: 'none', flexShrink: 0 }}>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'rgba(var(--ink-rgb),.04)', border: '0.5px solid var(--border)', borderRadius: 13, padding: '7px 10px', fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 800, fontSize: 14, color: 'var(--gold)' }}>
+            <Icon name="flame" size={15} />
+            {profile?.streak_current ?? 0}
+          </span>
+          <span style={{ display: 'flex', alignItems: 'center', background: 'rgba(var(--ink-rgb),.04)', border: '0.5px solid var(--border)', borderRadius: 13, padding: '7px 10px', fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 800, fontSize: 14, color: 'var(--teal)' }}>
+            Nív.{profile?.level ?? 1}
+          </span>
+        </a>
       </header>
 
-      {/* Âncora: o anel diário de hábitos + sequência num relance. */}
-      {profile && <DailyRing done={doneCnt} total={totalHabits} streak={profile.streak_current} />}
+      {/* ORIENTA — a leitura do dia. */}
+      <MentorRead text={mentorRead} />
 
-      {/* Condutor único — propõe, não exige. */}
+      {/* O condutor — "Agora". */}
       {!noHabits && (
         <NextActionCard
           title={nextAction.title}
@@ -380,6 +374,9 @@ export default function HojeClient({
           onSecondary={nextAction.kind === 'habit' ? scrollToHabits : undefined}
         />
       )}
+
+      {/* CHECK — anel diário + hábitos para marcar. */}
+      {profile && <DailyRing done={doneCnt} total={totalHabits} streak={profile.streak_current} />}
 
       {noHabits ? (
         <div style={{ padding: '16px 20px 0' }}>
@@ -400,21 +397,17 @@ export default function HojeClient({
         />
       )}
 
-      {/* Mentor de lacuna: 1 sinal/dia, dispensável, só quando há lacuna real e
-          ainda há margem no dia (não aparece com tudo cumprido). */}
-      {gap && gapMeta && !allDone && (
-        <GapCard
-          habitName={gap.habitName}
-          areaLabel={gapMeta.label}
-          color={gapMeta.color}
-          days={gap.days}
-          onShow={showGapInList}
-          onDismiss={dismissGap}
-        />
-      )}
+      {/* ORGANIZA + LEMBRA — agenda e lembretes. */}
+      {extras && <AgendaToday events={extras.agenda} reminder={extras.reminder} />}
 
-      {/* Ritmo & nível: feedback, não direção — fica discreto, abaixo da ação. */}
-      {profile && <RitmoBar ritmo={ritmo} level={profile.level} title={profile.title} streakBest={profile.streak_best} />}
+      {/* ORGANIZA (vida toda) — estado dos domínios. */}
+      {extras && <LifeGrid domains={extras.domains} />}
+
+      {/* Horizonte longo — objetivo dos 90 dias. */}
+      {extras?.goal && <Goal90Card title={extras.goal.title} progress={extras.goal.progress} />}
+
+      {/* ENSINA — o que o Nexus reparou. */}
+      {extras?.insight && <InsightCard title={extras.insight.title} body={extras.insight.body} />}
 
       {profile && nightCheckin && (
         <NightSummaryCard
@@ -428,6 +421,7 @@ export default function HojeClient({
         />
       )}
 
+      <CaptureBar />
       <Nav />
     </main>
   )
