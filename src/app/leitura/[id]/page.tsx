@@ -167,7 +167,9 @@ export default function LeituraReaderPage() {
 
   const pages     = book?.raw_content?.pages ?? []
   const pageCount = book?.raw_content?.pageCount ?? 1
-  const toc       = book?.raw_content?.toc ?? []
+  // Estabiliza a referência: sem o useMemo, `toc` é um array novo a cada render
+  // e faz o useMemo do capítulo atual recalcular sempre.
+  const toc       = useMemo(() => book?.raw_content?.toc ?? [], [book])
   const currentPageData = pages.find(p => p.pageNumber === currentPage) ?? pages[0]
 
   const currentChapter = useMemo(() => {

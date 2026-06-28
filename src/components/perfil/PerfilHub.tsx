@@ -74,7 +74,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
       localStorage.setItem('nexus-notif', on ? '1' : '0')
       if (on) syncTimezone(profile.id)
     }).catch(() => {})
-  }, [])
+  }, [profile.id])
 
   async function toggleNotifications() {
     if (notifBusy) return

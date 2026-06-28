@@ -79,7 +79,7 @@ export default function EstatisticasPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginTop: 16 }}>
               <RegCard emoji="🔥" value={profile?.streak_current ?? 0} label="SEQUÊNCIA ATUAL" color="#E8A838" />
               <RegCard emoji="🏆" value={profile?.streak_best ?? 0} label="MELHOR SEQUÊNCIA" color="#1ECBB4" />
-              <RegCard emoji="📊" value={`${success}%`} label="TAXA DE SUCESSO" color="#9C94EC" />
+              <RegCard emoji="📊" value={`${success}%`} label="SUCESSO · 30 DIAS" color="#9C94EC" />
             </div>
 
             {/* Heatmap */}

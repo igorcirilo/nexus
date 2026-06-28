@@ -117,7 +117,7 @@ export default function WeeklyDashboard({ userId, streakCurrent }: Props) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {[
-          { l: 'Consistência', v: `${stats.consistency}%`, c: '#00C896', trend: `${stats.consistency >= stats.prevConsistency ? '↑' : '↓'} vs semana passada`, up: stats.consistency >= stats.prevConsistency },
+          { l: 'Conclusão · 7d', v: `${stats.consistency}%`, c: '#00C896', trend: `${stats.consistency >= stats.prevConsistency ? '↑' : '↓'} vs semana passada`, up: stats.consistency >= stats.prevConsistency },
           { l: 'Ritmo atual', v: `${ritmo}`, c: '#F5C842', trend: `${stats.activityTrend >= 0 ? '↑ +' : '↓ '}${Math.abs(stats.activityTrend)} conclusões`, up: stats.activityTrend >= 0 },
           { l: 'Energia média', v: stats.energy > 0 ? `${stats.energy}/10` : '—', c: '#9D5CF5', sub: stats.energy >= 7 ? 'Boa semana ⚡' : stats.energy > 0 ? 'Recupera o sono' : 'Sem dados' },
           { l: 'Sono médio', v: stats.sleep > 0 ? `${stats.sleep}h` : '—', c: 'var(--ink)', sub: stats.sleep >= 7 ? 'Dentro do ideal' : stats.sleep > 0 ? 'Abaixo do ideal' : 'Sem dados' },
