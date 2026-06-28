@@ -6,7 +6,9 @@ import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCoun
 import { emitToast } from '@/lib/toast-events'
 import { normalizeProfileForm } from '@/lib/profile-form'
 import { clearDraft } from '@/lib/onboarding-engine'
+import { resetUserData, exportUserData, downloadUserDataFile, deleteAccount } from '@/lib/account'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import type { Profile, UserBadge, Goal90 } from '@/types'
 import PerfilHub from '@/components/perfil/PerfilHub'
 import AchievementsGoalsModal from '@/components/perfil/AchievementsGoalsModal'
@@ -68,6 +70,7 @@ export default function PerfilPage() {
   const [form, setForm] = useState<Record<string, string | number>>({})
   const [photoUploading, setPhotoUploading] = useState(false)
   const [photoError, setPhotoError] = useState('')
+  const [dangerBusy, setDangerBusy] = useState<null | 'reset' | 'export' | 'delete'>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -487,53 +490,115 @@ export default function PerfilPage() {
       </div>
 
 
+      {/* Privacidade & dados */}
+      <div style={{ margin: '0 20px 16px', padding: '16px', background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 16 }}>
+        <div style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, marginBottom: 10 }}>
+          Privacidade & dados
+        </div>
+        <p style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 14 }}>
+          Descarrega uma cópia de tudo o que guardamos sobre ti (perfil, hábitos, check-ins, peso, finanças, leitura…) em formato JSON.
+        </p>
+        <button
+          type="button"
+          disabled={dangerBusy !== null}
+          onClick={async () => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) return
+            setDangerBusy('export')
+            try {
+              const data = await exportUserData(user.id)
+              downloadUserDataFile(data)
+              emitToast('Dados exportados.', 'success')
+            } catch {
+              emitToast('Falha ao exportar os dados.', 'error')
+            } finally {
+              setDangerBusy(null)
+            }
+          }}
+          style={{
+            width: '100%', border: '0.5px solid var(--border)', borderRadius: 12,
+            padding: '11px 16px', background: 'transparent', color: 'var(--text1)',
+            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13,
+            cursor: dangerBusy ? 'not-allowed' : 'pointer', opacity: dangerBusy === 'export' ? 0.6 : 1,
+          }}
+        >
+          {dangerBusy === 'export' ? 'A preparar…' : 'Exportar os meus dados'}
+        </button>
+        <div style={{ display: 'flex', gap: 16, justifyContent: 'center', marginTop: 14 }}>
+          <Link href="/privacidade" style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'underline' }}>Política de Privacidade</Link>
+          <Link href="/termos" style={{ fontSize: 12, color: 'var(--text3)', textDecoration: 'underline' }}>Termos de Uso</Link>
+        </div>
+      </div>
+
       {/* Zona de perigo */}
       <div style={{ margin: '0 20px 100px', padding: '16px', background: 'rgba(226,75,74,.05)', border: '0.5px solid rgba(226,75,74,.2)', borderRadius: 16 }}>
         <div style={{ fontSize: 11, color: '#E24B4A', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 700, marginBottom: 10 }}>
           Zona de perigo
         </div>
         <p style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 14 }}>
-          Repõe todos os teus dados — hábitos, check-ins, streak e progresso serão apagados permanentemente. A conta mantém-se activa.
+          <b style={{ color: 'var(--text2)' }}>Repor dados:</b> apaga permanentemente todo o teu progresso (hábitos, check-ins, peso, finanças, leitura…). A conta mantém-se activa.
         </p>
         <button
           type="button"
+          disabled={dangerBusy !== null}
           onClick={async () => {
-            const confirm1 = window.confirm('Tens a certeza? Esta acção é irreversível.')
-            if (!confirm1) return
-            const confirm2 = window.confirm('Confirmas que queres apagar todos os teus dados?')
-            if (!confirm2) return
+            if (!window.confirm('Tens a certeza? Esta acção é irreversível.')) return
+            if (!window.confirm('Confirmas que queres apagar todos os teus dados?')) return
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) return
-            // Apaga dados + assessments e repõe o perfil para um estado de
-            // onboarding LIMPO (sem habit_level/program_id pendentes, que antes
-            // deixavam o utilizador preso entre /hoje e o onboarding).
-            await Promise.all([
-              supabase.from('habit_logs').delete().eq('user_id', user.id),
-              supabase.from('habits').delete().eq('user_id', user.id),
-              supabase.from('checkins').delete().eq('user_id', user.id),
-              supabase.from('focus_sessions').delete().eq('user_id', user.id),
-              supabase.from('user_badges').delete().eq('user_id', user.id),
-              supabase.from('goals_90').delete().eq('user_id', user.id),
-              supabase.from('reminders').delete().eq('user_id', user.id),
-              supabase.from('transactions').delete().eq('user_id', user.id),
-              supabase.from('agenda_events').delete().eq('user_id', user.id),
-              supabase.from('user_assessments').delete().eq('user_id', user.id),
-              supabase.from('profiles').update({
-                level: 1, title: 'Recruta', streak_current: 0, streak_best: 0,
-                streak_last_date: null, mission_today: null, energy_today: 5,
-                onboarded: false, habit_level: null, program_id: null, onboarding_version: null,
-              }).eq('id', user.id),
-            ])
+            setDangerBusy('reset')
+            // Apagamento COMPLETO (todas as tabelas com user_id) + perfil reposto
+            // para um estado de onboarding limpo. A lista vive em lib/account.ts.
+            const { ok, errors } = await resetUserData(user.id)
+            if (!ok) {
+              emitToast('Alguns dados não foram apagados. Tenta de novo.', 'error')
+              console.error('[perfil] resetUserData falhou:', errors)
+              setDangerBusy(null)
+              return
+            }
             clearDraft()
             window.location.href = '/onboarding-v2'
           }}
           style={{
             width: '100%', border: '0.5px solid rgba(226,75,74,.4)', borderRadius: 12,
             padding: '11px 16px', background: 'transparent', color: '#E24B4A',
-            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13,
+            cursor: dangerBusy ? 'not-allowed' : 'pointer', opacity: dangerBusy === 'reset' ? 0.6 : 1,
           }}
         >
-          Repor todos os dados
+          {dangerBusy === 'reset' ? 'A apagar…' : 'Repor todos os dados'}
+        </button>
+
+        <div style={{ height: 1, background: 'rgba(226,75,74,.15)', margin: '16px 0' }} />
+
+        <p style={{ fontSize: 12, color: 'var(--text3)', lineHeight: 1.6, marginBottom: 14 }}>
+          <b style={{ color: 'var(--text2)' }}>Apagar conta:</b> remove definitivamente a tua conta e todos os dados associados. Não há recuperação.
+        </p>
+        <button
+          type="button"
+          disabled={dangerBusy !== null}
+          onClick={async () => {
+            if (!window.confirm('Apagar a CONTA e TODOS os dados? Esta acção é permanente e irreversível.')) return
+            if (!window.confirm('Última confirmação: queres mesmo apagar a tua conta?')) return
+            setDangerBusy('delete')
+            const { ok, error } = await deleteAccount()
+            if (!ok) {
+              emitToast(error || 'Falha ao apagar a conta.', 'error')
+              setDangerBusy(null)
+              return
+            }
+            await supabase.auth.signOut()
+            clearDraft()
+            window.location.href = '/auth'
+          }}
+          style={{
+            width: '100%', border: 'none', borderRadius: 12,
+            padding: '12px 16px', background: '#E24B4A', color: '#fff',
+            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13,
+            cursor: dangerBusy ? 'not-allowed' : 'pointer', opacity: dangerBusy === 'delete' ? 0.6 : 1,
+          }}
+        >
+          {dangerBusy === 'delete' ? 'A apagar a conta…' : 'Apagar a minha conta'}
         </button>
       </div>
       <Nav />
