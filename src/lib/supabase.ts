@@ -434,6 +434,12 @@ export async function updateFinancialGoals(
   return supabase.from('profiles').update(goals).eq('id', userId)
 }
 
+// Orçamentos por categoria — persistidos em profiles.fin_budgets (JSONB).
+// Substitui o armazenamento só-local; o localStorage passa a ser cache offline.
+export async function updateBudgets(userId: string, budgets: Record<string, number>) {
+  return supabase.from('profiles').update({ fin_budgets: budgets } as Record<string, unknown>).eq('id', userId)
+}
+
 
 
 // ── Corpo ───────────────────────────────────────────────────

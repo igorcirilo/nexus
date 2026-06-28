@@ -10,7 +10,7 @@ import Nav from '@/components/Nav'
 import {
   supabase, getProfile, getTransactions,
   getTransactionsByMonth, saveTransaction, updateTransaction,
-  saveTransactionsBulk, deleteTransaction, updateFinancialGoals,
+  saveTransactionsBulk, deleteTransaction, updateFinancialGoals, updateBudgets,
 } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import {
@@ -105,10 +105,8 @@ function StepChips({ steps, onStep }: { steps: number[]; onStep: (delta:number)=
     </div>
   )
 }
-const DEFAULT_BUDGETS: Record<string,number> = {
-  Alimentação:400, Transporte:150, Habitação:800, Contas:150, Saúde:100,
-  Lazer:200, Roupa:100, Educação:100, Assinaturas:50, Poupança:300, Outro:100,
-}
+// Sem orçamentos por defeito: um utilizador novo só vê valores que ele próprio
+// definiu. As sugestões vêm da média real dos últimos 3 meses (catAvg3m).
 
 const inp: React.CSSProperties = {
   width:'100%', background:'var(--bg2)', border:'0.5px solid var(--border)',
@@ -135,7 +133,7 @@ export default function FinancasPage() {
   const [showMovimentos, setShowMovimentos] = useState(false)
   const [showOrcamento,  setShowOrcamento]  = useState(false)
   const [loading,    setLoading]   = useState(true)
-  const [budgets,    setBudgets]   = useState<Record<string,number>>(DEFAULT_BUDGETS)
+  const [budgets,    setBudgets]   = useState<Record<string,number>>({})
   // Form transação
   const [showForm,   setShowForm]  = useState(false)
   const [txType,     setTxType]    = useState<'entrada'|'saida'>('saida')
@@ -190,10 +188,22 @@ export default function FinancasPage() {
       setProfile(prof)
       setTxs(recent as Transaction[])
       setHistory(hist as Transaction[])
+      // Orçamentos: fonte de verdade no Supabase (profiles.fin_budgets). O
+      // localStorage é só cache offline; se houver dados só-locais (versão
+      // antiga), migram-se para o Supabase neste primeiro carregamento.
+      const dbBudgets = (prof?.fin_budgets ?? null) as Record<string, number> | null
+      let localBudgets: Record<string, number> | null = null
       try {
         const saved = localStorage.getItem(`nexus_budgets_${user.id}`)
-        if (saved) setBudgets({...DEFAULT_BUDGETS,...JSON.parse(saved)})
+        if (saved) localBudgets = JSON.parse(saved)
       } catch {}
+      if (dbBudgets && Object.keys(dbBudgets).length > 0) {
+        setBudgets(dbBudgets)
+        try { localStorage.setItem(`nexus_budgets_${user.id}`, JSON.stringify(dbBudgets)) } catch {}
+      } else if (localBudgets && Object.keys(localBudgets).length > 0) {
+        setBudgets(localBudgets)
+        updateBudgets(user.id, localBudgets)
+      }
       setLoading(false)
 
     })
@@ -394,11 +404,18 @@ export default function FinancasPage() {
     showToast('Removido.')
   }
 
+  // Persiste no Supabase (fonte de verdade) e mantém o cache local offline.
+  function persistBudgets(updated: Record<string,number>) {
+    setBudgets(updated)
+    if (userId) {
+      updateBudgets(userId, updated)
+      try { localStorage.setItem(`nexus_budgets_${userId}`,JSON.stringify(updated)) } catch {}
+    }
+  }
+
   function saveBudget(cat:string,val:string) {
     const n=parseFloat(val); if (isNaN(n)||n<0) return
-    const updated={...budgets,[cat]:n}
-    setBudgets(updated)
-    if (userId) try { localStorage.setItem(`nexus_budgets_${userId}`,JSON.stringify(updated)) } catch {}
+    persistBudgets({...budgets,[cat]:n})
     showToast('Orçamento guardado.')
   }
 
@@ -1039,8 +1056,7 @@ export default function FinancasPage() {
                     onClick={()=>{
                       const updated={...budgets}
                       budgetSuggestions.forEach(s=>{updated[s.cat]=s.suggested})
-                      setBudgets(updated)
-                      if (userId) try { localStorage.setItem(`nexus_budgets_${userId}`,JSON.stringify(updated)) } catch {}
+                      persistBudgets(updated)
                       showToast('Orçamentos aplicados!')
                     }}
                     style={{width:'100%',marginTop:8,border:'none',borderRadius:15,padding:15,cursor:'pointer',background:'linear-gradient(135deg, #F5C842, #E0A82A)',color:'#1A1200',fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:15}}

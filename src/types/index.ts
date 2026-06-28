@@ -41,6 +41,8 @@ export interface Profile {
   fin_monthly_save?: number | null
   fin_debt_goal?: number | null
   fin_reserve_goal?: number | null
+  /** Orçamentos por categoria (€/mês). Fonte de verdade no Supabase. */
+  fin_budgets?: Record<string, number> | null
 }
 
 export type HabitArea =
