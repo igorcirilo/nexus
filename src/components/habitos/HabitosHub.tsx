@@ -11,6 +11,8 @@ export interface HubHabit {
   area: string
   xp_reward: number
   time_window: string | null
+  /** Rótulo de frequência (ex.: "Dias úteis", "3x · Seg, Qua, Sex"). */
+  freq?: string
   done: boolean
 }
 export interface HubArea {
@@ -216,8 +218,13 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
         >
           {habit.name}
         </div>
-        <div style={{ fontSize: 11, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontSize: 11, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{habit.time_window || areaLabel}</span>
+          {habit.freq && habit.freq !== 'Todos os dias' && (
+            <span style={{ flexShrink: 0, fontWeight: 700, color: 'var(--teal)', background: 'rgba(30,203,180,0.10)', borderRadius: 6, padding: '2px 6px' }}>
+              {habit.freq}
+            </span>
+          )}
         </div>
       </div>
 

@@ -8,6 +8,10 @@ import HabitosHub from '@/components/habitos/HabitosHub'
 import HabitLibrarySheet from '@/components/habitos/HabitLibrarySheet'
 import { supabase, getHabitsWithLogs, toggleHabitLog } from '@/lib/supabase'
 import { todayISO } from '@/lib/date'
+import {
+  WEEKDAYS_SHORT, WEEKDAYS_WEEKDAYS, WEEKDAYS_WEEKEND,
+  normalizeDays, frequencyLabel, sortByTimeWindow,
+} from '@/lib/habit-schedule'
 import { XP_BY_DIFFICULTY, normalizeForSearch } from '@/lib/habit-library'
 import type { LibraryHabit } from '@/lib/habit-library'
 import { AREA_META } from '@/types'
@@ -87,9 +91,10 @@ type FormState = {
   time_window: string
   difficulty: Difficulty
   active: boolean
+  days: number[]
 }
 
-const EMPTY: FormState = { name: '', area: 'corpo', xp_reward: DIFFICULTY_XP.media, time_window: '', difficulty: 'media', active: true }
+const EMPTY: FormState = { name: '', area: 'corpo', xp_reward: DIFFICULTY_XP.media, time_window: '', difficulty: 'media', active: true, days: [] }
 
 function difficultyFromXP(xp: number): Difficulty {
   if (xp >= DIFFICULTY_XP.dificil) return 'dificil'
@@ -199,6 +204,7 @@ export default function HabitosPage() {
       time_window: h.time_window ?? '',
       difficulty: difficultyFromXP(h.xp_reward),
       active: h.active,
+      days: h.days ?? [],
     })
     setShowForm(true)
   }
@@ -212,6 +218,7 @@ export default function HabitosPage() {
       xp_reward: form.xp_reward,
       time_window: form.time_window.trim() || null,
       active: form.active,
+      days: normalizeDays(form.days),
     }
 
     if (editHabit) {
@@ -279,12 +286,15 @@ export default function HabitosPage() {
   const existingNames = useMemo(() => new Set(habits.map((h) => normalizeForSearch(h.name))), [habits])
 
   // ── Dados do tracker diário ──
-  const todayList = todayHabits.map((h) => ({
+  // Gestão: mostra todos os hábitos ativos, ordenados por horário (manhã →
+  // noite). O filtro por dia da semana é aplicado na página Hoje (execução).
+  const todayList = sortByTimeWindow(todayHabits).map((h) => ({
     id: h.id,
     name: h.name,
     area: h.area as string,
     xp_reward: h.xp_reward,
     time_window: h.time_window ?? null,
+    freq: frequencyLabel(h.days),
     done: h.habit_logs?.[0]?.completed ?? false,
   }))
   const doneToday = todayList.filter((h) => h.done).length
@@ -535,6 +545,64 @@ export default function HabitosPage() {
                 placeholder="Ou define: ex. 18:00-19:30"
                 style={{ ...sheetInput, marginTop: 8 }}
               />
+
+              <label style={fieldLabel}>Frequência</label>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                {([
+                  { label: 'Todos os dias', days: [] as number[] },
+                  { label: 'Dias úteis', days: WEEKDAYS_WEEKDAYS },
+                  { label: 'Fim de semana', days: WEEKDAYS_WEEKEND },
+                ]).map((preset) => {
+                  const a = JSON.stringify(normalizeDays(form.days) ?? []) === JSON.stringify(normalizeDays(preset.days) ?? [])
+                  return (
+                    <button
+                      key={preset.label}
+                      onClick={() => setForm((current) => ({ ...current, days: preset.days }))}
+                      style={{
+                        flex: 1, padding: '9px 6px', borderRadius: 12, cursor: 'pointer',
+                        fontSize: 11.5, fontWeight: 600, fontFamily: FONT,
+                        background: a ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
+                        color: a ? '#F5C842' : 'rgba(var(--ink-rgb),0.55)',
+                        border: a ? '1px solid rgba(245,200,66,0.45)' : '1px solid rgba(var(--ink-rgb),0.10)',
+                      }}
+                    >
+                      {preset.label}
+                    </button>
+                  )
+                })}
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {WEEKDAYS_SHORT.map((label, d) => {
+                  const on = form.days.includes(d)
+                  return (
+                    <button
+                      key={d}
+                      aria-pressed={on}
+                      onClick={() => setForm((current) => {
+                        // A partir de "todos os dias" (vazio), clicar num dia
+                        // começa uma seleção só com esse dia.
+                        if (current.days.length === 0) return { ...current, days: [d] }
+                        const next = current.days.includes(d)
+                          ? current.days.filter((x) => x !== d)
+                          : [...current.days, d].sort((a, b) => a - b)
+                        return { ...current, days: next }
+                      })}
+                      style={{
+                        flex: 1, padding: '9px 0', borderRadius: 10, cursor: 'pointer',
+                        fontSize: 11.5, fontWeight: 700, fontFamily: FONT,
+                        background: on ? 'rgba(30,203,180,0.12)' : 'rgba(var(--ink-rgb),0.03)',
+                        color: on ? 'var(--teal)' : 'rgba(var(--ink-rgb),0.5)',
+                        border: on ? '1px solid rgba(30,203,180,0.45)' : '1px solid rgba(var(--ink-rgb),0.10)',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  )
+                })}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--text3)', marginTop: 7 }}>
+                Repete: <b style={{ color: 'var(--text2)' }}>{frequencyLabel(form.days)}</b>
+              </div>
 
               <label style={fieldLabel}>Dificuldade</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { todayISO, phaseForHour } from '@/lib/date'
+import { sortByTimeWindow, isHabitDueOn } from '@/lib/habit-schedule'
 import Nav from '@/components/Nav'
 import RitmoBar from '@/components/RitmoBar'
 import FeedbackToast, { triggerToast } from '@/components/FeedbackToast'
@@ -276,11 +277,15 @@ export default function HojeClient({
     }
   }
 
-  const doneCnt = habits.filter(isDone).length
-  const totalHabits = habits.length
+  // Só os hábitos devidos hoje (por dia da semana), ordenados por horário do
+  // dia (manhã → noite). Antes a lista vinha na ordem de inserção da BD.
+  const todayDate = new Date(`${today}T12:00:00`)
+  const dueHabits = sortByTimeWindow(habits.filter((h) => isHabitDueOn(h.days, todayDate)))
+  const doneCnt = dueHabits.filter(isDone).length
+  const totalHabits = dueHabits.length
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
   const currentPhase = phaseForHour(hour)
-  const habitViews: TodayHabitView[] = habits.map((h) => ({
+  const habitViews: TodayHabitView[] = dueHabits.map((h) => ({
     id: h.id,
     name: cleanDisplayText(h.name),
     areaLabel: AREA_META[h.area]?.label ?? h.area,

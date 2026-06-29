@@ -104,6 +104,7 @@ interface Habit {
   user_id: string
   name: string
   time_window: string | null
+  days: number[] | null
   last_notified_at: string | null
 }
 
@@ -150,7 +151,7 @@ Deno.serve(async (req) => {
       .in('date', dateWindow),
     supabase
       .from('habits')
-      .select('id, user_id, name, time_window, last_notified_at')
+      .select('id, user_id, name, time_window, days, last_notified_at')
       .eq('active', true),
   ])
 
@@ -260,6 +261,8 @@ Deno.serve(async (req) => {
     // ── Hábitos ────────────────────────────────────────────────────────────
     const dueHabits = (habitByUser.get(userId) ?? []).filter((h) => {
       if (h.last_notified_at && new Date(h.last_notified_at) >= minuteStart) return false
+      // Respeita a frequência por dia da semana (days null/[] = todos os dias).
+      if (h.days && h.days.length > 0 && !h.days.includes(dow)) return false
       return parseHabitTime(h.time_window) === hhmm
     })
 
