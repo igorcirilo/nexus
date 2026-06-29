@@ -746,6 +746,7 @@ export async function createHabitQuick(payload: {
   name: string
   area: HabitArea
   time_window?: string | null
+  days?: number[] | null
 }) {
   const { data, error } = await supabase
     .from('habits')
@@ -754,6 +755,7 @@ export async function createHabitQuick(payload: {
       name: payload.name.trim(),
       area: payload.area,
       time_window: payload.time_window?.trim() || null,
+      days: payload.days && payload.days.length > 0 ? payload.days : null,
       active: true,
     })
     .select()

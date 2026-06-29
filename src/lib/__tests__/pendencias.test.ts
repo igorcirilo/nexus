@@ -16,6 +16,7 @@ function habit(over: Partial<Habit> & { done?: boolean } = {}) {
     source: 'manual',
     difficulty: 2,
     catalog_key: null,
+    days: rest.days ?? null,
     ...rest,
   }
   return { ...h, habit_logs: done ? [{ completed: true, date: '2026-06-25' }] : [] }

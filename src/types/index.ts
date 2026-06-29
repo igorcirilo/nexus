@@ -70,6 +70,8 @@ export interface Habit {
   difficulty: 1 | 2 | 3
   /** Chave estável do catálogo (só p/ hábitos de onboarding); permite regenerar sem duplicar. */
   catalog_key: string | null
+  /** Dias da semana em que é devido (0=Dom … 6=Sáb). null/[] = todos os dias. */
+  days: number[] | null
 }
 
 export interface HabitLog {
