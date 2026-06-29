@@ -41,6 +41,9 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 }
 
+// Tabela inexistente (opcional/não implantada) não deve abortar o apagamento.
+const IGNORABLE = new Set(['PGRST205', '42P01'])
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
   if (req.method !== 'POST') return json({ error: 'Método não permitido' }, 405)
@@ -63,11 +66,11 @@ Deno.serve(async (req) => {
   const failed: string[] = []
   for (const table of USER_DATA_TABLES) {
     const { error } = await admin.from(table).delete().eq('user_id', userId)
-    if (error) failed.push(`${table}: ${error.message}`)
+    if (error && !IGNORABLE.has(error.code ?? '')) failed.push(`${table}: ${error.message}`)
   }
   // 3. Apaga o perfil.
   const { error: profErr } = await admin.from('profiles').delete().eq('id', userId)
-  if (profErr) failed.push(`profiles: ${profErr.message}`)
+  if (profErr && !IGNORABLE.has(profErr.code ?? '')) failed.push(`profiles: ${profErr.message}`)
 
   // 4. Remove o utilizador de auth.
   const { error: delErr } = await admin.auth.admin.deleteUser(userId)
