@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeRitmo, dayScore, RITMO_WINDOW_DAYS, type RitmoDay } from '@/lib/ritmo'
+import { computeRitmo, dayScore, buildRitmoDays, RITMO_WINDOW_DAYS, type RitmoDay } from '@/lib/ritmo'
 
 function fill(n: number, day: RitmoDay): RitmoDay[] {
   return Array.from({ length: n }, () => ({ ...day }))
@@ -63,5 +63,26 @@ describe('computeRitmo', () => {
     const dentro = computeRitmo(fill(RITMO_WINDOW_DAYS, perfeito))
     const comExtra = computeRitmo([...fill(RITMO_WINDOW_DAYS, perfeito), ...fill(10, vazio)])
     expect(comExtra).toBe(dentro)
+  })
+})
+
+describe('buildRitmoDays — denominador por dia', () => {
+  it('usa o nº de hábitos devidos em cada data, não um total fixo', () => {
+    const now = new Date('2026-06-29T12:00:00') // segunda-feira
+    // 5 hábitos em dias úteis (seg–sex), 0 ao fim de semana.
+    const dueOn = (d: Date) => (d.getDay() === 0 || d.getDay() === 6 ? 0 : 5)
+    const days = buildRitmoDays(now, dueOn, {}, new Set())
+
+    expect(days[0].habitsTotal).toBe(5) // hoje = segunda
+    const weekend = days.find((_, i) => {
+      const d = new Date(now); d.setDate(d.getDate() - i)
+      return d.getDay() === 0 || d.getDay() === 6
+    })
+    expect(weekend?.habitsTotal).toBe(0)
+  })
+
+  it('o número fixo continua a funcionar (retrocompatível)', () => {
+    const days = buildRitmoDays(new Date('2026-06-29T12:00:00'), 3, {}, new Set())
+    expect(days.every((d) => d.habitsTotal === 3)).toBe(true)
   })
 })

@@ -9,7 +9,7 @@
 import { localDateKey } from '@/lib/date'
 
 export interface RitmoDay {
-  /** Nº de hábitos ativos nesse dia (denominador). */
+  /** Nº de hábitos DEVIDOS nesse dia da semana (denominador). */
   habitsTotal: number
   /** Nº de hábitos concluídos nesse dia. */
   habitsDone: number
@@ -39,10 +39,14 @@ export function dayScore(d: RitmoDay): number {
  * Parte pura (sem BD) para ser testável: a chave usa componentes locais
  * (localDateKey), alinhada com como a UI grava os logs — evita o off-by-one
  * de agrupar por UTC em fusos negativos.
+ *
+ * `habitsDue` pode ser um número fixo (mesmo total todos os dias) ou uma função
+ * que devolve quantos hábitos são devidos em cada data — para que dias com
+ * menos hábitos agendados (ex.: fim de semana) não baixem o Ritmo injustamente.
  */
 export function buildRitmoDays(
   now: Date,
-  habitsTotal: number,
+  habitsDue: number | ((date: Date) => number),
   doneByDay: Record<string, number>,
   checkinDays: Set<string>,
 ): RitmoDay[] {
@@ -51,6 +55,7 @@ export function buildRitmoDays(
     const d = new Date(now)
     d.setDate(d.getDate() - i)
     const ds = localDateKey(d)
+    const habitsTotal = typeof habitsDue === 'function' ? habitsDue(d) : habitsDue
     arr.push({ habitsTotal, habitsDone: doneByDay[ds] ?? 0, checkin: checkinDays.has(ds) })
   }
   return arr

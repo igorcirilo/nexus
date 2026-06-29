@@ -6,6 +6,7 @@ import type { HabitArea, ReaderMode, ReaderTheme } from '@/types'
 import { todayISO } from '@/lib/date'
 import { emitToast } from '@/lib/toast-events'
 import { computeRitmo, buildRitmoDays, RITMO_WINDOW_DAYS } from '@/lib/ritmo'
+import { isHabitDueOn } from '@/lib/habit-schedule'
 
 // NEXT_PUBLIC_* values are inlined at build time. During build/CI (and any
 // environment without them set) they are undefined, which makes createClient
@@ -105,19 +106,21 @@ export async function getRitmo(userId: string): Promise<number> {
   const sinceStr = format(since, 'yyyy-MM-dd')
 
   const [{ data: habits }, { data: logs }, { data: checkins }] = await Promise.all([
-    supabase.from('habits').select('id').eq('user_id', userId).eq('active', true),
+    supabase.from('habits').select('id, days').eq('user_id', userId).eq('active', true),
     supabase.from('habit_logs').select('date').eq('user_id', userId).eq('completed', true).gte('date', sinceStr),
     supabase.from('checkins').select('date').eq('user_id', userId).gte('date', sinceStr),
   ])
 
-  const habitsTotal = (habits ?? []).length
+  const habitList = (habits ?? []) as { id: string; days: number[] | null }[]
   const doneByDay: Record<string, number> = {}
   for (const l of (logs ?? []) as { date: string }[]) {
     doneByDay[l.date] = (doneByDay[l.date] ?? 0) + 1
   }
   const checkinDays = new Set((checkins ?? []).map((c: { date: string }) => c.date))
 
-  const arr = buildRitmoDays(new Date(), habitsTotal, doneByDay, checkinDays)
+  // Denominador por dia: só os hábitos devidos naquele dia da semana.
+  const habitsDueOn = (date: Date) => habitList.filter((h) => isHabitDueOn(h.days, date)).length
+  const arr = buildRitmoDays(new Date(), habitsDueOn, doneByDay, checkinDays)
   return computeRitmo(arr)
 }
 
