@@ -1,7 +1,10 @@
 'use client'
 // src/app/auth/page.tsx — email + password
 import { useState } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+
+const TERMS_VERSION = 'beta-2026-06-28'
 
 const inp: React.CSSProperties = {
   width: '100%', padding: '14px 16px', borderRadius: 14,
@@ -17,9 +20,11 @@ export default function AuthPage() {
   const [loading,  setLoading]  = useState(false)
   const [error,    setError]    = useState('')
   const [showPw,   setShowPw]   = useState(false)
+  const [accepted, setAccepted] = useState(false)
 
   async function submit() {
     if (!email.trim() || !password) return
+    if (isNew && !accepted) { setError('Precisas de aceitar os Termos e a Política de Privacidade.'); return }
     setLoading(true); setError('')
 
     if (isNew) {
@@ -28,7 +33,13 @@ export default function AuthPage() {
         email: email.trim(),
         password,
         options: {
-          data: { full_name: name.trim() || email.split('@')[0] },
+          data: {
+            full_name: name.trim() || email.split('@')[0],
+            // Registo do consentimento (versão + data) para prova de aceite.
+            terms_accepted_at: new Date().toISOString(),
+            terms_version: TERMS_VERSION,
+            health_data_consent: true,
+          },
           // Link de confirmação volta SEMPRE para o domínio atual (evita
           // depender do "Site URL" fixo no Supabase, que pode estar obsoleto).
           emailRedirectTo: `${window.location.origin}/hoje`,
@@ -129,6 +140,26 @@ export default function AuthPage() {
             </div>
           </div>
 
+          {/* Consentimento (só no registo) — Termos, Privacidade e dados de saúde */}
+          {isNew && (
+            <label style={{ display:'flex', gap:10, alignItems:'flex-start', marginBottom:18, cursor:'pointer' }}>
+              <input
+                type="checkbox"
+                checked={accepted}
+                onChange={e => setAccepted(e.target.checked)}
+                style={{ marginTop:2, width:16, height:16, accentColor:'var(--gold)', flexShrink:0, cursor:'pointer' }}
+              />
+              <span style={{ fontSize:11.5, color:'var(--text3)', lineHeight:1.5 }}>
+                Li e aceito os{' '}
+                <Link href="/termos" target="_blank" style={{ color:'var(--gold)', textDecoration:'underline' }}>Termos de Uso</Link>{' '}
+                e a{' '}
+                <Link href="/privacidade" target="_blank" style={{ color:'var(--gold)', textDecoration:'underline' }}>Política de Privacidade</Link>,
+                e <b>consinto o tratamento dos meus dados de saúde</b> (peso, sono,
+                humor) para o funcionamento do app.
+              </span>
+            </label>
+          )}
+
           {/* Erro / sucesso */}
           {error && (
             <div style={{
@@ -140,11 +171,11 @@ export default function AuthPage() {
           )}
 
           {/* Botão principal */}
-          <button onClick={submit} disabled={loading || !email.trim() || !password} style={{
+          <button onClick={submit} disabled={loading || !email.trim() || !password || (isNew && !accepted)} style={{
             width:'100%', padding:'15px', border:'none', borderRadius:14, cursor:'pointer',
             fontFamily:'Syne, sans-serif', fontWeight:700, fontSize:15, transition:'all .15s',
-            background: (email.trim() && password) ? 'var(--gold)' : 'var(--bg3)',
-            color:      (email.trim() && password) ? 'var(--bg0)' : 'var(--text3)',
+            background: (email.trim() && password && (!isNew || accepted)) ? 'var(--gold)' : 'var(--bg3)',
+            color:      (email.trim() && password && (!isNew || accepted)) ? 'var(--bg0)' : 'var(--text3)',
             opacity: loading ? 0.7 : 1,
           }}>
             {loading ? 'A processar…' : isNew ? 'Criar conta →' : 'Entrar →'}
@@ -158,8 +189,11 @@ export default function AuthPage() {
           )}
         </div>
 
-        <p style={{ textAlign:'center', marginTop:20, fontSize:11, color:'var(--text3)' }}>
-          Os teus dados são privados e encriptados pelo Supabase.
+        <p style={{ textAlign:'center', marginTop:20, fontSize:11, color:'var(--text3)', lineHeight:1.6 }}>
+          Os teus dados são isolados por conta e a ligação é cifrada (HTTPS).{' '}
+          <Link href="/privacidade" style={{ color:'var(--text3)', textDecoration:'underline' }}>Privacidade</Link>
+          {' · '}
+          <Link href="/termos" style={{ color:'var(--text3)', textDecoration:'underline' }}>Termos</Link>
         </p>
       </div>
     </main>
