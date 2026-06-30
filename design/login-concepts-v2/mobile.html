@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NEXUS · Login V2 — Mobile</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<link href="fonts/local-fonts.css" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:#0a0b12;color:#e7e9ef;-webkit-font-smoothing:antialiased;padding:48px 24px 80px}
+  .head{max-width:1240px;margin:0 auto 40px}
+  .head .kicker{font-family:'Space Grotesk';letter-spacing:.3em;text-transform:uppercase;font-size:12px;color:#E8A838;margin-bottom:12px}
+  .head h1{font-family:'Syne';font-weight:800;font-size:34px;letter-spacing:-1px;margin-bottom:12px}
+  .head p{color:#9ba0b0;max-width:720px;font-size:14.5px;line-height:1.65}
+  .row{display:flex;gap:30px;justify-content:center;flex-wrap:wrap;max-width:1240px;margin:0 auto}
+  .col{display:flex;flex-direction:column;align-items:center;gap:16px;width:300px}
+  .cap{text-align:center}
+  .cap b{font-family:'Syne';font-weight:700;font-size:16px;display:block;margin-bottom:4px}
+  .cap span{font-size:12px;color:#8a90a0;line-height:1.5;display:block}
+
+  /* phone */
+  .phone{width:300px;height:620px;border-radius:42px;padding:11px;background:#000;box-shadow:0 30px 60px -22px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.08)}
+  .screen{position:relative;width:100%;height:100%;border-radius:32px;overflow:hidden}
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:108px;height:24px;background:#000;border-radius:0 0 16px 16px;z-index:30}
+  .sb{position:absolute;top:0;left:0;right:0;height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 22px 0 24px;z-index:20;font-size:12px;font-weight:600}
+  .sb .ic{display:flex;gap:5px;align-items:center;font-size:11px}
+
+  /* form atoms (mobile) */
+  .body{position:absolute;inset:0;padding:52px 22px 22px;display:flex;flex-direction:column;overflow:hidden}
+  .lbl{display:block;font-size:11px;font-weight:600;margin-bottom:6px}
+  .inp{width:100%;height:46px;border-radius:12px;padding:0 14px;font-size:13.5px;outline:none;font-family:inherit}
+  .pw{position:relative}.pw .eye{position:absolute;right:13px;top:50%;transform:translateY(-50%);opacity:.55;font-size:13px}
+  .rowb{display:flex;align-items:center;justify-content:space-between;margin:12px 0 16px}
+  .rmb{display:flex;align-items:center;gap:7px;font-size:12px}.rmb input{width:15px;height:15px}
+  .cta{width:100%;height:48px;border:none;border-radius:13px;font-weight:700;font-size:14.5px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:7px;cursor:pointer}
+  .dvd{display:flex;align-items:center;gap:12px;margin:14px 0;font-size:11px}
+  .dvd::before,.dvd::after{content:"";flex:1;height:1px;background:currentColor;opacity:.16}
+  .soc{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .sbtn{height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:8px;font-size:12.5px;font-weight:600;cursor:pointer}
+  .sbtn svg{width:16px;height:16px}
+  .foot{text-align:center;font-size:12px;margin-top:14px}
+  .g4 path:nth-child(1){fill:#4285F4}.g4 path:nth-child(2){fill:#34A853}.g4 path:nth-child(3){fill:#FBBC05}.g4 path:nth-child(4){fill:#EA4335}
+</style>
+</head>
+<body>
+<div class="head">
+  <div class="kicker">NEXUS · Login V2 — Mobile-first</div>
+  <h1>Como ficam no telemóvel</h1>
+  <p>Mesmo design, adaptado a portrait (390pt). Os layouts desktop (split, bento, floaters) recolhem para uma coluna; o essencial — form, CTA, social e cadastro — fica sempre acima da dobra e com alvos de toque ≥44px.</p>
+</div>
+
+<div class="row">
+
+  <!-- 1 · NEBULA -->
+  <div class="col">
+    <div class="phone"><div class="screen" style="background:radial-gradient(70% 40% at 15% 12%, rgba(124,92,255,.95), transparent 72%),radial-gradient(70% 36% at 88% 8%, rgba(30,203,180,.9), transparent 70%),radial-gradient(80% 42% at 85% 98%, rgba(232,168,56,.85), transparent 72%),radial-gradient(80% 40% at 8% 96%, rgba(255,107,170,.85), transparent 70%),#17123f">
+      <div class="notch"></div>
+      <div class="sb" style="color:#fff"><span>9:41</span><span class="ic">📶 🔋</span></div>
+      <div class="body">
+        <div style="display:flex;justify-content:center;margin-bottom:14px"><div style="display:inline-flex;align-items:center;gap:8px;padding:6px 14px 6px 6px;border-radius:100px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(10px)"><span style="width:22px;height:22px;border-radius:7px;background:#17123f;display:flex;align-items:center;justify-content:center;color:#E8A838;font-family:'Syne';font-weight:800;font-size:12px">N</span><span style="font-family:'Syne';font-weight:700;font-size:12px">NEXUS</span></div></div>
+        <div style="background:linear-gradient(165deg,rgba(255,255,255,.18),rgba(255,255,255,.06));border:1px solid rgba(255,255,255,.25);border-radius:24px;padding:22px 18px;backdrop-filter:blur(24px);box-shadow:inset 0 1px 0 rgba(255,255,255,.3);margin-top:auto;margin-bottom:auto">
+          <h3 style="font-family:'Space Grotesk';font-weight:700;font-size:22px;color:#fff;margin-bottom:2px">Entrar</h3>
+          <p style="color:rgba(255,255,255,.75);font-size:12px;margin-bottom:16px">Continua a tua evolução.</p>
+          <div style="margin-bottom:11px"><label class="lbl" style="color:rgba(255,255,255,.85)">E-mail</label><input class="inp" value="igor@email.com" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff"/></div>
+          <div><label class="lbl" style="color:rgba(255,255,255,.85)">Senha</label><div class="pw"><input class="inp" type="password" value="12345678" style="background:rgba(255,255,255,.18);border:1px solid #fff;color:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.18)"/><span class="eye" style="color:#fff">👁</span></div></div>
+          <div class="rowb"><label class="rmb" style="color:rgba(255,255,255,.85)"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:12px;color:#fff;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.5)">Esqueci</a></div>
+          <button class="cta" style="background:#fff;color:#1a1430">Entrar →</button>
+          <div class="dvd" style="color:rgba(255,255,255,.7)">ou</div>
+          <div class="soc">
+            <button class="sbtn" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff"><svg viewBox="0 0 24 24" fill="#fff"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+            <button class="sbtn" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+          </div>
+          <p class="foot" style="color:rgba(255,255,255,.8)">Novo aqui? <a style="color:#fff;font-weight:700;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.6)">Criar conta</a></p>
+        </div>
+      </div>
+    </div></div>
+    <div class="cap"><b>1 · Nebula</b><span>Card glass ocupa a largura; aurora vai até às bordas.</span></div>
+  </div>
+
+  <!-- 2 · BENTO -->
+  <div class="col">
+    <div class="phone"><div class="screen" style="background:radial-gradient(500px 300px at 50% 0%, rgba(232,168,56,.14), transparent 60%),#0D0F14;font-family:'DM Sans'">
+      <div class="notch"></div>
+      <div class="sb" style="color:#fff"><span>9:41</span><span class="ic">📶 🔋</span></div>
+      <div class="body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px"><span style="width:26px;height:26px;border-radius:8px;background:#E8A838;display:flex;align-items:center;justify-content:center;color:#0D0F14;font-family:'Syne';font-weight:800;font-size:13px">N</span><span style="font-family:'Syne';font-weight:700;font-size:15px">NEXUS</span></div>
+        <!-- compact bento strip: 2 tiles -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
+          <div style="background:linear-gradient(160deg,#221a12,#161824);border:1px solid rgba(232,168,56,.25);border-radius:14px;padding:12px 13px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#9BA0B0">Ofensiva 🔥</div><div style="font-family:'Syne';font-weight:800;font-size:26px;color:#E8A838;line-height:1.2">47<span style="font-size:11px;color:#9BA0B0"> dias</span></div></div>
+          <div style="background:linear-gradient(160deg,#15182a,#10121c);border:1px solid rgba(127,119,221,.28);border-radius:14px;padding:12px 13px"><div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;color:#9BA0B0">Nível ⚡</div><div style="font-family:'Syne';font-weight:800;font-size:26px;color:#7F77DD;line-height:1.2">12</div><div style="height:4px;border-radius:3px;background:rgba(255,255,255,.1);margin-top:4px;overflow:hidden"><div style="width:68%;height:100%;background:#7F77DD"></div></div></div>
+        </div>
+        <h3 style="font-family:'Syne';font-weight:700;font-size:20px;margin-bottom:2px">Bem-vindo de volta</h3>
+        <p style="color:#9BA0B0;font-size:12px;margin-bottom:14px">Entra para continuares a ofensiva.</p>
+        <div style="margin-bottom:11px"><label class="lbl" style="color:#9BA0B0">E-mail</label><input class="inp" value="igor@email.com" style="background:#15171f;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"/></div>
+        <div><label class="lbl" style="color:#9BA0B0">Senha</label><div class="pw"><input class="inp" type="password" value="12345678" style="background:#1a160e;border:1px solid #E8A838;color:#F0EDE8;box-shadow:0 0 0 3px rgba(232,168,56,.15)"/><span class="eye">👁</span></div></div>
+        <div class="rowb"><label class="rmb" style="color:#9BA0B0"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:12px;color:#E8A838;font-weight:600;text-decoration:none">Esqueci</a></div>
+        <button class="cta" style="background:#E8A838;color:#0D0F14;font-family:'Syne'">Entrar →</button>
+        <div class="dvd" style="color:#5A6070">ou</div>
+        <div class="soc">
+          <button class="sbtn g4" style="background:#15171f;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+          <button class="sbtn" style="background:#15171f;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+        </div>
+        <p class="foot" style="color:#9BA0B0">Sem conta? <a style="color:#E8A838;font-weight:700;text-decoration:none">Criar conta</a></p>
+      </div>
+    </div></div>
+    <div class="cap"><b>2 · Bento</b><span>A grelha vira um strip de 2 tiles-chave acima do form.</span></div>
+  </div>
+
+  <!-- 3 · SPATIAL -->
+  <div class="col">
+    <div class="phone"><div class="screen" style="background:radial-gradient(600px 400px at 50% 110%, rgba(155,148,255,.3), transparent 60%),radial-gradient(500px 300px at 80% -5%, rgba(232,168,56,.18), transparent 55%),linear-gradient(180deg,#161334,#0d0b1c)">
+      <div class="notch"></div>
+      <div class="sb" style="color:#fff"><span>9:41</span><span class="ic">📶 🔋</span></div>
+      <!-- subtle floaters -->
+      <div style="position:absolute;top:60px;left:18px;background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px 11px;backdrop-filter:blur(10px);transform:rotate(-6deg);z-index:1"><div style="font-size:15px">🔥</div><div style="font-family:'Syne';font-weight:800;font-size:14px;color:#E8A838">47d</div></div>
+      <div style="position:absolute;top:70px;right:18px;background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.16);border-radius:12px;padding:8px 11px;backdrop-filter:blur(10px);transform:rotate(6deg);z-index:1;text-align:center"><div style="font-size:13px">⚡</div><div style="font-size:11px;color:#fff;font-weight:700">+120</div></div>
+      <div class="body" style="justify-content:center">
+        <div style="background:linear-gradient(165deg,rgba(255,255,255,.16),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.25);border-radius:26px;padding:24px 20px;backdrop-filter:blur(28px);box-shadow:0 40px 80px -30px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.3);position:relative;z-index:2">
+          <div style="text-align:center;margin-bottom:16px"><div style="width:38px;height:38px;margin:0 auto 9px;border-radius:12px;background:linear-gradient(135deg,#E8A838,#b5781f);display:flex;align-items:center;justify-content:center;font-family:'Syne';font-weight:800;font-size:19px;color:#1a1205">N</div><h3 style="font-family:'Syne';font-weight:700;font-size:18px;color:#fff">Entrar na NEXUS</h3></div>
+          <div style="margin-bottom:11px"><label class="lbl" style="color:rgba(255,255,255,.8)">E-mail</label><input class="inp" value="igor@email.com" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff"/></div>
+          <div><label class="lbl" style="color:rgba(255,255,255,.8)">Senha</label><div class="pw"><input class="inp" type="password" value="12345678" style="background:rgba(255,255,255,.16);border:1px solid #E8A838;color:#fff;box-shadow:0 0 0 3px rgba(232,168,56,.2)"/><span class="eye" style="color:#fff">👁</span></div></div>
+          <div class="rowb"><label class="rmb" style="color:rgba(255,255,255,.8)"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:12px;color:#fff;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.5)">Esqueci</a></div>
+          <button class="cta" style="background:linear-gradient(135deg,#E8A838,#F0C060);color:#1a1205;font-family:'Syne'">Entrar →</button>
+          <div class="dvd" style="color:rgba(255,255,255,.7)">ou</div>
+          <div class="soc">
+            <button class="sbtn" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff"><svg viewBox="0 0 24 24" fill="#fff"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+            <button class="sbtn" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+          </div>
+        </div>
+      </div>
+    </div></div>
+    <div class="cap"><b>3 · Spatial</b><span>Card central + 2 floaters discretos atrás; menos profundidade.</span></div>
+  </div>
+
+  <!-- 4 · EDITORIAL -->
+  <div class="col">
+    <div class="phone"><div class="screen" style="background:#0C0C0C;color:#F5F2EA">
+      <div class="notch"></div>
+      <div class="sb" style="color:#fff"><span>9:41</span><span class="ic">📶 🔋</span></div>
+      <div class="body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px"><span style="width:26px;height:26px;border-radius:8px;background:#E8A838;display:flex;align-items:center;justify-content:center;color:#0C0C0C;font-family:'Syne';font-weight:800;font-size:13px">N</span><span style="font-family:'Syne';font-weight:700;font-size:14px">NEXUS</span></div>
+        <div style="font-family:'Space Grotesk';font-size:10px;letter-spacing:.25em;color:#E8A838;margin-bottom:10px">01 — ENTRAR</div>
+        <h2 style="font-family:'Syne';font-weight:800;font-size:38px;line-height:.98;letter-spacing:-1.5px;margin-bottom:20px">Pequenas vitórias, <span style="color:#E8A838">todos os dias.</span></h2>
+        <div style="margin-bottom:18px"><label class="lbl" style="color:#9a978f;text-transform:uppercase;letter-spacing:.1em;font-size:10px">E-mail</label><input value="igor@email.com" style="width:100%;background:transparent;border:none;border-bottom:1.5px solid rgba(255,255,255,.2);color:#F5F2EA;font-size:15px;padding:7px 0;outline:none;font-family:inherit"/></div>
+        <div><label class="lbl" style="color:#9a978f;text-transform:uppercase;letter-spacing:.1em;font-size:10px">Senha</label><div class="pw"><input type="password" value="12345678" style="width:100%;background:transparent;border:none;border-bottom:2px solid #E8A838;color:#F5F2EA;font-size:15px;padding:7px 0;outline:none;font-family:inherit"/><span class="eye">👁</span></div></div>
+        <div class="rowb"><label class="rmb" style="color:#9a978f"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:12px;color:#E8A838;font-weight:600;text-decoration:none">Esqueci</a></div>
+        <button class="cta" style="background:#F5F2EA;color:#0C0C0C;border-radius:0;font-family:'Syne'">ENTRAR →</button>
+        <div class="dvd" style="color:#6a675f">ou</div>
+        <div class="soc">
+          <button class="sbtn" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:#F5F2EA;border-radius:0"><svg viewBox="0 0 24 24" fill="#fff"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+          <button class="sbtn" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:#F5F2EA;border-radius:0"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+        </div>
+        <p class="foot" style="color:#9a978f">Novo? <a style="color:#F5F2EA;font-weight:700;text-decoration:none;border-bottom:2px solid #E8A838">Criar conta</a></p>
+      </div>
+    </div></div>
+    <div class="cap"><b>4 · Editorial</b><span>Headline grande no topo, form empilhado por baixo.</span></div>
+  </div>
+
+  <!-- 5 · PULSE -->
+  <div class="col">
+    <div class="phone"><div class="screen" style="background:radial-gradient(420px 420px at 50% 22%, rgba(232,168,56,.16), transparent 65%),#0A0C12;font-family:'DM Sans'">
+      <div class="notch"></div>
+      <div class="sb" style="color:#fff"><span>9:41</span><span class="ic">📶 🔋</span></div>
+      <div class="body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:24px;height:24px;border-radius:7px;background:#E8A838;display:flex;align-items:center;justify-content:center;color:#0A0C12;font-family:'Syne';font-weight:800;font-size:12px">N</span><span style="font-family:'Syne';font-weight:700;font-size:14px">NEXUS</span></div>
+        <!-- ring hero compact -->
+        <div style="display:flex;justify-content:center;margin:6px 0 2px"><div style="position:relative;width:140px;height:140px">
+          <svg viewBox="0 0 140 140" style="position:absolute;inset:0;transform:rotate(-90deg)"><circle cx="70" cy="70" r="61" fill="none" stroke="rgba(255,255,255,.08)" stroke-width="10"/><circle cx="70" cy="70" r="61" fill="none" stroke="url(#gm)" stroke-width="10" stroke-linecap="round" stroke-dasharray="383" stroke-dashoffset="84"/><defs><linearGradient id="gm" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E8A838"/><stop offset="1" stop-color="#E24B4A"/></linearGradient></defs></svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font-size:34px;line-height:1;filter:drop-shadow(0 6px 14px rgba(226,75,74,.6))">🔥</div><div style="font-family:'Syne';font-weight:800;font-size:24px;color:#E8A838;line-height:1">47</div><div style="font-size:8.5px;color:#9BA0B0;letter-spacing:.08em;text-transform:uppercase">dias ofensiva</div></div>
+        </div></div>
+        <h3 style="font-family:'Syne';font-weight:700;font-size:19px;text-align:center;margin-bottom:2px;color:#F0EDE8">Retoma o ritmo 🔥</h3>
+        <p style="color:#9BA0B0;font-size:11.5px;text-align:center;margin-bottom:14px">A tua ofensiva espera por ti.</p>
+        <div style="margin-bottom:11px"><label class="lbl" style="color:#9BA0B0">E-mail</label><input class="inp" value="igor@email.com" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"/></div>
+        <div><label class="lbl" style="color:#9BA0B0">Senha</label><div class="pw"><input class="inp" type="password" value="12345678" style="background:#1a160e;border:1px solid #E8A838;color:#F0EDE8;box-shadow:0 0 0 3px rgba(232,168,56,.15)"/><span class="eye">👁</span></div></div>
+        <div class="rowb"><label class="rmb" style="color:#9BA0B0"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:12px;color:#E8A838;font-weight:600;text-decoration:none">Esqueci</a></div>
+        <button class="cta" style="background:linear-gradient(135deg,#E8A838,#E24B4A);color:#fff;font-family:'Syne'">Entrar →</button>
+        <div class="dvd" style="color:#5A6070">ou</div>
+        <div class="soc">
+          <button class="sbtn g4" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+          <button class="sbtn" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+        </div>
+      </div>
+    </div></div>
+    <div class="cap"><b>5 · Pulse</b><span>Anel de ofensiva compacto no topo, form logo abaixo.</span></div>
+  </div>
+
+</div>
+</body>
+</html>
