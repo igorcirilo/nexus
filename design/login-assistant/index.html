@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NEXUS · Login — Assistente Pessoal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<link href="fonts/local-fonts.css" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:#070810;color:#e7e9ef;-webkit-font-smoothing:antialiased;padding:48px 24px 96px}
+  .page-head{max-width:1180px;margin:0 auto 44px}
+  .page-head .kicker{font-family:'Space Grotesk';letter-spacing:.3em;text-transform:uppercase;font-size:12px;color:#E8A838;margin-bottom:14px}
+  .page-head h1{font-family:'Syne';font-weight:800;font-size:40px;letter-spacing:-1.5px;line-height:1.05;margin-bottom:14px}
+  .page-head p{color:#9ba0b0;max-width:720px;font-size:15px;line-height:1.7}
+
+  .concept{max-width:1180px;margin:0 auto 84px}
+  .concept-label{display:flex;align-items:flex-start;gap:18px;margin-bottom:22px}
+  .concept-num{flex-shrink:0;width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk';font-weight:700;font-size:20px;background:linear-gradient(135deg,#E8A838,#b5781f);color:#1a1205}
+  .concept-label h2{font-family:'Syne';font-weight:700;font-size:24px;letter-spacing:-.5px;margin-bottom:6px}
+  .concept-label .tag{font-size:13px;color:#9ba0b0;max-width:780px;line-height:1.55}
+
+  .frame{border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.09);box-shadow:0 40px 90px -34px rgba(0,0,0,.8)}
+  .frame-bar{height:38px;display:flex;align-items:center;gap:8px;padding:0 16px;background:#13151d;border-bottom:1px solid rgba(255,255,255,.06)}
+  .frame-bar .dot{width:11px;height:11px;border-radius:50%}
+  .frame-bar .url{margin-left:14px;font-size:12px;color:#7a8090;font-family:'Space Grotesk';background:rgba(255,255,255,.04);padding:5px 14px;border-radius:7px}
+  .stage{height:660px;position:relative;display:flex;overflow:hidden}
+
+  .lbl{display:block;font-size:12px;font-weight:600;margin-bottom:7px}
+  .inp{width:100%;height:50px;border-radius:12px;padding:0 16px;font-size:14px;outline:none;font-family:inherit}
+  .pw{position:relative}.pw .eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);opacity:.55}
+  .rowb{display:flex;align-items:center;justify-content:space-between;margin:14px 0 20px}
+  .rmb{display:flex;align-items:center;gap:8px;font-size:13px}.rmb input{width:16px;height:16px}
+  .cta{width:100%;height:52px;border:none;border-radius:13px;cursor:pointer;font-weight:700;font-size:15px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px}
+  .dvd{display:flex;align-items:center;gap:14px;margin:20px 0;font-size:12px}
+  .dvd::before,.dvd::after{content:"";flex:1;height:1px;background:currentColor;opacity:.16}
+  .soc{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .sbtn{height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:9px;font-size:13.5px;font-weight:600;cursor:pointer}
+  .sbtn svg{width:18px;height:18px}
+  .g4 path:nth-child(1){fill:#4285F4}.g4 path:nth-child(2){fill:#34A853}.g4 path:nth-child(3){fill:#FBBC05}.g4 path:nth-child(4){fill:#EA4335}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div class="kicker">NEXUS · Login — Assistente Pessoal</div>
+  <h1>4 modelos com mini-apresentação do produto</h1>
+  <p>Cada login mostra o que a NEXUS faz como <b>assistente pessoal</b> — amostras reais (conversa, plano do dia, funcionalidades) ao lado do formulário. Requisitos mantidos: e-mail, senha, "lembrar-me", "esqueci a senha", login social e cadastro.</p>
+</div>
+
+<!-- ════════ 1 · ARIA — assistente conversacional ════════ -->
+<section class="concept">
+  <div class="concept-label"><div class="concept-num">1</div>
+    <div><h2>Aria — Assistente conversacional</h2>
+    <div class="tag">À esquerda, uma conversa real com o assistente: saudação, resumo do dia, sugestões acionáveis e um mini-plano. Comunica a proposta de valor em 3 segundos.</div></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">app.nexus.io/entrar</span></div>
+    <div class="stage" style="background:#0A0C12;font-family:'DM Sans'">
+      <!-- LEFT chat -->
+      <div style="width:55%;padding:34px 38px;display:flex;flex-direction:column;background:radial-gradient(700px 420px at 12% 8%, rgba(232,168,56,.12), transparent 60%),linear-gradient(180deg,#0c0e16,#090a11);border-right:1px solid rgba(255,255,255,.07)">
+        <div style="display:flex;align-items:center;gap:11px;margin-bottom:6px">
+          <span style="width:30px;height:30px;border-radius:9px;background:#E8A838;display:flex;align-items:center;justify-content:center;color:#0A0C12;font-family:'Syne';font-weight:800;font-size:15px">N</span>
+          <span style="font-family:'Syne';font-weight:700;font-size:17px">NEXUS</span>
+          <span style="margin-left:8px;font-size:11px;color:#E8A838;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.3);padding:3px 10px;border-radius:100px">✦ Assistente pessoal</span>
+        </div>
+        <div style="margin:auto 0;display:flex;flex-direction:column;gap:14px;max-width:430px">
+          <!-- assistant bubble -->
+          <div style="display:flex;gap:10px;align-items:flex-end">
+            <span style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#E8A838,#b5781f);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">✦</span>
+            <div style="background:#171a24;border:1px solid rgba(255,255,255,.08);border-radius:16px 16px 16px 4px;padding:13px 16px;font-size:14px;line-height:1.5">Bom dia, Igor 👋 Preparei o teu dia.</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:flex-end">
+            <span style="width:30px;height:30px;flex-shrink:0"></span>
+            <div style="background:#171a24;border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:14px 16px;font-size:14px;line-height:1.55">Tens <b style="color:#E8A838">3 hábitos</b>, <b style="color:#1ECBB4">2 tarefas</b> e treino às 18h. A tua ofensiva está nos <b style="color:#E24B4A">47 dias</b> 🔥</div>
+          </div>
+          <!-- mini plan card from assistant -->
+          <div style="display:flex;gap:10px;align-items:flex-end">
+            <span style="width:30px;height:30px;flex-shrink:0"></span>
+            <div style="flex:1;background:linear-gradient(160deg,#15182400,#15182466);border:1px solid rgba(255,255,255,.1);border-radius:16px;padding:14px 16px">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#9BA0B0;margin-bottom:10px">Plano de hoje</div>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <div style="display:flex;align-items:center;gap:10px;font-size:13.5px"><span style="width:18px;height:18px;border-radius:6px;background:#1ECBB4;color:#0A0C12;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px">✓</span>Treino de força · 40 min</div>
+                <div style="display:flex;align-items:center;gap:10px;font-size:13.5px"><span style="width:18px;height:18px;border-radius:6px;border:1.5px solid rgba(255,255,255,.25)"></span>Deep work · 2 h</div>
+                <div style="display:flex;align-items:center;gap:10px;font-size:13.5px;color:#9BA0B0"><span style="width:18px;height:18px;border-radius:6px;border:1.5px solid rgba(255,255,255,.2)"></span>Leitura · 20 páginas</div>
+              </div>
+            </div>
+          </div>
+          <!-- suggestion chips -->
+          <div style="display:flex;gap:9px;flex-wrap:wrap;margin-left:40px">
+            <span style="font-size:12.5px;background:rgba(232,168,56,.12);border:1px solid rgba(232,168,56,.35);color:#E8A838;padding:8px 14px;border-radius:100px">▶ Começar treino</span>
+            <span style="font-size:12.5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#c4c8d4;padding:8px 14px;border-radius:100px">Ver plano completo</span>
+            <span style="font-size:12.5px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#c4c8d4;padding:8px 14px;border-radius:100px">Reagendar</span>
+          </div>
+        </div>
+        <div style="font-size:11.5px;color:#5A6070;margin-top:14px">O teu assistente organiza hábitos, rotina e foco — todos os dias.</div>
+      </div>
+      <!-- RIGHT form -->
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px">
+        <div style="width:330px">
+          <h3 style="font-family:'Syne';font-weight:700;font-size:25px;letter-spacing:-.4px;margin-bottom:6px">Fala com o teu assistente</h3>
+          <p style="color:#9BA0B0;font-size:13.5px;margin-bottom:26px">Entra para retomares o teu dia.</p>
+          <div style="margin-bottom:14px"><label class="lbl" style="color:#9BA0B0">E-mail</label><input class="inp" value="igor@email.com" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"/></div>
+          <div><label class="lbl" style="color:#9BA0B0">Senha</label><div class="pw"><input class="inp" type="password" value="123456789" style="background:#1a160e;border:1px solid #E8A838;color:#F0EDE8;box-shadow:0 0 0 3px rgba(232,168,56,.15)"/><span class="eye">👁</span></div></div>
+          <div class="rowb"><label class="rmb" style="color:#9BA0B0"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:13px;color:#E8A838;font-weight:600;text-decoration:none">Esqueci a senha</a></div>
+          <button class="cta" style="background:#E8A838;color:#0A0C12;font-family:'Syne'">Entrar &nbsp;→</button>
+          <div class="dvd" style="color:#5A6070">ou</div>
+          <div class="soc">
+            <button class="sbtn g4" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+            <button class="sbtn" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+          </div>
+          <p style="text-align:center;margin-top:22px;font-size:13px;color:#9BA0B0">Novo na NEXUS? <a style="color:#E8A838;font-weight:700;text-decoration:none">Criar conta grátis</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 2 · ORBIT — showcase do app ════════ -->
+<section class="concept">
+  <div class="concept-label"><div class="concept-num">2</div>
+    <div><h2>Orbit — Showcase do app</h2>
+    <div class="tag">À direita, um mockup real da app ("Hoje") com pills de funcionalidades a orbitar e uma sugestão do assistente. Mostra o produto em uso enquanto se faz login.</div></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">app.nexus.io/login</span></div>
+    <div class="stage" style="background:#0A0C12">
+      <!-- LEFT form -->
+      <div style="width:42%;display:flex;align-items:center;justify-content:center;padding:40px;border-right:1px solid rgba(255,255,255,.07)">
+        <div style="width:310px">
+          <div style="display:flex;align-items:center;gap:9px;margin-bottom:26px"><span style="width:30px;height:30px;border-radius:9px;background:#E8A838;display:flex;align-items:center;justify-content:center;color:#0A0C12;font-family:'Syne';font-weight:800;font-size:15px">N</span><span style="font-family:'Syne';font-weight:700;font-size:18px">NEXUS</span></div>
+          <h3 style="font-family:'Syne';font-weight:700;font-size:24px;letter-spacing:-.4px;margin-bottom:6px">O teu assistente pessoal</h3>
+          <p style="color:#9BA0B0;font-size:13.5px;margin-bottom:24px">Hábitos, rotina e foco — num só lugar.</p>
+          <div style="margin-bottom:13px"><label class="lbl" style="color:#9BA0B0">E-mail</label><input class="inp" value="igor@email.com" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"/></div>
+          <div><label class="lbl" style="color:#9BA0B0">Senha</label><div class="pw"><input class="inp" type="password" value="123456789" style="background:#1a160e;border:1px solid #E8A838;color:#F0EDE8;box-shadow:0 0 0 3px rgba(232,168,56,.15)"/><span class="eye">👁</span></div></div>
+          <div class="rowb"><label class="rmb" style="color:#9BA0B0"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:13px;color:#E8A838;font-weight:600;text-decoration:none">Esqueci a senha</a></div>
+          <button class="cta" style="background:#E8A838;color:#0A0C12;font-family:'Syne'">Entrar &nbsp;→</button>
+          <div class="dvd" style="color:#5A6070">ou</div>
+          <div class="soc">
+            <button class="sbtn g4" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+            <button class="sbtn" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+          </div>
+          <p style="text-align:center;margin-top:20px;font-size:13px;color:#9BA0B0">Sem conta? <a style="color:#E8A838;font-weight:700;text-decoration:none">Criar conta</a></p>
+        </div>
+      </div>
+      <!-- RIGHT showcase -->
+      <div style="flex:1;position:relative;overflow:hidden;background:radial-gradient(600px 500px at 60% 30%, rgba(127,119,221,.22), transparent 60%),radial-gradient(500px 400px at 85% 100%, rgba(30,203,180,.18), transparent 60%),#0c0e16;display:flex;align-items:center;justify-content:center">
+        <!-- phone mockup -->
+        <div style="width:266px;height:560px;border-radius:38px;background:#000;padding:9px;box-shadow:0 40px 80px -24px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.1)">
+          <div style="width:100%;height:100%;border-radius:30px;overflow:hidden;background:#0D0F14;position:relative;padding:20px 16px">
+            <div style="position:absolute;top:0;left:50%;transform:translateX(-50%);width:96px;height:22px;background:#000;border-radius:0 0 14px 14px"></div>
+            <div style="margin-top:14px">
+              <div style="font-size:11px;color:#9BA0B0">Quinta · 18 jun</div>
+              <div style="font-family:'Syne';font-weight:700;font-size:20px;margin-top:2px">Olá, Igor 👋</div>
+            </div>
+            <!-- next action -->
+            <div style="margin-top:14px;background:linear-gradient(135deg,rgba(232,168,56,.18),rgba(232,168,56,.05));border:1px solid rgba(232,168,56,.3);border-radius:16px;padding:14px">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#E8A838">Próxima ação</div>
+              <div style="font-weight:700;font-size:14px;margin-top:4px;color:#F0EDE8">Treino de força · 18:00</div>
+              <div style="margin-top:10px;height:34px;border-radius:9px;background:#E8A838;color:#0D0F14;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12.5px;font-family:'Syne'">Começar agora →</div>
+            </div>
+            <!-- metrics -->
+            <div style="display:flex;gap:9px;margin-top:12px">
+              <div style="flex:1;background:#161824;border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:11px"><div style="font-size:9px;color:#9BA0B0">Ofensiva</div><div style="font-family:'Syne';font-weight:800;font-size:19px;color:#E24B4A">47🔥</div></div>
+              <div style="flex:1;background:#161824;border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:11px"><div style="font-size:9px;color:#9BA0B0">Nível</div><div style="font-family:'Syne';font-weight:800;font-size:19px;color:#7F77DD">12</div></div>
+            </div>
+            <!-- habit list -->
+            <div style="margin-top:12px;background:#11131c;border:1px solid rgba(255,255,255,.07);border-radius:13px;padding:13px">
+              <div style="font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#9BA0B0;margin-bottom:10px">Hábitos · 3/4</div>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <div style="display:flex;align-items:center;gap:9px;font-size:12.5px"><span style="width:16px;height:16px;border-radius:5px;background:#1ECBB4;color:#0D0F14;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800">✓</span>Beber 2L água</div>
+                <div style="display:flex;align-items:center;gap:9px;font-size:12.5px"><span style="width:16px;height:16px;border-radius:5px;background:#1ECBB4;color:#0D0F14;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800">✓</span>Leitura 20 min</div>
+                <div style="display:flex;align-items:center;gap:9px;font-size:12.5px;color:#9BA0B0"><span style="width:16px;height:16px;border-radius:5px;border:1.5px solid rgba(255,255,255,.2)"></span>Meditação</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- floating feature pills -->
+        <div style="position:absolute;top:60px;left:34px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:600;backdrop-filter:blur(10px);display:flex;align-items:center;gap:7px">🎯 Hábitos</div>
+        <div style="position:absolute;top:130px;right:30px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:600;backdrop-filter:blur(10px);display:flex;align-items:center;gap:7px">🧠 Foco</div>
+        <div style="position:absolute;bottom:150px;left:26px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:600;backdrop-filter:blur(10px);display:flex;align-items:center;gap:7px">⏰ Rotina</div>
+        <div style="position:absolute;bottom:70px;right:36px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16);border-radius:100px;padding:9px 15px;font-size:12.5px;font-weight:600;backdrop-filter:blur(10px);display:flex;align-items:center;gap:7px">📊 Insights</div>
+        <!-- assistant suggestion bubble -->
+        <div style="position:absolute;top:36px;right:40px;max-width:210px;background:#171a24;border:1px solid rgba(232,168,56,.3);border-radius:14px 14px 4px 14px;padding:12px 14px;font-size:12.5px;line-height:1.5;box-shadow:0 16px 30px -12px rgba(0,0,0,.6)"><b style="color:#E8A838">✦ Assistente:</b> sugiro 20 min de leitura antes de dormir 🌙</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 3 · BRIEFING — plano do dia ════════ -->
+<section class="concept">
+  <div class="concept-label"><div class="concept-num">3</div>
+    <div><h2>Briefing — Plano do dia</h2>
+    <div class="tag">À esquerda, o "briefing" que o assistente prepara: uma agenda/timeline do dia com ações e horários. Transmite organização e calma — o assistente cuida da tua rotina.</div></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">app.nexus.io</span></div>
+    <div class="stage" style="background:#0A0C12;font-family:'DM Sans'">
+      <!-- LEFT briefing -->
+      <div style="width:52%;padding:36px 40px;display:flex;flex-direction:column;background:radial-gradient(600px 400px at 18% 12%, rgba(30,203,180,.12), transparent 60%),linear-gradient(180deg,#0c0e16,#090a11);border-right:1px solid rgba(255,255,255,.07)">
+        <div style="display:flex;align-items:center;gap:11px;margin-bottom:24px"><span style="width:30px;height:30px;border-radius:9px;background:#E8A838;display:flex;align-items:center;justify-content:center;color:#0A0C12;font-family:'Syne';font-weight:800;font-size:15px">N</span><span style="font-family:'Syne';font-weight:700;font-size:17px">NEXUS</span></div>
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:6px"><span style="font-size:11px;color:#1ECBB4;background:rgba(30,203,180,.12);border:1px solid rgba(30,203,180,.3);padding:3px 10px;border-radius:100px">✦ Briefing do dia</span></div>
+        <h2 style="font-family:'Syne';font-weight:800;font-size:30px;letter-spacing:-.6px;line-height:1.15;margin-bottom:6px">Tens um dia<br/>bem planeado.</h2>
+        <p style="font-size:13.5px;color:#9BA0B0;margin-bottom:22px">4 momentos · 2h 40m de foco · 1 treino</p>
+        <!-- timeline -->
+        <div style="display:flex;flex-direction:column;gap:0">
+          <!-- item -->
+          <div style="display:flex;gap:16px">
+            <div style="display:flex;flex-direction:column;align-items:center"><span style="width:34px;height:34px;border-radius:10px;background:rgba(30,203,180,.18);border:1px solid rgba(30,203,180,.4);display:flex;align-items:center;justify-content:center;font-size:15px">🏋️</span><span style="flex:1;width:1.5px;background:rgba(255,255,255,.1);margin:4px 0"></span></div>
+            <div style="padding-bottom:16px"><div style="font-size:12px;color:#1ECBB4;font-weight:700">07:00 · Concluído ✓</div><div style="font-weight:600;font-size:15px;margin-top:2px">Treino de força</div><div style="font-size:12.5px;color:#9BA0B0">40 min · peito e tríceps</div></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div style="display:flex;flex-direction:column;align-items:center"><span style="width:34px;height:34px;border-radius:10px;background:rgba(232,168,56,.18);border:1px solid rgba(232,168,56,.4);display:flex;align-items:center;justify-content:center;font-size:15px">🧠</span><span style="flex:1;width:1.5px;background:rgba(255,255,255,.1);margin:4px 0"></span></div>
+            <div style="padding-bottom:16px"><div style="font-size:12px;color:#E8A838;font-weight:700">09:00 · Agora</div><div style="font-weight:600;font-size:15px;margin-top:2px">Deep work</div><div style="font-size:12.5px;color:#9BA0B0">2 h · projeto NEXUS</div></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div style="display:flex;flex-direction:column;align-items:center"><span style="width:34px;height:34px;border-radius:10px;background:rgba(127,119,221,.18);border:1px solid rgba(127,119,221,.4);display:flex;align-items:center;justify-content:center;font-size:15px">📖</span><span style="flex:1;width:1.5px;background:rgba(255,255,255,.1);margin:4px 0"></span></div>
+            <div style="padding-bottom:16px"><div style="font-size:12px;color:#9BA0B0;font-weight:700">13:00</div><div style="font-weight:600;font-size:15px;margin-top:2px">Leitura</div><div style="font-size:12.5px;color:#9BA0B0">20 páginas</div></div>
+          </div>
+          <div style="display:flex;gap:16px">
+            <div style="display:flex;flex-direction:column;align-items:center"><span style="width:34px;height:34px;border-radius:10px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:15px">🌙</span></div>
+            <div><div style="font-size:12px;color:#9BA0B0;font-weight:700">21:00</div><div style="font-weight:600;font-size:15px;margin-top:2px">Reflexão diária</div><div style="font-size:12.5px;color:#9BA0B0">check-in · 5 min</div></div>
+          </div>
+        </div>
+      </div>
+      <!-- RIGHT form -->
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px">
+        <div style="width:320px">
+          <h3 style="font-family:'Syne';font-weight:700;font-size:25px;letter-spacing:-.4px;margin-bottom:6px">Bem-vindo de volta</h3>
+          <p style="color:#9BA0B0;font-size:13.5px;margin-bottom:26px">O teu briefing já está pronto.</p>
+          <div style="margin-bottom:14px"><label class="lbl" style="color:#9BA0B0">E-mail</label><input class="inp" value="igor@email.com" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"/></div>
+          <div><label class="lbl" style="color:#9BA0B0">Senha</label><div class="pw"><input class="inp" type="password" value="123456789" style="background:#0e1a18;border:1px solid #1ECBB4;color:#F0EDE8;box-shadow:0 0 0 3px rgba(30,203,180,.15)"/><span class="eye">👁</span></div></div>
+          <div class="rowb"><label class="rmb" style="color:#9BA0B0"><input type="checkbox" checked style="accent-color:#1ECBB4"/> Lembrar-me</label><a style="font-size:13px;color:#1ECBB4;font-weight:600;text-decoration:none">Esqueci a senha</a></div>
+          <button class="cta" style="background:#1ECBB4;color:#06201c;font-family:'Syne'">Entrar &nbsp;→</button>
+          <div class="dvd" style="color:#5A6070">ou</div>
+          <div class="soc">
+            <button class="sbtn g4" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+            <button class="sbtn" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+          </div>
+          <p style="text-align:center;margin-top:22px;font-size:13px;color:#9BA0B0">Primeira vez? <a style="color:#1ECBB4;font-weight:700;text-decoration:none">Criar conta</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════ 4 · LUMEN — light premium ════════ -->
+<section class="concept">
+  <div class="concept-label"><div class="concept-num">4</div>
+    <div><h2>Lumen — Claro &amp; premium</h2>
+    <div class="tag">Versão clara e sofisticada: saudação do assistente, três cartões de funcionalidades e o formulário central. Leve, arejado e profissional.</div></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar" style="background:#fff"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url" style="background:#eef1f6;color:#5a6678">app.nexus.io/entrar</span></div>
+    <div class="stage" style="background:linear-gradient(180deg,#FBFAF7,#F2F0EA);color:#1a1a1a;font-family:'Inter'">
+      <!-- LEFT features -->
+      <div style="width:50%;padding:44px 46px;display:flex;flex-direction:column;justify-content:center;background:radial-gradient(500px 400px at 10% 10%, rgba(232,168,56,.14), transparent 60%)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:26px"><span style="width:30px;height:30px;border-radius:9px;background:#1a1a1a;display:flex;align-items:center;justify-content:center;color:#E8A838;font-family:'Syne';font-weight:800;font-size:15px">N</span><span style="font-family:'Syne';font-weight:700;font-size:18px">NEXUS</span></div>
+        <div style="font-size:12px;font-weight:700;letter-spacing:.04em;color:#b5781f;text-transform:uppercase;margin-bottom:10px">✦ O teu assistente pessoal</div>
+        <h2 style="font-family:'Syne';font-weight:800;font-size:34px;letter-spacing:-1px;line-height:1.1;margin-bottom:10px">Menos caos.<br/>Mais evolução.</h2>
+        <p style="font-size:14.5px;color:#6a675f;margin-bottom:26px;max-width:380px;line-height:1.6">A NEXUS organiza os teus hábitos, rotina e foco — e sugere o próximo passo certo.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:400px">
+          <div style="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #ECE7DC;border-radius:14px;padding:14px 16px;box-shadow:0 6px 16px -10px rgba(0,0,0,.15)"><span style="width:40px;height:40px;border-radius:11px;background:rgba(232,168,56,.15);display:flex;align-items:center;justify-content:center;font-size:18px">🎯</span><div><div style="font-weight:700;font-size:14px">Hábitos inteligentes</div><div style="font-size:12.5px;color:#8a8780">Lembretes no momento certo</div></div></div>
+          <div style="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #ECE7DC;border-radius:14px;padding:14px 16px;box-shadow:0 6px 16px -10px rgba(0,0,0,.15)"><span style="width:40px;height:40px;border-radius:11px;background:rgba(30,203,180,.15);display:flex;align-items:center;justify-content:center;font-size:18px">🗓️</span><div><div style="font-weight:700;font-size:14px">Planeia o teu dia</div><div style="font-size:12.5px;color:#8a8780">Briefing automático todas as manhãs</div></div></div>
+          <div style="display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #ECE7DC;border-radius:14px;padding:14px 16px;box-shadow:0 6px 16px -10px rgba(0,0,0,.15)"><span style="width:40px;height:40px;border-radius:11px;background:rgba(127,119,221,.15);display:flex;align-items:center;justify-content:center;font-size:18px">📈</span><div><div style="font-weight:700;font-size:14px">Insights semanais</div><div style="font-size:12.5px;color:#8a8780">Vê o teu progresso real</div></div></div>
+        </div>
+      </div>
+      <!-- RIGHT form card -->
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px">
+        <div style="width:330px;background:#fff;border:1px solid #ECE7DC;border-radius:20px;padding:32px 30px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 24px 50px -26px rgba(0,0,0,.25)">
+          <h3 style="font-family:'Syne';font-weight:700;font-size:23px;letter-spacing:-.4px;margin-bottom:5px">Entrar</h3>
+          <p style="color:#8a8780;font-size:13.5px;margin-bottom:24px">Bom te ver de novo, Igor 👋</p>
+          <div style="margin-bottom:13px"><label class="lbl" style="color:#5a574f">E-mail</label><input class="inp" value="igor@email.com" style="background:#FAF9F5;border:1.5px solid #E6E1D6;color:#1a1a1a"/></div>
+          <div><label class="lbl" style="color:#5a574f">Senha</label><div class="pw"><input class="inp" type="password" value="123456789" style="background:#FAF9F5;border:1.5px solid #E8A838;color:#1a1a1a;box-shadow:0 0 0 3px rgba(232,168,56,.16)"/><span class="eye">👁</span></div></div>
+          <div class="rowb"><label class="rmb" style="color:#5a574f"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:13px;color:#b5781f;font-weight:700;text-decoration:none">Esqueci a senha</a></div>
+          <button class="cta" style="background:#1a1a1a;color:#fff;font-family:'Syne'">Entrar &nbsp;→</button>
+          <div class="dvd" style="color:#b8b3a8">ou</div>
+          <div class="soc">
+            <button class="sbtn g4" style="background:#fff;border:1.5px solid #E6E1D6;color:#333"><svg viewBox="0 0 24 24"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+            <button class="sbtn" style="background:#fff;border:1.5px solid #E6E1D6;color:#333"><svg viewBox="0 0 24 24"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+          </div>
+          <p style="text-align:center;margin-top:20px;font-size:13px;color:#8a8780">Novo na NEXUS? <a style="color:#b5781f;font-weight:700;text-decoration:none">Criar conta</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
