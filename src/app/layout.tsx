@@ -2,11 +2,18 @@
 import type { Metadata, Viewport } from 'next'
 import Sidebar from '@/components/Sidebar'
 import dynamic from 'next/dynamic'
+import { ToastProvider } from '@/components/Toast'
 import './globals.css'
 
-// QuickAction + Pomodoro — cliente only, não aparece em /auth e /onboarding
+// ToastProvider é um componente cliente, mas TEM de envolver {children} com SSR
+// ativo. Carregá-lo via next/dynamic({ ssr:false }) fazia toda a árvore (sidebar
+// e páginas — incluindo o formulário de /auth) cair em client-side rendering
+// (BAILOUT_TO_CLIENT_SIDE_RENDERING), deixando o HTML do servidor vazio. Como só
+// toca em `window` dentro de useEffect, o import normal é seguro no servidor.
+
+// QuickAction + Pomodoro — cliente only, não aparece em /auth e /onboarding.
+// São folhas (não envolvem children), por isso ssr:false só afeta a própria UI.
 const GlobalUI    = dynamic(() => import('@/components/GlobalUI'), { ssr: false })
-const ToastClient = dynamic(() => import('@/components/Toast').then(m => ({ default: m.ToastProvider })), { ssr: false })
 const ServiceWorkerRegister = dynamic(() => import('@/components/ServiceWorkerRegister'), { ssr: false })
 
 export const metadata: Metadata = {
@@ -37,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <ToastClient>
+        <ToastProvider>
           <ServiceWorkerRegister />
           <div className="nexus-layout">
             <div className="nexus-sidebar">
@@ -48,7 +55,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <GlobalUI />
             </div>
           </div>
-        </ToastClient>
+        </ToastProvider>
       </body>
     </html>
   )
