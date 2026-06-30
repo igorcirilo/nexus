@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>NEXUS · 5 conceitos de Login (v2)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link href="fonts/local-fonts.css" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',sans-serif;background:#070810;color:#e7e9ef;-webkit-font-smoothing:antialiased;padding:48px 24px 96px}
+  .page-head{max-width:1180px;margin:0 auto 44px}
+  .page-head .kicker{font-family:'Space Grotesk',sans-serif;letter-spacing:.3em;text-transform:uppercase;font-size:12px;color:#E8A838;margin-bottom:14px}
+  .page-head h1{font-family:'Syne',sans-serif;font-weight:800;font-size:40px;letter-spacing:-1.5px;line-height:1.05;margin-bottom:14px}
+  .page-head p{color:#9ba0b0;max-width:680px;font-size:15px;line-height:1.7}
+
+  .concept{max-width:1180px;margin:0 auto 84px}
+  .concept-label{display:flex;align-items:flex-start;gap:18px;margin-bottom:22px}
+  .concept-num{flex-shrink:0;width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;background:linear-gradient(135deg,#E8A838,#b5781f);color:#1a1205}
+  .concept-label h2{font-family:'Syne',sans-serif;font-weight:700;font-size:24px;letter-spacing:-.5px;margin-bottom:6px}
+  .concept-label .tag{font-size:13px;color:#9ba0b0;max-width:760px;line-height:1.55}
+  .concept-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.06);border-radius:14px;overflow:hidden;margin-bottom:24px}
+  .concept-meta div{background:#0e0f17;padding:16px 18px}
+  .concept-meta h4{font-size:10px;text-transform:uppercase;letter-spacing:.16em;color:#6a7080;margin-bottom:9px;font-weight:600}
+  .concept-meta p{font-size:12.5px;color:#c4c8d4;line-height:1.6}
+  .swatches{display:flex;gap:6px}
+  .sw{width:22px;height:22px;border-radius:6px;border:1px solid rgba(255,255,255,.12)}
+
+  .frame{border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.09);box-shadow:0 40px 90px -34px rgba(0,0,0,.8)}
+  .frame-bar{height:38px;display:flex;align-items:center;gap:8px;padding:0 16px;background:#13151d;border-bottom:1px solid rgba(255,255,255,.06)}
+  .frame-bar .dot{width:11px;height:11px;border-radius:50%}
+  .frame-bar .url{margin-left:14px;font-size:12px;color:#7a8090;font-family:'Space Grotesk',sans-serif;background:rgba(255,255,255,.04);padding:5px 14px;border-radius:7px}
+  .stage{height:640px;position:relative;display:flex;overflow:hidden}
+
+  /* form atoms */
+  .lbl{display:block;font-size:12px;font-weight:600;margin-bottom:7px;letter-spacing:.01em}
+  .inp{width:100%;height:50px;border-radius:12px;padding:0 16px;font-size:14px;outline:none;font-family:inherit;transition:.18s}
+  .inp::placeholder{opacity:.5}
+  .pw{position:relative}
+  .pw .eye{position:absolute;right:14px;top:50%;transform:translateY(-50%);opacity:.55}
+  .rowb{display:flex;align-items:center;justify-content:space-between;margin:14px 0 22px}
+  .rmb{display:flex;align-items:center;gap:8px;font-size:13px}
+  .rmb input{width:16px;height:16px}
+  .cta{width:100%;height:52px;border:none;border-radius:13px;cursor:pointer;font-weight:700;font-size:15px;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;transition:.18s}
+  .dvd{display:flex;align-items:center;gap:14px;margin:20px 0;font-size:12px}
+  .dvd::before,.dvd::after{content:"";flex:1;height:1px;background:currentColor;opacity:.16}
+  .soc{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .sbtn{height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:9px;font-size:13.5px;font-weight:600;cursor:pointer;transition:.18s}
+  .sbtn svg{width:18px;height:18px}
+  .gicon{width:18px;height:18px}
+</style>
+</head>
+<body>
+
+<div class="page-head">
+  <div class="kicker">NEXUS · Login Redesign — V2</div>
+  <h1>5 conceitos novos · modernos &amp; elaborados</h1>
+  <p>Direções inéditas e mais ousadas, renderizadas como interface real (HTML/CSS), formato desktop. Mantêm os requisitos: e-mail, senha, "lembrar-me", "esqueci a senha", login social e cadastro.</p>
+</div>
+
+<!-- ═══════════ 1 · NEBULA — Aurora mesh + glass ═══════════ -->
+<section class="concept">
+  <div class="concept-label"><div class="concept-num">1</div>
+    <div><h2>Nebula — Aurora Glass</h2>
+    <div class="tag">Fundo de gradiente <em>mesh</em> vibrante (violeta · teal · dourado · magenta) com grão sutil e cartão de vidro fosco a flutuar no centro. Cores vivas, mas legíveis. Sensação 2025.</div></div>
+  </div>
+  <div class="concept-meta">
+    <div><h4>Paleta</h4><div class="swatches"><span class="sw" style="background:#7C5CFF"></span><span class="sw" style="background:#1ECBB4"></span><span class="sw" style="background:#E8A838"></span><span class="sw" style="background:#FF6BAA"></span></div></div>
+    <div><h4>Tipografia</h4><p>Space Grotesk + Inter</p></div>
+    <div><h4>UX-chave</h4><p>Card glass com foco luminoso; social-login em chips; contraste garantido sobre blur escuro.</p></div>
+    <div><h4>Tom</h4><p>Vibrante, criativo, premium.</p></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">app.nexus.io/entrar</span></div>
+    <div class="stage" style="background:
+      radial-gradient(62% 58% at 14% 20%, rgba(124,92,255,.95), transparent 72%),
+      radial-gradient(58% 56% at 86% 14%, rgba(30,203,180,.9), transparent 70%),
+      radial-gradient(64% 62% at 82% 96%, rgba(232,168,56,.85), transparent 72%),
+      radial-gradient(58% 56% at 10% 94%, rgba(255,107,170,.85), transparent 70%),
+      #17123f;">
+      <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px);background-size:4px 4px;opacity:.5"></div>
+      <div style="margin:auto;width:400px;position:relative;z-index:1">
+        <div style="text-align:center;margin-bottom:22px">
+          <div style="display:inline-flex;align-items:center;gap:10px;padding:7px 16px 7px 8px;border-radius:100px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);backdrop-filter:blur(10px)">
+            <span style="width:26px;height:26px;border-radius:8px;background:#0b0a16;display:flex;align-items:center;justify-content:center;color:#E8A838;font-family:'Syne';font-weight:800;font-size:14px">N</span>
+            <span style="font-family:'Syne';font-weight:700;font-size:14px;letter-spacing:.5px">NEXUS</span>
+          </div>
+        </div>
+        <div style="background:linear-gradient(165deg,rgba(255,255,255,.16),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.22);border-radius:26px;padding:34px 32px;backdrop-filter:blur(26px);box-shadow:0 30px 70px -20px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.25)">
+          <h3 style="font-family:'Space Grotesk';font-weight:700;font-size:27px;letter-spacing:-.5px;margin-bottom:6px;color:#fff">Entrar</h3>
+          <p style="color:rgba(255,255,255,.75);font-size:13.5px;margin-bottom:24px">Continua a tua evolução pessoal.</p>
+          <div style="margin-bottom:14px"><label class="lbl" style="color:rgba(255,255,255,.85)">E-mail</label>
+            <input class="inp" value="igor@email.com" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff"/></div>
+          <div style="margin-bottom:4px"><label class="lbl" style="color:rgba(255,255,255,.85)">Senha</label>
+            <div class="pw"><input class="inp" type="password" value="123456789" style="background:rgba(255,255,255,.16);border:1px solid #fff;color:#fff;box-shadow:0 0 0 4px rgba(255,255,255,.18),0 0 26px -2px rgba(124,92,255,.6)"/><span class="eye" style="color:#fff">👁</span></div></div>
+          <div class="rowb"><label class="rmb" style="color:rgba(255,255,255,.85)"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:13px;color:#fff;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.5)">Esqueci a senha</a></div>
+          <button class="cta" style="background:linear-gradient(135deg,#fff,#e9e6ff);color:#1a1430;box-shadow:0 14px 30px -10px rgba(255,255,255,.5)">Entrar &nbsp;→</button>
+          <div class="dvd" style="color:rgba(255,255,255,.7)">ou</div>
+          <div class="soc">
+            <button class="sbtn" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff"><svg viewBox="0 0 24 24"><path fill="#fff" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path fill="#fff" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#fff" d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path fill="#fff" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+            <button class="sbtn" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+          </div>
+          <p style="text-align:center;margin-top:22px;font-size:13px;color:rgba(255,255,255,.8)">Novo aqui? <a style="color:#fff;font-weight:700;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.6)">Criar conta</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 2 · BENTO — modular product preview ═══════════ -->
+<section class="concept">
+  <div class="concept-label"><div class="concept-num">2</div>
+    <div><h2>Bento — Product Grid</h2>
+    <div class="tag">À esquerda, uma grelha <em>bento</em> que mostra o produto vivo (ofensiva, XP, hábitos do dia, gráfico semanal). À direita, painel de login limpo. O utilizador vê o valor enquanto entra.</div></div>
+  </div>
+  <div class="concept-meta">
+    <div><h4>Paleta</h4><div class="swatches"><span class="sw" style="background:#0D0F14"></span><span class="sw" style="background:#E8A838"></span><span class="sw" style="background:#1ECBB4"></span><span class="sw" style="background:#7F77DD"></span></div></div>
+    <div><h4>Tipografia</h4><p>Syne + DM Sans</p></div>
+    <div><h4>UX-chave</h4><p>Prova de valor concreta (não testemunho); form isolado e focado à direita.</p></div>
+    <div><h4>Tom</h4><p>Confiante, "data-driven", on-brand.</p></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url">app.nexus.io/login</span></div>
+    <div class="stage" style="background:#0D0F14;font-family:'DM Sans',sans-serif">
+      <!-- LEFT bento -->
+      <div style="width:56%;padding:34px;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto 1fr 1fr;gap:14px;background:radial-gradient(700px 400px at 10% 0%, rgba(232,168,56,.12), transparent 60%)">
+        <!-- header tile spans 2 -->
+        <div style="grid-column:span 2;display:flex;align-items:center;gap:11px">
+          <span style="width:30px;height:30px;border-radius:9px;background:#E8A838;display:flex;align-items:center;justify-content:center;color:#0D0F14;font-family:'Syne';font-weight:800;font-size:15px">N</span>
+          <span style="font-family:'Syne';font-weight:700;font-size:18px;letter-spacing:.3px">NEXUS</span>
+          <span style="margin-left:auto;font-size:12px;color:#5A6070">O teu sistema de evolução pessoal</span>
+        </div>
+        <!-- streak tile -->
+        <div style="background:linear-gradient(160deg,#221a12,#161824);border:1px solid rgba(232,168,56,.25);border-radius:18px;padding:20px;position:relative;overflow:hidden">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#9BA0B0">Ofensiva</div>
+          <div style="font-family:'Syne';font-weight:800;font-size:46px;color:#E8A838;line-height:1.1;margin-top:6px">47<span style="font-size:18px;color:#9BA0B0;font-weight:600"> dias</span></div>
+          <div style="font-size:28px;position:absolute;right:16px;top:14px">🔥</div>
+          <div style="display:flex;gap:4px;margin-top:14px">
+            <span style="flex:1;height:6px;border-radius:3px;background:#E8A838"></span><span style="flex:1;height:6px;border-radius:3px;background:#E8A838"></span><span style="flex:1;height:6px;border-radius:3px;background:#E8A838"></span><span style="flex:1;height:6px;border-radius:3px;background:#E8A838"></span><span style="flex:1;height:6px;border-radius:3px;background:#E8A838"></span><span style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.12)"></span><span style="flex:1;height:6px;border-radius:3px;background:rgba(255,255,255,.12)"></span>
+          </div>
+        </div>
+        <!-- level/XP tile -->
+        <div style="background:linear-gradient(160deg,#15182a,#10121c);border:1px solid rgba(127,119,221,.28);border-radius:18px;padding:20px;display:flex;flex-direction:column;justify-content:space-between">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div><div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#9BA0B0">Nível</div>
+            <div style="font-family:'Syne';font-weight:800;font-size:40px;color:#7F77DD;line-height:1.1;margin-top:6px">12</div></div>
+            <div style="font-size:24px">⚡</div>
+          </div>
+          <div><div style="height:7px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden"><div style="width:68%;height:100%;background:linear-gradient(90deg,#7F77DD,#9b94ff)"></div></div>
+          <div style="font-size:11px;color:#5A6070;margin-top:7px">680 / 1000 XP</div></div>
+        </div>
+        <!-- habits tile -->
+        <div style="background:#11131c;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px 20px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#9BA0B0;margin-bottom:12px">Hábitos de hoje · 3/4</div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:18px;height:18px;border-radius:6px;background:#1ECBB4;color:#0D0F14;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">✓</span>Treino · 40 min</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px"><span style="width:18px;height:18px;border-radius:6px;background:#1ECBB4;color:#0D0F14;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800">✓</span>Leitura · 20 pág</div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#9BA0B0"><span style="width:18px;height:18px;border-radius:6px;border:1.5px solid rgba(255,255,255,.2)"></span>Meditação · 10 min</div>
+          </div>
+        </div>
+        <!-- weekly chart tile -->
+        <div style="background:#11131c;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:18px 20px;display:flex;flex-direction:column">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#9BA0B0;margin-bottom:auto">Consistência semanal</div>
+          <div style="display:flex;align-items:flex-end;gap:8px;height:78px;margin-top:14px">
+            <span style="flex:1;height:46%;background:rgba(30,203,180,.35);border-radius:5px 5px 0 0"></span>
+            <span style="flex:1;height:70%;background:rgba(30,203,180,.5);border-radius:5px 5px 0 0"></span>
+            <span style="flex:1;height:58%;background:rgba(30,203,180,.4);border-radius:5px 5px 0 0"></span>
+            <span style="flex:1;height:88%;background:#1ECBB4;border-radius:5px 5px 0 0"></span>
+            <span style="flex:1;height:76%;background:rgba(30,203,180,.55);border-radius:5px 5px 0 0"></span>
+            <span style="flex:1;height:100%;background:#1ECBB4;border-radius:5px 5px 0 0"></span>
+            <span style="flex:1;height:64%;background:rgba(30,203,180,.45);border-radius:5px 5px 0 0"></span>
+          </div>
+        </div>
+      </div>
+      <!-- RIGHT form -->
+      <div style="flex:1;background:#0a0b11;border-left:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;padding:40px">
+        <div style="width:320px">
+          <h3 style="font-family:'Syne';font-weight:700;font-size:26px;letter-spacing:-.4px;margin-bottom:6px">Bem-vindo de volta</h3>
+          <p style="color:#9BA0B0;font-size:13.5px;margin-bottom:26px">Entra para continuares a ofensiva.</p>
+          <div style="margin-bottom:14px"><label class="lbl" style="color:#9BA0B0">E-mail</label><input class="inp" value="igor@email.com" style="background:#15171f;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"/></div>
+          <div><label class="lbl" style="color:#9BA0B0">Senha</label><div class="pw"><input class="inp" type="password" value="123456789" style="background:#1a160e;border:1px solid #E8A838;color:#F0EDE8;box-shadow:0 0 0 3px rgba(232,168,56,.15)"/><span class="eye">👁</span></div></div>
+          <div class="rowb"><label class="rmb" style="color:#9BA0B0"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:13px;color:#E8A838;font-weight:600;text-decoration:none">Esqueci a senha</a></div>
+          <button class="cta" style="background:#E8A838;color:#0D0F14;font-family:'Syne'">Entrar &nbsp;→</button>
+          <div class="dvd" style="color:#5A6070">ou</div>
+          <div class="soc">
+            <button class="sbtn" style="background:#15171f;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+            <button class="sbtn" style="background:#15171f;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+          </div>
+          <p style="text-align:center;margin-top:22px;font-size:13px;color:#9BA0B0">Sem conta? <a style="color:#E8A838;font-weight:700;text-decoration:none">Criar conta</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 3 · SPATIAL — visionOS depth ═══════════ -->
+<section class="concept">
+  <div class="concept-label"><div class="concept-num">3</div>
+    <div><h2>Spatial — Depth UI</h2>
+    <div class="tag">Profundidade tipo visionOS: cartão de vidro central elevado, com "notificações" e chips a flutuar em camadas, sombras longas e luz ambiente. Tridimensional e tátil.</div></div>
+  </div>
+  <div class="concept-meta">
+    <div><h4>Paleta</h4><div class="swatches"><span class="sw" style="background:#141228"></span><span class="sw" style="background:#E8A838"></span><span class="sw" style="background:#9b94ff"></span><span class="sw" style="background:#1ECBB4"></span></div></div>
+    <div><h4>Tipografia</h4><p>Inter (UI) + Syne (marca)</p></div>
+    <div><h4>UX-chave</h4><p>Camadas de profundidade dirigem o olhar ao form; floaters dão contexto sem distrair.</p></div>
+    <div><h4>Tom</h4><p>Futurista, sofisticado, "spatial".</p></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar" style="background:#100e1c"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url" style="background:rgba(255,255,255,.05)">app.nexus.io</span></div>
+    <div class="stage" style="background:radial-gradient(900px 600px at 50% 120%, rgba(155,148,255,.28), transparent 60%),radial-gradient(700px 500px at 80% -10%, rgba(232,168,56,.18), transparent 55%),linear-gradient(180deg,#161334,#0d0b1c);perspective:1400px">
+      <!-- floating layers -->
+      <div style="position:absolute;left:9%;top:20%;transform:rotateY(16deg) rotateX(6deg);background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.16);border-radius:18px;padding:16px 18px;backdrop-filter:blur(14px);box-shadow:0 30px 60px -20px rgba(0,0,0,.6);width:200px">
+        <div style="font-size:24px">🔥</div><div style="font-family:'Syne';font-weight:800;font-size:26px;color:#E8A838;margin-top:6px">47 dias</div><div style="font-size:11px;color:rgba(255,255,255,.6)">ofensiva ativa</div>
+      </div>
+      <div style="position:absolute;left:11%;bottom:16%;transform:rotateY(14deg) rotateX(-4deg);background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:13px 16px;backdrop-filter:blur(14px);box-shadow:0 24px 50px -18px rgba(0,0,0,.6);display:flex;align-items:center;gap:10px">
+        <span style="width:34px;height:34px;border-radius:10px;background:rgba(127,119,221,.3);display:flex;align-items:center;justify-content:center;font-size:16px">⚡</span>
+        <div><div style="font-size:13px;font-weight:700;color:#fff">+120 XP</div><div style="font-size:10.5px;color:rgba(255,255,255,.6)">hábito completo</div></div>
+      </div>
+      <div style="position:absolute;right:10%;top:24%;transform:rotateY(-16deg) rotateX(6deg);background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.16);border-radius:16px;padding:14px 16px;backdrop-filter:blur(14px);box-shadow:0 26px 50px -18px rgba(0,0,0,.6);display:flex;align-items:center;gap:10px">
+        <span style="width:34px;height:34px;border-radius:10px;background:rgba(30,203,180,.25);display:flex;align-items:center;justify-content:center;font-size:16px">🎯</span>
+        <div><div style="font-size:13px;font-weight:700;color:#fff">Nível 12</div><div style="font-size:10.5px;color:rgba(255,255,255,.6)">desbloqueado</div></div>
+      </div>
+      <div style="position:absolute;right:8%;bottom:18%;transform:rotateY(-14deg) rotateX(-5deg);background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.16);border-radius:18px;padding:16px;backdrop-filter:blur(14px);box-shadow:0 30px 60px -20px rgba(0,0,0,.6);width:170px">
+        <div style="display:flex;align-items:flex-end;gap:5px;height:46px"><span style="flex:1;height:50%;background:rgba(30,203,180,.5);border-radius:3px"></span><span style="flex:1;height:80%;background:#1ECBB4;border-radius:3px"></span><span style="flex:1;height:65%;background:rgba(30,203,180,.5);border-radius:3px"></span><span style="flex:1;height:100%;background:#1ECBB4;border-radius:3px"></span><span style="flex:1;height:72%;background:rgba(30,203,180,.5);border-radius:3px"></span></div>
+        <div style="font-size:10.5px;color:rgba(255,255,255,.6);margin-top:8px">semana em alta</div>
+      </div>
+
+      <!-- central glass card -->
+      <div style="margin:auto;width:380px;position:relative;z-index:2;transform:translateZ(60px);background:linear-gradient(165deg,rgba(255,255,255,.14),rgba(255,255,255,.05));border:1px solid rgba(255,255,255,.25);border-radius:28px;padding:34px 32px;backdrop-filter:blur(30px);box-shadow:0 50px 100px -30px rgba(0,0,0,.75),inset 0 1px 0 rgba(255,255,255,.3)">
+        <div style="text-align:center;margin-bottom:22px">
+          <div style="width:44px;height:44px;margin:0 auto 12px;border-radius:14px;background:linear-gradient(135deg,#E8A838,#b5781f);display:flex;align-items:center;justify-content:center;font-family:'Syne';font-weight:800;font-size:22px;color:#1a1205;box-shadow:0 12px 24px -8px rgba(232,168,56,.7)">N</div>
+          <h3 style="font-family:'Syne';font-weight:700;font-size:22px;color:#fff">Entrar na NEXUS</h3>
+        </div>
+        <div style="margin-bottom:13px"><label class="lbl" style="color:rgba(255,255,255,.8)">E-mail</label><input class="inp" value="igor@email.com" style="background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.25);color:#fff"/></div>
+        <div><label class="lbl" style="color:rgba(255,255,255,.8)">Senha</label><div class="pw"><input class="inp" type="password" value="123456789" style="background:rgba(255,255,255,.16);border:1px solid #E8A838;color:#fff;box-shadow:0 0 0 3px rgba(232,168,56,.2)"/><span class="eye" style="color:#fff">👁</span></div></div>
+        <div class="rowb"><label class="rmb" style="color:rgba(255,255,255,.8)"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:13px;color:#fff;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(255,255,255,.5)">Esqueci a senha</a></div>
+        <button class="cta" style="background:linear-gradient(135deg,#E8A838,#F0C060);color:#1a1205;box-shadow:0 16px 34px -10px rgba(232,168,56,.7);font-family:'Syne'">Entrar &nbsp;→</button>
+        <div class="dvd" style="color:rgba(255,255,255,.7)">ou continua com</div>
+        <div class="soc">
+          <button class="sbtn" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff"><svg viewBox="0 0 24 24" fill="#fff"><path d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+          <button class="sbtn" style="background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);color:#fff"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 4 · EDITORIAL — oversized type ═══════════ -->
+<section class="concept">
+  <div class="concept-label"><div class="concept-num">4</div>
+    <div><h2>Editorial — Bold Type</h2>
+    <div class="tag">Layout de revista: tipografia gigante a ocupar a esquerda, grelha assimétrica, numeração tipo índice e inputs com <em>underline</em> (sem caixas). Criativo e confiante.</div></div>
+  </div>
+  <div class="concept-meta">
+    <div><h4>Paleta</h4><div class="swatches"><span class="sw" style="background:#0C0C0C"></span><span class="sw" style="background:#F5F2EA"></span><span class="sw" style="background:#E8A838"></span><span class="sw" style="background:#1ECBB4"></span></div></div>
+    <div><h4>Tipografia</h4><p>Syne (display) + Inter (UI)</p></div>
+    <div><h4>UX-chave</h4><p>Inputs underline minimalistas com foco a dourado; CTA âncora; muito respiro.</p></div>
+    <div><h4>Tom</h4><p>Editorial, ousado, autoral.</p></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar" style="background:#0c0c0c"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url" style="background:rgba(255,255,255,.05)">app.nexus.io</span></div>
+    <div class="stage" style="background:#0C0C0C;color:#F5F2EA">
+      <!-- LEFT editorial -->
+      <div style="width:56%;padding:48px 50px;display:flex;flex-direction:column;border-right:1px solid rgba(255,255,255,.1);position:relative">
+        <div style="display:flex;align-items:center;gap:11px"><span style="width:30px;height:30px;border-radius:9px;background:#E8A838;display:flex;align-items:center;justify-content:center;color:#0C0C0C;font-family:'Syne';font-weight:800;font-size:15px">N</span><span style="font-family:'Syne';font-weight:700;font-size:17px;letter-spacing:.3px">NEXUS</span></div>
+        <div style="margin:auto 0">
+          <div style="font-family:'Space Grotesk';font-size:12px;letter-spacing:.3em;color:#E8A838;margin-bottom:18px">01 — ENTRAR</div>
+          <h2 style="font-family:'Syne';font-weight:800;font-size:74px;line-height:.95;letter-spacing:-3px">Pequenas<br/>vitórias,<br/><span style="color:#E8A838">todos os dias.</span></h2>
+          <p style="font-size:15px;color:#9a978f;margin-top:24px;max-width:380px;line-height:1.6">Hábitos, ritmo e ofensiva num só sistema. Entra e retoma a tua evolução.</p>
+        </div>
+        <div style="display:flex;gap:30px;font-size:12px;color:#6a675f"><span><b style="color:#F5F2EA;font-family:'Syne';font-size:18px">12k+</b> &nbsp;ofensivas</span><span><b style="color:#F5F2EA;font-family:'Syne';font-size:18px">+38%</b> &nbsp;consistência</span></div>
+      </div>
+      <!-- RIGHT form underline -->
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:44px">
+        <div style="width:320px">
+          <h3 style="font-family:'Syne';font-weight:700;font-size:24px;margin-bottom:34px">Acede à tua conta</h3>
+          <div style="margin-bottom:26px"><label class="lbl" style="color:#9a978f;text-transform:uppercase;letter-spacing:.12em;font-size:10.5px">E-mail</label>
+            <input value="igor@email.com" style="width:100%;background:transparent;border:none;border-bottom:1.5px solid rgba(255,255,255,.2);color:#F5F2EA;font-size:16px;padding:8px 0;outline:none;font-family:inherit"/></div>
+          <div style="margin-bottom:6px"><label class="lbl" style="color:#9a978f;text-transform:uppercase;letter-spacing:.12em;font-size:10.5px">Senha</label>
+            <div class="pw"><input type="password" value="123456789" style="width:100%;background:transparent;border:none;border-bottom:2px solid #E8A838;color:#F5F2EA;font-size:16px;padding:8px 0;outline:none;font-family:inherit"/><span class="eye">👁</span></div></div>
+          <div class="rowb"><label class="rmb" style="color:#9a978f"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:13px;color:#E8A838;font-weight:600;text-decoration:none">Esqueci a senha</a></div>
+          <button class="cta" style="background:#F5F2EA;color:#0C0C0C;border-radius:0;font-family:'Syne';height:54px">ENTRAR &nbsp;→</button>
+          <div class="dvd" style="color:#6a675f">ou</div>
+          <div class="soc">
+            <button class="sbtn" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:#F5F2EA;border-radius:0"><svg viewBox="0 0 24 24"><path fill="#fff" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path fill="#fff" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#fff" d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path fill="#fff" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+            <button class="sbtn" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:#F5F2EA;border-radius:0"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+          </div>
+          <p style="text-align:center;margin-top:22px;font-size:13px;color:#9a978f">Novo? <a style="color:#F5F2EA;font-weight:700;text-decoration:none;border-bottom:2px solid #E8A838">Criar conta</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ 5 · PULSE — gamified hero ═══════════ -->
+<section class="concept">
+  <div class="concept-label"><div class="concept-num">5</div>
+    <div><h2>Pulse — Gamified Hero</h2>
+    <div class="tag">O ADN da NEXUS no login: à esquerda, um anel de XP com chama no centro, nível e contadores de ofensiva animáveis. À direita, form compacto. Motivacional desde o primeiro toque.</div></div>
+  </div>
+  <div class="concept-meta">
+    <div><h4>Paleta</h4><div class="swatches"><span class="sw" style="background:#0A0C12"></span><span class="sw" style="background:#E8A838"></span><span class="sw" style="background:#E24B4A"></span><span class="sw" style="background:#1ECBB4"></span></div></div>
+    <div><h4>Tipografia</h4><p>Syne + DM Sans</p></div>
+    <div><h4>UX-chave</h4><p>Reforço motivacional (progresso) cria pull emocional; form direto à direita.</p></div>
+    <div><h4>Tom</h4><p>Energético, gamificado, on-brand.</p></div>
+  </div>
+  <div class="frame">
+    <div class="frame-bar" style="background:#0a0c12"><span class="dot" style="background:#ff5f57"></span><span class="dot" style="background:#febc2e"></span><span class="dot" style="background:#28c840"></span><span class="url" style="background:rgba(255,255,255,.05)">app.nexus.io</span></div>
+    <div class="stage" style="background:#0A0C12;font-family:'DM Sans',sans-serif">
+      <!-- LEFT hero ring -->
+      <div style="width:50%;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(600px 600px at 50% 45%, rgba(232,168,56,.18), transparent 65%)">
+        <div style="position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.03) 1px,transparent 1px);background-size:40px 40px;mask-image:radial-gradient(circle at 50% 45%,#000,transparent 70%)"></div>
+        <div style="position:relative;width:260px;height:260px">
+          <svg viewBox="0 0 260 260" style="position:absolute;inset:0;transform:rotate(-90deg)">
+            <circle cx="130" cy="130" r="116" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="16"/>
+            <circle cx="130" cy="130" r="116" fill="none" stroke="url(#g5)" stroke-width="16" stroke-linecap="round" stroke-dasharray="729" stroke-dashoffset="160"/>
+            <defs><linearGradient id="g5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#E8A838"/><stop offset="1" stop-color="#E24B4A"/></linearGradient></defs>
+          </svg>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="font-size:64px;line-height:1;filter:drop-shadow(0 8px 20px rgba(226,75,74,.6))">🔥</div>
+            <div style="font-family:'Syne';font-weight:800;font-size:40px;color:#E8A838;margin-top:6px;line-height:1">47</div>
+            <div style="font-size:12px;color:#9BA0B0;letter-spacing:.1em;text-transform:uppercase">dias de ofensiva</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:14px;margin-top:34px;position:relative">
+          <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 18px;text-align:center;min-width:96px"><div style="font-family:'Syne';font-weight:800;font-size:22px;color:#7F77DD">Nível 12</div><div style="font-size:11px;color:#9BA0B0">680/1000 XP</div></div>
+          <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:12px 18px;text-align:center;min-width:96px"><div style="font-family:'Syne';font-weight:800;font-size:22px;color:#1ECBB4">93%</div><div style="font-size:11px;color:#9BA0B0">consistência</div></div>
+        </div>
+        <div style="position:absolute;top:36px;left:36px;display:flex;align-items:center;gap:10px"><span style="width:28px;height:28px;border-radius:8px;background:#E8A838;display:flex;align-items:center;justify-content:center;color:#0A0C12;font-family:'Syne';font-weight:800;font-size:14px">N</span><span style="font-family:'Syne';font-weight:700;font-size:16px;color:#F0EDE8">NEXUS</span></div>
+      </div>
+      <!-- RIGHT form -->
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px;border-left:1px solid rgba(255,255,255,.07)">
+        <div style="width:320px">
+          <h3 style="font-family:'Syne';font-weight:700;font-size:27px;letter-spacing:-.4px;margin-bottom:6px;color:#F0EDE8">Retoma o ritmo 🔥</h3>
+          <p style="color:#9BA0B0;font-size:13.5px;margin-bottom:26px">A tua ofensiva de 47 dias espera por ti.</p>
+          <div style="margin-bottom:14px"><label class="lbl" style="color:#9BA0B0">E-mail</label><input class="inp" value="igor@email.com" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"/></div>
+          <div><label class="lbl" style="color:#9BA0B0">Senha</label><div class="pw"><input class="inp" type="password" value="123456789" style="background:#1a160e;border:1px solid #E8A838;color:#F0EDE8;box-shadow:0 0 0 3px rgba(232,168,56,.15)"/><span class="eye">👁</span></div></div>
+          <div class="rowb"><label class="rmb" style="color:#9BA0B0"><input type="checkbox" checked style="accent-color:#E8A838"/> Lembrar-me</label><a style="font-size:13px;color:#E8A838;font-weight:600;text-decoration:none">Esqueci a senha</a></div>
+          <button class="cta" style="background:linear-gradient(135deg,#E8A838,#E24B4A);color:#fff;font-family:'Syne';box-shadow:0 14px 30px -10px rgba(226,75,74,.5)">Entrar &nbsp;→</button>
+          <div class="dvd" style="color:#5A6070">ou</div>
+          <div class="soc">
+            <button class="sbtn" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/><path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/><path fill="#FBBC05" d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/><path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/></svg>Google</button>
+            <button class="sbtn" style="background:#14161e;border:1px solid rgba(255,255,255,.1);color:#F0EDE8"><svg viewBox="0 0 24 24" fill="#fff"><path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/></svg>Apple</button>
+          </div>
+          <p style="text-align:center;margin-top:22px;font-size:13px;color:#9BA0B0">Primeira vez? <a style="color:#E8A838;font-weight:700;text-decoration:none">Criar conta</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
