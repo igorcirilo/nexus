@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { format, addDays } from 'date-fns'
 import Nav from '@/components/Nav'
 import ObjetivosHub from '@/components/objetivos/ObjetivosHub'
-import { supabase, getGoals90, saveGoal90, deleteGoal90, getMilestones, toggleMilestone } from '@/lib/supabase'
+import { supabase, requireUser, getGoals90, saveGoal90, deleteGoal90, getMilestonesForGoals, toggleMilestone } from '@/lib/supabase'
 import { AREA_META } from '@/types'
 import type { Goal90, HabitArea } from '@/types'
 
@@ -49,8 +49,8 @@ export default function ObjetivosPage() {
   const [fEnd,      setFEnd]      = useState(format(addDays(new Date(), 90), 'yyyy-MM-dd'))
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { window.location.href = '/auth'; return }
+    requireUser().then(async (user) => {
+      if (!user) return
       setUserId(user.id)
       await loadGoals(user.id)
     })
@@ -59,11 +59,8 @@ export default function ObjetivosPage() {
   async function loadGoals(uid: string) {
     const data = await getGoals90(uid) as Goal90[]
     setGoals(data)
-    // Carregar marcos para cada objectivo
-    const ms: Record<string, Milestone[]> = {}
-    await Promise.all(data.map(async g => {
-      ms[g.id] = (await getMilestones(g.id)) as Milestone[]
-    }))
+    // Carrega os marcos de todos os objetivos numa única query (evita N+1).
+    const ms = await getMilestonesForGoals(data.map(g => g.id)) as Record<string, Milestone[]>
     setMilestones(ms)
   }
 

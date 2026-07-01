@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import Nav from '@/components/Nav'
 import FeedbackToast, { triggerToast } from '@/components/FeedbackToast'
-import { supabase, getProfile, saveCheckin, updateStreak, getCheckinsForDate } from '@/lib/supabase'
+import { requireUser, getProfile, saveCheckin, updateStreak, getCheckinsForDate } from '@/lib/supabase'
 import type { Profile, CheckinPhase, ProgramTask } from '@/types'
 import { getTasksForDate } from '@/lib/program'
 
@@ -117,8 +117,8 @@ export default function CheckinPage() {
   const [nightTasks, setNightTasks] = useState<ProgramTask[]>([])
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { window.location.href = '/auth'; return }
+    requireUser().then(async (user) => {
+      if (!user) return
       const [prof, checkins] = await Promise.all([
         getProfile(user.id),
         getCheckinsForDate(user.id, today),

@@ -2,7 +2,7 @@
 // src/app/perfil/page.tsx
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
-import { supabase, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d, getRitmo, getGoals90 } from '@/lib/supabase'
+import { supabase, requireUser, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d, getRitmo, getGoals90 } from '@/lib/supabase'
 import { emitToast } from '@/lib/toast-events'
 import { normalizeProfileForm } from '@/lib/profile-form'
 import { clearDraft } from '@/lib/onboarding-engine'
@@ -75,11 +75,8 @@ export default function PerfilPage() {
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        window.location.href = '/auth'
-        return
-      }
+      const user = await requireUser()
+      if (!user) return
 
       const [prof, userBadges, trainingCount, readingPages, ritmoNow, userGoals] = await Promise.all([
         getProfile(user.id),

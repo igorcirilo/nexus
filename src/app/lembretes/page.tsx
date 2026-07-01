@@ -2,7 +2,7 @@
 // src/app/lembretes/page.tsx
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
-import { supabase, getReminders, saveReminder, deleteReminder, toggleReminder } from '@/lib/supabase'
+import { requireUser, getReminders, saveReminder, deleteReminder, toggleReminder } from '@/lib/supabase'
 
 const DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
 const TYPES = [
@@ -50,8 +50,8 @@ export default function LembretesPage() {
   const [toast,     setToast]     = useState('')
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) { window.location.href = '/auth'; return }
+    requireUser().then(async (user) => {
+      if (!user) return
       setUserId(user.id)
       const data = await getReminders(user.id)
       setReminders(data as Reminder[])

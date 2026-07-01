@@ -1,6 +1,6 @@
 // src/lib/supabase.ts
 import { createBrowserClient } from '@supabase/ssr'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import type { SupabaseClient, User } from '@supabase/supabase-js'
 import { format, endOfMonth } from 'date-fns'
 import type { HabitArea, ReaderMode, ReaderTheme } from '@/types'
 import { todayISO } from '@/lib/date'
@@ -24,6 +24,20 @@ export const supabase = createBrowserClient(supabaseUrl, supabaseAnon)
 function reportError(context: string, message: string) {
   console.error(`[${context}]`, message || 'erro desconhecido')
   emitToast(`Erro: ${context.replace(' error', '').replace(/([A-Z])/g, ' $1').trim()}`, 'error')
+}
+
+/**
+ * Guarda de autenticação partilhado pelas páginas cliente: devolve o utilizador
+ * autenticado ou, se não houver sessão, redireciona para /auth e devolve null.
+ * Centraliza o padrão `getUser() + redirect` que estava duplicado em ~10 páginas.
+ */
+export async function requireUser(): Promise<User | null> {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    if (typeof window !== 'undefined') window.location.href = '/auth'
+    return null
+  }
+  return user
 }
 
 // ── Perfil ─────────────────────────────────────────────────
@@ -97,7 +111,7 @@ export async function updateStreak(userId: string) {
 
 /**
  * Calcula o Ritmo (0–100) do utilizador a partir dos últimos dias de hábitos
- * e check-ins. Reusa o padrão de janela de `getWeeklyStats`.
+ * e check-ins.
  */
 export async function getRitmo(userId: string): Promise<number> {
   const days = RITMO_WINDOW_DAYS
@@ -158,30 +172,6 @@ export async function awardBadge(userId: string, badgeKey: string) {
   return supabase
     .from('user_badges')
     .upsert({ user_id: userId, badge_key: badgeKey }, { onConflict: 'user_id,badge_key' })
-}
-
-// ── Dashboard: últimos 7 dias ──────────────────────────────
-export async function getWeeklyStats(userId: string) {
-  const since = new Date()
-  since.setDate(since.getDate() - 6)
-  const sinceStr = format(since, 'yyyy-MM-dd')
-
-  const [{ data: logs }, { data: checkins }, { data: sessions }] = await Promise.all([
-    supabase.from('habit_logs')
-      .select('date, completed')
-      .eq('user_id', userId)
-      .gte('date', sinceStr),
-    supabase.from('checkins')
-      .select('date, energy, sleep_hours, mood')
-      .eq('user_id', userId)
-      .gte('date', sinceStr),
-    supabase.from('focus_sessions')
-      .select('date, duration')
-      .eq('user_id', userId)
-      .gte('date', sinceStr),
-  ])
-
-  return { logs: logs ?? [], checkins: checkins ?? [], sessions: sessions ?? [] }
 }
 
 // ── Perfil expandido ───────────────────────────────────────
@@ -246,13 +236,22 @@ export async function deleteGoal90(id: string) {
   return supabase.from('goals_90').delete().eq('id', id)
 }
 
-export async function getMilestones(goalId: string) {
+/**
+ * Busca os marcos de vários objetivos numa única query (evita o N+1 de uma
+ * chamada por objetivo). Devolve um mapa goal_id → marcos, ordenados por data.
+ */
+export async function getMilestonesForGoals(goalIds: string[]) {
+  const map: Record<string, Record<string, unknown>[]> = {}
+  if (goalIds.length === 0) return map
   const { data } = await supabase
     .from('goal_milestones')
     .select('*')
-    .eq('goal_id', goalId)
+    .in('goal_id', goalIds)
     .order('due_date')
-  return data ?? []
+  for (const row of (data ?? []) as { goal_id: string }[]) {
+    ;(map[row.goal_id] ??= []).push(row)
+  }
+  return map
 }
 
 export async function toggleMilestone(id: string, done: boolean) {

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import LeituraHub from '@/components/leitura/LeituraHub'
 import FileImportModal from '@/components/FileImportModal'
-import { supabase, getBooks, getBookProgress, getBookHighlights, saveBook, getReadingSessionsThisWeek } from '@/lib/supabase'
+import { requireUser, getBooks, getBookProgress, getBookHighlights, saveBook, getReadingSessionsThisWeek } from '@/lib/supabase'
 import { darkCardInk } from '@/lib/theme'
 import { localDateKey } from '@/lib/date'
 import type { Book, BookProgress, BookHighlight, FileImportResult } from '@/types'
@@ -148,8 +148,8 @@ export default function LeituraPage() {
     let active = true
 
     async function bootstrap() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { window.location.href = '/auth'; return }
+      const user = await requireUser()
+      if (!user) return
       if (!active) return
       setUserId(user.id)
       await loadData(user.id)
