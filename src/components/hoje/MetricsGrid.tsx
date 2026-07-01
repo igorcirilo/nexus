@@ -46,7 +46,7 @@ export default function MetricsGrid({ metrics }: Props) {
           icon="💰"
           value={financas ? `${financas.netMonth >= 0 ? '+' : ''}${fmtNum(financas.netMonth)}` : '—'}
           unit={financas ? '€' : undefined}
-          label="Finanças · saldo"
+          label="Finanças · balanço"
           sub="Este mês"
         />
         {/* Leitura */}

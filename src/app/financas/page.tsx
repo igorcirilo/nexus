@@ -9,7 +9,7 @@ import {
 import Nav from '@/components/Nav'
 import {
   requireUser, getProfile, getTransactions,
-  getTransactionsByMonth, saveTransaction, updateTransaction,
+  getTransactionsByMonth, getAllTransactions, saveTransaction, updateTransaction,
   saveTransactionsBulk, deleteTransaction, updateFinancialGoals, updateBudgets,
 } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
@@ -17,7 +17,11 @@ import {
   parseCsvText, detectColumnMap, rowsToTransactions,
   type TransactionCandidate,
 } from '@/lib/csv-parser'
-import { monthlySavings, buildBudgetSummary, categoryTotals } from '@/lib/finance'
+import {
+  monthlySavings, buildBudgetSummary, categoryTotals, sumInRange,
+  projectEndOfMonth, unbudgetedSpend, buildInsights,
+} from '@/lib/finance'
+import { suggestCategory } from '@/lib/categorize'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
 import { logError } from '@/lib/log'
 import { darkCardInk } from '@/lib/theme'
@@ -28,6 +32,11 @@ import type { Profile, Transaction, FinancialImportPreview, FinancialImportCandi
 const CATEGORIES_IN  = ['Salário','Freelance','Investimento','Rendas','Presente','Outro']
 const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Contas','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
 const CAT_COLORS     = ['#7F77DD','#1ECBB4','#E8A838','#E24B4A','#1D9E75','#D4537E','#85B7EB','#F0C060','#534AB7','#9BA0B0']
+// Cores de gráfico validadas (luminosidade, croma, separação CVD e contraste)
+// contra as superfícies dos dois temas (#11131C escuro / #FFFFFF claro).
+const CHART_IN  = '#00A87E'
+const CHART_OUT = '#E24B4A'
+const CHART_CAT = '#7F77DD'
 // Categoria reservada: mover dinheiro para poupança. Conta para a meta mensal de poupança.
 const SAVINGS_CAT = 'Poupança'
 const CUSTOM_KEY  = '__custom__'
@@ -37,6 +46,7 @@ const CAT_EMOJI: Record<string,string> = {
   Salário:'💼', Freelance:'💻', Investimento:'📈', Rendas:'🏘️', Presente:'🎁',
 }
 const catEmoji = (cat:string) => CAT_EMOJI[cat] ?? '📦'
+const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
 
 function dayLabel(date:string) {
   const today = format(new Date(),'yyyy-MM-dd')
@@ -170,8 +180,8 @@ export default function FinancasPage() {
   const [csvImporting, setCsvImporting] = useState(false)
   const [pdfPreview, setPdfPreview] = useState<FinancialImportPreview | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [exporting, setExporting]   = useState(false)
 
-  const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
   function showToast(m: string, type: 'success' | 'error' | 'info' = 'success') {
     if (type === 'error') toast.error(m)
     else toast.success(m)
@@ -334,6 +344,48 @@ export default function FinancasPage() {
     .filter(c => (catAvg3m[c]??0) > 0)
     .map(c => ({ cat:c, avg:catAvg3m[c], suggested: Math.ceil((catAvg3m[c]*1.05)/10)*10 }))
 
+  // ── Projeção de fim de mês, comparação com o mês anterior e insights ──
+  const projected = projectEndOfMonth(totalIn, totalOut, dayOfMonth, daysInMonth)
+  // Saídas do mês anterior até ao mesmo dia — comparação justa com o mês parcial.
+  const prevSpendToDate = useMemo(() => {
+    const prev = subMonths(new Date(), 1)
+    return sumInRange(history, 'saida', format(startOfMonth(prev),'yyyy-MM-dd'), format(prev,'yyyy-MM-dd'))
+  }, [history])
+  const spendDeltaPct = prevSpendToDate > 0 && totalOut > 0
+    ? Math.round((totalOut / prevSpendToDate - 1) * 100)
+    : null
+  const daysSinceLastTx = useMemo(() => {
+    const last = [...txs, ...history].reduce<string|null>((m,t) => (!m || t.date > m) ? t.date : m, null)
+    if (!last) return null
+    const today = format(new Date(),'yyyy-MM-dd')
+    const diff = Math.round((new Date(today+'T12:00:00').getTime() - new Date(last+'T12:00:00').getTime()) / 86400000)
+    return Math.max(0, diff)
+  }, [txs, history])
+  const insights = useMemo(() => buildInsights({
+    projectedBalance: projected,
+    spentByCat,
+    catAvg3m,
+    budgets,
+    savingsPrevMonth: monthlyChart.length >= 2 ? monthlyChart[monthlyChart.length-2].poupanca : 0,
+    savingsThisMonth: balance,
+    daysSinceLastTx,
+    dayOfMonth,
+    daysInMonth,
+  }, fmt), [projected, spentByCat, catAvg3m, budgets, monthlyChart, balance, daysSinceLastTx, dayOfMonth, daysInMonth])
+  const topInsight = insights[0] ?? null
+  // Gasto do mês que o gauge do orçamento não vê (Poupança não é consumo).
+  const outsideBudget = unbudgetedSpend(spentByCat, budgets, [SAVINGS_CAT])
+
+  // ── Visão geral: top categorias do mês + série de 6 meses ──
+  const catBreakdown = useMemo(() => {
+    const entries = Object.entries(spentByCat).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1])
+    const top   = entries.slice(0,5).map(([cat,v]) => ({ cat, v }))
+    const rest  = entries.slice(5).reduce((a,[,v]) => a+v, 0)
+    const total = entries.reduce((a,[,v]) => a+v, 0)
+    return { rows: rest > 0 ? [...top, { cat:'Outros', v:rest }] : top, total }
+  }, [spentByCat])
+  const hasHistory = monthlyChart.some(m => m.entradas > 0 || m.saidas > 0)
+
   function openTxSheet(t: Transaction) {
     setOpenTx(t)
     setEtCat(t.category); setEtDesc(t.description ?? '')
@@ -409,6 +461,33 @@ export default function FinancasPage() {
     const n=parseFloat(val); if (isNaN(n)||n<0) return
     persistBudgets({...budgets,[cat]:n})
     showToast('Orçamento guardado.')
+  }
+
+  // Exporta todo o histórico no mesmo formato que a importação aceita
+  // (data,tipo,categoria,valor,descricao) — os dados nunca ficam presos no app.
+  async function exportCSV() {
+    if (!userId || exporting) return
+    setExporting(true)
+    try {
+      const all = await getAllTransactions(userId) as Pick<Transaction,'date'|'type'|'category'|'amount'|'description'>[]
+      if (all.length === 0) { showToast('Sem movimentos para exportar.', 'error'); return }
+      const esc = (s:string) => /[",;\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s
+      const lines = [
+        'data,tipo,categoria,valor,descricao',
+        ...all.map(t => [t.date, t.type, esc(t.category), String(t.amount), esc(t.description ?? '')].join(',')),
+      ]
+      // BOM para o Excel abrir acentos corretamente.
+      const blob = new Blob(['\uFEFF'+lines.join('\n')], { type:'text/csv;charset=utf-8' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href = url
+      a.download = `nexus-financas-${format(new Date(),'yyyy-MM-dd')}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      showToast(`${all.length} movimentos exportados.`)
+    } finally {
+      setExporting(false)
+    }
   }
 
   function importCSV(e: React.ChangeEvent<HTMLInputElement>) {
@@ -626,8 +705,11 @@ export default function FinancasPage() {
               <button onClick={()=>{setMoreOpen(false);csvRef.current?.click()}} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
                 ↑ Importar CSV
               </button>
-              <button onClick={()=>{setMoreOpen(false);pdfRef.current?.click()}} disabled={pdfLoading} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',cursor:'pointer',textAlign:'left'}}>
+              <button onClick={()=>{setMoreOpen(false);pdfRef.current?.click()}} disabled={pdfLoading} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
                 📄 {pdfLoading ? 'A ler PDF…' : 'Importar PDF'}
+              </button>
+              <button onClick={()=>{setMoreOpen(false);exportCSV()}} disabled={exporting} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',cursor:'pointer',textAlign:'left'}}>
+                ↓ {exporting ? 'A exportar…' : 'Exportar CSV'}
               </button>
             </div>
           )}
@@ -642,10 +724,16 @@ export default function FinancasPage() {
         style={{display:'block',width:'calc(100% - 40px)',textAlign:'left',cursor:'pointer',fontFamily:'Inter, sans-serif',margin:'14px 20px 0',...darkCardInk,background:'linear-gradient(135deg, #131022 0%, #0E1A26 100%)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:22,padding:18}}
       >
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,212,200,0.85)'}}>💎 Saldo do mês</div>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,212,200,0.85)'}}>💎 Balanço do mês</div>
           <span style={{fontSize:11,fontWeight:700,color:'rgba(0,212,200,0.85)'}}>Movimentos ›</span>
         </div>
         <div style={{fontSize:32,fontWeight:900,letterSpacing:'-1px',color:balance>=0?'#00D4C8':'#E24B4A'}}>{fmt(balance)}</div>
+        <div style={{fontSize:10,color:'rgba(255,255,255,0.55)',fontWeight:600,marginTop:2}}>entradas − saídas de {format(new Date(),'MMMM',{locale:pt})}</div>
+        {projected!==null&&(
+          <div style={{fontSize:11.5,fontWeight:700,marginTop:8,color:projected>=0?'#00C896':'#E24B4A'}}>
+            {projected>=0?'🌱':'⚠️'} Ao ritmo atual: ≈ {fmt(projected)} no fim do mês
+          </div>
+        )}
         <div style={{display:'flex',gap:8,marginTop:12}}>
           <div style={{flex:1,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:12,padding:'9px 10px'}}>
             <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>Entradas</div>
@@ -654,9 +742,33 @@ export default function FinancasPage() {
           <div style={{flex:1,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:12,padding:'9px 10px'}}>
             <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>Saídas</div>
             <div style={{fontSize:14,fontWeight:800,color:'#E24B4A',marginTop:2}}>−{fmt(totalOut)}</div>
+            {spendDeltaPct!==null&&Math.abs(spendDeltaPct)>=5&&(
+              <div style={{fontSize:9,fontWeight:700,marginTop:3,color:spendDeltaPct>0?'#E24B4A':'#00C896'}}>
+                {spendDeltaPct>0?'▲':'▼'} {Math.abs(spendDeltaPct)}% vs. {format(subMonths(new Date(),1),'MMM',{locale:pt})} (ao dia {dayOfMonth})
+              </div>
+            )}
           </div>
         </div>
       </button>
+
+      {/* ── Insight do dia: a regra mais relevante de buildInsights ── */}
+      {topInsight&&(() => {
+        const toneStyle = {
+          danger:   { bg:'rgba(226,75,74,0.07)',  border:'rgba(226,75,74,0.28)',  accent:'#E24B4A' },
+          warning:  { bg:'rgba(245,200,66,0.07)', border:'rgba(245,200,66,0.30)', accent:'#F5C842' },
+          positive: { bg:'rgba(0,200,150,0.06)',  border:'rgba(0,200,150,0.25)',  accent:'#00C896' },
+          info:     { bg:'rgba(var(--ink-rgb),0.04)', border:'rgba(var(--ink-rgb),0.12)', accent:'var(--text1)' },
+        }[topInsight.tone]
+        return (
+          <div style={{margin:'12px 20px 0',display:'flex',alignItems:'flex-start',gap:11,background:toneStyle.bg,border:`1px solid ${toneStyle.border}`,borderRadius:16,padding:'12px 14px',fontFamily:'Inter, sans-serif'}}>
+            <span style={{fontSize:17,lineHeight:'20px'}} aria-hidden>{topInsight.icon}</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:10,fontWeight:800,letterSpacing:'0.07em',textTransform:'uppercase',color:toneStyle.accent,marginBottom:3}}>Insight</div>
+              <div style={{fontSize:12.5,fontWeight:600,color:'var(--text1)',lineHeight:1.5}}>{topInsight.text}</div>
+            </div>
+          </div>
+        )
+      })()}
 
       <div style={{padding:'0 20px'}} onClick={()=>moreOpen&&setMoreOpen(false)}>
         {/* ── Orçamento (resumo) ── */}
@@ -679,6 +791,11 @@ export default function FinancasPage() {
                 <span>{fmt(totalSpentBudgeted)} de {fmt(totalBudget)}</span>
                 <span style={{color:budgetOnPace?'#00C896':'#F5C842',fontWeight:700}}>{budgetOnPace?'dentro do ritmo':'acima do ritmo'}</span>
               </div>
+              {outsideBudget>0&&(
+                <div style={{fontSize:10.5,fontWeight:700,color:'#F5C842',marginTop:6}}>
+                  +{fmt(outsideBudget)} gastos em categorias sem orçamento
+                </div>
+              )}
               {budgetedCats.some(b=>b.spent>b.budget||b.pct>=85)&&(
                 <div style={{display:'flex',gap:7,marginTop:10,flexWrap:'wrap'}}>
                   {budgetedCats.filter(b=>b.spent>b.budget).slice(0,2).map(b=>(
@@ -770,6 +887,64 @@ export default function FinancasPage() {
             )}
           </button>
         </div>
+
+        {/* ── Visão geral: top categorias do mês + 6 meses ── */}
+        {(catBreakdown.total>0||hasHistory)&&(
+          <>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text3)',margin:'20px 0 10px'}}>Visão geral</div>
+
+            {catBreakdown.total>0&&(
+              <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'13px 15px',marginBottom:9}}>
+                <div style={{fontSize:12.5,fontWeight:700,color:'var(--ink)',marginBottom:11}}>
+                  Para onde foi o dinheiro · {format(new Date(),'MMMM',{locale:pt})}
+                </div>
+                {catBreakdown.rows.map(({cat,v})=>{
+                  const pct = Math.round(v/catBreakdown.total*100)
+                  const other = cat==='Outros'
+                  return (
+                    <div key={cat} style={{marginBottom:9}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
+                        <span style={{fontSize:11.5,fontWeight:600,color:'var(--text1)'}}>{other?'📦':catEmoji(cat)} {cat}</span>
+                        <span style={{fontSize:11,color:'var(--text2)'}}><b style={{color:'var(--text1)',fontWeight:700}}>{fmt(v)}</b> · {pct}%</span>
+                      </div>
+                      <div style={{height:8,background:'var(--surface-3)',borderRadius:4,overflow:'hidden'}}>
+                        <div style={{height:'100%',borderRadius:4,width:`${Math.max(2,pct)}%`,background:other?'rgba(var(--ink-rgb),0.25)':CHART_CAT}}/>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {hasHistory&&(
+              <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'13px 15px'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                  <span style={{fontSize:12.5,fontWeight:700,color:'var(--ink)'}}>Entradas vs. saídas · 6 meses</span>
+                  <span style={{display:'flex',gap:11,fontSize:10.5,color:'var(--text2)',fontWeight:600}}>
+                    <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:CHART_IN}}/>Entradas</span>
+                    <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:CHART_OUT}}/>Saídas</span>
+                  </span>
+                </div>
+                <div
+                  style={{height:140}}
+                  role="img"
+                  aria-label={`Entradas e saídas dos últimos 6 meses. Mês atual: entradas ${fmt(totalIn)}, saídas ${fmt(totalOut)}.`}
+                >
+                  <ResponsiveContainer width="100%" height={140}>
+                    <BarChart data={monthlyChart} barGap={2}>
+                      <CartesianGrid vertical={false} stroke="rgba(var(--ink-rgb),.05)"/>
+                      <XAxis dataKey="label" tick={{fill:'rgba(var(--ink-rgb),0.35)',fontSize:11}} axisLine={false} tickLine={false}/>
+                      <YAxis hide/>
+                      <Tooltip contentStyle={TT} formatter={(v:number)=>fmt(v)} cursor={{fill:'rgba(var(--ink-rgb),0.04)'}}/>
+                      <Bar dataKey="entradas" name="Entradas" fill={CHART_IN} radius={[4,4,0,0]} maxBarSize={14}/>
+                      <Bar dataKey="saidas" name="Saídas" fill={CHART_OUT} radius={[4,4,0,0]} maxBarSize={14}/>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* ── Movimentos recentes ── */}
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',margin:'20px 0 10px'}}>
@@ -1147,6 +1322,22 @@ export default function FinancasPage() {
               <input type="date" value={fDate} onChange={e=>setFDate(e.target.value)} style={sheetInp}/>
             </div>
           </div>
+
+          {/* Sugestão de categoria pela descrição (mesma heurística do import) */}
+          {(() => {
+            if (fCat || fDesc.trim().length < 3) return null
+            const s = suggestCategory(fDesc, txType)
+            if (s === 'Outro') return null
+            return (
+              <button onClick={()=>setFCat(s)} style={{
+                display:'flex',alignItems:'center',gap:7,marginTop:12,padding:'9px 13px',
+                borderRadius:11,cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'Inter, sans-serif',
+                background:'rgba(0,200,150,0.08)',border:'1px solid rgba(0,200,150,0.3)',color:'#00C896',
+              }}>
+                💡 Sugestão: {catEmoji(s)} {s}
+              </button>
+            )
+          })()}
         </Sheet>
         )
       })()}

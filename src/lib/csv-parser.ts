@@ -1,5 +1,7 @@
 // src/lib/csv-parser.ts
 
+import { suggestCategory } from '@/lib/categorize'
+
 export type CsvRow = Record<string, string>
 
 export type ParsedCsvResult = {
@@ -127,17 +129,22 @@ export function rowsToTransactions(
   map: CsvColumnMap,
 ): TransactionCandidate[] {
   return rows.map(row => {
-    const rawAmount = map.amount ? (row[map.amount] ?? '0') : '0'
-    const amount    = Math.abs(parseAmount(rawAmount))
-    const rawType   = map.type ? (row[map.type] ?? '') : ''
-    const type      = inferType(rawType, parseAmount(rawAmount))
+    const rawAmount   = map.amount ? (row[map.amount] ?? '0') : '0'
+    const amount      = Math.abs(parseAmount(rawAmount))
+    const rawType     = map.type ? (row[map.type] ?? '') : ''
+    const type        = inferType(rawType, parseAmount(rawAmount))
+    const description = map.description ? (row[map.description] ?? '') : ''
+    // Sem coluna de categoria (ou célula vazia), tenta inferir pela descrição
+    // — mesma heurística do import de PDF e do registo manual.
+    const rawCategory = map.category ? (row[map.category] ?? '').trim() : ''
+    const category    = rawCategory || suggestCategory(description, type)
 
     return {
-      date:        parseDate(map.date        ? (row[map.date]        ?? '') : ''),
+      date:        parseDate(map.date ? (row[map.date] ?? '') : ''),
       amount,
       type,
-      category:    map.category    ? (row[map.category]    ?? 'Outro') : 'Outro',
-      description: map.description ? (row[map.description] ?? '')      : '',
+      category,
+      description,
     }
   }).filter(t => t.amount > 0 && t.date)
 }

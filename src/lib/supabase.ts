@@ -388,6 +388,21 @@ export async function getTransactionsByMonth(userId: string, numMonths = 6) {
   return data ?? []
 }
 
+// Todas as transações do utilizador (sem filtro de data) — usado na exportação CSV.
+export async function getAllTransactions(userId: string) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('date, type, category, amount, description')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+
+  if (error) {
+    reportError('getAllTransactions error', error.message)
+    return []
+  }
+  return data ?? []
+}
+
 export async function saveTransaction(payload: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('transactions')

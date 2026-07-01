@@ -4,7 +4,11 @@ import {
   monthlySavings,
   categoryTotals,
   buildBudgetSummary,
+  projectEndOfMonth,
+  unbudgetedSpend,
+  buildInsights,
   type FinTx,
+  type InsightInput,
 } from '@/lib/finance'
 
 const txs: FinTx[] = [
@@ -85,5 +89,101 @@ describe('buildBudgetSummary', () => {
 
   it('não divide por zero sem orçamentos', () => {
     expect(buildBudgetSummary({}, spent, outCats).pct).toBe(0)
+  })
+})
+
+describe('projectEndOfMonth', () => {
+  it('extrapola as saídas pelo ritmo diário e mantém as entradas', () => {
+    // dia 10 de 30: gastou 300 → projeta 900 de saídas; 1000 de entradas → +100
+    expect(projectEndOfMonth(1000, 300, 10, 30)).toBe(100)
+  })
+  it('projeta negativo quando o ritmo de gasto excede as entradas', () => {
+    expect(projectEndOfMonth(500, 300, 10, 30)).toBe(-400)
+  })
+  it('devolve null nos primeiros dias do mês (amostra pequena)', () => {
+    expect(projectEndOfMonth(1000, 50, 2, 30)).toBeNull()
+  })
+  it('devolve null sem qualquer movimento', () => {
+    expect(projectEndOfMonth(0, 0, 15, 30)).toBeNull()
+  })
+})
+
+describe('unbudgetedSpend', () => {
+  const spent = { Alimentação: 250, Lazer: 80, Poupança: 200 }
+  it('soma só o gasto de categorias sem orçamento', () => {
+    expect(unbudgetedSpend(spent, { Alimentação: 300 })).toBe(280)
+  })
+  it('respeita a lista de exclusão', () => {
+    expect(unbudgetedSpend(spent, { Alimentação: 300 }, ['Poupança'])).toBe(80)
+  })
+  it('devolve 0 quando tudo está orçamentado', () => {
+    expect(unbudgetedSpend({ Lazer: 80 }, { Lazer: 100 })).toBe(0)
+  })
+})
+
+describe('buildInsights', () => {
+  const eur = (v: number) => `€${v}`
+  const base: InsightInput = {
+    projectedBalance: null,
+    spentByCat: {},
+    catAvg3m: {},
+    budgets: {},
+    savingsPrevMonth: 0,
+    savingsThisMonth: 0,
+    daysSinceLastTx: 0,
+    dayOfMonth: 15,
+    daysInMonth: 30,
+  }
+
+  it('projeção negativa vem primeiro (score máximo)', () => {
+    const out = buildInsights({ ...base, projectedBalance: -120 }, eur)
+    expect(out[0].id).toBe('projection-negative')
+    expect(out[0].tone).toBe('danger')
+    expect(out[0].text).toContain('€-120')
+  })
+
+  it('deteta orçamento ultrapassado e quase ultrapassado', () => {
+    const out = buildInsights({
+      ...base,
+      budgets: { Lazer: 100, Alimentação: 400 },
+      spentByCat: { Lazer: 130, Alimentação: 350 },
+    }, eur)
+    const ids = out.map((i) => i.id)
+    expect(ids).toContain('budget-over-Lazer')
+    expect(ids).toContain('budget-near-Alimentação')
+    expect(ids.indexOf('budget-over-Lazer')).toBeLessThan(ids.indexOf('budget-near-Alimentação'))
+  })
+
+  it('deteta desvio ≥15% face à média 3m, ignorando médias pequenas', () => {
+    const out = buildInsights({
+      ...base,
+      spentByCat: { Alimentação: 240, Roupa: 15 },
+      catAvg3m: { Alimentação: 200, Roupa: 5 },
+    }, eur)
+    expect(out.map((i) => i.id)).toContain('spike-Alimentação')
+    expect(out.map((i) => i.id)).not.toContain('spike-Roupa')
+    expect(out.find((i) => i.id === 'spike-Alimentação')!.text).toContain('+20%')
+  })
+
+  it('avisa quando há 5+ dias sem registos', () => {
+    expect(buildInsights({ ...base, daysSinceLastTx: 6 }, eur).map((i) => i.id)).toContain('stale-log')
+    expect(buildInsights({ ...base, daysSinceLastTx: 2 }, eur)).toHaveLength(0)
+  })
+
+  it('celebra poupança só quando o mês parcial já bate o mês anterior completo', () => {
+    const beat = buildInsights({ ...base, savingsThisMonth: 300, savingsPrevMonth: 250 }, eur)
+    expect(beat.map((i) => i.id)).toContain('savings-beat')
+    const notYet = buildInsights({ ...base, savingsThisMonth: 200, savingsPrevMonth: 250 }, eur)
+    expect(notYet.map((i) => i.id)).not.toContain('savings-beat')
+  })
+
+  it('projeção positiva só a partir do dia 7 e com score baixo', () => {
+    const early = buildInsights({ ...base, projectedBalance: 200, dayOfMonth: 5 }, eur)
+    expect(early.map((i) => i.id)).not.toContain('projection-positive')
+    const out = buildInsights({
+      ...base, projectedBalance: 200, savingsThisMonth: 300, savingsPrevMonth: 100,
+    }, eur)
+    expect(out[0].id).toBe('savings-beat') // 50 > 40
+    expect(out.map((i) => i.id)).toContain('projection-positive')
   })
 })
