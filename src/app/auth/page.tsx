@@ -1,16 +1,24 @@
 'use client'
-// src/app/auth/page.tsx — login "Orbit": formulário à esquerda + showcase do
-// produto à direita (mockup do "Hoje" com pills e bolha do assistente).
-// O showcase é decorativo e esconde-se em mobile; o formulário mantém todo o
-// fluxo real de auth (email+password, registo com consentimento, recuperação).
+// src/app/auth/page.tsx — login "Orbit".
+// Mobile: "Hero Glow" — hero com glow + pills de funcionalidades sobre um card
+// de formulário. Desktop (≥820px): split-screen com showcase do produto ("Hoje")
+// à direita. Mantém todo o fluxo real de auth (email+password, registo com
+// consentimento, recuperação) + login social Google/Apple via Supabase OAuth.
 import { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
 const TERMS_VERSION = 'beta-2026-06-28'
 
+// Login social: os botões estão implementados e ligados ao Supabase OAuth, mas
+// ficam desativados até os providers Google/Apple serem configurados no painel
+// (Authentication → Providers). Muda para `true` quando estiverem prontos — não
+// é preciso mais nada. Enquanto false, clicar mostra "chega em breve" em vez de
+// redirecionar para um endpoint que ainda não aceita estes providers.
+const SOCIAL_LOGIN_ENABLED = false
+
 const inp: React.CSSProperties = {
-  width: '100%', height: 50, padding: '0 16px', borderRadius: 12,
+  width: '100%', height: 50, padding: '0 16px', borderRadius: 13,
   background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),.12)',
   color: 'var(--text1)', fontFamily: 'DM Sans, sans-serif', fontSize: 14, outline: 'none',
 }
@@ -80,26 +88,75 @@ export default function AuthPage() {
     else setError('✓ Email de recuperação enviado.')
   }
 
+  // Login social. A implementação é real (Supabase OAuth); só falta ativar os
+  // providers no painel e pôr SOCIAL_LOGIN_ENABLED a true. Em sucesso, o browser
+  // é redirecionado para o provider; em erro mostramos mensagem amigável.
+  async function oauth(provider: 'google' | 'apple') {
+    const nome = provider === 'google' ? 'Google' : 'Apple'
+    if (!SOCIAL_LOGIN_ENABLED) { setError(`Login com ${nome} chega em breve.`); return }
+    setLoading(true); setError('')
+    const { error: e } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/hoje` },
+    })
+    if (e) {
+      setError(`Login com ${nome} ainda não está disponível.`)
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="orbit-auth">
-      {/* Layout e responsividade (media queries não são possíveis inline) */}
+      {/* Layout e responsividade (media queries não são possíveis inline).
+          Base = mobile "Hero Glow"; ≥820px = split-screen com showcase. */}
       <style>{`
-        .orbit-auth { position: fixed; inset: 0; z-index: 50; display: flex;
-          background: var(--bg0); overflow-y: auto; }
-        .orbit-form-col { flex: 1; display: flex; align-items: center;
-          justify-content: center; padding: 40px 22px; min-height: 100%; }
-        .orbit-form { width: 100%; max-width: 340px; }
-        .orbit-showcase { display: none; }
-        .orbit-eye { position: absolute; right: 14px; top: 50%;
-          transform: translateY(-50%); background: none; border: none;
-          cursor: pointer; color: var(--text3); font-size: 15px; padding: 0; }
-        .orbit-pill { position: absolute; background: rgba(255,255,255,.08);
+        .orbit-auth { position: fixed; inset: 0; z-index: 50; overflow-y: auto;
+          background: var(--bg0); display: flex; flex-direction: column; }
+        .orbit-form-col { display: flex; flex-direction: column; min-height: 100%; }
+        .orbit-hero { position: relative; padding: 60px 26px 22px;
+          background:
+            radial-gradient(420px 300px at 50% -10%, rgba(232,168,56,.20), transparent 62%),
+            radial-gradient(360px 320px at 100% 12%, rgba(127,119,221,.20), transparent 60%); }
+        .orbit-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+        .orbit-pill { background: var(--surface-3); border: 1px solid var(--border);
+          border-radius: 100px; padding: 8px 13px; font-size: 12px; font-weight: 600;
+          color: var(--text2); display: inline-flex; align-items: center; gap: 6px;
+          white-space: nowrap; }
+        /* Pills flutuantes do showcase (painel sempre escuro) — estilo "vidro" */
+        .orbit-fpill { position: absolute; background: rgba(255,255,255,.08);
           border: 1px solid rgba(255,255,255,.16); border-radius: 100px;
           padding: 9px 15px; font-size: 12.5px; font-weight: 600; color: #F0EDE8;
           backdrop-filter: blur(10px); display: flex; align-items: center; gap: 7px;
           font-family: 'DM Sans', sans-serif; }
+        .orbit-form { margin: 6px 16px 0; background: var(--bg1);
+          border: 1px solid var(--border); border-radius: 22px; padding: 22px 20px; }
+        .orbit-legal { text-align: center; font-size: 11px; color: var(--text3);
+          line-height: 1.6; padding: 18px 26px 30px; }
+        .orbit-eye { position: absolute; right: 14px; top: 50%;
+          transform: translateY(-50%); background: none; border: none;
+          cursor: pointer; color: var(--text3); font-size: 15px; padding: 0; }
+        .orbit-dvd { display: flex; align-items: center; gap: 14px;
+          margin: 18px 0; font-size: 12px; color: var(--text3); }
+        .orbit-dvd::before, .orbit-dvd::after { content: ""; flex: 1; height: 1px;
+          background: var(--border); }
+        .orbit-soc { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .orbit-sbtn { height: 46px; border-radius: 12px; display: flex;
+          align-items: center; justify-content: center; gap: 9px; font-size: 13.5px;
+          font-weight: 600; cursor: pointer; background: var(--surface-2);
+          border: 1px solid var(--border); color: var(--text1);
+          font-family: 'DM Sans', sans-serif; }
+        .orbit-sbtn:disabled { opacity: .6; cursor: default; }
+        .orbit-showcase { display: none; }
+
         @media (min-width: 820px) {
-          .orbit-form-col { flex: 0 0 46%; max-width: 620px; }
+          .orbit-auth { flex-direction: row; }
+          .orbit-form-col { flex: 0 0 46%; max-width: 620px; align-items: center;
+            justify-content: center; padding: 40px 22px; }
+          .orbit-hero { padding: 0; background: none; width: 100%; max-width: 340px; }
+          .orbit-pills { display: none; }
+          .orbit-form { margin: 0; width: 100%; max-width: 340px; background: none;
+            border: none; border-radius: 0; padding: 0; }
+          .orbit-legal { width: 100%; max-width: 340px; padding: 20px 0 0; }
           .orbit-showcase { display: flex; flex: 1; position: relative;
             overflow: hidden; align-items: center; justify-content: center;
             border-left: 1px solid rgba(255,255,255,.07);
@@ -110,23 +167,30 @@ export default function AuthPage() {
         }
       `}</style>
 
-      {/* ─────────── ESQUERDA · Formulário ─────────── */}
+      {/* ─────────── Coluna do formulário (hero + card + legal) ─────────── */}
       <div className="orbit-form-col">
-        <div className="orbit-form">
 
-          {/* Logo */}
-          <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:26 }}>
-            <span style={{ width:30, height:30, borderRadius:9, background:'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--on-bright)', fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:15 }}>N</span>
-            <span style={{ fontFamily:'Syne, sans-serif', fontWeight:700, fontSize:18, color:'var(--text1)' }}>NEXUS</span>
+        {/* Hero: logo + título + subtítulo + pills (pills só em mobile) */}
+        <div className="orbit-hero">
+          <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:22 }}>
+            <span style={{ width:32, height:32, borderRadius:10, background:'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--on-bright)', fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:16 }}>N</span>
+            <span style={{ fontFamily:'Syne, sans-serif', fontWeight:700, fontSize:19, color:'var(--text1)' }}>NEXUS</span>
           </div>
-
-          {/* Título */}
-          <h1 style={{ fontFamily:'Syne, sans-serif', fontWeight:700, fontSize:24, letterSpacing:'-.4px', color:'var(--text1)', marginBottom:6 }}>
-            {isNew ? 'Cria a tua conta' : 'O teu assistente pessoal'}
+          <h1 style={{ fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:27, lineHeight:1.14, letterSpacing:'-.6px', color:'var(--text1)', marginBottom:10 }}>
+            {isNew ? 'Cria a tua conta' : 'O teu assistente pessoal de evolução'}
           </h1>
-          <p style={{ color:'var(--text2)', fontSize:13.5, marginBottom:24 }}>
-            {isNew ? 'Hábitos, rotina e foco — começa em segundos.' : 'Hábitos, rotina e foco — num só lugar.'}
+          <p style={{ color:'var(--text2)', fontSize:14, lineHeight:1.5 }}>
+            {isNew ? 'Hábitos, rotina e foco — começa em segundos.' : 'Hábitos, rotina e foco — organizados todos os dias por ti e pela NEXUS.'}
           </p>
+          <div className="orbit-pills">
+            {['🎯 Hábitos','🧠 Foco','⏰ Rotina','📊 Insights'].map(t => (
+              <span key={t} className="orbit-pill">{t}</span>
+            ))}
+          </div>
+        </div>
+
+        {/* Card do formulário */}
+        <div className="orbit-form">
 
           {/* Nome (só no registo) */}
           {isNew && (
@@ -163,7 +227,7 @@ export default function AuthPage() {
 
           {/* Esqueci a senha (só no login) */}
           {!isNew && (
-            <div style={{ display:'flex', justifyContent:'flex-end', margin:'14px 0 20px' }}>
+            <div style={{ display:'flex', justifyContent:'flex-end', margin:'12px 0 18px' }}>
               <button type="button" onClick={resetPassword} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--gold)', fontSize:13, fontWeight:600 }}>
                 Esqueci a senha
               </button>
@@ -202,7 +266,7 @@ export default function AuthPage() {
 
           {/* Botão principal */}
           <button onClick={submit} disabled={loading || !canSubmit} style={{
-            width:'100%', height:52, border:'none', borderRadius:13, cursor: canSubmit ? 'pointer' : 'default',
+            width:'100%', height:52, border:'none', borderRadius:14, cursor: canSubmit ? 'pointer' : 'default',
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
             fontFamily:'Syne, sans-serif', fontWeight:700, fontSize:15, transition:'all .15s',
             background: canSubmit ? 'var(--gold)' : 'var(--bg3)',
@@ -212,25 +276,45 @@ export default function AuthPage() {
             {loading ? 'A processar…' : isNew ? 'Criar conta →' : 'Entrar →'}
           </button>
 
+          {/* Login social */}
+          <div className="orbit-dvd">ou continua com</div>
+          <div className="orbit-soc">
+            <button type="button" className="orbit-sbtn" disabled={loading} onClick={() => oauth('google')}>
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <path fill="#4285F4" d="M22.5 12.2c0-.7-.1-1.4-.2-2H12v3.9h5.9a5 5 0 0 1-2.2 3.3v2.7h3.6c2.1-1.9 3.2-4.8 3.2-7.9z"/>
+                <path fill="#34A853" d="M12 23c2.9 0 5.4-1 7.2-2.6l-3.6-2.7c-1 .7-2.3 1-3.6 1-2.8 0-5.1-1.9-6-4.4H2.3v2.8A11 11 0 0 0 12 23z"/>
+                <path fill="#FBBC05" d="M6 14.3a6.6 6.6 0 0 1 0-4.2V7.3H2.3a11 11 0 0 0 0 9.8z"/>
+                <path fill="#EA4335" d="M12 5.4c1.6 0 3 .5 4.1 1.6l3.1-3.1A11 11 0 0 0 2.3 7.3l3.7 2.8c.9-2.5 3.2-4.4 6-4.4z"/>
+              </svg>
+              Google
+            </button>
+            <button type="button" className="orbit-sbtn" disabled={loading} onClick={() => oauth('apple')}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M16.4 1c.1 1-.3 2-1 2.8-.6.8-1.7 1.4-2.7 1.3-.1-1 .4-2 1-2.7.7-.8 1.8-1.4 2.7-1.4zM19 17.3c-.5 1.2-.8 1.7-1.4 2.7-.9 1.4-2.2 3.1-3.7 3.1-1.4 0-1.7-.9-3.6-.9-1.8 0-2.2.9-3.5.9-1.6 0-2.7-1.5-3.6-2.9C.8 17.2.5 12.7 2.1 10.3c1-1.6 2.5-2.5 4-2.5 1.5 0 2.5 1 3.7 1 1.2 0 1.9-1 3.7-1 1.3 0 2.7.7 3.7 2-3.2 1.8-2.7 6.4.1 7.5z"/>
+              </svg>
+              Apple
+            </button>
+          </div>
+
           {/* Alternar login / registo */}
-          <p style={{ textAlign:'center', marginTop:22, fontSize:13, color:'var(--text2)' }}>
+          <p style={{ textAlign:'center', marginTop:20, fontSize:13, color:'var(--text2)' }}>
             {isNew ? 'Já tens conta? ' : 'Sem conta? '}
             <button type="button" onClick={() => { setIsNew(v => !v); setError('') }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--gold)', fontWeight:700, fontSize:13, padding:0 }}>
               {isNew ? 'Entrar' : 'Criar conta'}
             </button>
           </p>
-
-          {/* Rodapé legal */}
-          <p style={{ textAlign:'center', marginTop:20, fontSize:11, color:'var(--text3)', lineHeight:1.6 }}>
-            Os teus dados são isolados por conta e a ligação é cifrada (HTTPS).{' '}
-            <Link href="/privacidade" style={{ color:'var(--text3)', textDecoration:'underline' }}>Privacidade</Link>
-            {' · '}
-            <Link href="/termos" style={{ color:'var(--text3)', textDecoration:'underline' }}>Termos</Link>
-          </p>
         </div>
+
+        {/* Rodapé legal */}
+        <p className="orbit-legal">
+          Os teus dados são isolados por conta e a ligação é cifrada (HTTPS).{' '}
+          <Link href="/privacidade" style={{ color:'var(--text3)', textDecoration:'underline' }}>Privacidade</Link>
+          {' · '}
+          <Link href="/termos" style={{ color:'var(--text3)', textDecoration:'underline' }}>Termos</Link>
+        </p>
       </div>
 
-      {/* ─────────── DIREITA · Showcase do produto (desktop) ─────────── */}
+      {/* ─────────── Showcase do produto (desktop ≥820px) ─────────── */}
       <div className="orbit-showcase" aria-hidden="true">
         {/* Mockup do telemóvel — ecrã "Hoje" */}
         <div style={{ width:266, height:560, borderRadius:38, background:'#000', padding:9, boxShadow:'0 40px 80px -24px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.1)' }}>
@@ -275,10 +359,10 @@ export default function AuthPage() {
         </div>
 
         {/* Pills flutuantes */}
-        <div className="orbit-pill" style={{ top:60, left:34 }}>🎯 Hábitos</div>
-        <div className="orbit-pill" style={{ top:130, right:30 }}>🧠 Foco</div>
-        <div className="orbit-pill" style={{ bottom:150, left:26 }}>⏰ Rotina</div>
-        <div className="orbit-pill" style={{ bottom:70, right:36 }}>📊 Insights</div>
+        <div style={{ top:60, left:34 }} className="orbit-fpill">🎯 Hábitos</div>
+        <div style={{ top:130, right:30 }} className="orbit-fpill">🧠 Foco</div>
+        <div style={{ bottom:150, left:26 }} className="orbit-fpill">⏰ Rotina</div>
+        <div style={{ bottom:70, right:36 }} className="orbit-fpill">📊 Insights</div>
 
         {/* Bolha do assistente */}
         <div style={{ position:'absolute', top:36, right:40, maxWidth:210, background:'#171a24', border:'1px solid rgba(232,168,56,.3)', borderRadius:'14px 14px 4px 14px', padding:'12px 14px', fontSize:12.5, lineHeight:1.5, color:'#F0EDE8', fontFamily:'DM Sans, sans-serif', boxShadow:'0 16px 30px -12px rgba(0,0,0,.6)' }}>
