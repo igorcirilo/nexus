@@ -10,7 +10,11 @@ import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
-import { supabase, getWeeklyStats, getRitmo } from '@/lib/supabase'
+import { supabase, getRitmo } from '@/lib/supabase'
+import {
+  completedByDay, checkinsByDay, completionRate, averageCheckin, activityCount,
+  type WeekLog, type WeekCheckin,
+} from '@/lib/weekly'
 import { format, subDays } from 'date-fns'
 
 const FONT = 'Inter, sans-serif'
@@ -43,24 +47,30 @@ export default function WeeklyDashboard({ userId, streakCurrent }: Props) {
       const since14 = format(subDays(new Date(), 13), 'yyyy-MM-dd')
       const today = format(new Date(), 'yyyy-MM-dd')
 
-      const [weekly, ritmoNow, { data: logs14 }, { data: ci14 }] = await Promise.all([
-        getWeeklyStats(userId),
+      // Uma única janela de 14d de hábitos e check-ins cobre tanto a semana atual
+      // como a anterior — evita as ~4 queries sobrepostas que existiam antes.
+      const [ritmoNow, { data: logsRaw }, { data: ciRaw }] = await Promise.all([
         getRitmo(userId),
-        supabase.from('habit_logs').select('date,completed').eq('user_id', userId).gte('date', since14).lt('date', since7),
-        supabase.from('checkins').select('date').eq('user_id', userId).gte('date', since14).lt('date', since7),
+        supabase.from('habit_logs').select('date,completed').eq('user_id', userId).gte('date', since14),
+        supabase.from('checkins').select('date,energy,sleep_hours').eq('user_id', userId).gte('date', since14),
       ])
       if (cancelled) return
 
-      type LogRow = { date: string; completed: boolean }
-      type CIRow = { date: string; energy?: number | null; sleep_hours?: number | null }
-      const logs = weekly.logs as LogRow[]
-      const checkins = weekly.checkins as CIRow[]
+      const logs14 = (logsRaw ?? []) as WeekLog[]
+      const ci14 = (ciRaw ?? []) as WeekCheckin[]
+      // Semana atual (últimos 7d) vs semana anterior (dias 8–14).
+      const logs = logs14.filter((l) => l.date >= since7)
+      const checkins = ci14.filter((c) => c.date >= since7)
+      const prevLogs = logs14.filter((l) => l.date < since7)
+      const prevCheckins = ci14.filter((c) => c.date < since7)
 
+      const doneByDay = completedByDay(logs)
+      const ciByDay = checkinsByDay(checkins)
       const xpByDay: XpDay[] = Array.from({ length: 7 }, (_, i) => {
         const d = subDays(new Date(), 6 - i)
         const day = format(d, 'yyyy-MM-dd')
-        const hab = logs.filter((l) => l.date === day && l.completed).length
-        const ci = checkins.filter((c) => c.date === day).length
+        const hab = doneByDay[day] ?? 0
+        const ci = ciByDay[day] ?? 0
         return { day: DAYS_PT[d.getDay()], xp: hab + ci, hab, ci }
       })
 
@@ -73,16 +83,12 @@ export default function WeeklyDashboard({ userId, streakCurrent }: Props) {
 
       const thisDone = logs.filter((l) => l.completed).length
       const thisTotal = logs.length
-      const prevDone = (logs14 as LogRow[] ?? []).filter((l) => l.completed).length
-      const prevTotal = (logs14 as LogRow[] ?? []).length
-      const consistency = thisTotal > 0 ? Math.round((thisDone / thisTotal) * 100) : 0
-      const prevConsistency = prevTotal > 0 ? Math.round((prevDone / prevTotal) * 100) : 0
-      const activityWeek = xpByDay.reduce((a, d) => a + d.xp, 0)
-      const prevActivity = prevDone + ((ci14 as unknown[] ?? []).length)
-      const ciE = checkins.filter((c) => c.energy)
-      const ciS = checkins.filter((c) => c.sleep_hours)
-      const energy = ciE.length > 0 ? Math.round((ciE.reduce((a, c) => a + (c.energy ?? 0), 0) / ciE.length) * 10) / 10 : 0
-      const sleep = ciS.length > 0 ? Math.round((ciS.reduce((a, c) => a + (c.sleep_hours ?? 0), 0) / ciS.length) * 10) / 10 : 0
+      const consistency = completionRate(logs)
+      const prevConsistency = completionRate(prevLogs)
+      const activityWeek = activityCount(logs, checkins)
+      const prevActivity = activityCount(prevLogs, prevCheckins)
+      const energy = averageCheckin(checkins, 'energy')
+      const sleep = averageCheckin(checkins, 'sleep_hours')
       const checkinsToday = checkins.filter((c) => c.date === today).length
 
       setRitmo(ritmoNow)
@@ -151,7 +157,11 @@ export default function WeeklyDashboard({ userId, streakCurrent }: Props) {
             </div>
           ))}
         </div>
-        <div style={{ height: 150 }}>
+        <div
+          style={{ height: 150 }}
+          role="img"
+          aria-label={`Gráfico de atividade diária dos últimos 7 dias: ${xpData.reduce((a, d) => a + d.hab, 0)} hábitos concluídos e ${xpData.reduce((a, d) => a + d.ci, 0)} check-ins.`}
+        >
           {ready && (
             <ResponsiveContainer width="100%" height={150}>
               <BarChart data={xpData} barGap={2} barCategoryGap="30%">
@@ -177,7 +187,11 @@ export default function WeeklyDashboard({ userId, streakCurrent }: Props) {
             </div>
           ))}
         </div>
-        <div style={{ height: 130 }}>
+        <div
+          style={{ height: 130 }}
+          role="img"
+          aria-label={`Gráfico de energia e sono dos últimos 7 dias. Energia média ${stats.energy > 0 ? `${stats.energy}/10` : 'sem dados'}, sono médio ${stats.sleep > 0 ? `${stats.sleep}h` : 'sem dados'}.`}
+        >
           {ready && (
             <ResponsiveContainer width="100%" height={130}>
               <LineChart data={esData}>

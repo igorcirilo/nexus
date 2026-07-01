@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Nav from '@/components/Nav'
 import HabitosHub from '@/components/habitos/HabitosHub'
 import HabitLibrarySheet from '@/components/habitos/HabitLibrarySheet'
-import { supabase, getHabitsWithLogs, toggleHabitLog } from '@/lib/supabase'
+import { supabase, requireUser, getHabitsWithLogs, toggleHabitLog } from '@/lib/supabase'
 import { todayISO } from '@/lib/date'
 import {
   WEEKDAYS_SHORT, WEEKDAYS_WEEKDAYS, WEEKDAYS_WEEKEND,
@@ -141,11 +141,8 @@ export default function HabitosPage() {
   const today = todayISO()
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) {
-        window.location.href = '/auth'
-        return
-      }
+    requireUser().then(async (user) => {
+      if (!user) return
       setUserId(user.id)
       await reload(user.id)
     })

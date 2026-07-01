@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Nav from '@/components/Nav'
-import { supabase, getProfile } from '@/lib/supabase'
+import { supabase, requireUser, getProfile } from '@/lib/supabase'
 import {
   getActivityStats,
   heatmapLevels,
@@ -33,11 +33,8 @@ export default function EstatisticasPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) {
-        window.location.href = '/auth'
-        return
-      }
+    requireUser().then(async (user) => {
+      if (!user) return
       const since28 = new Date()
       since28.setDate(since28.getDate() - 27)
       const [prof, s, { data: habits }, { data: logs28 }] = await Promise.all([

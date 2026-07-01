@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Nav from '@/components/Nav'
-import { supabase } from '@/lib/supabase'
+import { requireUser } from '@/lib/supabase'
 import {
   getQuitHabits,
   createQuitHabit,
@@ -38,11 +38,8 @@ export default function LargarPage() {
   const [confirmDelete, setConfirmDelete] = useState<QuitHabit | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) {
-        window.location.href = '/auth'
-        return
-      }
+    requireUser().then(async (user) => {
+      if (!user) return
       setUserId(user.id)
       await reload(user.id)
       setLoading(false)

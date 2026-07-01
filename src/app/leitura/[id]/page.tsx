@@ -6,7 +6,7 @@ import { useParams } from 'next/navigation'
 import Nav from '@/components/Nav'
 import { todayISO } from '@/lib/date'
 import {
-  supabase,
+  requireUser,
   deleteBookBookmark,
   deleteBookHighlight,
   deleteBookNote,
@@ -138,8 +138,8 @@ export default function LeituraReaderPage() {
   useEffect(() => {
     let active = true
     async function bootstrap() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { window.location.href = '/auth'; return }
+      const user = await requireUser()
+      if (!user) return
       if (!bookId || !active) return
       setUserId(user.id)
       await loadAll(user.id, bookId)

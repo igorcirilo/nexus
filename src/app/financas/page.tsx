@@ -8,7 +8,7 @@ import {
 } from 'recharts'
 import Nav from '@/components/Nav'
 import {
-  supabase, getProfile, getTransactions,
+  requireUser, getProfile, getTransactions,
   getTransactionsByMonth, saveTransaction, updateTransaction,
   saveTransactionsBulk, deleteTransaction, updateFinancialGoals, updateBudgets,
 } from '@/lib/supabase'
@@ -17,6 +17,7 @@ import {
   parseCsvText, detectColumnMap, rowsToTransactions,
   type TransactionCandidate,
 } from '@/lib/csv-parser'
+import { monthlySavings, buildBudgetSummary, categoryTotals } from '@/lib/finance'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
 import { logError } from '@/lib/log'
 import { darkCardInk } from '@/lib/theme'
@@ -177,8 +178,8 @@ export default function FinancasPage() {
   }
 
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data:{user} }) => {
-      if (!user) { window.location.href='/auth'; return }
+    requireUser().then(async (user) => {
+      if (!user) return
       setUserId(user.id)
       const [prof, recent, hist] = await Promise.all([
         getProfile(user.id),
@@ -209,6 +210,15 @@ export default function FinancasPage() {
     })
   }, [])
 
+  // Recarrega movimentos recentes (2m) + histórico (6m) após cada mutação.
+  // Fonte única: garante que tanto as listas como os gráficos de 6 meses ficam
+  // consistentes (o `history` não traz `id`, por isso não dá para filtrar local).
+  async function reloadTx(uid: string) {
+    const [r, h] = await Promise.all([getTransactions(uid, 2), getTransactionsByMonth(uid, 6)])
+    setTxs(r as Transaction[])
+    setHistory(h as Transaction[])
+  }
+
   // Métricas do mês atual
   const monthStart = format(startOfMonth(new Date()),'yyyy-MM-dd')
   const monthEnd   = format(endOfMonth(new Date()),'yyyy-MM-dd')
@@ -237,14 +247,12 @@ export default function FinancasPage() {
   )
 
   // Gráfico 6 meses
-  const monthlyChart = useMemo(()=>Array.from({length:6},(_,i)=>{
-    const d=subMonths(new Date(),5-i)
-    const s=format(startOfMonth(d),'yyyy-MM-dd'), e=format(endOfMonth(d),'yyyy-MM-dd')
-    const m=history.filter(t=>t.date>=s&&t.date<=e)
-    const inp=m.filter(t=>t.type==='entrada').reduce((a,t)=>a+t.amount,0)
-    const out=m.filter(t=>t.type==='saida').reduce((a,t)=>a+t.amount,0)
-    return {label:format(d,'MMM',{locale:pt}),entradas:Math.round(inp),saidas:Math.round(out),poupanca:Math.round(inp-out)}
-  }),[history])
+  const monthlyChart = useMemo(()=>{
+    const months = Array.from({length:6},(_,i)=>subMonths(new Date(),5-i))
+    const ranges = months.map(d=>({start:format(startOfMonth(d),'yyyy-MM-dd'),end:format(endOfMonth(d),'yyyy-MM-dd')}))
+    const series = monthlySavings(history, ranges)
+    return months.map((d,i)=>({label:format(d,'MMM',{locale:pt}),...series[i]}))
+  },[history])
 
   // ── Médias dos últimos 3 meses completos (exclui o mês atual) ──
   const prev3Range = useMemo(() => ({
@@ -309,28 +317,17 @@ export default function FinancasPage() {
   const filteredTotal = filteredTxs.reduce((a,t)=>a+(t.type==='entrada'?t.amount:-t.amount),0)
 
   // ── Orçamento: gauge + categorias ordenadas ──
-  const spentByCat = useMemo(() => {
-    const map: Record<string,number> = {}
-    thisMonth.filter(t=>t.type==='saida').forEach(t=>{ map[t.category]=(map[t.category]??0)+t.amount })
-    return map
-  }, [thisMonth])
+  const spentByCat = useMemo(
+    () => categoryTotals(thisMonth, monthStart, monthEnd),
+    [thisMonth, monthStart, monthEnd],
+  )
   // Poupança do mês = só os lançamentos categorizados como "Poupança" (não o saldo).
   const savedThisMonth = useMemo(
     () => thisMonth.filter(t=>t.type==='saida'&&t.category===SAVINGS_CAT).reduce((a,t)=>a+t.amount,0),
     [thisMonth],
   )
-  const budgetedCats = OUT_CATS
-    .filter(c => (budgets[c]??0) > 0)
-    .map(c => {
-      const budget = budgets[c]
-      const spent  = spentByCat[c] ?? 0
-      return { cat:c, budget, spent, pct: Math.round(spent/budget*100) }
-    })
-    .sort((a,b)=>b.pct-a.pct)
-  const unbudgetedCats = OUT_CATS.filter(c => (budgets[c]??0) <= 0)
-  const totalBudget        = budgetedCats.reduce((a,b)=>a+b.budget,0)
-  const totalSpentBudgeted = budgetedCats.reduce((a,b)=>a+b.spent,0)
-  const budgetPct          = totalBudget>0 ? Math.min(100,Math.round(totalSpentBudgeted/totalBudget*100)) : 0
+  const { rows: budgetedCats, unbudgeted: unbudgetedCats, totalBudget, totalSpent: totalSpentBudgeted, pct: budgetPct } =
+    buildBudgetSummary(budgets, spentByCat, OUT_CATS)
   const monthPct           = Math.round(dayOfMonth/daysInMonth*100)
   const budgetOnPace       = budgetPct <= monthPct + 5
   const budgetSuggestions  = OUT_CATS
@@ -352,8 +349,7 @@ export default function FinancasPage() {
       category: etCat, description: etDesc.trim()||null, amount, date: etDate,
     })
     if (error) { showToast('Erro ao guardar.', 'error'); setTxEditSaving(false); return }
-    const [r,h] = await Promise.all([getTransactions(userId,2),getTransactionsByMonth(userId,6)])
-    setTxs(r as Transaction[]); setHistory(h as Transaction[])
+    await reloadTx(userId)
     setOpenTx(null); setTxEditSaving(false); showToast('Movimento atualizado!')
   }
 
@@ -388,8 +384,7 @@ export default function FinancasPage() {
     setSaving(true)
     const {error} = await saveTransaction({user_id:userId,type:txType,category:finalCat,description:fDesc||null,amount,date:fDate})
     if (error) { showToast('Erro ao guardar.', 'error'); setSaving(false); return }
-    const [r,h] = await Promise.all([getTransactions(userId,2),getTransactionsByMonth(userId,6)])
-    setTxs(r as Transaction[]); setHistory(h as Transaction[])
+    await reloadTx(userId)
     setFAmount(''); setFDesc(''); setFCat(''); setFCustomCat(''); setShowForm(false)
     showToast('Transação adicionada!'); setSaving(false)
   }
@@ -397,10 +392,7 @@ export default function FinancasPage() {
   async function removeTx(id:string) {
     const {error}=await deleteTransaction(id)
     if (error || !userId) return
-    // Refaz o fetch: o `history` (getTransactionsByMonth) não traz `id`, por
-    // isso filtrar localmente por id não o removia dos gráficos (P2.6).
-    const [r,h] = await Promise.all([getTransactions(userId,2),getTransactionsByMonth(userId,6)])
-    setTxs(r as Transaction[]); setHistory(h as Transaction[])
+    await reloadTx(userId)
     showToast('Removido.')
   }
 
@@ -449,9 +441,7 @@ export default function FinancasPage() {
     }))
     const { error } = await saveTransactionsBulk(payloads)
     if (error) { showToast('Erro ao importar transações.', 'error'); setCsvImporting(false); return }
-    const [r, h] = await Promise.all([getTransactions(userId, 2), getTransactionsByMonth(userId, 6)])
-    setTxs(r as Transaction[])
-    setHistory(h as Transaction[])
+    await reloadTx(userId)
     showToast(`${csvPreview.length} transações importadas!`)
     setCsvPreview(null)
     setCsvImporting(false)
@@ -493,8 +483,7 @@ export default function FinancasPage() {
     }))
     const { error } = await saveTransactionsBulk(rows)
     if (error) { showToast('Erro ao importar.', 'error'); setCsvImporting(false); return }
-    const updated = await getTransactions(userId, 2)
-    setTxs(updated as Transaction[])
+    await reloadTx(userId)
     setPdfPreview(null)
     setCsvImporting(false)
     showToast(`${rows.length} transações importadas!`)
@@ -1379,7 +1368,11 @@ export default function FinancasPage() {
 
           {/* Histórico de poupança + projeção (migrado da antiga tab Metas) */}
           <label style={sheetLabel}>Histórico de poupança</label>
-          <div style={{height:110,overflow:'hidden'}}>
+          <div
+            style={{height:110,overflow:'hidden'}}
+            role="img"
+            aria-label={`Gráfico de poupança dos últimos 6 meses. Poupança do mês atual: ${fmt(monthlyChart[monthlyChart.length-1]?.poupanca ?? 0)}.`}
+          >
             <ResponsiveContainer width="100%" height={110}>
               <BarChart data={monthlyChart}>
                 <CartesianGrid vertical={false} stroke="rgba(var(--ink-rgb),.04)"/>
