@@ -80,6 +80,9 @@ vi.mock('@/lib/supabase', () => ({
   deleteRecurringRule: vi.fn(async () => ({ error: null })),
   getTransactionsForMonth: vi.fn(async () => JUNE_TXS),
   searchTransactions: vi.fn(async () => SEARCH_TXS),
+  getReminders: vi.fn(async () => []),
+  saveReminder: vi.fn(async () => ({ data: null, error: null })),
+  deleteReminder: vi.fn(async () => ({ data: null, error: null })),
 }))
 
 vi.mock('@/components/Nav', () => ({ default: () => null }))
@@ -221,6 +224,27 @@ describe('FinancasPage', () => {
     fireEvent.click(screen.getByText('Guardar movimento'))
     // reserva base 0 (profile.fin_current_savings null) + 200 = 200
     await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 200 }))
+  })
+
+  it('ativa o lembrete diário criando um reminder das finanças', async () => {
+    const { getReminders, saveReminder } = await import('@/lib/supabase')
+    ;(getReminders as ReturnType<typeof vi.fn>).mockResolvedValue([])
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Mais opções'))
+    expect(screen.getByText('desligado')).toBeDefined()
+    fireEvent.click(screen.getByText('🔔 Lembrete diário'))
+    await waitFor(() => expect(saveReminder).toHaveBeenCalled())
+    const payload = (saveReminder as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0]
+    expect(payload).toMatchObject({ user_id: 'u1', type: 'financas', time: '21:00' })
+    expect(payload.days).toEqual([0,1,2,3,4,5,6])
+  })
+
+  it('mostra o lembrete como ativo quando já existe', async () => {
+    const { getReminders } = await import('@/lib/supabase')
+    ;(getReminders as ReturnType<typeof vi.fn>).mockResolvedValue([{ id: 'rem1', type: 'financas' }])
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Mais opções'))
+    expect(screen.getByText('às 21:00')).toBeDefined()
   })
 
   it('abre o fecho do mês anterior quando ainda não foi visto', async () => {

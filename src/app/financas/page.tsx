@@ -13,6 +13,7 @@ import {
   saveTransaction, updateTransaction,
   saveTransactionsBulk, deleteTransaction, updateFinancialGoals, updateBudgets,
   getRecurringRules, saveRecurringRule, updateRecurringRule, deleteRecurringRule,
+  getReminders, saveReminder, deleteReminder,
 } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import {
@@ -23,7 +24,7 @@ import {
   monthlySavings, buildBudgetSummary, categoryTotals, sumInRange,
   projectEndOfMonth, unbudgetedSpend, buildInsights,
   pendingRecurrences, recurringMonthlyTotal,
-  buildMonthSummary, monthCloseHeadline,
+  buildMonthSummary, monthCloseHeadline, loggingStreak,
 } from '@/lib/finance'
 import { suggestCategory } from '@/lib/categorize'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
@@ -44,6 +45,10 @@ const CHART_CAT = '#7F77DD'
 // Categoria reservada: mover dinheiro para poupança. Conta para a meta mensal de poupança.
 const SAVINGS_CAT = 'Poupança'
 const CUSTOM_KEY  = '__custom__'
+// Tipo do lembrete diário de registo (o edge function envia-o à hora/dias e
+// aponta a notificação para /financas).
+const LOG_REMINDER_TYPE = 'financas'
+const LOG_REMINDER_TIME = '21:00'
 const CAT_EMOJI: Record<string,string> = {
   Alimentação:'🍔', Transporte:'🚗', Habitação:'🏠', Contas:'🧾', Saúde:'💊', Lazer:'🎮',
   Roupa:'👕', Educação:'🎓', Assinaturas:'📺', Poupança:'🏦', Outro:'📦',
@@ -200,6 +205,9 @@ export default function FinancasPage() {
   // Fecho do mês: guarda o último mês cujo resumo já foi dispensado (yyyy-MM).
   const [monthCloseSeen, setMonthCloseSeen] = useState<string|null>(null)
   const [monthCloseOpen, setMonthCloseOpen] = useState(false)
+  // Lembrete diário de registo (ids das linhas de reminders do tipo 'financas').
+  const [logReminderIds, setLogReminderIds] = useState<string[]>([])
+  const [reminderBusy, setReminderBusy] = useState(false)
 
   function showToast(m: string, type: 'success' | 'error' | 'info' = 'success') {
     if (type === 'error') toast.error(m)
@@ -210,16 +218,18 @@ export default function FinancasPage() {
     requireUser().then(async (user) => {
       if (!user) return
       setUserId(user.id)
-      const [prof, recent, hist, rules] = await Promise.all([
+      const [prof, recent, hist, rules, reminders] = await Promise.all([
         getProfile(user.id),
         getTransactions(user.id, 2),
         getTransactionsByMonth(user.id, 6),
         getRecurringRules(user.id),
+        getReminders(user.id),
       ])
       setProfile(prof)
       setTxs(recent as Transaction[])
       setHistory(hist as Transaction[])
       setRecurring(rules as RecurringRule[])
+      setLogReminderIds((reminders as { id:string; type:string }[]).filter(r => r.type===LOG_REMINDER_TYPE).map(r => r.id))
       // Recorrências saltadas neste mês vivem só no dispositivo (não é dado
       // crítico e evita mais uma tabela); chave `${ruleId}:${yyyy-MM}`.
       try {
@@ -502,6 +512,36 @@ export default function FinancasPage() {
   )
   const recurringOutTotal = recurringMonthlyTotal(recurring, 'saida')
   const recurringInTotal  = recurringMonthlyTotal(recurring, 'entrada')
+
+  // ── Sequência de registo (hábito diário) ──
+  const logStreak = useMemo(
+    () => loggingStreak([...txs, ...history].map(t=>t.date), format(new Date(),'yyyy-MM-dd')),
+    [txs, history],
+  )
+  const dailyReminderOn = logReminderIds.length > 0
+  async function toggleDailyReminder() {
+    if (!userId || reminderBusy) return
+    setReminderBusy(true)
+    setMoreOpen(false)
+    if (dailyReminderOn) {
+      await Promise.all(logReminderIds.map(id => deleteReminder(id)))
+      showToast('Lembrete diário desativado.')
+    } else {
+      await saveReminder({
+        user_id: userId,
+        title: 'Registar gastos',
+        description: '30 segundos: regista os gastos de hoje 💸',
+        time: LOG_REMINDER_TIME,
+        days: [0,1,2,3,4,5,6],
+        type: LOG_REMINDER_TYPE,
+        active: true,
+      })
+      showToast('Lembrete diário às 21:00 ativado.')
+    }
+    const reminders = await getReminders(userId) as { id:string; type:string }[]
+    setLogReminderIds(reminders.filter(r=>r.type===LOG_REMINDER_TYPE).map(r=>r.id))
+    setReminderBusy(false)
+  }
 
   // ── Fecho do mês: resumo do mês anterior (mostra uma vez por mês) ──
   const prevMonthKey = format(subMonths(new Date(),1),'yyyy-MM')
@@ -875,7 +915,20 @@ export default function FinancasPage() {
       <div style={{padding:'28px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div>
           <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:28,marginBottom:3,color: 'var(--ink)',letterSpacing:'-0.5px'}}>Finanças</h1>
-          <p style={{fontSize:12,color:'var(--text2)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <p style={{fontSize:12,color:'var(--text2)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
+            {logStreak.current>0&&(
+              <span
+                title={logStreak.loggedToday?'Registaste hoje — sequência garantida':'Regista um movimento hoje para manter a sequência'}
+                style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:11,fontWeight:800,padding:'3px 8px',borderRadius:20,
+                  background:logStreak.loggedToday?'rgba(245,140,40,0.12)':'rgba(var(--ink-rgb),0.05)',
+                  border:`1px solid ${logStreak.loggedToday?'rgba(245,140,40,0.35)':'rgba(var(--ink-rgb),0.12)'}`,
+                  color:logStreak.loggedToday?'#F58C28':'var(--text2)'}}
+              >
+                🔥 {logStreak.current} dia{logStreak.current!==1?'s':''}{logStreak.loggedToday?'':' · regista hoje'}
+              </span>
+            )}
+          </div>
         </div>
         <div style={{display:'flex',gap:8,position:'relative'}}>
           <button
@@ -906,6 +959,10 @@ export default function FinancasPage() {
               </button>
               <button onClick={()=>{setMoreOpen(false);setShowRecorrentes(true)}} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
                 🔁 Recorrentes
+              </button>
+              <button onClick={toggleDailyReminder} disabled={reminderBusy} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
+                🔔 Lembrete diário
+                <span style={{marginLeft:'auto',fontSize:11,fontWeight:800,color:dailyReminderOn?'#00C896':'var(--text3)'}}>{dailyReminderOn?'às 21:00':'desligado'}</span>
               </button>
               <button onClick={()=>{setMoreOpen(false);exportCSV()}} disabled={exporting} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',cursor:'pointer',textAlign:'left'}}>
                 ↓ {exporting ? 'A exportar…' : 'Exportar CSV'}

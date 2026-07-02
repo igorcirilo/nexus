@@ -132,6 +132,41 @@ export function unbudgetedSpend(
     .reduce((a, [, v]) => a + v, 0)
 }
 
+export interface LoggingStreak {
+  /** Dias consecutivos com pelo menos um movimento, terminando hoje ou ontem. */
+  current: number
+  loggedToday: boolean
+}
+
+const shiftDay = (iso: string, delta: number): string => {
+  const d = new Date(iso + 'T12:00:00')
+  d.setDate(d.getDate() + delta)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Sequência de registo: dias consecutivos (a partir de hoje, ou de ontem se
+ * ainda não registou hoje) com ≥1 movimento. `dates` são as datas 'yyyy-MM-dd'
+ * dos movimentos (repetições toleradas). Pura → testável.
+ */
+export function loggingStreak(dates: string[], today: string): LoggingStreak {
+  const set = new Set(dates)
+  const loggedToday = set.has(today)
+  const runFrom = (start: string): number => {
+    let count = 0
+    let cur = start
+    while (set.has(cur)) {
+      count++
+      cur = shiftDay(cur, -1)
+    }
+    return count
+  }
+  if (loggedToday) return { current: runFrom(today), loggedToday: true }
+  const yesterday = shiftDay(today, -1)
+  if (set.has(yesterday)) return { current: runFrom(yesterday), loggedToday: false }
+  return { current: 0, loggedToday: false }
+}
+
 export interface MonthSummary {
   income: number
   /** Gasto real (exclui a categoria de poupança). */

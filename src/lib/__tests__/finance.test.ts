@@ -11,6 +11,7 @@ import {
   recurringMonthlyTotal,
   buildMonthSummary,
   monthCloseHeadline,
+  loggingStreak,
   type FinTx,
   type InsightInput,
   type RecurringLike,
@@ -278,5 +279,23 @@ describe('monthCloseHeadline', () => {
     const h = monthCloseHeadline({ ...base, balance: -100 }, { ...base, balance: -50 }, eur)
     expect(h.tone).toBe('info')
     expect(h.text).toContain('nova página')
+  })
+})
+
+describe('loggingStreak', () => {
+  it('conta dias consecutivos terminando hoje', () => {
+    const s = loggingStreak(['2026-07-15','2026-07-14','2026-07-13','2026-07-11'], '2026-07-15')
+    expect(s).toEqual({ current: 3, loggedToday: true }) // 15,14,13 (11 quebra)
+  })
+  it('mantém a sequência viva se registou ontem mas ainda não hoje', () => {
+    const s = loggingStreak(['2026-07-14','2026-07-13'], '2026-07-15')
+    expect(s).toEqual({ current: 2, loggedToday: false })
+  })
+  it('sequência 0 se não registou hoje nem ontem', () => {
+    expect(loggingStreak(['2026-07-12'], '2026-07-15')).toEqual({ current: 0, loggedToday: false })
+  })
+  it('tolera datas repetidas e desordenadas', () => {
+    const s = loggingStreak(['2026-07-15','2026-07-15','2026-07-14'], '2026-07-15')
+    expect(s.current).toBe(2)
   })
 })
