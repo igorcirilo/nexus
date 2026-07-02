@@ -66,12 +66,18 @@ async function metricFinancas(userId: string, monthStart: string): Promise<HojeM
   try {
     const { data } = await supabase
       .from('transactions')
-      .select('type, amount')
+      .select('type, amount, category')
       .eq('user_id', userId)
       .gte('date', monthStart)
-    const rows = (data ?? []) as { type: string; amount: number }[]
+    const rows = (data ?? []) as { type: string; amount: number; category: string }[]
     if (rows.length === 0) return null
-    const net = rows.reduce((sum, t) => sum + (t.type === 'entrada' ? Number(t.amount) : -Number(t.amount)), 0)
+    // "Poupança" é transferência (mover para a reserva), não gasto → fica de fora
+    // do balanço, coerente com a área de finanças.
+    const net = rows.reduce((sum, t) => {
+      if (t.type === 'entrada') return sum + Number(t.amount)
+      if (t.category === 'Poupança') return sum
+      return sum - Number(t.amount)
+    }, 0)
     return { netMonth: Math.round(net) }
   } catch {
     return null

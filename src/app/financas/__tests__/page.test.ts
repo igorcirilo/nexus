@@ -4,7 +4,7 @@
 // categoria no formulário — a cablagem que os testes puros de finance.ts
 // não veem.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import { createElement } from 'react'
 import FinancasPage from '@/app/financas/page'
 
@@ -30,6 +30,7 @@ const TODAY = new Date('2026-07-15T10:00:00')
 const txsRecentes = [
   { id: 't1', user_id: 'u1', date: '2026-07-12', type: 'saida',   category: 'Lazer',       description: null, amount: 90,   created_at: '' },
   { id: 't2', user_id: 'u1', date: '2026-07-10', type: 'saida',   category: 'Alimentação', description: null, amount: 300,  created_at: '' },
+  { id: 't5', user_id: 'u1', date: '2026-07-08', type: 'saida',   category: 'Poupança',    description: null, amount: 150,  created_at: '' },
   { id: 't3', user_id: 'u1', date: '2026-07-01', type: 'entrada', category: 'Salário',     description: null, amount: 1000, created_at: '' },
   { id: 't4', user_id: 'u1', date: '2026-06-10', type: 'saida',   category: 'Alimentação', description: null, amount: 200,  created_at: '' },
 ]
@@ -99,6 +100,7 @@ describe('FinancasPage', () => {
     localStorage.clear()
   })
   afterEach(() => {
+    cleanup() // desmonta o render anterior (evita DOM acumulado entre testes)
     vi.useRealTimers()
   })
 
@@ -106,10 +108,10 @@ describe('FinancasPage', () => {
     await renderPage()
     // entradas 1000 − saídas 390 (julho)
     expect(screen.queryByText(/Saldo do mês/)).toBeNull()
-    expect(screen.getByText(/entradas − saídas de julho/)).toBeDefined()
-    // dia 15 de 31: 390/15×31 ≈ 806 de saídas projetadas → ≈ +194
+    expect(screen.getByText(/entradas − gastos de julho/)).toBeDefined()
+    // dia 15 de 31: gastos 390 (Poupança fora) → 390/15×31 ≈ 806 → ≈ +194
     expect(screen.getByText(/Ao ritmo atual: ≈ 194/)).toBeDefined()
-    // saídas até dia 15: julho 390 vs. junho 200 → ▲ 95%
+    // gastos até dia 15: julho 390 vs. junho 200 → ▲ 95%
     expect(screen.getByText(/▲ 95% vs\./)).toBeDefined()
   })
 
@@ -196,5 +198,25 @@ describe('FinancasPage', () => {
     await waitFor(() => expect(searchTransactions).toHaveBeenCalledWith('u1', 'continente'))
     expect(await screen.findByText(/em todo o histórico/)).toBeDefined()
     expect(await screen.findByText('Continente Braga')).toBeDefined()
+  })
+
+  it('trata Poupança como transferência: fora dos gastos, mostrada à parte', async () => {
+    await renderPage()
+    // Gastos = 90 + 300 = 390 (Poupança 150 excluída); poupança mostrada à parte
+    expect(screen.getByText(/🏦 Poupado/)).toBeDefined()
+    expect(screen.getByText('150,00 €')).toBeDefined()
+    // se contasse a poupança como gasto seria 540 — não deve aparecer
+    expect(screen.queryByText(/540,00/)).toBeNull()
+  })
+
+  it('registar Poupança soma à reserva (fin_current_savings)', async () => {
+    const { updateFinancialGoals } = await import('@/lib/supabase')
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Registar movimento'))
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '200' } })
+    fireEvent.click(screen.getByRole('button', { name: '🏦 Poupança' }))
+    fireEvent.click(screen.getByText('Guardar movimento'))
+    // reserva base 0 (profile.fin_current_savings null) + 200 = 200
+    await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 200 }))
   })
 })
