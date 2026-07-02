@@ -51,6 +51,16 @@ const RULES = [
   { id: 'r2', user_id: 'u1', type: 'entrada', category: 'Salário',   description: null,    amount: 1200, day_of_month: 25, active: true, created_at: '' },
 ]
 
+// Junho (mês anterior) — devolvido por getTransactionsForMonth ao navegar ‹.
+const JUNE_TXS = [
+  { id: 'j1', user_id: 'u1', date: '2026-06-20', type: 'saida',   category: 'Roupa',   description: 'Casaco', amount: 120, created_at: '' },
+  { id: 'j2', user_id: 'u1', date: '2026-06-05', type: 'entrada', category: 'Salário', description: null,     amount: 1000, created_at: '' },
+]
+// Resultado da pesquisa global (qualquer mês).
+const SEARCH_TXS = [
+  { id: 's1', user_id: 'u1', date: '2026-03-14', type: 'saida', category: 'Alimentação', description: 'Continente Braga', amount: 42, created_at: '' },
+]
+
 vi.mock('@/lib/supabase', () => ({
   requireUser: vi.fn(async () => ({ id: 'u1' })),
   getProfile: vi.fn(async () => profile),
@@ -67,6 +77,8 @@ vi.mock('@/lib/supabase', () => ({
   saveRecurringRule: vi.fn(async () => ({ data: null, error: null })),
   updateRecurringRule: vi.fn(async () => ({ data: null, error: null })),
   deleteRecurringRule: vi.fn(async () => ({ error: null })),
+  getTransactionsForMonth: vi.fn(async () => JUNE_TXS),
+  searchTransactions: vi.fn(async () => SEARCH_TXS),
 }))
 
 vi.mock('@/components/Nav', () => ({ default: () => null }))
@@ -154,5 +166,35 @@ describe('FinancasPage', () => {
     await renderPage()
     fireEvent.click(screen.getByLabelText('Registar movimento'))
     expect(screen.getByText('Repetir todos os meses')).toBeDefined()
+  })
+
+  it('navega para o mês anterior e carrega os seus movimentos sob demanda', async () => {
+    const { getTransactionsForMonth } = await import('@/lib/supabase')
+    await renderPage()
+    // abre o sheet de movimentos pelo hero
+    fireEvent.click(screen.getByLabelText('Ver movimentos'))
+    expect(await screen.findByText(/Julho 2026/)).toBeDefined()
+    fireEvent.click(screen.getByLabelText('Mês anterior'))
+    expect(await screen.findByText(/Junho 2026/)).toBeDefined()
+    await waitFor(() => expect(getTransactionsForMonth).toHaveBeenCalled())
+    // movimento de junho aparece
+    expect(await screen.findByText('Roupa')).toBeDefined()
+  })
+
+  it('não deixa avançar para além do mês corrente', async () => {
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Ver movimentos'))
+    const next = await screen.findByLabelText('Mês seguinte') as HTMLButtonElement
+    expect(next.disabled).toBe(true)
+  })
+
+  it('pesquisa em todo o histórico com ≥2 caracteres', async () => {
+    const { searchTransactions } = await import('@/lib/supabase')
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Ver movimentos'))
+    fireEvent.change(await screen.findByPlaceholderText('Pesquisar movimentos…'), { target: { value: 'continente' } })
+    await waitFor(() => expect(searchTransactions).toHaveBeenCalledWith('u1', 'continente'))
+    expect(await screen.findByText(/em todo o histórico/)).toBeDefined()
+    expect(await screen.findByText('Continente Braga')).toBeDefined()
   })
 })

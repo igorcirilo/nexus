@@ -388,6 +388,44 @@ export async function getTransactionsByMonth(userId: string, numMonths = 6) {
   return data ?? []
 }
 
+// Transações de um mês específico (com id, para editar/apagar) — usado na
+// navegação por mês do sheet de movimentos, carregadas sob demanda.
+export async function getTransactionsForMonth(userId: string, monthStart: string, monthEnd: string) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', monthStart)
+    .lte('date', monthEnd)
+    .order('date', { ascending: false })
+
+  if (error) {
+    reportError('getTransactionsForMonth error', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+// Pesquisa em todo o histórico por categoria ou descrição. Sanitiza a query
+// (remove vírgulas/parênteses/%) porque entra na sintaxe de filtro do PostgREST.
+export async function searchTransactions(userId: string, query: string) {
+  const q = query.replace(/[%(),*]/g, ' ').trim()
+  if (!q) return []
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .or(`category.ilike.%${q}%,description.ilike.%${q}%`)
+    .order('date', { ascending: false })
+    .limit(200)
+
+  if (error) {
+    reportError('searchTransactions error', error.message)
+    return []
+  }
+  return data ?? []
+}
+
 // Todas as transações do utilizador (sem filtro de data) — usado na exportação CSV.
 export async function getAllTransactions(userId: string) {
   const { data, error } = await supabase

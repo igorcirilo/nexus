@@ -9,7 +9,8 @@ import {
 import Nav from '@/components/Nav'
 import {
   requireUser, getProfile, getTransactions,
-  getTransactionsByMonth, getAllTransactions, saveTransaction, updateTransaction,
+  getTransactionsByMonth, getAllTransactions, getTransactionsForMonth, searchTransactions,
+  saveTransaction, updateTransaction,
   saveTransactionsBulk, deleteTransaction, updateFinancialGoals, updateBudgets,
   getRecurringRules, saveRecurringRule, updateRecurringRule, deleteRecurringRule,
 } from '@/lib/supabase'
@@ -169,6 +170,12 @@ export default function FinancasPage() {
   const [txQuery,    setTxQuery]   = useState('')
   const [txFilter,   setTxFilter]  = useState<'all'|'entrada'|'saida'>('all')
   const [txCat,      setTxCat]     = useState<string|null>(null)
+  // Navegação por mês (sob demanda) + pesquisa em todo o histórico
+  const [monthCursor,  setMonthCursor]  = useState<Date>(() => startOfMonth(new Date()))
+  const [monthCache,   setMonthCache]   = useState<Record<string, Transaction[]>>({})
+  const [monthLoading, setMonthLoading] = useState(false)
+  const [searchResults,setSearchResults]= useState<Transaction[]|null>(null)
+  const [searchLoading,setSearchLoading]= useState(false)
   const [openTx,     setOpenTx]    = useState<Transaction|null>(null)
   const [etCat,      setEtCat]     = useState('')
   const [etDesc,     setEtDesc]    = useState('')
@@ -243,6 +250,9 @@ export default function FinancasPage() {
     const [r, h] = await Promise.all([getTransactions(uid, 2), getTransactionsByMonth(uid, 6)])
     setTxs(r as Transaction[])
     setHistory(h as Transaction[])
+    // Invalida as caches do sheet de movimentos para refletir a mutação.
+    setMonthCache({})
+    setSearchResults(null)
   }
   async function reloadRecurring(uid: string) {
     setRecurring(await getRecurringRules(uid) as RecurringRule[])
@@ -319,15 +329,23 @@ export default function FinancasPage() {
     return map
   }, [history, OUT_CATS])
 
-  // ── Movimentos: filtro + agrupamento por dia ──
-  const filteredTxs = useMemo(() => {
-    const q = txQuery.trim().toLowerCase()
-    return txs.filter(t =>
-      (txFilter==='all' || t.type===txFilter) &&
-      (!txCat || t.category===txCat) &&
-      (!q || t.category.toLowerCase().includes(q) || (t.description??'').toLowerCase().includes(q))
-    )
-  }, [txs, txQuery, txFilter, txCat])
+  // ── Movimentos: mês selecionado vs. pesquisa em todo o histórico ──
+  // Pesquisa com ≥2 caracteres → resultados globais (server-side); caso
+  // contrário → transações do mês do cursor (carregadas sob demanda). O mês
+  // corrente é servido de imediato por `txs` para não piscar ao abrir.
+  const searchMode  = txQuery.trim().length >= 2
+  const cursorKey   = format(monthCursor, 'yyyy-MM')
+  const nowMonthKey = format(startOfMonth(new Date()), 'yyyy-MM')
+  const isCurrentMonthCursor = cursorKey === nowMonthKey
+  const sheetSourceTxs = useMemo(() => {
+    if (searchMode) return searchResults ?? []
+    if (isCurrentMonthCursor && !monthCache[cursorKey]) return thisMonth
+    return monthCache[cursorKey] ?? []
+  }, [searchMode, searchResults, isCurrentMonthCursor, monthCache, cursorKey, thisMonth])
+  const filteredTxs = useMemo(() => sheetSourceTxs.filter(t =>
+    (txFilter==='all' || t.type===txFilter) &&
+    (!txCat || t.category===txCat)
+  ), [sheetSourceTxs, txFilter, txCat])
   const txGroups = useMemo(() => {
     const map = new Map<string, Transaction[]>()
     filteredTxs.forEach(t => {
@@ -339,11 +357,45 @@ export default function FinancasPage() {
   }, [filteredTxs])
   const txCatOptions = useMemo(() => {
     const counts: Record<string,number> = {}
-    txs.forEach(t => { counts[t.category]=(counts[t.category]??0)+1 })
+    sheetSourceTxs.forEach(t => { counts[t.category]=(counts[t.category]??0)+1 })
     return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([c])=>c)
-  }, [txs])
-  const filterActive = txFilter!=='all' || !!txCat || !!txQuery.trim()
+  }, [sheetSourceTxs])
+  const filterActive = txFilter!=='all' || !!txCat || searchMode
   const filteredTotal = filteredTxs.reduce((a,t)=>a+(t.type==='entrada'?t.amount:-t.amount),0)
+  const sheetBusy = searchMode ? searchLoading : monthLoading
+
+  // Carrega o mês do cursor sob demanda (exceto o corrente, servido por txs).
+  useEffect(() => {
+    if (!showMovimentos || !userId || searchMode) return
+    const key = format(monthCursor, 'yyyy-MM')
+    if (monthCache[key] || key === nowMonthKey) return
+    setMonthLoading(true)
+    const s = format(startOfMonth(monthCursor), 'yyyy-MM-dd')
+    const e = format(endOfMonth(monthCursor), 'yyyy-MM-dd')
+    getTransactionsForMonth(userId, s, e).then(rows => {
+      setMonthCache(c => ({ ...c, [key]: rows as Transaction[] }))
+      setMonthLoading(false)
+    })
+  }, [showMovimentos, userId, monthCursor, searchMode, monthCache, nowMonthKey])
+
+  // Ao abrir o sheet, começa sempre no mês corrente.
+  useEffect(() => {
+    if (showMovimentos) setMonthCursor(startOfMonth(new Date()))
+  }, [showMovimentos])
+
+  // Pesquisa global (debounced) quando a query tem ≥2 caracteres.
+  useEffect(() => {
+    if (!showMovimentos || !userId) return
+    const q = txQuery.trim()
+    if (q.length < 2) { setSearchResults(null); return }
+    setSearchLoading(true)
+    const t = setTimeout(() => {
+      searchTransactions(userId, q).then(rows => {
+        setSearchResults(rows as Transaction[]); setSearchLoading(false)
+      })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [showMovimentos, userId, txQuery])
 
   // ── Orçamento: gauge + categorias ordenadas ──
   const spentByCat = useMemo(
@@ -1121,6 +1173,40 @@ export default function FinancasPage() {
             {txQuery && <button onClick={()=>setTxQuery('')} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text2)',fontSize:13,padding:4}}>✕</button>}
           </div>
 
+          {/* Navegação por mês (ou cabeçalho de resultados na pesquisa) */}
+          {searchMode ? (
+            <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 2px 4px',marginBottom:6}}>
+              <span style={{fontSize:12,fontWeight:700,color:'var(--text2)'}}>
+                {sheetBusy ? 'A pesquisar…' : `${sheetSourceTxs.length} resultado${sheetSourceTxs.length!==1?'s':''} em todo o histórico`}
+              </span>
+            </div>
+          ) : (
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+              <button
+                onClick={()=>setMonthCursor(d=>startOfMonth(subMonths(d,1)))}
+                aria-label="Mês anterior"
+                style={{width:34,height:34,borderRadius:11,flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.10)',background:'var(--surface-2)',color:'var(--text1)',cursor:'pointer',fontSize:15,fontWeight:700}}
+              >‹</button>
+              <div style={{flex:1,textAlign:'center'}}>
+                <div style={{fontSize:14,fontWeight:800,color:'var(--ink)',letterSpacing:'-0.2px'}}>
+                  {format(monthCursor,'MMMM yyyy',{locale:pt}).replace(/^./,c=>c.toUpperCase())}
+                </div>
+                <div style={{fontSize:10.5,color:'var(--text2)',marginTop:1}}>
+                  {sheetBusy ? 'a carregar…' : (() => {
+                    const net = sheetSourceTxs.reduce((a,t)=>a+(t.type==='entrada'?t.amount:-t.amount),0)
+                    return <>saldo <b style={{color:net>=0?'#00C896':'#E24B4A'}}>{net>=0?'+':'−'}{fmt(Math.abs(net))}</b> · {sheetSourceTxs.length} mov.</>
+                  })()}
+                </div>
+              </div>
+              <button
+                onClick={()=>setMonthCursor(d=>startOfMonth(addMonths(d,1)))}
+                disabled={isCurrentMonthCursor}
+                aria-label="Mês seguinte"
+                style={{width:34,height:34,borderRadius:11,flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.10)',background:'var(--surface-2)',color:'var(--text1)',cursor:isCurrentMonthCursor?'not-allowed':'pointer',opacity:isCurrentMonthCursor?0.35:1,fontSize:15,fontWeight:700}}
+              >›</button>
+            </div>
+          )}
+
           {/* Filtros */}
           <div style={{display:'flex',gap:7,overflowX:'auto',paddingBottom:4,marginBottom:4,scrollbarWidth:'none'}}>
             {([['all','Todas'],['entrada','↓ Entradas'],['saida','↑ Saídas']] as const).map(([k,l])=>(
@@ -1156,12 +1242,18 @@ export default function FinancasPage() {
             </div>
           )}
 
-          {/* Vazio */}
-          {filteredTxs.length===0&&(
+          {/* Vazio (só quando não está a carregar) */}
+          {filteredTxs.length===0&&!sheetBusy&&(
             <div style={{textAlign:'center',padding:'40px 0',color:'var(--text2)'}}>
-              <div style={{fontSize:40,marginBottom:12}}>💸</div>
-              <div style={{fontSize:14,marginBottom:6}}>{filterActive?'Nada encontrado com este filtro.':'Sem transações ainda.'}</div>
-              {!filterActive&&<div style={{fontSize:12}}>Clica em + Registar ou importa um CSV.</div>}
+              <div style={{fontSize:40,marginBottom:12}}>{searchMode?'🔍':'💸'}</div>
+              <div style={{fontSize:14,marginBottom:6}}>
+                {searchMode
+                  ? `Nada encontrado para “${txQuery.trim()}”.`
+                  : (txFilter!=='all'||txCat)
+                    ? 'Nada com este filtro neste mês.'
+                    : `Sem movimentos em ${format(monthCursor,'MMMM',{locale:pt})}.`}
+              </div>
+              {!filterActive&&isCurrentMonthCursor&&<div style={{fontSize:12}}>Clica em + Registar ou importa um CSV.</div>}
             </div>
           )}
 
