@@ -23,6 +23,7 @@ import {
   monthlySavings, buildBudgetSummary, categoryTotals, sumInRange,
   projectEndOfMonth, unbudgetedSpend, buildInsights,
   pendingRecurrences, recurringMonthlyTotal,
+  buildMonthSummary, monthCloseHeadline,
 } from '@/lib/finance'
 import { suggestCategory } from '@/lib/categorize'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
@@ -196,6 +197,9 @@ export default function FinancasPage() {
   const [showRecorrentes,setShowRecorrentes]= useState(false)
   const [postingRuleId,  setPostingRuleId]  = useState<string|null>(null)
   const [fRepeat,        setFRepeat]        = useState(false)
+  // Fecho do mês: guarda o último mês cujo resumo já foi dispensado (yyyy-MM).
+  const [monthCloseSeen, setMonthCloseSeen] = useState<string|null>(null)
+  const [monthCloseOpen, setMonthCloseOpen] = useState(false)
 
   function showToast(m: string, type: 'success' | 'error' | 'info' = 'success') {
     if (type === 'error') toast.error(m)
@@ -221,6 +225,9 @@ export default function FinancasPage() {
       try {
         const s = localStorage.getItem(`nexus_recurring_skips_${user.id}`)
         if (s) setRecurringSkips(JSON.parse(s))
+      } catch {}
+      try {
+        setMonthCloseSeen(localStorage.getItem(`nexus_monthclose_seen_${user.id}`))
       } catch {}
       // Orçamentos: fonte de verdade no Supabase (profiles.fin_budgets). O
       // localStorage é só cache offline; se houver dados só-locais (versão
@@ -495,6 +502,25 @@ export default function FinancasPage() {
   )
   const recurringOutTotal = recurringMonthlyTotal(recurring, 'saida')
   const recurringInTotal  = recurringMonthlyTotal(recurring, 'entrada')
+
+  // ── Fecho do mês: resumo do mês anterior (mostra uma vez por mês) ──
+  const prevMonthKey = format(subMonths(new Date(),1),'yyyy-MM')
+  const monthClose = useMemo(() => {
+    const prev  = subMonths(new Date(),1)
+    const prev2 = subMonths(new Date(),2)
+    const cur  = buildMonthSummary(history, format(startOfMonth(prev),'yyyy-MM-dd'),  format(endOfMonth(prev),'yyyy-MM-dd'),  SAVINGS_CAT)
+    const before = buildMonthSummary(history, format(startOfMonth(prev2),'yyyy-MM-dd'), format(endOfMonth(prev2),'yyyy-MM-dd'), SAVINGS_CAT)
+    return { cur, before, label: format(prev,'MMMM yyyy',{locale:pt}).replace(/^./,c=>c.toUpperCase()) }
+  }, [history])
+  const monthCloseHasData = monthClose.cur.income>0 || monthClose.cur.spending>0 || monthClose.cur.saved>0
+  // Abre automaticamente quando há um mês fechado por rever (e não foi dispensado).
+  const shouldShowMonthClose = !loading && monthCloseHasData && monthCloseSeen !== prevMonthKey
+  useEffect(() => { if (shouldShowMonthClose) setMonthCloseOpen(true) }, [shouldShowMonthClose])
+  function dismissMonthClose() {
+    setMonthCloseOpen(false)
+    setMonthCloseSeen(prevMonthKey)
+    if (userId) try { localStorage.setItem(`nexus_monthclose_seen_${userId}`, prevMonthKey) } catch {}
+  }
 
   function openTxSheet(t: Transaction) {
     setOpenTx(t)
@@ -1915,6 +1941,73 @@ export default function FinancasPage() {
           </div>
         </Sheet>
       )}
+
+      {/* ── Sheet: fecho do mês (resumo do mês anterior, 1×/mês) ── */}
+      {monthCloseOpen && (() => {
+        const { cur, before, label } = monthClose
+        const win = monthCloseHeadline(cur, before, fmt)
+        const winBg = win.tone==='positive' ? 'rgba(0,200,150,0.10)' : 'rgba(245,200,66,0.10)'
+        const winBorder = win.tone==='positive' ? 'rgba(0,200,150,0.35)' : 'rgba(245,200,66,0.35)'
+        const winColor = win.tone==='positive' ? '#00C896' : '#F5C842'
+        return (
+          <Sheet icon="📅" title={`Fecho de ${label}`} onClose={dismissMonthClose}
+            footer={
+              <button onClick={dismissMonthClose} style={{width:'100%',border:'none',borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:15,cursor:'pointer',background:'linear-gradient(135deg, #F5C842, #E0A82A)',color:'#1A1200'}}>
+                Começar {format(new Date(),'MMMM',{locale:pt})} ›
+              </button>
+            }>
+            <div style={{paddingTop:8}}>
+              {/* Vitória em destaque */}
+              <div style={{display:'flex',alignItems:'center',gap:12,background:winBg,border:`1px solid ${winBorder}`,borderRadius:18,padding:'16px 16px',marginBottom:14}}>
+                <span style={{fontSize:30,lineHeight:'34px'}} aria-hidden>{win.icon}</span>
+                <div style={{fontSize:15,fontWeight:800,color:winColor,lineHeight:1.35}}>{win.text}</div>
+              </div>
+
+              {/* Balanço grande */}
+              <div style={{textAlign:'center',margin:'6px 0 16px'}}>
+                <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:4}}>Balanço de {label.split(' ')[0]}</div>
+                <div style={{fontSize:34,fontWeight:900,letterSpacing:'-1px',color:cur.balance>=0?'#00C896':'#E24B4A'}}>{cur.balance>=0?'+':'−'}{fmt(Math.abs(cur.balance))}</div>
+                <div style={{fontSize:11,color:'var(--text2)',marginTop:2}}>entradas − gastos</div>
+              </div>
+
+              {/* Grelha de números */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:9}}>
+                <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'12px 13px'}}>
+                  <div style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>Entradas</div>
+                  <div style={{fontSize:16,fontWeight:800,color:'#00C896',marginTop:2}}>+{fmt(cur.income)}</div>
+                </div>
+                <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'12px 13px'}}>
+                  <div style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>Gastos</div>
+                  <div style={{fontSize:16,fontWeight:800,color:'#E24B4A',marginTop:2}}>−{fmt(cur.spending)}</div>
+                </div>
+                <div style={{background:'var(--surface-2)',border:'1px solid rgba(0,200,150,0.18)',borderRadius:14,padding:'12px 13px'}}>
+                  <div style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>🏦 Poupado</div>
+                  <div style={{fontSize:16,fontWeight:800,color:'#00C896',marginTop:2}}>{fmt(cur.saved)}</div>
+                </div>
+                <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'12px 13px'}}>
+                  <div style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>Maior gasto</div>
+                  {cur.topCat ? (
+                    <div style={{fontSize:13,fontWeight:800,color:'var(--ink)',marginTop:4,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap',overflow:'hidden'}}>
+                      <span>{catEmoji(cur.topCat.cat)}</span>
+                      <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{cur.topCat.cat}</span>
+                    </div>
+                  ) : <div style={{fontSize:13,color:'var(--text3)',marginTop:4}}>—</div>}
+                  {cur.topCat && <div style={{fontSize:11,color:'var(--text2)',marginTop:2}}>{fmt(cur.topCat.amount)}</div>}
+                </div>
+              </div>
+
+              {/* Comparação com o mês anterior */}
+              {(before.spending>0||before.income>0) && (
+                <div style={{marginTop:14,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:13,padding:'12px 14px',fontSize:12,lineHeight:1.6,color:'var(--text1)'}}>
+                  <b style={{color:'var(--ink)'}}>Vs. mês anterior:</b>{' '}
+                  gastos {cur.spending<=before.spending?'▼':'▲'} {fmt(Math.abs(cur.spending-before.spending))} ·{' '}
+                  poupança {cur.saved>=before.saved?'▲':'▼'} {fmt(Math.abs(cur.saved-before.saved))}
+                </div>
+              )}
+            </div>
+          </Sheet>
+        )
+      })()}
 
       <Nav/>
     </main>

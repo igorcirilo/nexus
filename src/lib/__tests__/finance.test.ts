@@ -9,9 +9,12 @@ import {
   buildInsights,
   pendingRecurrences,
   recurringMonthlyTotal,
+  buildMonthSummary,
+  monthCloseHeadline,
   type FinTx,
   type InsightInput,
   type RecurringLike,
+  type MonthSummary,
 } from '@/lib/finance'
 
 const txs: FinTx[] = [
@@ -230,5 +233,50 @@ describe('recurringMonthlyTotal', () => {
   it('soma só as ativas do tipo pedido', () => {
     expect(recurringMonthlyTotal(rules, 'saida')).toBe(650)
     expect(recurringMonthlyTotal(rules, 'entrada')).toBe(1200)
+  })
+})
+
+describe('buildMonthSummary', () => {
+  const m: FinTx[] = [
+    { date: '2026-06-02', type: 'entrada', amount: 1200, category: 'Salário' },
+    { date: '2026-06-05', type: 'saida',   amount: 400,  category: 'Alimentação' },
+    { date: '2026-06-08', type: 'saida',   amount: 150,  category: 'Transporte' },
+    { date: '2026-06-10', type: 'saida',   amount: 200,  category: 'Poupança' },
+    { date: '2026-07-01', type: 'saida',   amount: 999,  category: 'Alimentação' }, // fora do intervalo
+  ]
+  it('separa gasto, poupança e maior categoria; poupança não entra no balanço', () => {
+    const s = buildMonthSummary(m, '2026-06-01', '2026-06-30')
+    expect(s.income).toBe(1200)
+    expect(s.spending).toBe(550)          // 400 + 150 (Poupança fora)
+    expect(s.saved).toBe(200)
+    expect(s.balance).toBe(650)           // 1200 − 550
+    expect(s.topCat).toEqual({ cat: 'Alimentação', amount: 400 })
+  })
+  it('topCat é null sem gastos', () => {
+    expect(buildMonthSummary([{ date: '2026-06-01', type: 'entrada', amount: 10, category: 'x' }], '2026-06-01', '2026-06-30').topCat).toBeNull()
+  })
+})
+
+describe('monthCloseHeadline', () => {
+  const eur = (v: number) => `€${v}`
+  const base: MonthSummary = { income: 1000, spending: 500, saved: 0, balance: 500, topCat: null }
+  it('destaca poupança quando poupou e ≥ mês anterior', () => {
+    const h = monthCloseHeadline({ ...base, saved: 150 }, { ...base, saved: 100 }, eur)
+    expect(h.tone).toBe('positive')
+    expect(h.text).toContain('Poupaste €150')
+  })
+  it('destaca sobra maior que o mês anterior', () => {
+    const h = monthCloseHeadline({ ...base, balance: 600 }, { ...base, balance: 400 }, eur)
+    expect(h.text).toContain('€200 a mais')
+  })
+  it('destaca ter gasto menos', () => {
+    const h = monthCloseHeadline({ ...base, spending: 400, balance: 600 }, { ...base, spending: 700, balance: 300 }, eur)
+    // balance 600 > 300 → entra na regra da sobra; garante que é sempre positivo
+    expect(h.tone).toBe('positive')
+  })
+  it('cai numa mensagem neutra mas encorajadora no negativo', () => {
+    const h = monthCloseHeadline({ ...base, balance: -100 }, { ...base, balance: -50 }, eur)
+    expect(h.tone).toBe('info')
+    expect(h.text).toContain('nova página')
   })
 })

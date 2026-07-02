@@ -132,6 +132,75 @@ export function unbudgetedSpend(
     .reduce((a, [, v]) => a + v, 0)
 }
 
+export interface MonthSummary {
+  income: number
+  /** Gasto real (exclui a categoria de poupança). */
+  spending: number
+  /** Movido para poupança (a categoria reservada). */
+  saved: number
+  /** income − spending (a poupança é transferência, não entra). */
+  balance: number
+  topCat: { cat: string; amount: number } | null
+}
+
+/** Agregados de um mês para o resumo/fecho: entradas, gasto, poupança e maior categoria. */
+export function buildMonthSummary(
+  txs: FinTx[],
+  start: string,
+  end: string,
+  savingsCat = 'Poupança',
+): MonthSummary {
+  let income = 0
+  let spending = 0
+  let saved = 0
+  const byCat: Record<string, number> = {}
+  for (const t of txs) {
+    if (t.date < start || t.date > end) continue
+    if (t.type === 'entrada') { income += t.amount; continue }
+    if (t.category === savingsCat) { saved += t.amount; continue }
+    spending += t.amount
+    byCat[t.category] = (byCat[t.category] ?? 0) + t.amount
+  }
+  const top = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0]
+  return {
+    income,
+    spending,
+    saved,
+    balance: income - spending,
+    topCat: top ? { cat: top[0], amount: top[1] } : null,
+  }
+}
+
+export interface MonthCloseHeadline {
+  icon: string
+  text: string
+  tone: 'positive' | 'info'
+}
+
+/**
+ * A "vitória" a destacar no fecho do mês: escolhe a afirmação verdadeira mais
+ * positiva comparando o mês fechado com o anterior. Pura → testável.
+ */
+export function monthCloseHeadline(
+  cur: MonthSummary,
+  prev: MonthSummary,
+  fmt: (v: number) => string,
+): MonthCloseHeadline {
+  if (cur.saved > 0 && cur.saved >= prev.saved) {
+    return { icon: '🎉', tone: 'positive', text: `Poupaste ${fmt(cur.saved)} este mês.` }
+  }
+  if (cur.balance > prev.balance && cur.balance > 0) {
+    return { icon: '📈', tone: 'positive', text: `Sobrou-te ${fmt(cur.balance - prev.balance)} a mais do que no mês anterior.` }
+  }
+  if (cur.spending < prev.spending && prev.spending > 0) {
+    return { icon: '💪', tone: 'positive', text: `Gastaste ${fmt(prev.spending - cur.spending)} a menos do que no mês anterior.` }
+  }
+  if (cur.balance >= 0) {
+    return { icon: '✅', tone: 'info', text: `Fechaste o mês no positivo, com ${fmt(cur.balance)}.` }
+  }
+  return { icon: '📊', tone: 'info', text: `Fechaste o mês em ${fmt(cur.balance)} — o próximo é uma nova página.` }
+}
+
 export interface RecurringLike {
   id: string
   type: 'entrada' | 'saida'

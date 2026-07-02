@@ -98,6 +98,9 @@ describe('FinancasPage', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['Date'], now: TODAY })
     localStorage.clear()
+    // Marca o fecho de junho como já visto, para não abrir sozinho nos testes
+    // que não são sobre ele (a data fixa é 15/07 → mês anterior = 2026-06).
+    localStorage.setItem('nexus_monthclose_seen_u1', '2026-06')
   })
   afterEach(() => {
     cleanup() // desmonta o render anterior (evita DOM acumulado entre testes)
@@ -218,5 +221,17 @@ describe('FinancasPage', () => {
     fireEvent.click(screen.getByText('Guardar movimento'))
     // reserva base 0 (profile.fin_current_savings null) + 200 = 200
     await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 200 }))
+  })
+
+  it('abre o fecho do mês anterior quando ainda não foi visto', async () => {
+    localStorage.removeItem('nexus_monthclose_seen_u1')
+    await renderPage()
+    // junho: entradas 1000, gastos 200 → balanço +800
+    expect(await screen.findByText(/Fecho de Junho 2026/)).toBeDefined()
+    expect(screen.getByText(/Começar julho ›/)).toBeDefined()
+    // dispensar guarda o mês como visto
+    fireEvent.click(screen.getByText(/Começar julho ›/))
+    await waitFor(() => expect(screen.queryByText(/Fecho de Junho 2026/)).toBeNull())
+    expect(localStorage.getItem('nexus_monthclose_seen_u1')).toBe('2026-06')
   })
 })
