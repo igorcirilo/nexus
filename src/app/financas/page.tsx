@@ -11,6 +11,7 @@ import {
   requireUser, getProfile, getTransactions,
   getTransactionsByMonth, getAllTransactions, saveTransaction, updateTransaction,
   saveTransactionsBulk, deleteTransaction, updateFinancialGoals, updateBudgets,
+  getRecurringRules, saveRecurringRule, updateRecurringRule, deleteRecurringRule,
 } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import {
@@ -20,6 +21,7 @@ import {
 import {
   monthlySavings, buildBudgetSummary, categoryTotals, sumInRange,
   projectEndOfMonth, unbudgetedSpend, buildInsights,
+  pendingRecurrences, recurringMonthlyTotal,
 } from '@/lib/finance'
 import { suggestCategory } from '@/lib/categorize'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
@@ -27,7 +29,7 @@ import { logError } from '@/lib/log'
 import { darkCardInk } from '@/lib/theme'
 import { format, startOfMonth, endOfMonth, subMonths, subDays, addMonths, getDaysInMonth, getDate } from 'date-fns'
 import { pt } from 'date-fns/locale'
-import type { Profile, Transaction, FinancialImportPreview, FinancialImportCandidate } from '@/types'
+import type { Profile, Transaction, RecurringRule, FinancialImportPreview, FinancialImportCandidate } from '@/types'
 
 const CATEGORIES_IN  = ['Salário','Freelance','Investimento','Rendas','Presente','Outro']
 const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Contas','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
@@ -181,6 +183,12 @@ export default function FinancasPage() {
   const [pdfPreview, setPdfPreview] = useState<FinancialImportPreview | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
   const [exporting, setExporting]   = useState(false)
+  // Recorrentes
+  const [recurring,      setRecurring]      = useState<RecurringRule[]>([])
+  const [recurringSkips, setRecurringSkips] = useState<string[]>([])
+  const [showRecorrentes,setShowRecorrentes]= useState(false)
+  const [postingRuleId,  setPostingRuleId]  = useState<string|null>(null)
+  const [fRepeat,        setFRepeat]        = useState(false)
 
   function showToast(m: string, type: 'success' | 'error' | 'info' = 'success') {
     if (type === 'error') toast.error(m)
@@ -191,14 +199,22 @@ export default function FinancasPage() {
     requireUser().then(async (user) => {
       if (!user) return
       setUserId(user.id)
-      const [prof, recent, hist] = await Promise.all([
+      const [prof, recent, hist, rules] = await Promise.all([
         getProfile(user.id),
         getTransactions(user.id, 2),
         getTransactionsByMonth(user.id, 6),
+        getRecurringRules(user.id),
       ])
       setProfile(prof)
       setTxs(recent as Transaction[])
       setHistory(hist as Transaction[])
+      setRecurring(rules as RecurringRule[])
+      // Recorrências saltadas neste mês vivem só no dispositivo (não é dado
+      // crítico e evita mais uma tabela); chave `${ruleId}:${yyyy-MM}`.
+      try {
+        const s = localStorage.getItem(`nexus_recurring_skips_${user.id}`)
+        if (s) setRecurringSkips(JSON.parse(s))
+      } catch {}
       // Orçamentos: fonte de verdade no Supabase (profiles.fin_budgets). O
       // localStorage é só cache offline; se houver dados só-locais (versão
       // antiga), migram-se para o Supabase neste primeiro carregamento.
@@ -227,6 +243,9 @@ export default function FinancasPage() {
     const [r, h] = await Promise.all([getTransactions(uid, 2), getTransactionsByMonth(uid, 6)])
     setTxs(r as Transaction[])
     setHistory(h as Transaction[])
+  }
+  async function reloadRecurring(uid: string) {
+    setRecurring(await getRecurringRules(uid) as RecurringRule[])
   }
 
   // Métricas do mês atual
@@ -386,6 +405,21 @@ export default function FinancasPage() {
   }, [spentByCat])
   const hasHistory = monthlyChart.some(m => m.entradas > 0 || m.saidas > 0)
 
+  // ── Recorrentes: pendentes do mês + totais ──
+  const monthKey = format(new Date(),'yyyy-MM')
+  const pendingRules = useMemo(
+    () => pendingRecurrences(
+      recurring,
+      thisMonth.map(t => t.recurring_id),
+      dayOfMonth,
+      monthKey,
+      recurringSkips,
+    ),
+    [recurring, thisMonth, dayOfMonth, monthKey, recurringSkips],
+  )
+  const recurringOutTotal = recurringMonthlyTotal(recurring, 'saida')
+  const recurringInTotal  = recurringMonthlyTotal(recurring, 'entrada')
+
   function openTxSheet(t: Transaction) {
     setOpenTx(t)
     setEtCat(t.category); setEtDesc(t.description ?? '')
@@ -436,9 +470,58 @@ export default function FinancasPage() {
     setSaving(true)
     const {error} = await saveTransaction({user_id:userId,type:txType,category:finalCat,description:fDesc||null,amount,date:fDate})
     if (error) { showToast('Erro ao guardar.', 'error'); setSaving(false); return }
+    // "Repetir todos os meses": cria também a regra recorrente com o dia do mês
+    // da transação (limitado a 1–28 para existir em qualquer mês).
+    if (fRepeat) {
+      const day = Math.min(28, Math.max(1, Number(fDate.slice(8,10)) || 1))
+      const { error: rErr } = await saveRecurringRule({
+        user_id:userId, type:txType, category:finalCat, description:fDesc||null, amount, day_of_month:day, active:true,
+      })
+      if (rErr) showToast('Movimento guardado, mas não consegui criar a recorrência.', 'error')
+      else await reloadRecurring(userId)
+    }
     await reloadTx(userId)
-    setFAmount(''); setFDesc(''); setFCat(''); setFCustomCat(''); setShowForm(false)
-    showToast('Transação adicionada!'); setSaving(false)
+    setFAmount(''); setFDesc(''); setFCat(''); setFCustomCat(''); setFRepeat(false); setShowForm(false)
+    showToast(fRepeat?'Transação e recorrência criadas!':'Transação adicionada!'); setSaving(false)
+  }
+
+  // Lança a transação de uma recorrência pendente, marcada com recurring_id
+  // para não voltar a aparecer este mês. Data = dia agendado no mês corrente.
+  async function postRecurrence(rule: RecurringRule) {
+    if (!userId) return
+    setPostingRuleId(rule.id)
+    const day  = Math.min(daysInMonth, rule.day_of_month)
+    const date = format(new Date(new Date().getFullYear(), new Date().getMonth(), day), 'yyyy-MM-dd')
+    const { error } = await saveTransaction({
+      user_id:userId, type:rule.type, category:rule.category, description:rule.description,
+      amount:rule.amount, date, recurring_id:rule.id,
+    })
+    setPostingRuleId(null)
+    if (error) { showToast('Erro ao lançar. Aplicaste a migração financas_recurring_v1.sql?', 'error'); return }
+    await reloadTx(userId)
+    showToast(`${rule.category} lançado!`)
+  }
+
+  function persistSkips(next: string[]) {
+    setRecurringSkips(next)
+    if (userId) try { localStorage.setItem(`nexus_recurring_skips_${userId}`, JSON.stringify(next)) } catch {}
+  }
+  function skipRecurrence(rule: RecurringRule) {
+    persistSkips([...recurringSkips, `${rule.id}:${monthKey}`])
+  }
+
+  async function toggleRuleActive(rule: RecurringRule) {
+    if (!userId) return
+    const { error } = await updateRecurringRule(rule.id, { active: !rule.active })
+    if (error) { showToast('Erro ao atualizar.', 'error'); return }
+    await reloadRecurring(userId)
+  }
+  async function deleteRule(rule: RecurringRule) {
+    if (!userId) return
+    const { error } = await deleteRecurringRule(rule.id)
+    if (error) { showToast('Erro ao remover.', 'error'); return }
+    await reloadRecurring(userId)
+    showToast('Recorrência removida.')
   }
 
   async function removeTx(id:string) {
@@ -708,6 +791,9 @@ export default function FinancasPage() {
               <button onClick={()=>{setMoreOpen(false);pdfRef.current?.click()}} disabled={pdfLoading} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
                 📄 {pdfLoading ? 'A ler PDF…' : 'Importar PDF'}
               </button>
+              <button onClick={()=>{setMoreOpen(false);setShowRecorrentes(true)}} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
+                🔁 Recorrentes
+              </button>
               <button onClick={()=>{setMoreOpen(false);exportCSV()}} disabled={exporting} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',cursor:'pointer',textAlign:'left'}}>
                 ↓ {exporting ? 'A exportar…' : 'Exportar CSV'}
               </button>
@@ -771,6 +857,35 @@ export default function FinancasPage() {
       })()}
 
       <div style={{padding:'0 20px'}} onClick={()=>moreOpen&&setMoreOpen(false)}>
+        {/* ── Recorrentes por pagar este mês ── */}
+        {pendingRules.length>0&&(
+          <>
+            <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',margin:'20px 0 10px'}}>
+              <span style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text3)'}}>A pagar este mês</span>
+              <button onClick={()=>setShowRecorrentes(true)} style={{background:'none',border:'none',cursor:'pointer',fontSize:11.5,fontWeight:700,color:'#F5C842',fontFamily:'Inter, sans-serif',padding:0}}>Gerir ›</button>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {pendingRules.map(rule=>(
+                <div key={rule.id} style={{display:'flex',alignItems:'center',gap:11,background:'var(--surface-2)',border:'1px solid rgba(245,200,66,0.22)',borderRadius:14,padding:'11px 13px'}}>
+                  <div style={{width:36,height:36,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,background:rule.type==='entrada'?'rgba(0,200,150,.10)':'rgba(226,75,74,.10)'}}>
+                    {catEmoji(rule.category)}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>
+                      {rule.category} <span style={{fontWeight:700,color:rule.type==='entrada'?'#00C896':'#E24B4A'}}>{rule.type==='entrada'?'+':'−'}{fmt(rule.amount)}</span>
+                    </div>
+                    <div style={{fontSize:10.5,color:'var(--text2)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                      todo dia {rule.day_of_month}{rule.description?` · ${rule.description}`:''}
+                    </div>
+                  </div>
+                  <button onClick={()=>skipRecurrence(rule)} aria-label={`Saltar ${rule.category} este mês`} style={{flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.12)',background:'transparent',color:'var(--text2)',borderRadius:10,padding:'8px 11px',fontSize:11.5,fontWeight:700,fontFamily:'Inter, sans-serif',cursor:'pointer'}}>Saltar</button>
+                  <button onClick={()=>postRecurrence(rule)} disabled={postingRuleId===rule.id} aria-label={`Registar ${rule.category}`} style={{flexShrink:0,border:'none',background:'linear-gradient(135deg, #F5C842, #E0A82A)',color:'#1A1200',borderRadius:10,padding:'8px 13px',fontSize:11.5,fontWeight:800,fontFamily:'Inter, sans-serif',cursor:'pointer',opacity:postingRuleId===rule.id?0.6:1}}>{postingRuleId===rule.id?'…':'Registar'}</button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         {/* ── Orçamento (resumo) ── */}
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',margin:'20px 0 10px'}}>
           <span style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text3)'}}>Orçamento</span>
@@ -1338,6 +1453,28 @@ export default function FinancasPage() {
               </button>
             )
           })()}
+
+          {/* Repetir todos os meses → cria uma regra recorrente */}
+          <button
+            onClick={()=>setFRepeat(v=>!v)}
+            role="switch"
+            aria-checked={fRepeat}
+            style={{
+              display:'flex',alignItems:'center',gap:11,width:'100%',marginTop:16,padding:'12px 14px',
+              borderRadius:13,cursor:'pointer',fontFamily:'Inter, sans-serif',textAlign:'left',
+              background:fRepeat?'rgba(245,200,66,0.08)':'var(--surface-2)',
+              border:`1px solid ${fRepeat?'rgba(245,200,66,0.4)':'rgba(var(--ink-rgb),0.10)'}`,
+            }}
+          >
+            <span style={{fontSize:17}}>🔁</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Repetir todos os meses</div>
+              <div style={{fontSize:11,color:'var(--text2)',marginTop:1}}>Aparece em &quot;a pagar&quot; no dia {Math.min(28,Math.max(1,Number(fDate.slice(8,10))||1))} de cada mês.</div>
+            </div>
+            <span style={{flexShrink:0,width:40,height:23,borderRadius:12,background:fRepeat?'#F5C842':'var(--surface-3)',position:'relative',transition:'background .2s'}}>
+              <span style={{position:'absolute',top:2,left:fRepeat?19:2,width:19,height:19,borderRadius:10,background:'#fff',transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
+            </span>
+          </button>
         </Sheet>
         )
       })()}
@@ -1592,6 +1729,56 @@ export default function FinancasPage() {
               </div>
             )
           })()}
+        </Sheet>
+      )}
+
+      {/* ── Sheet: gestão de recorrentes ── */}
+      {showRecorrentes&&(
+        <Sheet tall icon="🔁" title="Recorrentes" onClose={()=>setShowRecorrentes(false)}>
+          <div style={{paddingTop:10}}>
+            {recurring.length>0 ? (
+              <>
+                {/* Resumo mensal */}
+                <div style={{display:'flex',gap:9,marginBottom:14}}>
+                  <div style={{flex:1,background:'rgba(0,200,150,0.06)',border:'1px solid rgba(0,200,150,0.18)',borderRadius:14,padding:'11px 13px'}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'rgba(0,200,150,0.9)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Entra / mês</div>
+                    <div style={{fontSize:16,fontWeight:800,color:'var(--ink)',marginTop:3}}>+{fmt(recurringInTotal)}</div>
+                  </div>
+                  <div style={{flex:1,background:'rgba(226,75,74,0.06)',border:'1px solid rgba(226,75,74,0.18)',borderRadius:14,padding:'11px 13px'}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'rgba(226,75,74,0.9)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Sai / mês</div>
+                    <div style={{fontSize:16,fontWeight:800,color:'var(--ink)',marginTop:3}}>−{fmt(recurringOutTotal)}</div>
+                  </div>
+                </div>
+
+                {(recurring as RecurringRule[]).map(rule=>(
+                  <div key={rule.id} style={{display:'flex',alignItems:'center',gap:11,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'11px 13px',marginBottom:8,opacity:rule.active?1:0.55}}>
+                    <div style={{width:36,height:36,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,background:rule.type==='entrada'?'rgba(0,200,150,.10)':'rgba(226,75,74,.10)'}}>
+                      {catEmoji(rule.category)}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>
+                        {rule.category} <span style={{color:rule.type==='entrada'?'#00C896':'#E24B4A'}}>{rule.type==='entrada'?'+':'−'}{fmt(rule.amount)}</span>
+                      </div>
+                      <div style={{fontSize:10.5,color:'var(--text2)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                        todo dia {rule.day_of_month}{rule.description?` · ${rule.description}`:''}{rule.active?'':' · pausada'}
+                      </div>
+                    </div>
+                    <button onClick={()=>toggleRuleActive(rule)} aria-label={rule.active?'Pausar':'Retomar'} style={{flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.12)',background:'transparent',color:'var(--text2)',borderRadius:10,padding:'7px 10px',fontSize:11,fontWeight:700,fontFamily:'Inter, sans-serif',cursor:'pointer'}}>{rule.active?'Pausar':'Ativar'}</button>
+                    <button onClick={()=>deleteRule(rule)} aria-label="Remover recorrência" style={{flexShrink:0,border:'1px solid rgba(226,75,74,0.25)',background:'transparent',color:'#E24B4A',borderRadius:10,padding:'7px 9px',fontSize:12,fontWeight:700,fontFamily:'Inter, sans-serif',cursor:'pointer'}}>✕</button>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div style={{textAlign:'center',padding:'34px 10px',color:'var(--text2)'}}>
+                <div style={{fontSize:36,marginBottom:10}}>🔁</div>
+                <div style={{fontSize:14,fontWeight:600,color:'var(--text1)',marginBottom:6}}>Sem recorrentes ainda</div>
+                <div style={{fontSize:12,lineHeight:1.6}}>
+                  Ao registar um movimento (renda, salário, assinatura…), ativa
+                  <b style={{color:'var(--text1)'}}> &quot;Repetir todos os meses&quot;</b> e ele passa a aparecer aqui e em &quot;a pagar&quot;.
+                </div>
+              </div>
+            )}
+          </div>
         </Sheet>
       )}
 

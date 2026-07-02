@@ -7,8 +7,11 @@ import {
   projectEndOfMonth,
   unbudgetedSpend,
   buildInsights,
+  pendingRecurrences,
+  recurringMonthlyTotal,
   type FinTx,
   type InsightInput,
+  type RecurringLike,
 } from '@/lib/finance'
 
 const txs: FinTx[] = [
@@ -185,5 +188,47 @@ describe('buildInsights', () => {
     }, eur)
     expect(out[0].id).toBe('savings-beat') // 50 > 40
     expect(out.map((i) => i.id)).toContain('projection-positive')
+  })
+})
+
+describe('pendingRecurrences', () => {
+  const rules: RecurringLike[] = [
+    { id: 'r1', type: 'saida',   category: 'Habitação',   description: 'Renda',   amount: 650, day_of_month: 1,  active: true },
+    { id: 'r2', type: 'entrada', category: 'Salário',     description: null,      amount: 1200, day_of_month: 25, active: true },
+    { id: 'r3', type: 'saida',   category: 'Assinaturas', description: 'Netflix', amount: 15,  day_of_month: 5,  active: false },
+  ]
+
+  it('mostra só regras ativas cujo dia já chegou e ainda não foram lançadas', () => {
+    const out = pendingRecurrences(rules, [], 10, '2026-07')
+    expect(out.map((r) => r.id)).toEqual(['r1']) // r2 ainda não (dia 25), r3 inativa
+  })
+
+  it('exclui regras já lançadas neste mês (por recurring_id)', () => {
+    const out = pendingRecurrences(rules, ['r1'], 26, '2026-07')
+    expect(out.map((r) => r.id)).toEqual(['r2'])
+  })
+
+  it('exclui regras saltadas manualmente no mês', () => {
+    const out = pendingRecurrences(rules, [], 26, '2026-07', ['r1:2026-07'])
+    expect(out.map((r) => r.id)).toEqual(['r2'])
+    // o skip é específico do mês
+    expect(pendingRecurrences(rules, [], 26, '2026-08', ['r1:2026-07']).map((r) => r.id)).toEqual(['r1', 'r2'])
+  })
+
+  it('ordena por dia do mês', () => {
+    const out = pendingRecurrences(rules, [], 31, '2026-07')
+    expect(out.map((r) => r.id)).toEqual(['r1', 'r2'])
+  })
+})
+
+describe('recurringMonthlyTotal', () => {
+  const rules: RecurringLike[] = [
+    { id: 'r1', type: 'saida',   category: 'Habitação', description: null, amount: 650, day_of_month: 1,  active: true },
+    { id: 'r2', type: 'saida',   category: 'Assinaturas', description: null, amount: 15, day_of_month: 5, active: false },
+    { id: 'r3', type: 'entrada', category: 'Salário', description: null, amount: 1200, day_of_month: 25, active: true },
+  ]
+  it('soma só as ativas do tipo pedido', () => {
+    expect(recurringMonthlyTotal(rules, 'saida')).toBe(650)
+    expect(recurringMonthlyTotal(rules, 'entrada')).toBe(1200)
   })
 })

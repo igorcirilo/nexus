@@ -44,6 +44,13 @@ const history = [
   { date: '2026-07-12', type: 'saida',   amount: 90,   category: 'Lazer' },
 ]
 
+// r1 (Renda, dia 1) já venceu a 15/07 e não tem transação com recurring_id →
+// fica pendente; r2 (Salário, dia 25) ainda não venceu.
+const RULES = [
+  { id: 'r1', user_id: 'u1', type: 'saida',   category: 'Habitação', description: 'Renda', amount: 650,  day_of_month: 1,  active: true, created_at: '' },
+  { id: 'r2', user_id: 'u1', type: 'entrada', category: 'Salário',   description: null,    amount: 1200, day_of_month: 25, active: true, created_at: '' },
+]
+
 vi.mock('@/lib/supabase', () => ({
   requireUser: vi.fn(async () => ({ id: 'u1' })),
   getProfile: vi.fn(async () => profile),
@@ -56,6 +63,10 @@ vi.mock('@/lib/supabase', () => ({
   deleteTransaction: vi.fn(async () => ({ error: null })),
   updateFinancialGoals: vi.fn(async () => ({})),
   updateBudgets: vi.fn(async () => ({})),
+  getRecurringRules: vi.fn(async () => RULES),
+  saveRecurringRule: vi.fn(async () => ({ data: null, error: null })),
+  updateRecurringRule: vi.fn(async () => ({ data: null, error: null })),
+  deleteRecurringRule: vi.fn(async () => ({ error: null })),
 }))
 
 vi.mock('@/components/Nav', () => ({ default: () => null }))
@@ -118,5 +129,30 @@ describe('FinancasPage', () => {
     fireEvent.click(screen.getByLabelText('Registar movimento'))
     fireEvent.change(screen.getByPlaceholderText('Opcional'), { target: { value: 'compras continente' } })
     expect(screen.getByText(/Sugestão: 🍔 Alimentação/)).toBeDefined()
+  })
+
+  it('mostra recorrências por pagar (regra vencida e não lançada)', async () => {
+    await renderPage()
+    expect(screen.getByText('A pagar este mês')).toBeDefined()
+    expect(screen.getByLabelText('Registar Habitação')).toBeDefined()
+    // Salário só vence a dia 25 → não aparece como pendente a 15/07
+    expect(screen.queryByLabelText('Registar Salário')).toBeNull()
+  })
+
+  it('lança uma recorrência ao confirmar', async () => {
+    const { saveTransaction } = await import('@/lib/supabase')
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Registar Habitação'))
+    await waitFor(() => expect(saveTransaction).toHaveBeenCalled())
+    const call = (saveTransaction as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0]
+    expect(call.recurring_id).toBe('r1')
+    expect(call.category).toBe('Habitação')
+    expect(call.amount).toBe(650)
+  })
+
+  it('tem o toggle de repetição no formulário', async () => {
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Registar movimento'))
+    expect(screen.getByText('Repetir todos os meses')).toBeDefined()
   })
 })

@@ -151,6 +151,22 @@ export interface Transaction {
   category: string
   description: string | null
   amount: number
+  /** Regra recorrente que originou este lançamento (null = avulso). */
+  recurring_id?: string | null
+  created_at: string
+}
+
+/** Receita/despesa que se repete todos os meses (renda, salário, assinaturas). */
+export interface RecurringRule {
+  id: string
+  user_id: string
+  type: 'entrada' | 'saida'
+  category: string
+  description: string | null
+  amount: number
+  /** Dia do mês em que acontece (1–28). */
+  day_of_month: number
+  active: boolean
   created_at: string
 }
 

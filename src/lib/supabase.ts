@@ -444,6 +444,51 @@ export async function deleteTransaction(id: string) {
   return { error }
 }
 
+// ── Recorrentes (receitas/despesas mensais) ─────────────────
+// Requer a migração supabase/financas_recurring_v1.sql. Enquanto não estiver
+// aplicada, as leituras devolvem [] e as escritas devolvem erro (mostrado por
+// toast) — o registo avulso de transações continua a funcionar na mesma.
+export async function getRecurringRules(userId: string) {
+  const { data, error } = await supabase
+    .from('recurring_rules')
+    .select('*')
+    .eq('user_id', userId)
+    .order('day_of_month', { ascending: true })
+
+  if (error) {
+    reportError('getRecurringRules error', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+export async function saveRecurringRule(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('recurring_rules')
+    .insert(payload)
+    .select()
+    .single()
+  if (error) reportError('saveRecurringRule error', error.message)
+  return { data, error }
+}
+
+export async function updateRecurringRule(id: string, payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('recurring_rules')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) reportError('updateRecurringRule error', error.message)
+  return { data, error }
+}
+
+export async function deleteRecurringRule(id: string) {
+  const { error } = await supabase.from('recurring_rules').delete().eq('id', id)
+  if (error) reportError('deleteRecurringRule error', error.message)
+  return { error }
+}
+
 export async function updateFinancialGoals(
   userId: string,
   goals: { fin_monthly_save?: number; fin_reserve_goal?: number; fin_current_savings?: number }

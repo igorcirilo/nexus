@@ -132,6 +132,51 @@ export function unbudgetedSpend(
     .reduce((a, [, v]) => a + v, 0)
 }
 
+export interface RecurringLike {
+  id: string
+  type: 'entrada' | 'saida'
+  category: string
+  description: string | null
+  amount: number
+  day_of_month: number
+  active: boolean
+}
+
+/**
+ * Recorrências "por resolver" no mês corrente: regras ativas cujo dia agendado
+ * já chegou (day_of_month ≤ dayOfMonth), que ainda não foram lançadas este mês
+ * (nenhuma transação do mês tem recurring_id igual ao id da regra) e que não
+ * foram saltadas manualmente (chave `${id}:${monthKey}` em `skips`). Ordena por
+ * dia agendado. Pura → testável sem BD.
+ */
+export function pendingRecurrences<T extends RecurringLike>(
+  rules: T[],
+  monthTxRecurringIds: (string | null | undefined)[],
+  dayOfMonth: number,
+  monthKey: string, // 'yyyy-MM'
+  skips: string[] = [],
+): T[] {
+  const posted = new Set(monthTxRecurringIds.filter(Boolean) as string[])
+  const skipped = new Set(skips)
+  return rules
+    .filter(
+      (r) =>
+        r.active &&
+        r.day_of_month <= dayOfMonth &&
+        !posted.has(r.id) &&
+        !skipped.has(`${r.id}:${monthKey}`),
+    )
+    .sort((a, b) => a.day_of_month - b.day_of_month)
+}
+
+/** Total mensal das recorrências ativas de um tipo (para o painel/insights). */
+export function recurringMonthlyTotal(
+  rules: RecurringLike[],
+  type: 'entrada' | 'saida',
+): number {
+  return rules.filter((r) => r.active && r.type === type).reduce((a, r) => a + r.amount, 0)
+}
+
 export interface Insight {
   id: string
   icon: string
