@@ -24,7 +24,7 @@ import {
   monthlySavings, buildBudgetSummary, categoryTotals, sumInRange,
   projectEndOfMonth, unbudgetedSpend, buildInsights,
   pendingRecurrences, recurringMonthlyTotal,
-  buildMonthSummary, monthCloseHeadline, loggingStreak,
+  buildMonthSummary, monthCloseHeadline, loggingStreak, detectAnomalies,
 } from '@/lib/finance'
 import { suggestCategory } from '@/lib/categorize'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
@@ -133,6 +133,7 @@ export default function FinancasPage() {
   const [recurring,      setRecurring]      = useState<RecurringRule[]>([])
   const [recurringSkips, setRecurringSkips] = useState<string[]>([])
   const [showRecorrentes,setShowRecorrentes]= useState(false)
+  const [showInsights,   setShowInsights]   = useState(false)
   const [postingRuleId,  setPostingRuleId]  = useState<string|null>(null)
   const [fRepeat,        setFRepeat]        = useState(false)
   // Fecho do mês: guarda o último mês cujo resumo já foi dispensado (yyyy-MM).
@@ -406,6 +407,20 @@ export default function FinancasPage() {
     const diff = Math.round((new Date(today+'T12:00:00').getTime() - new Date(last+'T12:00:00').getTime()) / 86400000)
     return Math.max(0, diff)
   }, [txs, history])
+  // Cobranças incomuns do mês (vs. média por-transação do histórico) e resumo
+  // das recorrentes, para alimentar o motor de insights.
+  // Baseline = meses ANTERIORES (history inclui o mês corrente; se a própria
+  // cobrança entrasse na média, escondia-se a si mesma).
+  const anomalies = useMemo(
+    () => detectAnomalies(thisMonth, history.filter(t => t.date < monthStart), { savingsCat: SAVINGS_CAT }),
+    [thisMonth, history, monthStart],
+  )
+  const { subscriptionsMonthly, topRecurring } = useMemo(() => {
+    const activeOut = recurring.filter(r => r.active && r.type === 'saida')
+    const subs = activeOut.filter(r => r.category === 'Assinaturas').reduce((a,r)=>a+r.amount,0)
+    const top = activeOut.slice().sort((a,b)=>b.amount-a.amount)[0]
+    return { subscriptionsMonthly: subs, topRecurring: top ? { cat: top.category, amount: top.amount } : null }
+  }, [recurring])
   const insights = useMemo(() => buildInsights({
     projectedBalance: projected,
     spentByCat: spendByCatOnly,
@@ -416,7 +431,10 @@ export default function FinancasPage() {
     daysSinceLastTx,
     dayOfMonth,
     daysInMonth,
-  }, fmt), [projected, spendByCatOnly, catAvg3m, budgets, monthlyChart, balance, daysSinceLastTx, dayOfMonth, daysInMonth])
+    topAnomaly: anomalies[0] ?? null,
+    subscriptionsMonthly,
+    topRecurring,
+  }, fmt), [projected, spendByCatOnly, catAvg3m, budgets, monthlyChart, balance, daysSinceLastTx, dayOfMonth, daysInMonth, anomalies, subscriptionsMonthly, topRecurring])
   const topInsight = insights[0] ?? null
   // Gasto do mês que o gauge do orçamento não vê (Poupança não é consumo).
   const outsideBudget = unbudgetedSpend(spentByCat, budgets, [SAVINGS_CAT])
@@ -956,13 +974,20 @@ export default function FinancasPage() {
           info:     { bg:'rgba(var(--ink-rgb),0.04)', border:'rgba(var(--ink-rgb),0.12)', accent:'var(--text1)' },
         }[topInsight.tone]
         return (
-          <div style={{margin:'12px 20px 0',display:'flex',alignItems:'flex-start',gap:11,background:toneStyle.bg,border:`1px solid ${toneStyle.border}`,borderRadius:16,padding:'12px 14px',fontFamily:'Inter, sans-serif'}}>
+          <button
+            type="button"
+            onClick={()=>insights.length>1&&setShowInsights(true)}
+            style={{width:'calc(100% - 40px)',textAlign:'left',margin:'12px 20px 0',display:'flex',alignItems:'flex-start',gap:11,background:toneStyle.bg,border:`1px solid ${toneStyle.border}`,borderRadius:16,padding:'12px 14px',fontFamily:'Inter, sans-serif',cursor:insights.length>1?'pointer':'default'}}
+          >
             <span style={{fontSize:17,lineHeight:'20px'}} aria-hidden>{topInsight.icon}</span>
             <div style={{flex:1}}>
-              <div style={{fontSize:10,fontWeight:800,letterSpacing:'0.07em',textTransform:'uppercase',color:toneStyle.accent,marginBottom:3}}>Insight</div>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:3}}>
+                <span style={{fontSize:10,fontWeight:800,letterSpacing:'0.07em',textTransform:'uppercase',color:toneStyle.accent}}>Insight</span>
+                {insights.length>1&&<span style={{fontSize:11,fontWeight:700,color:toneStyle.accent}}>Ver todos {insights.length} ›</span>}
+              </div>
               <div style={{fontSize:12.5,fontWeight:600,color:'var(--text1)',lineHeight:1.5}}>{topInsight.text}</div>
             </div>
-          </div>
+          </button>
         )
       })()}
 
@@ -1926,6 +1951,36 @@ export default function FinancasPage() {
                   Ao registar um movimento (renda, salário, assinatura…), ativa
                   <b style={{color:'var(--text1)'}}> &quot;Repetir todos os meses&quot;</b> e ele passa a aparecer aqui e em &quot;a pagar&quot;.
                 </div>
+              </div>
+            )}
+          </div>
+        </Sheet>
+      )}
+
+      {/* ── Sheet: feed completo de insights ── */}
+      {showInsights&&(
+        <Sheet tall icon="💡" title="Insights" onClose={()=>setShowInsights(false)}>
+          <div style={{paddingTop:10}}>
+            <p style={{fontSize:12,color:'var(--text2)',lineHeight:1.55,margin:'0 0 14px'}}>
+              Leituras automáticas dos teus movimentos deste mês, das mais urgentes para as informativas.
+            </p>
+            {insights.map(ins=>{
+              const t = {
+                danger:   { bg:'rgba(226,75,74,0.07)',  border:'rgba(226,75,74,0.28)',  accent:'#E24B4A' },
+                warning:  { bg:'rgba(245,200,66,0.07)', border:'rgba(245,200,66,0.30)', accent:'#F5C842' },
+                positive: { bg:'rgba(0,200,150,0.06)',  border:'rgba(0,200,150,0.25)',  accent:'#00C896' },
+                info:     { bg:'rgba(var(--ink-rgb),0.04)', border:'rgba(var(--ink-rgb),0.12)', accent:'var(--text1)' },
+              }[ins.tone]
+              return (
+                <div key={ins.id} style={{display:'flex',alignItems:'flex-start',gap:11,background:t.bg,border:`1px solid ${t.border}`,borderRadius:14,padding:'12px 14px',marginBottom:9}}>
+                  <span style={{fontSize:18,lineHeight:'22px'}} aria-hidden>{ins.icon}</span>
+                  <div style={{fontSize:12.5,fontWeight:600,color:'var(--text1)',lineHeight:1.5,flex:1}}>{ins.text}</div>
+                </div>
+              )
+            })}
+            {insights.length===0&&(
+              <div style={{textAlign:'center',padding:'30px 0',color:'var(--text2)',fontSize:13,lineHeight:1.6}}>
+                Sem insights por agora. Regista mais movimentos e define orçamentos — as leituras aparecem à medida que há dados.
               </div>
             )}
           </div>

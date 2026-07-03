@@ -12,6 +12,8 @@ import {
   buildMonthSummary,
   monthCloseHeadline,
   loggingStreak,
+  detectAnomalies,
+  type AnomalyTx,
   type FinTx,
   type InsightInput,
   type RecurringLike,
@@ -297,5 +299,66 @@ describe('loggingStreak', () => {
   it('tolera datas repetidas e desordenadas', () => {
     const s = loggingStreak(['2026-07-15','2026-07-15','2026-07-14'], '2026-07-15')
     expect(s.current).toBe(2)
+  })
+})
+
+describe('detectAnomalies', () => {
+  const history: AnomalyTx[] = [
+    { category: 'Contas', amount: 30, type: 'saida' },
+    { category: 'Contas', amount: 28, type: 'saida' },
+    { category: 'Contas', amount: 32, type: 'saida' },   // média ≈ 30
+    { category: 'Alimentação', amount: 40, type: 'saida' },
+    { category: 'Alimentação', amount: 50, type: 'saida' },
+    { category: 'Alimentação', amount: 45, type: 'saida' },
+  ]
+  it('assinala uma cobrança muito acima do normal da categoria', () => {
+    const a = detectAnomalies([{ category: 'Contas', amount: 90, type: 'saida', description: 'EDP' }], history)
+    expect(a).toHaveLength(1)
+    expect(a[0].category).toBe('Contas')
+    expect(a[0].ratio).toBeCloseTo(3, 1) // 90 / 30
+    expect(a[0].description).toBe('EDP')
+  })
+  it('ignora valores dentro do normal e abaixo do piso', () => {
+    expect(detectAnomalies([{ category: 'Alimentação', amount: 55, type: 'saida' }], history)).toHaveLength(0)
+    expect(detectAnomalies([{ category: 'Contas', amount: 20, type: 'saida' }], history)).toHaveLength(0) // < floor 30
+  })
+  it('ignora categorias sem amostra suficiente, entradas e poupança', () => {
+    expect(detectAnomalies([{ category: 'Roupa', amount: 500, type: 'saida' }], history)).toHaveLength(0)
+    expect(detectAnomalies([{ category: 'Contas', amount: 300, type: 'entrada' }], history)).toHaveLength(0)
+    expect(detectAnomalies([{ category: 'Poupança', amount: 300, type: 'saida' }], history)).toHaveLength(0)
+  })
+  it('ordena por rácio desc', () => {
+    const a = detectAnomalies([
+      { category: 'Contas', amount: 90, type: 'saida' },        // 3×
+      { category: 'Alimentação', amount: 225, type: 'saida' },  // 5×
+    ], history)
+    expect(a.map(x => x.category)).toEqual(['Alimentação', 'Contas'])
+  })
+})
+
+describe('buildInsights — motor completo', () => {
+  const eur = (v: number) => `€${v}`
+  const base = {
+    projectedBalance: null, spentByCat: {}, catAvg3m: {}, budgets: {},
+    savingsPrevMonth: 0, savingsThisMonth: 0, daysSinceLastTx: 0, dayOfMonth: 15, daysInMonth: 30,
+  }
+  it('emite cobrança incomum com relevância alta', () => {
+    const out = buildInsights({ ...base, topAnomaly: { category: 'Contas', amount: 90, description: 'EDP', mean: 30, ratio: 3 } }, eur)
+    const a = out.find(i => i.id.startsWith('anomaly-'))!
+    expect(a).toBeDefined()
+    expect(a.text).toContain('Cobrança incomum')
+    expect(a.text).toContain('3.0×')
+    expect(a.score).toBe(85)
+  })
+  it('anomalia muito alta (≥4×) fica em tom danger', () => {
+    const out = buildInsights({ ...base, topAnomaly: { category: 'X', amount: 200, description: null, mean: 40, ratio: 5 } }, eur)
+    expect(out.find(i => i.id.startsWith('anomaly-'))!.tone).toBe('danger')
+  })
+  it('emite insight de assinaturas e de maior despesa fixa', () => {
+    const out = buildInsights({ ...base, subscriptionsMonthly: 47, topRecurring: { cat: 'Habitação', amount: 650 } }, eur)
+    const subs = out.find(i => i.id === 'subscriptions')!
+    expect(subs.text).toContain('€47/mês')
+    expect(subs.text).toContain('€564/ano') // 47 × 12
+    expect(out.find(i => i.id.startsWith('top-recurring-'))!.text).toContain('Habitação')
   })
 })

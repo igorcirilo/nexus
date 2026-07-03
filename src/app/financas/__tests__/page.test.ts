@@ -247,6 +247,15 @@ describe('FinancasPage', () => {
     expect(screen.getByText('às 21:00')).toBeDefined()
   })
 
+  it('abre o feed completo de insights e inclui a maior despesa fixa', async () => {
+    await renderPage()
+    // há >1 insight (orçamento de Lazer + maior despesa fixa recorrente…)
+    const verTodos = await screen.findByText(/Ver todos \d+ ›/)
+    fireEvent.click(verTodos)
+    // o sheet lista todos, incluindo o insight das recorrentes (Habitação 650)
+    expect(await screen.findByText(/maior despesa fixa é Habitação/)).toBeDefined()
+  })
+
   it('abre o fecho do mês anterior quando ainda não foi visto', async () => {
     localStorage.removeItem('nexus_monthclose_seen_u1')
     await renderPage()

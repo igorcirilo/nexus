@@ -281,6 +281,57 @@ export function recurringMonthlyTotal(
   return rules.filter((r) => r.active && r.type === type).reduce((a, r) => a + r.amount, 0)
 }
 
+export interface AnomalyTx {
+  category: string
+  amount: number
+  type?: 'entrada' | 'saida'
+  description?: string | null
+}
+
+export interface Anomaly {
+  category: string
+  amount: number
+  description: string | null
+  /** Média por-transação da categoria no histórico. */
+  mean: number
+  /** amount / mean (quantas vezes acima do normal). */
+  ratio: number
+}
+
+/**
+ * Cobranças incomuns: gastos do período cujo valor é muito acima do típico da
+ * sua categoria (média por-transação no histórico). Só considera saídas (não
+ * poupança), categorias com amostra suficiente e valores acima de um piso
+ * absoluto, para não alarmar sobre ruído. Ordena por rácio desc. Pura.
+ */
+export function detectAnomalies(
+  monthTxs: AnomalyTx[],
+  historyTxs: AnomalyTx[],
+  opts: { savingsCat?: string; floor?: number; factor?: number; minSamples?: number } = {},
+): Anomaly[] {
+  const { savingsCat = 'Poupança', floor = 30, factor = 2.5, minSamples = 3 } = opts
+  const sums: Record<string, number> = {}
+  const counts: Record<string, number> = {}
+  for (const t of historyTxs) {
+    if (t.type === 'entrada' || t.category === savingsCat) continue
+    sums[t.category] = (sums[t.category] ?? 0) + t.amount
+    counts[t.category] = (counts[t.category] ?? 0) + 1
+  }
+  const anomalies: Anomaly[] = []
+  for (const t of monthTxs) {
+    if (t.type === 'entrada' || t.category === savingsCat) continue
+    const n = counts[t.category] ?? 0
+    if (n < minSamples || t.amount < floor) continue
+    const mean = sums[t.category] / n
+    if (mean <= 0) continue
+    const ratio = t.amount / mean
+    if (ratio >= factor) {
+      anomalies.push({ category: t.category, amount: t.amount, description: t.description ?? null, mean, ratio })
+    }
+  }
+  return anomalies.sort((a, b) => b.ratio - a.ratio)
+}
+
 export interface Insight {
   id: string
   icon: string
@@ -305,6 +356,12 @@ export interface InsightInput {
   daysSinceLastTx: number | null
   dayOfMonth: number
   daysInMonth: number
+  /** Cobrança incomum a destacar (de detectAnomalies), se houver. */
+  topAnomaly?: Anomaly | null
+  /** Total mensal das assinaturas recorrentes ativas. */
+  subscriptionsMonthly?: number
+  /** Maior despesa fixa recorrente ativa. */
+  topRecurring?: { cat: string; amount: number } | null
 }
 
 /**
@@ -317,6 +374,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
   const {
     projectedBalance, spentByCat, catAvg3m, budgets,
     savingsPrevMonth, savingsThisMonth, daysSinceLastTx, dayOfMonth, daysInMonth,
+    topAnomaly, subscriptionsMonthly = 0, topRecurring,
   } = input
 
   if (projectedBalance !== null && projectedBalance < 0) {
@@ -346,6 +404,17 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
     out.push({
       id: `budget-near-${nearCat.cat}`, icon: '⏳', tone: 'warning', score: 80,
       text: `Estás a ${fmt(nearCat.left)} de ultrapassar o orçamento de ${nearCat.cat}.`,
+    })
+  }
+
+  // Cobrança incomum (anomalia): entre "ultrapassou" e "quase" em relevância.
+  if (topAnomaly) {
+    const veryHigh = topAnomaly.ratio >= 4
+    const desc = topAnomaly.description ? ` (${topAnomaly.description})` : ''
+    out.push({
+      id: `anomaly-${topAnomaly.category}-${Math.round(topAnomaly.amount)}`,
+      icon: '🔎', tone: veryHigh ? 'danger' : 'warning', score: 85,
+      text: `Cobrança incomum: ${fmt(topAnomaly.amount)} em ${topAnomaly.category}${desc} — ${topAnomaly.ratio.toFixed(1)}× o teu gasto habitual (${fmt(topAnomaly.mean)}).`,
     })
   }
 
@@ -383,6 +452,22 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
     out.push({
       id: 'projection-positive', icon: '🌱', tone: 'positive', score: 40,
       text: `Ao ritmo atual terminas o mês com ≈ ${fmt(projectedBalance)} de saldo positivo.`,
+    })
+  }
+
+  // Assinaturas recorrentes: custo mensal e anualizado (perceção de valor alta).
+  if (subscriptionsMonthly > 0) {
+    out.push({
+      id: 'subscriptions', icon: '📺', tone: 'info', score: 32,
+      text: `As tuas assinaturas somam ${fmt(subscriptionsMonthly)}/mês — ${fmt(subscriptionsMonthly * 12)}/ano.`,
+    })
+  }
+
+  // Maior despesa fixa recorrente.
+  if (topRecurring && topRecurring.amount > 0) {
+    out.push({
+      id: `top-recurring-${topRecurring.cat}`, icon: '📌', tone: 'info', score: 24,
+      text: `A tua maior despesa fixa é ${topRecurring.cat}: ${fmt(topRecurring.amount)}/mês.`,
     })
   }
 
