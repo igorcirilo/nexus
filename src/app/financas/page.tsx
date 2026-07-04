@@ -116,6 +116,7 @@ export default function FinancasPage() {
   const [searchResults,setSearchResults]= useState<Transaction[]|null>(null)
   const [searchLoading,setSearchLoading]= useState(false)
   const [openTx,     setOpenTx]    = useState<Transaction|null>(null)
+  const [etType,     setEtType]    = useState<'entrada'|'saida'>('saida')
   const [etCat,      setEtCat]     = useState('')
   const [etDesc,     setEtDesc]    = useState('')
   const [etAmount,   setEtAmount]  = useState('')
@@ -210,8 +211,8 @@ export default function FinancasPage() {
   }
 
   // A reserva (fin_current_savings) segue os movimentos de "Poupança":
-  // registar poupança soma; apagar/editar ajusta pela diferença. Fica sempre
-  // corrigível à mão no cartão da reserva.
+  // depositar (entrada) soma, levantar (saída) subtrai; apagar/editar ajusta
+  // pela diferença. Fica sempre corrigível à mão no cartão da reserva.
   async function bumpSavings(uid: string, delta: number) {
     if (!delta) return
     const next = Math.max(0, (profile?.fin_current_savings ?? 0) + delta)
@@ -219,20 +220,22 @@ export default function FinancasPage() {
     setProfile(await getProfile(uid))
   }
   const savingsDelta = (type: 'entrada'|'saida', cat: string, amount: number) =>
-    type === 'saida' && cat === SAVINGS_CAT ? amount : 0
+    cat === SAVINGS_CAT ? (type === 'entrada' ? amount : -amount) : 0
 
   // Métricas do mês atual
   const monthStart = format(startOfMonth(new Date()),'yyyy-MM-dd')
   const monthEnd   = format(endOfMonth(new Date()),'yyyy-MM-dd')
   const thisMonth  = useMemo(()=>txs.filter(t=>t.date>=monthStart&&t.date<=monthEnd),[txs,monthStart,monthEnd])
-  const totalIn    = useMemo(()=>thisMonth.filter(t=>t.type==='entrada').reduce((a,t)=>a+t.amount,0),[thisMonth])
-  // Saídas = GASTO real. A categoria "Poupança" é uma transferência (mover
-  // dinheiro para a reserva), não consumo → fica fora das saídas e do balanço.
+  // Entradas = RENDIMENTO real. Uma entrada "Poupança" é um depósito na
+  // reserva (transferência), não rendimento → fica fora das entradas/balanço.
+  const totalIn    = useMemo(()=>thisMonth.filter(t=>t.type==='entrada'&&t.category!==SAVINGS_CAT).reduce((a,t)=>a+t.amount,0),[thisMonth])
+  // Saídas = GASTO real. Uma saída "Poupança" é um levantamento da reserva
+  // (transferência), não consumo → fica fora das saídas e do balanço.
   const totalOut   = useMemo(()=>thisMonth.filter(t=>t.type==='saida'&&t.category!==SAVINGS_CAT).reduce((a,t)=>a+t.amount,0),[thisMonth])
   const balance    = totalIn - totalOut
-  // Histórico sem as transferências para poupança, para os gráficos e médias de
-  // gasto/saldo não tratarem poupar como um gasto.
-  const historyNoSavings = useMemo(()=>history.filter(t=>!(t.type==='saida'&&t.category===SAVINGS_CAT)),[history])
+  // Histórico sem as transferências de/para poupança, para os gráficos e médias
+  // não tratarem poupar como gasto nem levantar como rendimento.
+  const historyNoSavings = useMemo(()=>history.filter(t=>t.category!==SAVINGS_CAT),[history])
 
   const dayOfMonth  = getDate(new Date())
   const daysInMonth = getDaysInMonth(new Date())
@@ -272,10 +275,10 @@ export default function FinancasPage() {
     return out/3
   }, [historyNoSavings, prev3Range])
   const avgIncome3m = useMemo(() => {
-    const inc = history.filter(t => t.type==='entrada' && t.date>=prev3Range.start && t.date<=prev3Range.end)
+    const inc = historyNoSavings.filter(t => t.type==='entrada' && t.date>=prev3Range.start && t.date<=prev3Range.end)
       .reduce((a,t)=>a+t.amount,0)
     return inc/3
-  }, [history, prev3Range])
+  }, [historyNoSavings, prev3Range])
   const catAvg3m = useMemo(() => {
     const map: Record<string,number> = {}
     history.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
@@ -370,9 +373,12 @@ export default function FinancasPage() {
     () => categoryTotals(thisMonth, monthStart, monthEnd),
     [thisMonth, monthStart, monthEnd],
   )
-  // Poupança do mês = só os lançamentos categorizados como "Poupança" (não o saldo).
+  // Poupança do mês = líquido dos lançamentos "Poupança": depósitos (entrada)
+  // somam, levantamentos (saída) subtraem. Pode ficar negativa se levantou
+  // mais do que depositou.
   const savedThisMonth = useMemo(
-    () => thisMonth.filter(t=>t.type==='saida'&&t.category===SAVINGS_CAT).reduce((a,t)=>a+t.amount,0),
+    () => thisMonth.filter(t=>t.category===SAVINGS_CAT)
+      .reduce((a,t)=>a+(t.type==='entrada'?t.amount:-t.amount),0),
     [thisMonth],
   )
   // Gasto por categoria SEM Poupança — para insights e "para onde foi o dinheiro"
@@ -518,7 +524,7 @@ export default function FinancasPage() {
 
   function openTxSheet(t: Transaction) {
     setOpenTx(t)
-    setEtCat(t.category); setEtDesc(t.description ?? '')
+    setEtType(t.type); setEtCat(t.category); setEtDesc(t.description ?? '')
     setEtAmount(String(t.amount)); setEtDate(t.date)
   }
 
@@ -528,12 +534,13 @@ export default function FinancasPage() {
     if (!Number.isFinite(amount) || amount<=0 || !etCat || !etDate) return
     setTxEditSaving(true)
     const { error } = await updateTransaction(openTx.id, {
-      category: etCat, description: etDesc.trim()||null, amount, date: etDate,
+      type: etType, category: etCat, description: etDesc.trim()||null, amount, date: etDate,
     })
     if (error) { showToast('Erro ao guardar.', 'error'); setTxEditSaving(false); return }
-    // Ajusta a reserva pela diferença de poupança (o tipo não muda na edição).
+    // Ajusta a reserva pela diferença de poupança (tipo e categoria podem mudar
+    // na edição: trocar depósito ↔ levantamento inverte o sinal).
     await bumpSavings(userId,
-      savingsDelta(openTx.type, etCat, amount) - savingsDelta(openTx.type, openTx.category, openTx.amount))
+      savingsDelta(etType, etCat, amount) - savingsDelta(openTx.type, openTx.category, openTx.amount))
     await reloadTx(userId)
     setOpenTx(null); setTxEditSaving(false); showToast('Movimento atualizado!')
   }
@@ -961,11 +968,11 @@ export default function FinancasPage() {
               </div>
             )}
           </div>
-          {savedThisMonth>0&&(
-            <div style={{flex:1,background:'var(--surface-2)',border:'1px solid rgba(0,200,150,0.18)',borderRadius:12,padding:'9px 10px'}}>
+          {savedThisMonth!==0&&(
+            <div style={{flex:1,background:'var(--surface-2)',border:`1px solid ${savedThisMonth>0?'rgba(0,200,150,0.18)':'rgba(245,200,66,0.25)'}`,borderRadius:12,padding:'9px 10px'}}>
               <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>🏦 Poupado</div>
-              <div style={{fontSize:14,fontWeight:800,color:'#00C896',marginTop:2}}>{fmt(savedThisMonth)}</div>
-              <div style={{fontSize:9,fontWeight:600,marginTop:3,color:'rgba(255,255,255,0.4)'}}>não conta como gasto</div>
+              <div style={{fontSize:14,fontWeight:800,color:savedThisMonth>0?'#00C896':'#F5C842',marginTop:2}}>{fmt(savedThisMonth)}</div>
+              <div style={{fontSize:9,fontWeight:600,marginTop:3,color:'rgba(255,255,255,0.4)'}}>{savedThisMonth>0?'movido para a reserva':'levantaste da reserva'}</div>
             </div>
           )}
         </div>
@@ -1119,7 +1126,7 @@ export default function FinancasPage() {
             <div style={{fontSize:9.5,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'rgba(0,200,150,0.85)',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>💰 Poupança · {format(new Date(),'MMM',{locale:pt})}</div>
             {savingsGoal>0 ? (() => {
               const cur  = savedThisMonth
-              const pct  = Math.min(100,Math.round(cur/savingsGoal*100))
+              const pct  = Math.min(100,Math.max(0,Math.round(cur/savingsGoal*100)))
               const done = cur>=savingsGoal
               return (
                 <>
@@ -1671,19 +1678,39 @@ export default function FinancasPage() {
           }>
           <div style={{textAlign:'center',margin:'10px 0 2px'}}>
             <div style={{display:'inline-flex',alignItems:'center',gap:4}}>
-              <span style={{fontSize:30,fontWeight:900,color:openTx.type==='entrada'?'#00C896':'#E24B4A'}}>{openTx.type==='entrada'?'+':'−'}€</span>
+              <span style={{fontSize:30,fontWeight:900,color:etType==='entrada'?'#00C896':'#E24B4A'}}>{etType==='entrada'?'+':'−'}€</span>
               <input
                 type="number" step="0.01" value={etAmount} onChange={e=>setEtAmount(e.target.value)}
                 aria-label="Valor"
-                style={{width:130,background:'transparent',border:'none',outline:'none',fontSize:34,fontWeight:900,letterSpacing:'-1px',color:openTx.type==='entrada'?'#00C896':'#E24B4A',fontFamily:'Inter, sans-serif'}}
+                style={{width:130,background:'transparent',border:'none',outline:'none',fontSize:34,fontWeight:900,letterSpacing:'-1px',color:etType==='entrada'?'#00C896':'#E24B4A',fontFamily:'Inter, sans-serif'}}
               />
             </div>
             <div style={{fontSize:11,color:'var(--text3)',fontWeight:600,marginTop:2}}>{dayLabel(openTx.date)}</div>
           </div>
 
+          {/* Trocar o tipo mantém a categoria se existir na lista do novo tipo
+              (ex.: Poupança), senão obriga a escolher de novo. */}
+          <div style={{display:'flex',gap:8,marginTop:12}}>
+            {(['entrada','saida'] as const).map(t=>(
+              <button key={t} onClick={()=>{
+                if (t===etType) return
+                setEtType(t)
+                setEtCat(prev=>(t==='entrada'?CATEGORIES_IN:OUT_CATS).includes(prev)?prev:'')
+              }} style={{
+                flex:1,padding:'11px',borderRadius:13,cursor:'pointer',
+                fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,
+                background: etType===t ? (t==='entrada'?'rgba(0,200,150,0.12)':'rgba(226,75,74,0.12)') : 'rgba(var(--ink-rgb),0.03)',
+                border: `1px solid ${etType===t ? (t==='entrada'?'rgba(0,200,150,0.5)':'rgba(226,75,74,0.5)') : 'rgba(var(--ink-rgb),0.10)'}`,
+                color: etType===t ? (t==='entrada'?'#00C896':'#E24B4A') : 'rgba(var(--ink-rgb),0.55)',
+              }}>
+                {t==='entrada'?'↓ Entrada':'↑ Saída'}
+              </button>
+            ))}
+          </div>
+
           <label style={sheetLabel}>Categoria</label>
           <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
-            {(openTx.type==='entrada'?CATEGORIES_IN:OUT_CATS).map(cat=>(
+            {(etType==='entrada'?CATEGORIES_IN:OUT_CATS).map(cat=>(
               <button key={cat} onClick={()=>setEtCat(cat)} style={{
                 display:'flex',alignItems:'center',gap:6,padding:'8px 12px',borderRadius:11,cursor:'pointer',
                 fontSize:12,fontWeight:600,fontFamily:'Inter, sans-serif',

@@ -30,7 +30,7 @@ const TODAY = new Date('2026-07-15T10:00:00')
 const txsRecentes = [
   { id: 't1', user_id: 'u1', date: '2026-07-12', type: 'saida',   category: 'Lazer',       description: null, amount: 90,   created_at: '' },
   { id: 't2', user_id: 'u1', date: '2026-07-10', type: 'saida',   category: 'Alimentação', description: null, amount: 300,  created_at: '' },
-  { id: 't5', user_id: 'u1', date: '2026-07-08', type: 'saida',   category: 'Poupança',    description: null, amount: 150,  created_at: '' },
+  { id: 't5', user_id: 'u1', date: '2026-07-08', type: 'entrada', category: 'Poupança',    description: null, amount: 150,  created_at: '' },
   { id: 't3', user_id: 'u1', date: '2026-07-01', type: 'entrada', category: 'Salário',     description: null, amount: 1000, created_at: '' },
   { id: 't4', user_id: 'u1', date: '2026-06-10', type: 'saida',   category: 'Alimentação', description: null, amount: 200,  created_at: '' },
 ]
@@ -215,24 +215,54 @@ describe('FinancasPage', () => {
     expect(await screen.findByText('Continente Braga')).toBeDefined()
   })
 
-  it('trata Poupança como transferência: fora dos gastos, mostrada à parte', async () => {
+  it('trata Poupança como transferência: fora das entradas/gastos, mostrada à parte', async () => {
     await renderPage()
-    // Gastos = 90 + 300 = 390 (Poupança 150 excluída); poupança mostrada à parte
+    // Depósito de 150 (entrada Poupança) fica fora das entradas (1000) e é
+    // mostrado à parte como poupado
     expect(screen.getByText(/🏦 Poupado/)).toBeDefined()
     expect(screen.getByText('150,00 €')).toBeDefined()
-    // se contasse a poupança como gasto seria 540 — não deve aparecer
-    expect(screen.queryByText(/540,00/)).toBeNull()
+    // se contasse o depósito como entrada seriam 1150 — não deve aparecer
+    expect(screen.queryByText(/1\s?150,00/)).toBeNull()
   })
 
-  it('registar Poupança soma à reserva (fin_current_savings)', async () => {
+  it('registar depósito (entrada Poupança) soma à reserva (fin_current_savings)', async () => {
     const { updateFinancialGoals } = await import('@/lib/supabase')
     await renderPage()
     fireEvent.click(screen.getByLabelText('Registar movimento'))
+    fireEvent.click(screen.getByText('↓ Entrada'))
     fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '200' } })
     fireEvent.click(screen.getByRole('button', { name: '🏦 Poupança' }))
     fireEvent.click(screen.getByText('Guardar movimento'))
     // reserva base 0 (profile.fin_current_savings null) + 200 = 200
     await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 200 }))
+  })
+
+  it('registar levantamento (saída Poupança) subtrai à reserva', async () => {
+    const { getProfile, updateFinancialGoals } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_current_savings: 500 })
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Registar movimento'))
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '200' } })
+    fireEvent.click(screen.getByRole('button', { name: '🏦 Poupança' }))
+    fireEvent.click(screen.getByText('Guardar movimento'))
+    // reserva 500 − 200 = 300 (tipo por omissão do formulário é saída)
+    await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 300 }))
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+  })
+
+  it('trocar o tipo na edição converte depósito em levantamento e ajusta a reserva', async () => {
+    const { getProfile, updateTransaction, updateFinancialGoals } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_current_savings: 500 })
+    await renderPage()
+    // abre o depósito recente de Poupança (t5: entrada, 150) e troca para saída
+    fireEvent.click(screen.getByText('Poupança'))
+    fireEvent.click(screen.getByText('↑ Saída'))
+    fireEvent.click(screen.getByText('Guardar alterações'))
+    await waitFor(() => expect(updateTransaction).toHaveBeenCalled())
+    expect((updateTransaction as ReturnType<typeof vi.fn>).mock.calls.at(-1)![1]).toMatchObject({ type: 'saida', category: 'Poupança', amount: 150 })
+    // reserva: 500 + (−150 levantamento) − (+150 depósito original) = 200
+    await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 200 }))
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
   })
 
   it('ativa o lembrete diário criando um reminder das finanças', async () => {

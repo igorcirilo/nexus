@@ -154,23 +154,28 @@ export function loggingStreak(dates: string[], today: string): LoggingStreak {
  * Saldo que "arrasta" para o início de um mês: o dinheiro líquido que sobrou
  * dos meses anteriores. É tudo o que entrou menos tudo o que saiu (gastos E
  * transferências para poupança) antes de `beforeDate` — ou seja, o que ficou
- * na conta corrente. Pura → testável. Limitada ao histórico carregado, por
- * isso conta a partir do primeiro movimento registado, não do saldo real.
+ * na conta corrente. Na categoria de poupança o tipo lê-se do ponto de vista
+ * da poupança, por isso o fluxo de caixa é o inverso: depositar (entrada +
+ * Poupança) tira dinheiro da conta corrente; levantar (saída + Poupança)
+ * devolve-o. Pura → testável. Limitada ao histórico carregado, por isso conta
+ * a partir do primeiro movimento registado, não do saldo real.
  */
-export function carryIn(txs: FinTx[], beforeDate: string): number {
+export function carryIn(txs: FinTx[], beforeDate: string, savingsCat = 'Poupança'): number {
   let v = 0
   for (const t of txs) {
     if (t.date >= beforeDate) continue
-    v += t.type === 'entrada' ? t.amount : -t.amount
+    const cash = t.type === 'entrada' ? t.amount : -t.amount
+    v += t.category === savingsCat ? -cash : cash
   }
   return v
 }
 
 export interface MonthSummary {
+  /** Rendimento real (exclui a categoria de poupança — é transferência). */
   income: number
   /** Gasto real (exclui a categoria de poupança). */
   spending: number
-  /** Movido para poupança (a categoria reservada). */
+  /** Poupança líquida do mês: depósitos (entrada) − levantamentos (saída). */
   saved: number
   /** income − spending (a poupança é transferência, não entra). */
   balance: number
@@ -190,8 +195,11 @@ export function buildMonthSummary(
   const byCat: Record<string, number> = {}
   for (const t of txs) {
     if (t.date < start || t.date > end) continue
+    if (t.category === savingsCat) {
+      saved += t.type === 'entrada' ? t.amount : -t.amount
+      continue
+    }
     if (t.type === 'entrada') { income += t.amount; continue }
-    if (t.category === savingsCat) { saved += t.amount; continue }
     spending += t.amount
     byCat[t.category] = (byCat[t.category] ?? 0) + t.amount
   }
