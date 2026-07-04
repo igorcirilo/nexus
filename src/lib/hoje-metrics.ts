@@ -71,11 +71,11 @@ async function metricFinancas(userId: string, monthStart: string): Promise<HojeM
       .gte('date', monthStart)
     const rows = (data ?? []) as { type: string; amount: number; category: string }[]
     if (rows.length === 0) return null
-    // "Poupança" é transferência (mover para a reserva), não gasto → fica de fora
-    // do balanço, coerente com a área de finanças.
+    // "Poupança" é transferência (depositar na reserva ou levantar dela), não
+    // gasto nem rendimento → fica de fora do balanço, coerente com /financas.
     const net = rows.reduce((sum, t) => {
-      if (t.type === 'entrada') return sum + Number(t.amount)
       if (t.category === 'Poupança') return sum
+      if (t.type === 'entrada') return sum + Number(t.amount)
       return sum - Number(t.amount)
     }, 0)
     return { netMonth: Math.round(net) }

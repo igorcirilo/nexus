@@ -167,10 +167,11 @@ export function carryIn(txs: FinTx[], beforeDate: string): number {
 }
 
 export interface MonthSummary {
+  /** Rendimento real (exclui levantamentos da poupança — são transferência). */
   income: number
   /** Gasto real (exclui a categoria de poupança). */
   spending: number
-  /** Movido para poupança (a categoria reservada). */
+  /** Poupança líquida do mês: depósitos (saída) − levantamentos (entrada). */
   saved: number
   /** income − spending (a poupança é transferência, não entra). */
   balance: number
@@ -190,8 +191,11 @@ export function buildMonthSummary(
   const byCat: Record<string, number> = {}
   for (const t of txs) {
     if (t.date < start || t.date > end) continue
+    if (t.category === savingsCat) {
+      saved += t.type === 'saida' ? t.amount : -t.amount
+      continue
+    }
     if (t.type === 'entrada') { income += t.amount; continue }
-    if (t.category === savingsCat) { saved += t.amount; continue }
     spending += t.amount
     byCat[t.category] = (byCat[t.category] ?? 0) + t.amount
   }

@@ -235,6 +235,20 @@ describe('FinancasPage', () => {
     await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 200 }))
   })
 
+  it('registar levantamento (entrada Poupança) subtrai à reserva', async () => {
+    const { getProfile, updateFinancialGoals } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_current_savings: 500 })
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Registar movimento'))
+    fireEvent.click(screen.getByText('↓ Entrada'))
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '200' } })
+    fireEvent.click(screen.getByRole('button', { name: '🏦 Poupança' }))
+    fireEvent.click(screen.getByText('Guardar movimento'))
+    // reserva 500 − 200 = 300
+    await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 300 }))
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+  })
+
   it('ativa o lembrete diário criando um reminder das finanças', async () => {
     const { getReminders, saveReminder } = await import('@/lib/supabase')
     ;(getReminders as ReturnType<typeof vi.fn>).mockResolvedValue([])

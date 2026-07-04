@@ -227,6 +227,24 @@ describe('buildMonthSummary', () => {
   it('topCat é null sem gastos', () => {
     expect(buildMonthSummary([{ date: '2026-06-01', type: 'entrada', amount: 10, category: 'x' }], '2026-06-01', '2026-06-30').topCat).toBeNull()
   })
+  it('levantamento da poupança (entrada Poupança) subtrai ao poupado e não conta como rendimento', () => {
+    const withWithdrawal: FinTx[] = [
+      ...m,
+      { date: '2026-06-15', type: 'entrada', amount: 80, category: 'Poupança' },
+    ]
+    const s = buildMonthSummary(withWithdrawal, '2026-06-01', '2026-06-30')
+    expect(s.income).toBe(1200)                 // o levantamento não é rendimento
+    expect(s.saved).toBe(120)                   // 200 depositados − 80 levantados
+    expect(s.balance).toBe(650)                 // inalterado: transferências ficam fora
+  })
+  it('poupança do mês fica negativa quando levanta mais do que deposita', () => {
+    const s = buildMonthSummary([
+      { date: '2026-06-10', type: 'saida',   amount: 50,  category: 'Poupança' },
+      { date: '2026-06-20', type: 'entrada', amount: 200, category: 'Poupança' },
+    ], '2026-06-01', '2026-06-30')
+    expect(s.saved).toBe(-150)
+    expect(s.income).toBe(0)
+  })
 })
 
 describe('monthCloseHeadline', () => {
@@ -348,5 +366,13 @@ describe('carryIn', () => {
   })
   it('pode ser negativo se gastou mais do que entrou', () => {
     expect(carryIn([{ date: '2026-05-01', type: 'saida', amount: 80, category: 'x' }], '2026-06-01')).toBe(-80)
+  })
+  it('levantar da poupança devolve o dinheiro à conta corrente', () => {
+    const withWithdrawal: FinTx[] = [
+      ...txs,
+      { date: '2026-06-15', type: 'entrada', amount: 100, category: 'Poupança' },
+    ]
+    // 1200 − 550 − 200 + 100 = 550
+    expect(carryIn(withWithdrawal, '2026-07-01')).toBe(550)
   })
 })
