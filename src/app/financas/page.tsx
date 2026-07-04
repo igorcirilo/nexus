@@ -384,8 +384,8 @@ export default function FinancasPage() {
   }, [spentByCat])
   const { rows: budgetedCats, unbudgeted: unbudgetedCats, totalBudget, totalSpent: totalSpentBudgeted, pct: budgetPct } =
     buildBudgetSummary(budgets, spentByCat, OUT_CATS)
-  const monthPct           = Math.round(dayOfMonth/daysInMonth*100)
-  const budgetOnPace       = budgetPct <= monthPct + 5
+  // Cor do orçamento por quanto já foi usado (sem comparar com o "ritmo" do mês).
+  const budgetColor        = budgetPct >= 100 ? '#E24B4A' : budgetPct >= 85 ? '#F5C842' : '#00C896'
   const budgetSuggestions  = OUT_CATS
     .filter(c => (catAvg3m[c]??0) > 0)
     .map(c => ({ cat:c, avg:catAvg3m[c], suggested: Math.ceil((catAvg3m[c]*1.05)/10)*10 }))
@@ -943,11 +943,6 @@ export default function FinancasPage() {
         </div>
         <div style={{fontSize:32,fontWeight:900,letterSpacing:'-1px',color:balance>=0?'#00D4C8':'#E24B4A'}}>{fmt(balance)}</div>
         <div style={{fontSize:10,color:'rgba(255,255,255,0.55)',fontWeight:600,marginTop:2}}>entradas − gastos de {format(new Date(),'MMMM',{locale:pt})}</div>
-        {projected!==null&&(
-          <div style={{fontSize:11.5,fontWeight:700,marginTop:8,color:projected>=0?'#00C896':'#E24B4A'}}>
-            {projected>=0?'🌱':'⚠️'} Ao ritmo atual: ≈ {fmt(projected)} no fim do mês
-          </div>
-        )}
         {hasCarry&&(
           <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,background:'rgba(0,212,200,0.07)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:11,padding:'9px 12px'}}>
             <span style={{fontSize:14}} aria-hidden>🔁</span>
@@ -1047,14 +1042,14 @@ export default function FinancasPage() {
               <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:9}}>
                 <span style={{fontSize:15}}>📋</span>
                 <span style={{fontSize:13,fontWeight:700,color: 'var(--ink)'}}>{format(new Date(),'MMMM',{locale:pt}).replace(/^./,c=>c.toUpperCase())}</span>
-                <span style={{marginLeft:'auto',fontSize:13,fontWeight:800,color:budgetPct>=100?'#E24B4A':budgetOnPace?'#00C896':'#F5C842'}}>{budgetPct}% usado</span>
+                <span style={{marginLeft:'auto',fontSize:13,fontWeight:800,color:budgetColor}}>{budgetPct}% usado</span>
               </div>
               <div style={{height:7,background:'var(--surface-3)',borderRadius:10,overflow:'hidden'}}>
-                <div style={{height:'100%',borderRadius:10,width:`${Math.min(100,budgetPct)}%`,background:budgetPct>=100?'#E24B4A':budgetOnPace?'#00C896':'#F5C842'}}/>
+                <div style={{height:'100%',borderRadius:10,width:`${Math.min(100,budgetPct)}%`,background:budgetColor}}/>
               </div>
               <div style={{display:'flex',justifyContent:'space-between',fontSize:10.5,color:'var(--text2)',marginTop:6}}>
                 <span>{fmt(totalSpentBudgeted)} de {fmt(totalBudget)}</span>
-                <span style={{color:budgetOnPace?'#00C896':'#F5C842',fontWeight:700}}>{budgetOnPace?'dentro do ritmo':'acima do ritmo'}</span>
+                <span style={{color:'var(--text1)',fontWeight:700}}>restam {fmt(Math.max(0,totalBudget-totalSpentBudgeted))}</span>
               </div>
               {outsideBudget>0&&(
                 <div style={{fontSize:10.5,fontWeight:700,color:'#F5C842',marginTop:6}}>
@@ -1129,7 +1124,6 @@ export default function FinancasPage() {
             {savingsGoal>0 ? (() => {
               const cur  = savedThisMonth
               const pct  = Math.min(100,Math.round(cur/savingsGoal*100))
-              const pace = cur >= savingsGoal*(dayOfMonth/daysInMonth)
               const done = cur>=savingsGoal
               return (
                 <>
@@ -1140,7 +1134,7 @@ export default function FinancasPage() {
                     <div style={{fontSize:9.5,color:'var(--text2)'}}>{done?'meta atingida 🎉':`faltam ${fmt(savingsGoal-cur)} · ${daysLeft} dias`}</div>
                   </div>
                   <div style={{fontSize:13,fontWeight:800,color: 'var(--ink)'}}>{fmt(cur)} <span style={{color:'var(--text3)',fontSize:10}}>/ {fmt(savingsGoal)}</span></div>
-                  <div style={{fontSize:9.5,fontWeight:700,marginTop:2,color:done||pace?'#00C896':'#F5C842'}}>{done?'✓ atingida':pace?'no ritmo':'abaixo do ritmo'}</div>
+                  {done&&<div style={{fontSize:9.5,fontWeight:700,marginTop:2,color:'#00C896'}}>✓ atingida</div>}
                 </>
               )
             })() : (
@@ -1418,7 +1412,7 @@ export default function FinancasPage() {
                 <div style={{width:92,height:92,position:'relative',flexShrink:0}}>
                   <svg width="92" height="92" viewBox="0 0 92 92" style={{transform:'rotate(-90deg)'}}>
                     <circle cx="46" cy="46" r="38" fill="none" stroke="rgba(0,200,150,0.15)" strokeWidth="8"/>
-                    <circle cx="46" cy="46" r="38" fill="none" stroke={budgetPct>=100?'#E24B4A':budgetPct>monthPct+5?'#F5C842':'#00C896'} strokeWidth="8" strokeLinecap="round"
+                    <circle cx="46" cy="46" r="38" fill="none" stroke={budgetColor} strokeWidth="8" strokeLinecap="round"
                       strokeDasharray={2*Math.PI*38} strokeDashoffset={2*Math.PI*38*(1-budgetPct/100)}/>
                   </svg>
                   <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
@@ -1434,8 +1428,7 @@ export default function FinancasPage() {
                     {fmt(totalSpentBudgeted)} <span style={{fontSize:13,fontWeight:600,color:'var(--text2)'}}>de {fmt(totalBudget)}</span>
                   </div>
                   <div style={{fontSize:11.5,color:'var(--text2)',marginTop:5,lineHeight:1.45}}>
-                    Restam <b style={{color: 'var(--ink)'}}>{fmt(Math.max(0,totalBudget-totalSpentBudgeted))}</b> para {daysLeft} dias ·{' '}
-                    <b style={{color:budgetOnPace?'#00C896':'#F5C842'}}>{budgetOnPace?'dentro do ritmo':'acima do ritmo'}</b>
+                    Restam <b style={{color: 'var(--ink)'}}>{fmt(Math.max(0,totalBudget-totalSpentBudgeted))}</b> para {daysLeft} dias.
                   </div>
                 </div>
               </div>
@@ -1915,7 +1908,7 @@ export default function FinancasPage() {
             return (
               <div style={{marginTop:10,background:'rgba(0,200,150,0.05)',border:'1px solid rgba(0,200,150,0.15)',borderRadius:13,padding:'11px 13px',fontSize:12,lineHeight:1.55,color:'var(--text1)'}}>
                 <b style={{color:'#00C896'}}>Mentor:</b> {above} dos últimos 6 meses acima da meta.
-                {projection&&<> Ao ritmo atual, a reserva fica completa em <b style={{color:'#00C896'}}>{projection}</b>.</>}
+                {projection&&<> Mantendo esta média, a reserva fica completa em <b style={{color:'#00C896'}}>{projection}</b>.</>}
               </div>
             )
           })()}

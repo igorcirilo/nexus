@@ -396,7 +396,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
   if (projectedBalance !== null && projectedBalance < 0) {
     out.push({
       id: 'projection-negative', icon: '⚠️', tone: 'danger', score: 100,
-      text: `Ao ritmo atual terminas o mês com ≈ ${fmt(projectedBalance)}. Ainda faltam ${daysInMonth - dayOfMonth} dias para inverter.`,
+      text: `Se continuares assim, terminas o mês com ≈ ${fmt(projectedBalance)}. Faltam ${daysInMonth - dayOfMonth} dias para inverter.`,
     })
   }
 
@@ -467,7 +467,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
   if (projectedBalance !== null && projectedBalance >= 0 && dayOfMonth >= 7) {
     out.push({
       id: 'projection-positive', icon: '🌱', tone: 'positive', score: 40,
-      text: `Ao ritmo atual terminas o mês com ≈ ${fmt(projectedBalance)} de saldo positivo.`,
+      text: `Se continuares assim, terminas o mês com ≈ ${fmt(projectedBalance)} de saldo positivo.`,
     })
   }
 

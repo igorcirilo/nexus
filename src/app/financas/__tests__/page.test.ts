@@ -110,13 +110,13 @@ describe('FinancasPage', () => {
     vi.useRealTimers()
   })
 
-  it('mostra o balanço com legenda, projeção de fim de mês e comparação com o mês anterior', async () => {
+  it('mostra o balanço com legenda e comparação com o mês anterior (sem projeção/ritmo no hero)', async () => {
     await renderPage()
     // entradas 1000 − saídas 390 (julho)
     expect(screen.queryByText(/Saldo do mês/)).toBeNull()
     expect(screen.getByText(/entradas − gastos de julho/)).toBeDefined()
-    // dia 15 de 31: gastos 390 (Poupança fora) → 390/15×31 ≈ 806 → ≈ +194
-    expect(screen.getByText(/Ao ritmo atual: ≈ 194/)).toBeDefined()
+    // a projeção "ao ritmo atual" foi removida do hero
+    expect(screen.queryByText(/Ao ritmo atual/)).toBeNull()
     // gastos até dia 15: julho 390 vs. junho 200 → ▲ 95%
     expect(screen.getByText(/▲ 95% vs\./)).toBeDefined()
   })
