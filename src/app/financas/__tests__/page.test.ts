@@ -250,6 +250,21 @@ describe('FinancasPage', () => {
     ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
   })
 
+  it('trocar o tipo na edição converte depósito em levantamento e ajusta a reserva', async () => {
+    const { getProfile, updateTransaction, updateFinancialGoals } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_current_savings: 500 })
+    await renderPage()
+    // abre o depósito recente de Poupança (t5: entrada, 150) e troca para saída
+    fireEvent.click(screen.getByText('Poupança'))
+    fireEvent.click(screen.getByText('↑ Saída'))
+    fireEvent.click(screen.getByText('Guardar alterações'))
+    await waitFor(() => expect(updateTransaction).toHaveBeenCalled())
+    expect((updateTransaction as ReturnType<typeof vi.fn>).mock.calls.at(-1)![1]).toMatchObject({ type: 'saida', category: 'Poupança', amount: 150 })
+    // reserva: 500 + (−150 levantamento) − (+150 depósito original) = 200
+    await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 200 }))
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+  })
+
   it('ativa o lembrete diário criando um reminder das finanças', async () => {
     const { getReminders, saveReminder } = await import('@/lib/supabase')
     ;(getReminders as ReturnType<typeof vi.fn>).mockResolvedValue([])

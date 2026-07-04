@@ -116,6 +116,7 @@ export default function FinancasPage() {
   const [searchResults,setSearchResults]= useState<Transaction[]|null>(null)
   const [searchLoading,setSearchLoading]= useState(false)
   const [openTx,     setOpenTx]    = useState<Transaction|null>(null)
+  const [etType,     setEtType]    = useState<'entrada'|'saida'>('saida')
   const [etCat,      setEtCat]     = useState('')
   const [etDesc,     setEtDesc]    = useState('')
   const [etAmount,   setEtAmount]  = useState('')
@@ -523,7 +524,7 @@ export default function FinancasPage() {
 
   function openTxSheet(t: Transaction) {
     setOpenTx(t)
-    setEtCat(t.category); setEtDesc(t.description ?? '')
+    setEtType(t.type); setEtCat(t.category); setEtDesc(t.description ?? '')
     setEtAmount(String(t.amount)); setEtDate(t.date)
   }
 
@@ -533,12 +534,13 @@ export default function FinancasPage() {
     if (!Number.isFinite(amount) || amount<=0 || !etCat || !etDate) return
     setTxEditSaving(true)
     const { error } = await updateTransaction(openTx.id, {
-      category: etCat, description: etDesc.trim()||null, amount, date: etDate,
+      type: etType, category: etCat, description: etDesc.trim()||null, amount, date: etDate,
     })
     if (error) { showToast('Erro ao guardar.', 'error'); setTxEditSaving(false); return }
-    // Ajusta a reserva pela diferença de poupança (o tipo não muda na edição).
+    // Ajusta a reserva pela diferença de poupança (tipo e categoria podem mudar
+    // na edição: trocar depósito ↔ levantamento inverte o sinal).
     await bumpSavings(userId,
-      savingsDelta(openTx.type, etCat, amount) - savingsDelta(openTx.type, openTx.category, openTx.amount))
+      savingsDelta(etType, etCat, amount) - savingsDelta(openTx.type, openTx.category, openTx.amount))
     await reloadTx(userId)
     setOpenTx(null); setTxEditSaving(false); showToast('Movimento atualizado!')
   }
@@ -1676,19 +1678,39 @@ export default function FinancasPage() {
           }>
           <div style={{textAlign:'center',margin:'10px 0 2px'}}>
             <div style={{display:'inline-flex',alignItems:'center',gap:4}}>
-              <span style={{fontSize:30,fontWeight:900,color:openTx.type==='entrada'?'#00C896':'#E24B4A'}}>{openTx.type==='entrada'?'+':'−'}€</span>
+              <span style={{fontSize:30,fontWeight:900,color:etType==='entrada'?'#00C896':'#E24B4A'}}>{etType==='entrada'?'+':'−'}€</span>
               <input
                 type="number" step="0.01" value={etAmount} onChange={e=>setEtAmount(e.target.value)}
                 aria-label="Valor"
-                style={{width:130,background:'transparent',border:'none',outline:'none',fontSize:34,fontWeight:900,letterSpacing:'-1px',color:openTx.type==='entrada'?'#00C896':'#E24B4A',fontFamily:'Inter, sans-serif'}}
+                style={{width:130,background:'transparent',border:'none',outline:'none',fontSize:34,fontWeight:900,letterSpacing:'-1px',color:etType==='entrada'?'#00C896':'#E24B4A',fontFamily:'Inter, sans-serif'}}
               />
             </div>
             <div style={{fontSize:11,color:'var(--text3)',fontWeight:600,marginTop:2}}>{dayLabel(openTx.date)}</div>
           </div>
 
+          {/* Trocar o tipo mantém a categoria se existir na lista do novo tipo
+              (ex.: Poupança), senão obriga a escolher de novo. */}
+          <div style={{display:'flex',gap:8,marginTop:12}}>
+            {(['entrada','saida'] as const).map(t=>(
+              <button key={t} onClick={()=>{
+                if (t===etType) return
+                setEtType(t)
+                setEtCat(prev=>(t==='entrada'?CATEGORIES_IN:OUT_CATS).includes(prev)?prev:'')
+              }} style={{
+                flex:1,padding:'11px',borderRadius:13,cursor:'pointer',
+                fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,
+                background: etType===t ? (t==='entrada'?'rgba(0,200,150,0.12)':'rgba(226,75,74,0.12)') : 'rgba(var(--ink-rgb),0.03)',
+                border: `1px solid ${etType===t ? (t==='entrada'?'rgba(0,200,150,0.5)':'rgba(226,75,74,0.5)') : 'rgba(var(--ink-rgb),0.10)'}`,
+                color: etType===t ? (t==='entrada'?'#00C896':'#E24B4A') : 'rgba(var(--ink-rgb),0.55)',
+              }}>
+                {t==='entrada'?'↓ Entrada':'↑ Saída'}
+              </button>
+            ))}
+          </div>
+
           <label style={sheetLabel}>Categoria</label>
           <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
-            {(openTx.type==='entrada'?CATEGORIES_IN:OUT_CATS).map(cat=>(
+            {(etType==='entrada'?CATEGORIES_IN:OUT_CATS).map(cat=>(
               <button key={cat} onClick={()=>setEtCat(cat)} style={{
                 display:'flex',alignItems:'center',gap:6,padding:'8px 12px',borderRadius:11,cursor:'pointer',
                 fontSize:12,fontWeight:600,fontFamily:'Inter, sans-serif',
