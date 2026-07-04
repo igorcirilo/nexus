@@ -22,7 +22,7 @@ import {
 } from '@/lib/csv-parser'
 import {
   monthlySavings, buildBudgetSummary, categoryTotals, sumInRange,
-  projectEndOfMonth, unbudgetedSpend, buildInsights,
+  unbudgetedSpend, buildInsights,
   pendingRecurrences, recurringMonthlyTotal,
   buildMonthSummary, monthCloseHeadline, loggingStreak, detectAnomalies, carryIn,
 } from '@/lib/finance'
@@ -397,8 +397,7 @@ export default function FinancasPage() {
   const hasCarry   = useMemo(() => history.some(t => t.date < monthStart), [history, monthStart])
   const available  = carryInVal + balance - savedThisMonth
 
-  // ── Projeção de fim de mês, comparação com o mês anterior e insights ──
-  const projected = projectEndOfMonth(totalIn, totalOut, dayOfMonth, daysInMonth)
+  // ── Comparação com o mês anterior e insights ──
   // Saídas do mês anterior até ao mesmo dia — comparação justa com o mês parcial.
   const prevSpendToDate = useMemo(() => {
     const prev = subMonths(new Date(), 1)
@@ -429,19 +428,16 @@ export default function FinancasPage() {
     return { subscriptionsMonthly: subs, topRecurring: top ? { cat: top.category, amount: top.amount } : null }
   }, [recurring])
   const insights = useMemo(() => buildInsights({
-    projectedBalance: projected,
     spentByCat: spendByCatOnly,
     catAvg3m,
     budgets,
     savingsPrevMonth: monthlyChart.length >= 2 ? monthlyChart[monthlyChart.length-2].poupanca : 0,
     savingsThisMonth: balance,
     daysSinceLastTx,
-    dayOfMonth,
-    daysInMonth,
     topAnomaly: anomalies[0] ?? null,
     subscriptionsMonthly,
     topRecurring,
-  }, fmt), [projected, spendByCatOnly, catAvg3m, budgets, monthlyChart, balance, daysSinceLastTx, dayOfMonth, daysInMonth, anomalies, subscriptionsMonthly, topRecurring])
+  }, fmt), [spendByCatOnly, catAvg3m, budgets, monthlyChart, balance, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring])
   const topInsight = insights[0] ?? null
   // Gasto do mês que o gauge do orçamento não vê (Poupança não é consumo).
   const outsideBudget = unbudgetedSpend(spentByCat, budgets, [SAVINGS_CAT])

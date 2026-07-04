@@ -101,23 +101,6 @@ export function buildBudgetSummary(
 }
 
 /**
- * Projeção do balanço no fim do mês: entradas já recebidas menos as saídas
- * extrapoladas linearmente pelo ritmo diário. Devolve null nos primeiros dias
- * do mês (amostra demasiado pequena) ou sem qualquer movimento.
- */
-export function projectEndOfMonth(
-  totalIn: number,
-  totalOut: number,
-  dayOfMonth: number,
-  daysInMonth: number,
-): number | null {
-  if (dayOfMonth < 3) return null
-  if (totalIn === 0 && totalOut === 0) return null
-  const projectedOut = (totalOut / dayOfMonth) * daysInMonth
-  return totalIn - projectedOut
-}
-
-/**
  * Gasto do mês em categorias sem orçamento definido — o que o gauge do
  * orçamento não vê. `exclude` serve para tirar categorias que não são consumo
  * (ex.: "Poupança").
@@ -358,8 +341,6 @@ export interface Insight {
 }
 
 export interface InsightInput {
-  /** Resultado de projectEndOfMonth (null = sem dados suficientes). */
-  projectedBalance: number | null
   spentByCat: Record<string, number>
   /** Média mensal de gasto por categoria nos últimos 3 meses completos. */
   catAvg3m: Record<string, number>
@@ -370,8 +351,6 @@ export interface InsightInput {
   savingsThisMonth: number
   /** Dias desde o último movimento registado (null = sem movimentos). */
   daysSinceLastTx: number | null
-  dayOfMonth: number
-  daysInMonth: number
   /** Cobrança incomum a destacar (de detectAnomalies), se houver. */
   topAnomaly?: Anomaly | null
   /** Total mensal das assinaturas recorrentes ativas. */
@@ -388,17 +367,10 @@ export interface InsightInput {
 export function buildInsights(input: InsightInput, fmt: (v: number) => string): Insight[] {
   const out: Insight[] = []
   const {
-    projectedBalance, spentByCat, catAvg3m, budgets,
-    savingsPrevMonth, savingsThisMonth, daysSinceLastTx, dayOfMonth, daysInMonth,
+    spentByCat, catAvg3m, budgets,
+    savingsPrevMonth, savingsThisMonth, daysSinceLastTx,
     topAnomaly, subscriptionsMonthly = 0, topRecurring,
   } = input
-
-  if (projectedBalance !== null && projectedBalance < 0) {
-    out.push({
-      id: 'projection-negative', icon: '⚠️', tone: 'danger', score: 100,
-      text: `Se continuares assim, terminas o mês com ≈ ${fmt(projectedBalance)}. Faltam ${daysInMonth - dayOfMonth} dias para inverter.`,
-    })
-  }
 
   // Orçamentos: primeiro os já ultrapassados, depois os quase (≥85%).
   const budgeted = Object.entries(budgets).filter(([, b]) => b > 0)
@@ -461,13 +433,6 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
     out.push({
       id: 'savings-beat', icon: '🎉', tone: 'positive', score: 50,
       text: `Já poupaste ${fmt(savingsThisMonth)} este mês — mais do que em todo o mês passado (${fmt(Math.max(0, savingsPrevMonth))}).`,
-    })
-  }
-
-  if (projectedBalance !== null && projectedBalance >= 0 && dayOfMonth >= 7) {
-    out.push({
-      id: 'projection-positive', icon: '🌱', tone: 'positive', score: 40,
-      text: `Se continuares assim, terminas o mês com ≈ ${fmt(projectedBalance)} de saldo positivo.`,
     })
   }
 

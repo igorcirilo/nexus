@@ -4,7 +4,6 @@ import {
   monthlySavings,
   categoryTotals,
   buildBudgetSummary,
-  projectEndOfMonth,
   unbudgetedSpend,
   buildInsights,
   pendingRecurrences,
@@ -102,22 +101,6 @@ describe('buildBudgetSummary', () => {
   })
 })
 
-describe('projectEndOfMonth', () => {
-  it('extrapola as saídas pelo ritmo diário e mantém as entradas', () => {
-    // dia 10 de 30: gastou 300 → projeta 900 de saídas; 1000 de entradas → +100
-    expect(projectEndOfMonth(1000, 300, 10, 30)).toBe(100)
-  })
-  it('projeta negativo quando o ritmo de gasto excede as entradas', () => {
-    expect(projectEndOfMonth(500, 300, 10, 30)).toBe(-400)
-  })
-  it('devolve null nos primeiros dias do mês (amostra pequena)', () => {
-    expect(projectEndOfMonth(1000, 50, 2, 30)).toBeNull()
-  })
-  it('devolve null sem qualquer movimento', () => {
-    expect(projectEndOfMonth(0, 0, 15, 30)).toBeNull()
-  })
-})
-
 describe('unbudgetedSpend', () => {
   const spent = { Alimentação: 250, Lazer: 80, Poupança: 200 }
   it('soma só o gasto de categorias sem orçamento', () => {
@@ -134,23 +117,13 @@ describe('unbudgetedSpend', () => {
 describe('buildInsights', () => {
   const eur = (v: number) => `€${v}`
   const base: InsightInput = {
-    projectedBalance: null,
     spentByCat: {},
     catAvg3m: {},
     budgets: {},
     savingsPrevMonth: 0,
     savingsThisMonth: 0,
     daysSinceLastTx: 0,
-    dayOfMonth: 15,
-    daysInMonth: 30,
   }
-
-  it('projeção negativa vem primeiro (score máximo)', () => {
-    const out = buildInsights({ ...base, projectedBalance: -120 }, eur)
-    expect(out[0].id).toBe('projection-negative')
-    expect(out[0].tone).toBe('danger')
-    expect(out[0].text).toContain('€-120')
-  })
 
   it('deteta orçamento ultrapassado e quase ultrapassado', () => {
     const out = buildInsights({
@@ -187,14 +160,9 @@ describe('buildInsights', () => {
     expect(notYet.map((i) => i.id)).not.toContain('savings-beat')
   })
 
-  it('projeção positiva só a partir do dia 7 e com score baixo', () => {
-    const early = buildInsights({ ...base, projectedBalance: 200, dayOfMonth: 5 }, eur)
-    expect(early.map((i) => i.id)).not.toContain('projection-positive')
-    const out = buildInsights({
-      ...base, projectedBalance: 200, savingsThisMonth: 300, savingsPrevMonth: 100,
-    }, eur)
-    expect(out[0].id).toBe('savings-beat') // 50 > 40
-    expect(out.map((i) => i.id)).toContain('projection-positive')
+  it('poupança batida fica no topo dos insights positivos', () => {
+    const out = buildInsights({ ...base, savingsThisMonth: 300, savingsPrevMonth: 100 }, eur)
+    expect(out[0].id).toBe('savings-beat')
   })
 })
 
@@ -340,8 +308,8 @@ describe('detectAnomalies', () => {
 describe('buildInsights — motor completo', () => {
   const eur = (v: number) => `€${v}`
   const base = {
-    projectedBalance: null, spentByCat: {}, catAvg3m: {}, budgets: {},
-    savingsPrevMonth: 0, savingsThisMonth: 0, daysSinceLastTx: 0, dayOfMonth: 15, daysInMonth: 30,
+    spentByCat: {}, catAvg3m: {}, budgets: {},
+    savingsPrevMonth: 0, savingsThisMonth: 0, daysSinceLastTx: 0,
   }
   it('emite cobrança incomum com relevância alta', () => {
     const out = buildInsights({ ...base, topAnomaly: { category: 'Contas', amount: 90, description: 'EDP', mean: 30, ratio: 3 } }, eur)
