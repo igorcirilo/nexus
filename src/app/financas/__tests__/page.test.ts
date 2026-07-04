@@ -121,6 +121,15 @@ describe('FinancasPage', () => {
     expect(screen.getByText(/▲ 95% vs\./)).toBeDefined()
   })
 
+  it('arrasta o saldo do mês anterior: começaste com X, disponível Y', async () => {
+    await renderPage()
+    // carryIn = 1000(jun) − 200(abr) − 200(mai) − 200(jun) = 400
+    // disponível = 400 + balance(610) − poupado(150) = 860
+    expect(screen.getByText(/Começaste julho com/)).toBeDefined()
+    expect(screen.getByText('400,00 €')).toBeDefined()
+    expect(screen.getByText('860,00 €')).toBeDefined()
+  })
+
   it('destaca o insight mais relevante (orçamento de Lazer a 90%)', async () => {
     await renderPage()
     expect(screen.getByText('Insight')).toBeDefined()

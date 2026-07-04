@@ -12,6 +12,7 @@ import {
   buildMonthSummary,
   monthCloseHeadline,
   loggingStreak,
+  carryIn,
   detectAnomalies,
   type AnomalyTx,
   type FinTx,
@@ -360,5 +361,24 @@ describe('buildInsights — motor completo', () => {
     expect(subs.text).toContain('€47/mês')
     expect(subs.text).toContain('€564/ano') // 47 × 12
     expect(out.find(i => i.id.startsWith('top-recurring-'))!.text).toContain('Habitação')
+  })
+})
+
+describe('carryIn', () => {
+  const txs: FinTx[] = [
+    { date: '2026-06-02', type: 'entrada', amount: 1200, category: 'Salário' },
+    { date: '2026-06-05', type: 'saida',   amount: 550,  category: 'Alimentação' },
+    { date: '2026-06-10', type: 'saida',   amount: 200,  category: 'Poupança' },   // conta como saída (saiu da conta)
+    { date: '2026-07-03', type: 'saida',   amount: 999,  category: 'Alimentação' }, // mês corrente: não conta
+  ]
+  it('soma o líquido dos meses anteriores (poupança conta como saída da conta)', () => {
+    // 1200 − 550 − 200 = 450
+    expect(carryIn(txs, '2026-07-01')).toBe(450)
+  })
+  it('exclui o mês corrente (>= beforeDate)', () => {
+    expect(carryIn(txs, '2026-06-01')).toBe(0) // nada antes de junho
+  })
+  it('pode ser negativo se gastou mais do que entrou', () => {
+    expect(carryIn([{ date: '2026-05-01', type: 'saida', amount: 80, category: 'x' }], '2026-06-01')).toBe(-80)
   })
 })

@@ -167,6 +167,22 @@ export function loggingStreak(dates: string[], today: string): LoggingStreak {
   return { current: 0, loggedToday: false }
 }
 
+/**
+ * Saldo que "arrasta" para o início de um mês: o dinheiro líquido que sobrou
+ * dos meses anteriores. É tudo o que entrou menos tudo o que saiu (gastos E
+ * transferências para poupança) antes de `beforeDate` — ou seja, o que ficou
+ * na conta corrente. Pura → testável. Limitada ao histórico carregado, por
+ * isso conta a partir do primeiro movimento registado, não do saldo real.
+ */
+export function carryIn(txs: FinTx[], beforeDate: string): number {
+  let v = 0
+  for (const t of txs) {
+    if (t.date >= beforeDate) continue
+    v += t.type === 'entrada' ? t.amount : -t.amount
+  }
+  return v
+}
+
 export interface MonthSummary {
   income: number
   /** Gasto real (exclui a categoria de poupança). */

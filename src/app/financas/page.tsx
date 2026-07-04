@@ -24,7 +24,7 @@ import {
   monthlySavings, buildBudgetSummary, categoryTotals, sumInRange,
   projectEndOfMonth, unbudgetedSpend, buildInsights,
   pendingRecurrences, recurringMonthlyTotal,
-  buildMonthSummary, monthCloseHeadline, loggingStreak, detectAnomalies,
+  buildMonthSummary, monthCloseHeadline, loggingStreak, detectAnomalies, carryIn,
 } from '@/lib/finance'
 import { suggestCategory } from '@/lib/categorize'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
@@ -389,6 +389,13 @@ export default function FinancasPage() {
   const budgetSuggestions  = OUT_CATS
     .filter(c => (catAvg3m[c]??0) > 0)
     .map(c => ({ cat:c, avg:catAvg3m[c], suggested: Math.ceil((catAvg3m[c]*1.05)/10)*10 }))
+
+  // ── Saldo que arrasta do(s) mês(es) anterior(es) ──
+  // carryIn = líquido dos meses anteriores; disponível = arrastado + o que
+  // sobrou este mês (entradas − gastos − poupança).
+  const carryInVal = useMemo(() => carryIn(history, monthStart), [history, monthStart])
+  const hasCarry   = useMemo(() => history.some(t => t.date < monthStart), [history, monthStart])
+  const available  = carryInVal + balance - savedThisMonth
 
   // ── Projeção de fim de mês, comparação com o mês anterior e insights ──
   const projected = projectEndOfMonth(totalIn, totalOut, dayOfMonth, daysInMonth)
@@ -939,6 +946,14 @@ export default function FinancasPage() {
         {projected!==null&&(
           <div style={{fontSize:11.5,fontWeight:700,marginTop:8,color:projected>=0?'#00C896':'#E24B4A'}}>
             {projected>=0?'🌱':'⚠️'} Ao ritmo atual: ≈ {fmt(projected)} no fim do mês
+          </div>
+        )}
+        {hasCarry&&(
+          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,background:'rgba(0,212,200,0.07)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:11,padding:'9px 12px'}}>
+            <span style={{fontSize:14}} aria-hidden>🔁</span>
+            <div style={{fontSize:11.5,fontWeight:600,color:'rgba(255,255,255,0.85)',lineHeight:1.4}}>
+              Começaste {format(new Date(),'MMMM',{locale:pt})} com <b style={{color:carryInVal>=0?'#00D4C8':'#E24B4A'}}>{fmt(carryInVal)}</b> · disponível <b style={{color:available>=0?'#00D4C8':'#E24B4A'}}>{fmt(available)}</b>
+            </div>
           </div>
         )}
         <div style={{display:'flex',gap:8,marginTop:12}}>
