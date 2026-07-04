@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { createHabitQuick, saveFocusSession, saveTransaction, supabase } from '@/lib/supabase'
 import type { HabitArea } from '@/types'
+import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY } from '@/lib/categories'
 
 const HABIT_AREAS: Array<{ key: HabitArea; label: string; icon: string; color: string }> = [
   { key: 'corpo',           label: 'Corpo',         icon: '💪', color: '#1ECBB4' },
@@ -15,10 +16,6 @@ const HABIT_AREAS: Array<{ key: HabitArea; label: string; icon: string; color: s
   { key: 'emocoes',         label: 'Emoções',       icon: '🧘', color: '#D4537E' },
   { key: 'relacionamentos', label: 'Relações',      icon: '🤝', color: '#85B7EB' },
 ]
-
-const CATEGORIES_IN  = ['Salário','Freelance','Investimento','Rendas','Presente','Outro']
-const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Contas','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
-const CUSTOM_KEY     = '__custom__'
 
 const inputStyle: React.CSSProperties = {
   width: '100%', background: 'var(--bg2)', border: '0.5px solid var(--border)',

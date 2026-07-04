@@ -58,6 +58,7 @@ function defaultBody(type: string): string {
     case 'checkin_tarde': return 'Pausa para o check-in da tarde 🌤️'
     case 'checkin_noite': return 'Fecha o dia com o check-in da noite 🌙'
     case 'habito': return 'Não te esqueças do teu hábito de hoje ✅'
+    case 'financas': return 'Regista os gastos de hoje — 30 segundos 💸'
     default: return 'Tens um lembrete no NEXUS 🔔'
   }
 }
@@ -65,6 +66,7 @@ function defaultBody(type: string): string {
 function urlForType(type: string): string {
   if (type?.startsWith('checkin')) return '/checkin'
   if (type === 'habito') return '/habitos'
+  if (type === 'financas') return '/financas'
   return '/hoje'
 }
 

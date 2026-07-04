@@ -99,3 +99,358 @@ export function buildBudgetSummary(
   const pct = totalBudget > 0 ? Math.min(100, Math.round((totalSpent / totalBudget) * 100)) : 0
   return { rows, unbudgeted, totalBudget, totalSpent, pct }
 }
+
+/**
+ * Gasto do mês em categorias sem orçamento definido — o que o gauge do
+ * orçamento não vê. `exclude` serve para tirar categorias que não são consumo
+ * (ex.: "Poupança").
+ */
+export function unbudgetedSpend(
+  spentByCat: Record<string, number>,
+  budgets: Record<string, number>,
+  exclude: string[] = [],
+): number {
+  return Object.entries(spentByCat)
+    .filter(([cat]) => (budgets[cat] ?? 0) <= 0 && !exclude.includes(cat))
+    .reduce((a, [, v]) => a + v, 0)
+}
+
+export interface LoggingStreak {
+  /** Dias consecutivos com pelo menos um movimento, terminando hoje ou ontem. */
+  current: number
+  loggedToday: boolean
+}
+
+const shiftDay = (iso: string, delta: number): string => {
+  const d = new Date(iso + 'T12:00:00')
+  d.setDate(d.getDate() + delta)
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Sequência de registo: dias consecutivos (a partir de hoje, ou de ontem se
+ * ainda não registou hoje) com ≥1 movimento. `dates` são as datas 'yyyy-MM-dd'
+ * dos movimentos (repetições toleradas). Pura → testável.
+ */
+export function loggingStreak(dates: string[], today: string): LoggingStreak {
+  const set = new Set(dates)
+  const loggedToday = set.has(today)
+  const runFrom = (start: string): number => {
+    let count = 0
+    let cur = start
+    while (set.has(cur)) {
+      count++
+      cur = shiftDay(cur, -1)
+    }
+    return count
+  }
+  if (loggedToday) return { current: runFrom(today), loggedToday: true }
+  const yesterday = shiftDay(today, -1)
+  if (set.has(yesterday)) return { current: runFrom(yesterday), loggedToday: false }
+  return { current: 0, loggedToday: false }
+}
+
+/**
+ * Saldo que "arrasta" para o início de um mês: o dinheiro líquido que sobrou
+ * dos meses anteriores. É tudo o que entrou menos tudo o que saiu (gastos E
+ * transferências para poupança) antes de `beforeDate` — ou seja, o que ficou
+ * na conta corrente. Pura → testável. Limitada ao histórico carregado, por
+ * isso conta a partir do primeiro movimento registado, não do saldo real.
+ */
+export function carryIn(txs: FinTx[], beforeDate: string): number {
+  let v = 0
+  for (const t of txs) {
+    if (t.date >= beforeDate) continue
+    v += t.type === 'entrada' ? t.amount : -t.amount
+  }
+  return v
+}
+
+export interface MonthSummary {
+  income: number
+  /** Gasto real (exclui a categoria de poupança). */
+  spending: number
+  /** Movido para poupança (a categoria reservada). */
+  saved: number
+  /** income − spending (a poupança é transferência, não entra). */
+  balance: number
+  topCat: { cat: string; amount: number } | null
+}
+
+/** Agregados de um mês para o resumo/fecho: entradas, gasto, poupança e maior categoria. */
+export function buildMonthSummary(
+  txs: FinTx[],
+  start: string,
+  end: string,
+  savingsCat = 'Poupança',
+): MonthSummary {
+  let income = 0
+  let spending = 0
+  let saved = 0
+  const byCat: Record<string, number> = {}
+  for (const t of txs) {
+    if (t.date < start || t.date > end) continue
+    if (t.type === 'entrada') { income += t.amount; continue }
+    if (t.category === savingsCat) { saved += t.amount; continue }
+    spending += t.amount
+    byCat[t.category] = (byCat[t.category] ?? 0) + t.amount
+  }
+  const top = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0]
+  return {
+    income,
+    spending,
+    saved,
+    balance: income - spending,
+    topCat: top ? { cat: top[0], amount: top[1] } : null,
+  }
+}
+
+export interface MonthCloseHeadline {
+  icon: string
+  text: string
+  tone: 'positive' | 'info'
+}
+
+/**
+ * A "vitória" a destacar no fecho do mês: escolhe a afirmação verdadeira mais
+ * positiva comparando o mês fechado com o anterior. Pura → testável.
+ */
+export function monthCloseHeadline(
+  cur: MonthSummary,
+  prev: MonthSummary,
+  fmt: (v: number) => string,
+): MonthCloseHeadline {
+  if (cur.saved > 0 && cur.saved >= prev.saved) {
+    return { icon: '🎉', tone: 'positive', text: `Poupaste ${fmt(cur.saved)} este mês.` }
+  }
+  if (cur.balance > prev.balance && cur.balance > 0) {
+    return { icon: '📈', tone: 'positive', text: `Sobrou-te ${fmt(cur.balance - prev.balance)} a mais do que no mês anterior.` }
+  }
+  if (cur.spending < prev.spending && prev.spending > 0) {
+    return { icon: '💪', tone: 'positive', text: `Gastaste ${fmt(prev.spending - cur.spending)} a menos do que no mês anterior.` }
+  }
+  if (cur.balance >= 0) {
+    return { icon: '✅', tone: 'info', text: `Fechaste o mês no positivo, com ${fmt(cur.balance)}.` }
+  }
+  return { icon: '📊', tone: 'info', text: `Fechaste o mês em ${fmt(cur.balance)} — o próximo é uma nova página.` }
+}
+
+export interface RecurringLike {
+  id: string
+  type: 'entrada' | 'saida'
+  category: string
+  description: string | null
+  amount: number
+  day_of_month: number
+  active: boolean
+}
+
+/**
+ * Recorrências "por resolver" no mês corrente: regras ativas cujo dia agendado
+ * já chegou (day_of_month ≤ dayOfMonth), que ainda não foram lançadas este mês
+ * (nenhuma transação do mês tem recurring_id igual ao id da regra) e que não
+ * foram saltadas manualmente (chave `${id}:${monthKey}` em `skips`). Ordena por
+ * dia agendado. Pura → testável sem BD.
+ */
+export function pendingRecurrences<T extends RecurringLike>(
+  rules: T[],
+  monthTxRecurringIds: (string | null | undefined)[],
+  dayOfMonth: number,
+  monthKey: string, // 'yyyy-MM'
+  skips: string[] = [],
+): T[] {
+  const posted = new Set(monthTxRecurringIds.filter(Boolean) as string[])
+  const skipped = new Set(skips)
+  return rules
+    .filter(
+      (r) =>
+        r.active &&
+        r.day_of_month <= dayOfMonth &&
+        !posted.has(r.id) &&
+        !skipped.has(`${r.id}:${monthKey}`),
+    )
+    .sort((a, b) => a.day_of_month - b.day_of_month)
+}
+
+/** Total mensal das recorrências ativas de um tipo (para o painel/insights). */
+export function recurringMonthlyTotal(
+  rules: RecurringLike[],
+  type: 'entrada' | 'saida',
+): number {
+  return rules.filter((r) => r.active && r.type === type).reduce((a, r) => a + r.amount, 0)
+}
+
+export interface AnomalyTx {
+  category: string
+  amount: number
+  type?: 'entrada' | 'saida'
+  description?: string | null
+}
+
+export interface Anomaly {
+  category: string
+  amount: number
+  description: string | null
+  /** Média por-transação da categoria no histórico. */
+  mean: number
+  /** amount / mean (quantas vezes acima do normal). */
+  ratio: number
+}
+
+/**
+ * Cobranças incomuns: gastos do período cujo valor é muito acima do típico da
+ * sua categoria (média por-transação no histórico). Só considera saídas (não
+ * poupança), categorias com amostra suficiente e valores acima de um piso
+ * absoluto, para não alarmar sobre ruído. Ordena por rácio desc. Pura.
+ */
+export function detectAnomalies(
+  monthTxs: AnomalyTx[],
+  historyTxs: AnomalyTx[],
+  opts: { savingsCat?: string; floor?: number; factor?: number; minSamples?: number } = {},
+): Anomaly[] {
+  const { savingsCat = 'Poupança', floor = 30, factor = 2.5, minSamples = 3 } = opts
+  const sums: Record<string, number> = {}
+  const counts: Record<string, number> = {}
+  for (const t of historyTxs) {
+    if (t.type === 'entrada' || t.category === savingsCat) continue
+    sums[t.category] = (sums[t.category] ?? 0) + t.amount
+    counts[t.category] = (counts[t.category] ?? 0) + 1
+  }
+  const anomalies: Anomaly[] = []
+  for (const t of monthTxs) {
+    if (t.type === 'entrada' || t.category === savingsCat) continue
+    const n = counts[t.category] ?? 0
+    if (n < minSamples || t.amount < floor) continue
+    const mean = sums[t.category] / n
+    if (mean <= 0) continue
+    const ratio = t.amount / mean
+    if (ratio >= factor) {
+      anomalies.push({ category: t.category, amount: t.amount, description: t.description ?? null, mean, ratio })
+    }
+  }
+  return anomalies.sort((a, b) => b.ratio - a.ratio)
+}
+
+export interface Insight {
+  id: string
+  icon: string
+  text: string
+  tone: 'positive' | 'warning' | 'danger' | 'info'
+  /** Relevância (maior = mais importante); a UI mostra o(s) do topo. */
+  score: number
+}
+
+export interface InsightInput {
+  spentByCat: Record<string, number>
+  /** Média mensal de gasto por categoria nos últimos 3 meses completos. */
+  catAvg3m: Record<string, number>
+  budgets: Record<string, number>
+  /** Poupança líquida (entradas−saídas) do mês anterior completo. */
+  savingsPrevMonth: number
+  /** Poupança líquida do mês corrente até agora. */
+  savingsThisMonth: number
+  /** Dias desde o último movimento registado (null = sem movimentos). */
+  daysSinceLastTx: number | null
+  /** Cobrança incomum a destacar (de detectAnomalies), se houver. */
+  topAnomaly?: Anomaly | null
+  /** Total mensal das assinaturas recorrentes ativas. */
+  subscriptionsMonthly?: number
+  /** Maior despesa fixa recorrente ativa. */
+  topRecurring?: { cat: string; amount: number } | null
+}
+
+/**
+ * Regras determinísticas que transformam os agregados do mês em orientações
+ * curtas, ordenadas por relevância. Pura: recebe agregados e um formatador de
+ * moeda, devolve texto pronto a mostrar.
+ */
+export function buildInsights(input: InsightInput, fmt: (v: number) => string): Insight[] {
+  const out: Insight[] = []
+  const {
+    spentByCat, catAvg3m, budgets,
+    savingsPrevMonth, savingsThisMonth, daysSinceLastTx,
+    topAnomaly, subscriptionsMonthly = 0, topRecurring,
+  } = input
+
+  // Orçamentos: primeiro os já ultrapassados, depois os quase (≥85%).
+  const budgeted = Object.entries(budgets).filter(([, b]) => b > 0)
+  const overCat = budgeted
+    .map(([cat, b]) => ({ cat, over: (spentByCat[cat] ?? 0) - b }))
+    .filter((c) => c.over > 0)
+    .sort((a, b) => b.over - a.over)[0]
+  if (overCat) {
+    out.push({
+      id: `budget-over-${overCat.cat}`, icon: '🚨', tone: 'danger', score: 90,
+      text: `Ultrapassaste o orçamento de ${overCat.cat} em ${fmt(overCat.over)}.`,
+    })
+  }
+  const nearCat = budgeted
+    .map(([cat, b]) => ({ cat, left: b - (spentByCat[cat] ?? 0), pct: (spentByCat[cat] ?? 0) / b }))
+    .filter((c) => c.pct >= 0.85 && c.left > 0)
+    .sort((a, b) => b.pct - a.pct)[0]
+  if (nearCat) {
+    out.push({
+      id: `budget-near-${nearCat.cat}`, icon: '⏳', tone: 'warning', score: 80,
+      text: `Estás a ${fmt(nearCat.left)} de ultrapassar o orçamento de ${nearCat.cat}.`,
+    })
+  }
+
+  // Cobrança incomum (anomalia): entre "ultrapassou" e "quase" em relevância.
+  if (topAnomaly) {
+    const veryHigh = topAnomaly.ratio >= 4
+    const desc = topAnomaly.description ? ` (${topAnomaly.description})` : ''
+    out.push({
+      id: `anomaly-${topAnomaly.category}-${Math.round(topAnomaly.amount)}`,
+      icon: '🔎', tone: veryHigh ? 'danger' : 'warning', score: 85,
+      text: `Cobrança incomum: ${fmt(topAnomaly.amount)} em ${topAnomaly.category}${desc} — ${topAnomaly.ratio.toFixed(1)}× o teu gasto habitual (${fmt(topAnomaly.mean)}).`,
+    })
+  }
+
+  // Categoria com maior desvio face à média dos últimos 3 meses (≥15% e ≥€20
+  // de média, para não alarmar sobre valores insignificantes).
+  const spike = Object.entries(spentByCat)
+    .map(([cat, spent]) => ({ cat, spent, avg: catAvg3m[cat] ?? 0 }))
+    .filter((c) => c.avg >= 20 && c.spent > c.avg * 1.15)
+    .map((c) => ({ ...c, pct: Math.round((c.spent / c.avg - 1) * 100) }))
+    .sort((a, b) => b.spent - b.avg - (a.spent - a.avg))[0]
+  if (spike) {
+    out.push({
+      id: `spike-${spike.cat}`, icon: '📈', tone: 'warning', score: 70,
+      text: `Gastaste +${spike.pct}% em ${spike.cat} este mês face à tua média (${fmt(spike.avg)}/mês).`,
+    })
+  }
+
+  if (daysSinceLastTx !== null && daysSinceLastTx >= 5) {
+    out.push({
+      id: 'stale-log', icon: '✍️', tone: 'info', score: 60,
+      text: `Há ${daysSinceLastTx} dias sem registos — 30 segundos põem tudo em dia.`,
+    })
+  }
+
+  // Só celebra quando a poupança parcial já bate o mês anterior completo —
+  // comparar mês parcial com mês cheio de outra forma seria enganador.
+  if (savingsThisMonth > 0 && savingsThisMonth > savingsPrevMonth) {
+    out.push({
+      id: 'savings-beat', icon: '🎉', tone: 'positive', score: 50,
+      text: `Já poupaste ${fmt(savingsThisMonth)} este mês — mais do que em todo o mês passado (${fmt(Math.max(0, savingsPrevMonth))}).`,
+    })
+  }
+
+  // Assinaturas recorrentes: custo mensal e anualizado (perceção de valor alta).
+  if (subscriptionsMonthly > 0) {
+    out.push({
+      id: 'subscriptions', icon: '📺', tone: 'info', score: 32,
+      text: `As tuas assinaturas somam ${fmt(subscriptionsMonthly)}/mês — ${fmt(subscriptionsMonthly * 12)}/ano.`,
+    })
+  }
+
+  // Maior despesa fixa recorrente.
+  if (topRecurring && topRecurring.amount > 0) {
+    out.push({
+      id: `top-recurring-${topRecurring.cat}`, icon: '📌', tone: 'info', score: 24,
+      text: `A tua maior despesa fixa é ${topRecurring.cat}: ${fmt(topRecurring.amount)}/mês.`,
+    })
+  }
+
+  return out.sort((a, b) => b.score - a.score)
+}

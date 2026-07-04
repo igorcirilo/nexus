@@ -388,6 +388,59 @@ export async function getTransactionsByMonth(userId: string, numMonths = 6) {
   return data ?? []
 }
 
+// Transações de um mês específico (com id, para editar/apagar) — usado na
+// navegação por mês do sheet de movimentos, carregadas sob demanda.
+export async function getTransactionsForMonth(userId: string, monthStart: string, monthEnd: string) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', monthStart)
+    .lte('date', monthEnd)
+    .order('date', { ascending: false })
+
+  if (error) {
+    reportError('getTransactionsForMonth error', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+// Pesquisa em todo o histórico por categoria ou descrição. Sanitiza a query
+// (remove vírgulas/parênteses/%) porque entra na sintaxe de filtro do PostgREST.
+export async function searchTransactions(userId: string, query: string) {
+  const q = query.replace(/[%(),*]/g, ' ').trim()
+  if (!q) return []
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('user_id', userId)
+    .or(`category.ilike.%${q}%,description.ilike.%${q}%`)
+    .order('date', { ascending: false })
+    .limit(200)
+
+  if (error) {
+    reportError('searchTransactions error', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+// Todas as transações do utilizador (sem filtro de data) — usado na exportação CSV.
+export async function getAllTransactions(userId: string) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('date, type, category, amount, description')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+
+  if (error) {
+    reportError('getAllTransactions error', error.message)
+    return []
+  }
+  return data ?? []
+}
+
 export async function saveTransaction(payload: Record<string, unknown>) {
   const { data, error } = await supabase
     .from('transactions')
@@ -426,6 +479,51 @@ export async function updateTransaction(id: string, payload: Record<string, unkn
 export async function deleteTransaction(id: string) {
   const { error } = await supabase.from('transactions').delete().eq('id', id)
   if (error) reportError('deleteTransaction error', error.message)
+  return { error }
+}
+
+// ── Recorrentes (receitas/despesas mensais) ─────────────────
+// Requer a migração supabase/financas_recurring_v1.sql. Enquanto não estiver
+// aplicada, as leituras devolvem [] e as escritas devolvem erro (mostrado por
+// toast) — o registo avulso de transações continua a funcionar na mesma.
+export async function getRecurringRules(userId: string) {
+  const { data, error } = await supabase
+    .from('recurring_rules')
+    .select('*')
+    .eq('user_id', userId)
+    .order('day_of_month', { ascending: true })
+
+  if (error) {
+    reportError('getRecurringRules error', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+export async function saveRecurringRule(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('recurring_rules')
+    .insert(payload)
+    .select()
+    .single()
+  if (error) reportError('saveRecurringRule error', error.message)
+  return { data, error }
+}
+
+export async function updateRecurringRule(id: string, payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('recurring_rules')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) reportError('updateRecurringRule error', error.message)
+  return { data, error }
+}
+
+export async function deleteRecurringRule(id: string) {
+  const { error } = await supabase.from('recurring_rules').delete().eq('id', id)
+  if (error) reportError('deleteRecurringRule error', error.message)
   return { error }
 }
 

@@ -9,34 +9,45 @@ import {
 import Nav from '@/components/Nav'
 import {
   requireUser, getProfile, getTransactions,
-  getTransactionsByMonth, saveTransaction, updateTransaction,
+  getTransactionsByMonth, getAllTransactions, getTransactionsForMonth, searchTransactions,
+  saveTransaction, updateTransaction,
   saveTransactionsBulk, deleteTransaction, updateFinancialGoals, updateBudgets,
+  getRecurringRules, saveRecurringRule, updateRecurringRule, deleteRecurringRule,
+  getReminders, saveReminder, deleteReminder,
 } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import {
   parseCsvText, detectColumnMap, rowsToTransactions,
   type TransactionCandidate,
 } from '@/lib/csv-parser'
-import { monthlySavings, buildBudgetSummary, categoryTotals } from '@/lib/finance'
+import {
+  monthlySavings, buildBudgetSummary, categoryTotals, sumInRange,
+  unbudgetedSpend, buildInsights,
+  pendingRecurrences, recurringMonthlyTotal,
+  buildMonthSummary, monthCloseHeadline, loggingStreak, detectAnomalies, carryIn,
+} from '@/lib/finance'
+import { suggestCategory } from '@/lib/categorize'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
 import { logError } from '@/lib/log'
 import { darkCardInk } from '@/lib/theme'
+import {
+  CATEGORIES_IN, CATEGORIES_OUT, CAT_COLORS, SAVINGS_CAT, CUSTOM_KEY, catEmoji,
+} from '@/lib/categories'
+import { Sheet, StepChips, sheetLabel, sheetInp } from '@/components/financas/Sheet'
 import { format, startOfMonth, endOfMonth, subMonths, subDays, addMonths, getDaysInMonth, getDate } from 'date-fns'
 import { pt } from 'date-fns/locale'
-import type { Profile, Transaction, FinancialImportPreview, FinancialImportCandidate } from '@/types'
+import type { Profile, Transaction, RecurringRule, FinancialImportPreview, FinancialImportCandidate } from '@/types'
 
-const CATEGORIES_IN  = ['Salário','Freelance','Investimento','Rendas','Presente','Outro']
-const CATEGORIES_OUT = ['Alimentação','Transporte','Habitação','Contas','Saúde','Lazer','Roupa','Educação','Assinaturas','Poupança','Outro']
-const CAT_COLORS     = ['#7F77DD','#1ECBB4','#E8A838','#E24B4A','#1D9E75','#D4537E','#85B7EB','#F0C060','#534AB7','#9BA0B0']
-// Categoria reservada: mover dinheiro para poupança. Conta para a meta mensal de poupança.
-const SAVINGS_CAT = 'Poupança'
-const CUSTOM_KEY  = '__custom__'
-const CAT_EMOJI: Record<string,string> = {
-  Alimentação:'🍔', Transporte:'🚗', Habitação:'🏠', Contas:'🧾', Saúde:'💊', Lazer:'🎮',
-  Roupa:'👕', Educação:'🎓', Assinaturas:'📺', Poupança:'🏦', Outro:'📦',
-  Salário:'💼', Freelance:'💻', Investimento:'📈', Rendas:'🏘️', Presente:'🎁',
-}
-const catEmoji = (cat:string) => CAT_EMOJI[cat] ?? '📦'
+// Cores de gráfico validadas (luminosidade, croma, separação CVD e contraste)
+// contra as superfícies dos dois temas (#11131C escuro / #FFFFFF claro).
+const CHART_IN  = '#00A87E'
+const CHART_OUT = '#E24B4A'
+const CHART_CAT = '#7F77DD'
+// Tipo do lembrete diário de registo (o edge function envia-o à hora/dias e
+// aponta a notificação para /financas).
+const LOG_REMINDER_TYPE = 'financas'
+const LOG_REMINDER_TIME = '21:00'
+const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
 
 function dayLabel(date:string) {
   const today = format(new Date(),'yyyy-MM-dd')
@@ -47,65 +58,6 @@ function dayLabel(date:string) {
   return s.charAt(0).toUpperCase()+s.slice(1)
 }
 
-const sheetLabel: React.CSSProperties = {
-  fontSize:11, fontWeight:700, letterSpacing:'0.07em', textTransform:'uppercase',
-  color:'var(--text3)', display:'block', margin:'16px 0 8px', fontFamily:'Inter, sans-serif',
-}
-const sheetInp: React.CSSProperties = {
-  width:'100%', background:'var(--surface-2)', border:'1px solid rgba(var(--ink-rgb),0.10)',
-  borderRadius:13, padding:'12px 14px', color: 'var(--ink)',
-  fontFamily:'Inter, sans-serif', fontSize:14, fontWeight:600, outline:'none',
-}
-
-// Concha de bottom sheet partilhada (design do hub)
-function Sheet({ icon, title, onClose, children, footer, tall }: {
-  icon?: string; title: string; onClose: () => void
-  children: React.ReactNode; footer?: React.ReactNode; tall?: boolean
-}) {
-  return (
-    <div style={{ position:'fixed', inset:0, zIndex:9999, background:'rgba(0,0,0,.65)', display:'flex', alignItems:'flex-end' }}
-      onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{
-        width:'100%', maxWidth:448, margin:'0 auto', background:'var(--surface-card)',
-        borderRadius:'24px 24px 0 0', borderTop:'1px solid rgba(var(--ink-rgb),0.12)',
-        display:'flex', flexDirection:'column',
-        maxHeight: tall ? '92dvh' : 'min(86dvh, 720px)',
-        ...(tall ? { height:'92dvh' } : {}),
-        fontFamily:'Inter, sans-serif', boxShadow:'0 -20px 60px rgba(0,0,0,0.6)',
-      }}>
-        <div style={{ width:40, height:4, borderRadius:2, background:'var(--surface-3)', margin:'10px auto 0', flexShrink:0 }} />
-        <div style={{ display:'flex', alignItems:'center', gap:10, padding:'14px 20px 12px', borderBottom:'1px solid rgba(var(--ink-rgb),0.06)', flexShrink:0 }}>
-          {icon && <span style={{ fontSize:20 }}>{icon}</span>}
-          <div style={{ flex:1, fontWeight:800, fontSize:17, color: 'var(--ink)', letterSpacing:'-0.3px' }}>{title}</div>
-          <button onClick={onClose} aria-label="Fechar" style={{ width:30, height:30, borderRadius:10, background:'var(--surface-3)', border:'none', cursor:'pointer', fontSize:14, color:'var(--text1)' }}>✕</button>
-        </div>
-        <div style={{ overflowY:'auto', flex:1, padding:'4px 20px 16px' }}>{children}</div>
-        {footer && (
-          <div style={{ padding:'12px 20px calc(20px + env(safe-area-inset-bottom))', background:'var(--surface-card)', borderTop:'1px solid rgba(var(--ink-rgb),0.06)', flexShrink:0 }}>
-            {footer}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
-
-// Chips de ± para ajustar valores nos sheets
-function StepChips({ steps, onStep }: { steps: number[]; onStep: (delta:number)=>void }) {
-  return (
-    <div style={{ display:'flex', gap:8, marginTop:12 }}>
-      {steps.map(s => (
-        <button key={s} onClick={() => onStep(s)} style={{
-          flex:1, textAlign:'center', padding:'10px 0', borderRadius:12, cursor:'pointer',
-          border:`1px solid ${s>0 ? 'rgba(245,200,66,0.45)' : 'rgba(var(--ink-rgb),0.10)'}`,
-          background:s>0 ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
-          color:s>0 ? '#F5C842' : 'rgba(var(--ink-rgb),0.6)',
-          fontSize:12.5, fontWeight:700, fontFamily:'Inter, sans-serif',
-        }}>{s>0?'+':'−'}€{Math.abs(s)}</button>
-      ))}
-    </div>
-  )
-}
 // Sem orçamentos por defeito: um utilizador novo só vê valores que ele próprio
 // definiu. As sugestões vêm da média real dos últimos 3 meses (catAvg3m).
 
@@ -157,6 +109,12 @@ export default function FinancasPage() {
   const [txQuery,    setTxQuery]   = useState('')
   const [txFilter,   setTxFilter]  = useState<'all'|'entrada'|'saida'>('all')
   const [txCat,      setTxCat]     = useState<string|null>(null)
+  // Navegação por mês (sob demanda) + pesquisa em todo o histórico
+  const [monthCursor,  setMonthCursor]  = useState<Date>(() => startOfMonth(new Date()))
+  const [monthCache,   setMonthCache]   = useState<Record<string, Transaction[]>>({})
+  const [monthLoading, setMonthLoading] = useState(false)
+  const [searchResults,setSearchResults]= useState<Transaction[]|null>(null)
+  const [searchLoading,setSearchLoading]= useState(false)
   const [openTx,     setOpenTx]    = useState<Transaction|null>(null)
   const [etCat,      setEtCat]     = useState('')
   const [etDesc,     setEtDesc]    = useState('')
@@ -170,8 +128,21 @@ export default function FinancasPage() {
   const [csvImporting, setCsvImporting] = useState(false)
   const [pdfPreview, setPdfPreview] = useState<FinancialImportPreview | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [exporting, setExporting]   = useState(false)
+  // Recorrentes
+  const [recurring,      setRecurring]      = useState<RecurringRule[]>([])
+  const [recurringSkips, setRecurringSkips] = useState<string[]>([])
+  const [showRecorrentes,setShowRecorrentes]= useState(false)
+  const [showInsights,   setShowInsights]   = useState(false)
+  const [postingRuleId,  setPostingRuleId]  = useState<string|null>(null)
+  const [fRepeat,        setFRepeat]        = useState(false)
+  // Fecho do mês: guarda o último mês cujo resumo já foi dispensado (yyyy-MM).
+  const [monthCloseSeen, setMonthCloseSeen] = useState<string|null>(null)
+  const [monthCloseOpen, setMonthCloseOpen] = useState(false)
+  // Lembrete diário de registo (ids das linhas de reminders do tipo 'financas').
+  const [logReminderIds, setLogReminderIds] = useState<string[]>([])
+  const [reminderBusy, setReminderBusy] = useState(false)
 
-  const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
   function showToast(m: string, type: 'success' | 'error' | 'info' = 'success') {
     if (type === 'error') toast.error(m)
     else toast.success(m)
@@ -181,14 +152,27 @@ export default function FinancasPage() {
     requireUser().then(async (user) => {
       if (!user) return
       setUserId(user.id)
-      const [prof, recent, hist] = await Promise.all([
+      const [prof, recent, hist, rules, reminders] = await Promise.all([
         getProfile(user.id),
         getTransactions(user.id, 2),
         getTransactionsByMonth(user.id, 6),
+        getRecurringRules(user.id),
+        getReminders(user.id),
       ])
       setProfile(prof)
       setTxs(recent as Transaction[])
       setHistory(hist as Transaction[])
+      setRecurring(rules as RecurringRule[])
+      setLogReminderIds((reminders as { id:string; type:string }[]).filter(r => r.type===LOG_REMINDER_TYPE).map(r => r.id))
+      // Recorrências saltadas neste mês vivem só no dispositivo (não é dado
+      // crítico e evita mais uma tabela); chave `${ruleId}:${yyyy-MM}`.
+      try {
+        const s = localStorage.getItem(`nexus_recurring_skips_${user.id}`)
+        if (s) setRecurringSkips(JSON.parse(s))
+      } catch {}
+      try {
+        setMonthCloseSeen(localStorage.getItem(`nexus_monthclose_seen_${user.id}`))
+      } catch {}
       // Orçamentos: fonte de verdade no Supabase (profiles.fin_budgets). O
       // localStorage é só cache offline; se houver dados só-locais (versão
       // antiga), migram-se para o Supabase neste primeiro carregamento.
@@ -217,15 +201,38 @@ export default function FinancasPage() {
     const [r, h] = await Promise.all([getTransactions(uid, 2), getTransactionsByMonth(uid, 6)])
     setTxs(r as Transaction[])
     setHistory(h as Transaction[])
+    // Invalida as caches do sheet de movimentos para refletir a mutação.
+    setMonthCache({})
+    setSearchResults(null)
   }
+  async function reloadRecurring(uid: string) {
+    setRecurring(await getRecurringRules(uid) as RecurringRule[])
+  }
+
+  // A reserva (fin_current_savings) segue os movimentos de "Poupança":
+  // registar poupança soma; apagar/editar ajusta pela diferença. Fica sempre
+  // corrigível à mão no cartão da reserva.
+  async function bumpSavings(uid: string, delta: number) {
+    if (!delta) return
+    const next = Math.max(0, (profile?.fin_current_savings ?? 0) + delta)
+    await updateFinancialGoals(uid, { fin_current_savings: next })
+    setProfile(await getProfile(uid))
+  }
+  const savingsDelta = (type: 'entrada'|'saida', cat: string, amount: number) =>
+    type === 'saida' && cat === SAVINGS_CAT ? amount : 0
 
   // Métricas do mês atual
   const monthStart = format(startOfMonth(new Date()),'yyyy-MM-dd')
   const monthEnd   = format(endOfMonth(new Date()),'yyyy-MM-dd')
   const thisMonth  = useMemo(()=>txs.filter(t=>t.date>=monthStart&&t.date<=monthEnd),[txs,monthStart,monthEnd])
   const totalIn    = useMemo(()=>thisMonth.filter(t=>t.type==='entrada').reduce((a,t)=>a+t.amount,0),[thisMonth])
-  const totalOut   = useMemo(()=>thisMonth.filter(t=>t.type==='saida').reduce((a,t)=>a+t.amount,0),[thisMonth])
+  // Saídas = GASTO real. A categoria "Poupança" é uma transferência (mover
+  // dinheiro para a reserva), não consumo → fica fora das saídas e do balanço.
+  const totalOut   = useMemo(()=>thisMonth.filter(t=>t.type==='saida'&&t.category!==SAVINGS_CAT).reduce((a,t)=>a+t.amount,0),[thisMonth])
   const balance    = totalIn - totalOut
+  // Histórico sem as transferências para poupança, para os gráficos e médias de
+  // gasto/saldo não tratarem poupar como um gasto.
+  const historyNoSavings = useMemo(()=>history.filter(t=>!(t.type==='saida'&&t.category===SAVINGS_CAT)),[history])
 
   const dayOfMonth  = getDate(new Date())
   const daysInMonth = getDaysInMonth(new Date())
@@ -250,9 +257,9 @@ export default function FinancasPage() {
   const monthlyChart = useMemo(()=>{
     const months = Array.from({length:6},(_,i)=>subMonths(new Date(),5-i))
     const ranges = months.map(d=>({start:format(startOfMonth(d),'yyyy-MM-dd'),end:format(endOfMonth(d),'yyyy-MM-dd')}))
-    const series = monthlySavings(history, ranges)
+    const series = monthlySavings(historyNoSavings, ranges)
     return months.map((d,i)=>({label:format(d,'MMM',{locale:pt}),...series[i]}))
-  },[history])
+  },[historyNoSavings])
 
   // ── Médias dos últimos 3 meses completos (exclui o mês atual) ──
   const prev3Range = useMemo(() => ({
@@ -260,10 +267,10 @@ export default function FinancasPage() {
     end:   format(endOfMonth(subMonths(new Date(),1)),'yyyy-MM-dd'),
   }), [])
   const avgExpenses3m = useMemo(() => {
-    const out = history.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
+    const out = historyNoSavings.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
       .reduce((a,t)=>a+t.amount,0)
     return out/3
-  }, [history, prev3Range])
+  }, [historyNoSavings, prev3Range])
   const avgIncome3m = useMemo(() => {
     const inc = history.filter(t => t.type==='entrada' && t.date>=prev3Range.start && t.date<=prev3Range.end)
       .reduce((a,t)=>a+t.amount,0)
@@ -290,15 +297,23 @@ export default function FinancasPage() {
     return map
   }, [history, OUT_CATS])
 
-  // ── Movimentos: filtro + agrupamento por dia ──
-  const filteredTxs = useMemo(() => {
-    const q = txQuery.trim().toLowerCase()
-    return txs.filter(t =>
-      (txFilter==='all' || t.type===txFilter) &&
-      (!txCat || t.category===txCat) &&
-      (!q || t.category.toLowerCase().includes(q) || (t.description??'').toLowerCase().includes(q))
-    )
-  }, [txs, txQuery, txFilter, txCat])
+  // ── Movimentos: mês selecionado vs. pesquisa em todo o histórico ──
+  // Pesquisa com ≥2 caracteres → resultados globais (server-side); caso
+  // contrário → transações do mês do cursor (carregadas sob demanda). O mês
+  // corrente é servido de imediato por `txs` para não piscar ao abrir.
+  const searchMode  = txQuery.trim().length >= 2
+  const cursorKey   = format(monthCursor, 'yyyy-MM')
+  const nowMonthKey = format(startOfMonth(new Date()), 'yyyy-MM')
+  const isCurrentMonthCursor = cursorKey === nowMonthKey
+  const sheetSourceTxs = useMemo(() => {
+    if (searchMode) return searchResults ?? []
+    if (isCurrentMonthCursor && !monthCache[cursorKey]) return thisMonth
+    return monthCache[cursorKey] ?? []
+  }, [searchMode, searchResults, isCurrentMonthCursor, monthCache, cursorKey, thisMonth])
+  const filteredTxs = useMemo(() => sheetSourceTxs.filter(t =>
+    (txFilter==='all' || t.type===txFilter) &&
+    (!txCat || t.category===txCat)
+  ), [sheetSourceTxs, txFilter, txCat])
   const txGroups = useMemo(() => {
     const map = new Map<string, Transaction[]>()
     filteredTxs.forEach(t => {
@@ -310,11 +325,45 @@ export default function FinancasPage() {
   }, [filteredTxs])
   const txCatOptions = useMemo(() => {
     const counts: Record<string,number> = {}
-    txs.forEach(t => { counts[t.category]=(counts[t.category]??0)+1 })
+    sheetSourceTxs.forEach(t => { counts[t.category]=(counts[t.category]??0)+1 })
     return Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([c])=>c)
-  }, [txs])
-  const filterActive = txFilter!=='all' || !!txCat || !!txQuery.trim()
+  }, [sheetSourceTxs])
+  const filterActive = txFilter!=='all' || !!txCat || searchMode
   const filteredTotal = filteredTxs.reduce((a,t)=>a+(t.type==='entrada'?t.amount:-t.amount),0)
+  const sheetBusy = searchMode ? searchLoading : monthLoading
+
+  // Carrega o mês do cursor sob demanda (exceto o corrente, servido por txs).
+  useEffect(() => {
+    if (!showMovimentos || !userId || searchMode) return
+    const key = format(monthCursor, 'yyyy-MM')
+    if (monthCache[key] || key === nowMonthKey) return
+    setMonthLoading(true)
+    const s = format(startOfMonth(monthCursor), 'yyyy-MM-dd')
+    const e = format(endOfMonth(monthCursor), 'yyyy-MM-dd')
+    getTransactionsForMonth(userId, s, e).then(rows => {
+      setMonthCache(c => ({ ...c, [key]: rows as Transaction[] }))
+      setMonthLoading(false)
+    })
+  }, [showMovimentos, userId, monthCursor, searchMode, monthCache, nowMonthKey])
+
+  // Ao abrir o sheet, começa sempre no mês corrente.
+  useEffect(() => {
+    if (showMovimentos) setMonthCursor(startOfMonth(new Date()))
+  }, [showMovimentos])
+
+  // Pesquisa global (debounced) quando a query tem ≥2 caracteres.
+  useEffect(() => {
+    if (!showMovimentos || !userId) return
+    const q = txQuery.trim()
+    if (q.length < 2) { setSearchResults(null); return }
+    setSearchLoading(true)
+    const t = setTimeout(() => {
+      searchTransactions(userId, q).then(rows => {
+        setSearchResults(rows as Transaction[]); setSearchLoading(false)
+      })
+    }, 300)
+    return () => clearTimeout(t)
+  }, [showMovimentos, userId, txQuery])
 
   // ── Orçamento: gauge + categorias ordenadas ──
   const spentByCat = useMemo(
@@ -326,13 +375,146 @@ export default function FinancasPage() {
     () => thisMonth.filter(t=>t.type==='saida'&&t.category===SAVINGS_CAT).reduce((a,t)=>a+t.amount,0),
     [thisMonth],
   )
+  // Gasto por categoria SEM Poupança — para insights e "para onde foi o dinheiro"
+  // não tratarem uma transferência de poupança como despesa.
+  const spendByCatOnly = useMemo(() => {
+    const { [SAVINGS_CAT]: _omit, ...rest } = spentByCat
+    void _omit
+    return rest
+  }, [spentByCat])
   const { rows: budgetedCats, unbudgeted: unbudgetedCats, totalBudget, totalSpent: totalSpentBudgeted, pct: budgetPct } =
     buildBudgetSummary(budgets, spentByCat, OUT_CATS)
-  const monthPct           = Math.round(dayOfMonth/daysInMonth*100)
-  const budgetOnPace       = budgetPct <= monthPct + 5
+  // Cor do orçamento por quanto já foi usado (sem comparar com o "ritmo" do mês).
+  const budgetColor        = budgetPct >= 100 ? '#E24B4A' : budgetPct >= 85 ? '#F5C842' : '#00C896'
   const budgetSuggestions  = OUT_CATS
     .filter(c => (catAvg3m[c]??0) > 0)
     .map(c => ({ cat:c, avg:catAvg3m[c], suggested: Math.ceil((catAvg3m[c]*1.05)/10)*10 }))
+
+  // ── Saldo que arrasta do(s) mês(es) anterior(es) ──
+  // carryIn = líquido dos meses anteriores; disponível = arrastado + o que
+  // sobrou este mês (entradas − gastos − poupança).
+  const carryInVal = useMemo(() => carryIn(history, monthStart), [history, monthStart])
+  const hasCarry   = useMemo(() => history.some(t => t.date < monthStart), [history, monthStart])
+  const available  = carryInVal + balance - savedThisMonth
+
+  // ── Comparação com o mês anterior e insights ──
+  // Saídas do mês anterior até ao mesmo dia — comparação justa com o mês parcial.
+  const prevSpendToDate = useMemo(() => {
+    const prev = subMonths(new Date(), 1)
+    return sumInRange(historyNoSavings, 'saida', format(startOfMonth(prev),'yyyy-MM-dd'), format(prev,'yyyy-MM-dd'))
+  }, [historyNoSavings])
+  const spendDeltaPct = prevSpendToDate > 0 && totalOut > 0
+    ? Math.round((totalOut / prevSpendToDate - 1) * 100)
+    : null
+  const daysSinceLastTx = useMemo(() => {
+    const last = [...txs, ...history].reduce<string|null>((m,t) => (!m || t.date > m) ? t.date : m, null)
+    if (!last) return null
+    const today = format(new Date(),'yyyy-MM-dd')
+    const diff = Math.round((new Date(today+'T12:00:00').getTime() - new Date(last+'T12:00:00').getTime()) / 86400000)
+    return Math.max(0, diff)
+  }, [txs, history])
+  // Cobranças incomuns do mês (vs. média por-transação do histórico) e resumo
+  // das recorrentes, para alimentar o motor de insights.
+  // Baseline = meses ANTERIORES (history inclui o mês corrente; se a própria
+  // cobrança entrasse na média, escondia-se a si mesma).
+  const anomalies = useMemo(
+    () => detectAnomalies(thisMonth, history.filter(t => t.date < monthStart), { savingsCat: SAVINGS_CAT }),
+    [thisMonth, history, monthStart],
+  )
+  const { subscriptionsMonthly, topRecurring } = useMemo(() => {
+    const activeOut = recurring.filter(r => r.active && r.type === 'saida')
+    const subs = activeOut.filter(r => r.category === 'Assinaturas').reduce((a,r)=>a+r.amount,0)
+    const top = activeOut.slice().sort((a,b)=>b.amount-a.amount)[0]
+    return { subscriptionsMonthly: subs, topRecurring: top ? { cat: top.category, amount: top.amount } : null }
+  }, [recurring])
+  const insights = useMemo(() => buildInsights({
+    spentByCat: spendByCatOnly,
+    catAvg3m,
+    budgets,
+    savingsPrevMonth: monthlyChart.length >= 2 ? monthlyChart[monthlyChart.length-2].poupanca : 0,
+    savingsThisMonth: balance,
+    daysSinceLastTx,
+    topAnomaly: anomalies[0] ?? null,
+    subscriptionsMonthly,
+    topRecurring,
+  }, fmt), [spendByCatOnly, catAvg3m, budgets, monthlyChart, balance, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring])
+  const topInsight = insights[0] ?? null
+  // Gasto do mês que o gauge do orçamento não vê (Poupança não é consumo).
+  const outsideBudget = unbudgetedSpend(spentByCat, budgets, [SAVINGS_CAT])
+
+  // ── Visão geral: top categorias do mês + série de 6 meses ──
+  const catBreakdown = useMemo(() => {
+    const entries = Object.entries(spendByCatOnly).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1])
+    const top   = entries.slice(0,5).map(([cat,v]) => ({ cat, v }))
+    const rest  = entries.slice(5).reduce((a,[,v]) => a+v, 0)
+    const total = entries.reduce((a,[,v]) => a+v, 0)
+    return { rows: rest > 0 ? [...top, { cat:'Outros', v:rest }] : top, total }
+  }, [spendByCatOnly])
+  const hasHistory = monthlyChart.some(m => m.entradas > 0 || m.saidas > 0)
+
+  // ── Recorrentes: pendentes do mês + totais ──
+  const monthKey = format(new Date(),'yyyy-MM')
+  const pendingRules = useMemo(
+    () => pendingRecurrences(
+      recurring,
+      thisMonth.map(t => t.recurring_id),
+      dayOfMonth,
+      monthKey,
+      recurringSkips,
+    ),
+    [recurring, thisMonth, dayOfMonth, monthKey, recurringSkips],
+  )
+  const recurringOutTotal = recurringMonthlyTotal(recurring, 'saida')
+  const recurringInTotal  = recurringMonthlyTotal(recurring, 'entrada')
+
+  // ── Sequência de registo (hábito diário) ──
+  const logStreak = useMemo(
+    () => loggingStreak([...txs, ...history].map(t=>t.date), format(new Date(),'yyyy-MM-dd')),
+    [txs, history],
+  )
+  const dailyReminderOn = logReminderIds.length > 0
+  async function toggleDailyReminder() {
+    if (!userId || reminderBusy) return
+    setReminderBusy(true)
+    setMoreOpen(false)
+    if (dailyReminderOn) {
+      await Promise.all(logReminderIds.map(id => deleteReminder(id)))
+      showToast('Lembrete diário desativado.')
+    } else {
+      await saveReminder({
+        user_id: userId,
+        title: 'Registar gastos',
+        description: '30 segundos: regista os gastos de hoje 💸',
+        time: LOG_REMINDER_TIME,
+        days: [0,1,2,3,4,5,6],
+        type: LOG_REMINDER_TYPE,
+        active: true,
+      })
+      showToast('Lembrete diário às 21:00 ativado.')
+    }
+    const reminders = await getReminders(userId) as { id:string; type:string }[]
+    setLogReminderIds(reminders.filter(r=>r.type===LOG_REMINDER_TYPE).map(r=>r.id))
+    setReminderBusy(false)
+  }
+
+  // ── Fecho do mês: resumo do mês anterior (mostra uma vez por mês) ──
+  const prevMonthKey = format(subMonths(new Date(),1),'yyyy-MM')
+  const monthClose = useMemo(() => {
+    const prev  = subMonths(new Date(),1)
+    const prev2 = subMonths(new Date(),2)
+    const cur  = buildMonthSummary(history, format(startOfMonth(prev),'yyyy-MM-dd'),  format(endOfMonth(prev),'yyyy-MM-dd'),  SAVINGS_CAT)
+    const before = buildMonthSummary(history, format(startOfMonth(prev2),'yyyy-MM-dd'), format(endOfMonth(prev2),'yyyy-MM-dd'), SAVINGS_CAT)
+    return { cur, before, label: format(prev,'MMMM yyyy',{locale:pt}).replace(/^./,c=>c.toUpperCase()) }
+  }, [history])
+  const monthCloseHasData = monthClose.cur.income>0 || monthClose.cur.spending>0 || monthClose.cur.saved>0
+  // Abre automaticamente quando há um mês fechado por rever (e não foi dispensado).
+  const shouldShowMonthClose = !loading && monthCloseHasData && monthCloseSeen !== prevMonthKey
+  useEffect(() => { if (shouldShowMonthClose) setMonthCloseOpen(true) }, [shouldShowMonthClose])
+  function dismissMonthClose() {
+    setMonthCloseOpen(false)
+    setMonthCloseSeen(prevMonthKey)
+    if (userId) try { localStorage.setItem(`nexus_monthclose_seen_${userId}`, prevMonthKey) } catch {}
+  }
 
   function openTxSheet(t: Transaction) {
     setOpenTx(t)
@@ -349,13 +531,18 @@ export default function FinancasPage() {
       category: etCat, description: etDesc.trim()||null, amount, date: etDate,
     })
     if (error) { showToast('Erro ao guardar.', 'error'); setTxEditSaving(false); return }
+    // Ajusta a reserva pela diferença de poupança (o tipo não muda na edição).
+    await bumpSavings(userId,
+      savingsDelta(openTx.type, etCat, amount) - savingsDelta(openTx.type, openTx.category, openTx.amount))
     await reloadTx(userId)
     setOpenTx(null); setTxEditSaving(false); showToast('Movimento atualizado!')
   }
 
   async function removeTxConfirmed() {
-    if (!confirmDeleteTx) return
-    await removeTx(confirmDeleteTx.id)
+    if (!confirmDeleteTx || !userId) return
+    const tx = confirmDeleteTx
+    await removeTx(tx.id)
+    await bumpSavings(userId, -savingsDelta(tx.type, tx.category, tx.amount))
     setConfirmDeleteTx(null)
     setOpenTx(null)
   }
@@ -384,9 +571,60 @@ export default function FinancasPage() {
     setSaving(true)
     const {error} = await saveTransaction({user_id:userId,type:txType,category:finalCat,description:fDesc||null,amount,date:fDate})
     if (error) { showToast('Erro ao guardar.', 'error'); setSaving(false); return }
+    // "Repetir todos os meses": cria também a regra recorrente com o dia do mês
+    // da transação (limitado a 1–28 para existir em qualquer mês).
+    if (fRepeat) {
+      const day = Math.min(28, Math.max(1, Number(fDate.slice(8,10)) || 1))
+      const { error: rErr } = await saveRecurringRule({
+        user_id:userId, type:txType, category:finalCat, description:fDesc||null, amount, day_of_month:day, active:true,
+      })
+      if (rErr) showToast('Movimento guardado, mas não consegui criar a recorrência.', 'error')
+      else await reloadRecurring(userId)
+    }
+    await bumpSavings(userId, savingsDelta(txType, finalCat, amount))
     await reloadTx(userId)
-    setFAmount(''); setFDesc(''); setFCat(''); setFCustomCat(''); setShowForm(false)
-    showToast('Transação adicionada!'); setSaving(false)
+    setFAmount(''); setFDesc(''); setFCat(''); setFCustomCat(''); setFRepeat(false); setShowForm(false)
+    showToast(fRepeat?'Transação e recorrência criadas!':'Transação adicionada!'); setSaving(false)
+  }
+
+  // Lança a transação de uma recorrência pendente, marcada com recurring_id
+  // para não voltar a aparecer este mês. Data = dia agendado no mês corrente.
+  async function postRecurrence(rule: RecurringRule) {
+    if (!userId) return
+    setPostingRuleId(rule.id)
+    const day  = Math.min(daysInMonth, rule.day_of_month)
+    const date = format(new Date(new Date().getFullYear(), new Date().getMonth(), day), 'yyyy-MM-dd')
+    const { error } = await saveTransaction({
+      user_id:userId, type:rule.type, category:rule.category, description:rule.description,
+      amount:rule.amount, date, recurring_id:rule.id,
+    })
+    setPostingRuleId(null)
+    if (error) { showToast('Erro ao lançar. Aplicaste a migração financas_recurring_v1.sql?', 'error'); return }
+    await bumpSavings(userId, savingsDelta(rule.type, rule.category, rule.amount))
+    await reloadTx(userId)
+    showToast(`${rule.category} lançado!`)
+  }
+
+  function persistSkips(next: string[]) {
+    setRecurringSkips(next)
+    if (userId) try { localStorage.setItem(`nexus_recurring_skips_${userId}`, JSON.stringify(next)) } catch {}
+  }
+  function skipRecurrence(rule: RecurringRule) {
+    persistSkips([...recurringSkips, `${rule.id}:${monthKey}`])
+  }
+
+  async function toggleRuleActive(rule: RecurringRule) {
+    if (!userId) return
+    const { error } = await updateRecurringRule(rule.id, { active: !rule.active })
+    if (error) { showToast('Erro ao atualizar.', 'error'); return }
+    await reloadRecurring(userId)
+  }
+  async function deleteRule(rule: RecurringRule) {
+    if (!userId) return
+    const { error } = await deleteRecurringRule(rule.id)
+    if (error) { showToast('Erro ao remover.', 'error'); return }
+    await reloadRecurring(userId)
+    showToast('Recorrência removida.')
   }
 
   async function removeTx(id:string) {
@@ -409,6 +647,33 @@ export default function FinancasPage() {
     const n=parseFloat(val); if (isNaN(n)||n<0) return
     persistBudgets({...budgets,[cat]:n})
     showToast('Orçamento guardado.')
+  }
+
+  // Exporta todo o histórico no mesmo formato que a importação aceita
+  // (data,tipo,categoria,valor,descricao) — os dados nunca ficam presos no app.
+  async function exportCSV() {
+    if (!userId || exporting) return
+    setExporting(true)
+    try {
+      const all = await getAllTransactions(userId) as Pick<Transaction,'date'|'type'|'category'|'amount'|'description'>[]
+      if (all.length === 0) { showToast('Sem movimentos para exportar.', 'error'); return }
+      const esc = (s:string) => /[",;\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s
+      const lines = [
+        'data,tipo,categoria,valor,descricao',
+        ...all.map(t => [t.date, t.type, esc(t.category), String(t.amount), esc(t.description ?? '')].join(',')),
+      ]
+      // BOM para o Excel abrir acentos corretamente.
+      const blob = new Blob(['\uFEFF'+lines.join('\n')], { type:'text/csv;charset=utf-8' })
+      const url  = URL.createObjectURL(blob)
+      const a    = document.createElement('a')
+      a.href = url
+      a.download = `nexus-financas-${format(new Date(),'yyyy-MM-dd')}.csv`
+      a.click()
+      URL.revokeObjectURL(url)
+      showToast(`${all.length} movimentos exportados.`)
+    } finally {
+      setExporting(false)
+    }
   }
 
   function importCSV(e: React.ChangeEvent<HTMLInputElement>) {
@@ -441,6 +706,8 @@ export default function FinancasPage() {
     }))
     const { error } = await saveTransactionsBulk(payloads)
     if (error) { showToast('Erro ao importar transações.', 'error'); setCsvImporting(false); return }
+    const savedSum = csvPreview.reduce((a,t)=>a+savingsDelta(t.type, t.category||'Outro', t.amount),0)
+    await bumpSavings(userId, savedSum)
     await reloadTx(userId)
     showToast(`${csvPreview.length} transações importadas!`)
     setCsvPreview(null)
@@ -483,6 +750,8 @@ export default function FinancasPage() {
     }))
     const { error } = await saveTransactionsBulk(rows)
     if (error) { showToast('Erro ao importar.', 'error'); setCsvImporting(false); return }
+    const savedSum = rows.reduce((a,r)=>a+savingsDelta(r.type, r.category, r.amount),0)
+    await bumpSavings(userId, savedSum)
     await reloadTx(userId)
     setPdfPreview(null)
     setCsvImporting(false)
@@ -600,7 +869,20 @@ export default function FinancasPage() {
       <div style={{padding:'28px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div>
           <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:28,marginBottom:3,color: 'var(--ink)',letterSpacing:'-0.5px'}}>Finanças</h1>
-          <p style={{fontSize:12,color:'var(--text2)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
+          <div style={{display:'flex',alignItems:'center',gap:8}}>
+            <p style={{fontSize:12,color:'var(--text2)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
+            {logStreak.current>0&&(
+              <span
+                title={logStreak.loggedToday?'Registaste hoje — sequência garantida':'Regista um movimento hoje para manter a sequência'}
+                style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:11,fontWeight:800,padding:'3px 8px',borderRadius:20,
+                  background:logStreak.loggedToday?'rgba(245,140,40,0.12)':'rgba(var(--ink-rgb),0.05)',
+                  border:`1px solid ${logStreak.loggedToday?'rgba(245,140,40,0.35)':'rgba(var(--ink-rgb),0.12)'}`,
+                  color:logStreak.loggedToday?'#F58C28':'var(--text2)'}}
+              >
+                🔥 {logStreak.current} dia{logStreak.current!==1?'s':''}{logStreak.loggedToday?'':' · regista hoje'}
+              </span>
+            )}
+          </div>
         </div>
         <div style={{display:'flex',gap:8,position:'relative'}}>
           <button
@@ -626,8 +908,18 @@ export default function FinancasPage() {
               <button onClick={()=>{setMoreOpen(false);csvRef.current?.click()}} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
                 ↑ Importar CSV
               </button>
-              <button onClick={()=>{setMoreOpen(false);pdfRef.current?.click()}} disabled={pdfLoading} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',cursor:'pointer',textAlign:'left'}}>
+              <button onClick={()=>{setMoreOpen(false);pdfRef.current?.click()}} disabled={pdfLoading} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
                 📄 {pdfLoading ? 'A ler PDF…' : 'Importar PDF'}
+              </button>
+              <button onClick={()=>{setMoreOpen(false);setShowRecorrentes(true)}} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
+                🔁 Recorrentes
+              </button>
+              <button onClick={toggleDailyReminder} disabled={reminderBusy} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',borderBottom:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
+                🔔 Lembrete diário
+                <span style={{marginLeft:'auto',fontSize:11,fontWeight:800,color:dailyReminderOn?'#00C896':'var(--text3)'}}>{dailyReminderOn?'às 21:00':'desligado'}</span>
+              </button>
+              <button onClick={()=>{setMoreOpen(false);exportCSV()}} disabled={exporting} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',cursor:'pointer',textAlign:'left'}}>
+                ↓ {exporting ? 'A exportar…' : 'Exportar CSV'}
               </button>
             </div>
           )}
@@ -642,23 +934,99 @@ export default function FinancasPage() {
         style={{display:'block',width:'calc(100% - 40px)',textAlign:'left',cursor:'pointer',fontFamily:'Inter, sans-serif',margin:'14px 20px 0',...darkCardInk,background:'linear-gradient(135deg, #131022 0%, #0E1A26 100%)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:22,padding:18}}
       >
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,212,200,0.85)'}}>💎 Saldo do mês</div>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,212,200,0.85)'}}>💎 Balanço do mês</div>
           <span style={{fontSize:11,fontWeight:700,color:'rgba(0,212,200,0.85)'}}>Movimentos ›</span>
         </div>
         <div style={{fontSize:32,fontWeight:900,letterSpacing:'-1px',color:balance>=0?'#00D4C8':'#E24B4A'}}>{fmt(balance)}</div>
+        <div style={{fontSize:10,color:'rgba(255,255,255,0.55)',fontWeight:600,marginTop:2}}>entradas − gastos de {format(new Date(),'MMMM',{locale:pt})}</div>
+        {hasCarry&&(
+          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,background:'rgba(0,212,200,0.07)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:11,padding:'9px 12px'}}>
+            <span style={{fontSize:14}} aria-hidden>🔁</span>
+            <div style={{fontSize:11.5,fontWeight:600,color:'rgba(255,255,255,0.85)',lineHeight:1.4}}>
+              Começaste {format(new Date(),'MMMM',{locale:pt})} com <b style={{color:carryInVal>=0?'#00D4C8':'#E24B4A'}}>{fmt(carryInVal)}</b> · disponível <b style={{color:available>=0?'#00D4C8':'#E24B4A'}}>{fmt(available)}</b>
+            </div>
+          </div>
+        )}
         <div style={{display:'flex',gap:8,marginTop:12}}>
           <div style={{flex:1,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:12,padding:'9px 10px'}}>
             <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>Entradas</div>
             <div style={{fontSize:14,fontWeight:800,color:'#00C896',marginTop:2}}>+{fmt(totalIn)}</div>
           </div>
           <div style={{flex:1,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:12,padding:'9px 10px'}}>
-            <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>Saídas</div>
+            <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>Gastos</div>
             <div style={{fontSize:14,fontWeight:800,color:'#E24B4A',marginTop:2}}>−{fmt(totalOut)}</div>
+            {spendDeltaPct!==null&&Math.abs(spendDeltaPct)>=5&&(
+              <div style={{fontSize:9,fontWeight:700,marginTop:3,color:spendDeltaPct>0?'#E24B4A':'#00C896'}}>
+                {spendDeltaPct>0?'▲':'▼'} {Math.abs(spendDeltaPct)}% vs. {format(subMonths(new Date(),1),'MMM',{locale:pt})} (ao dia {dayOfMonth})
+              </div>
+            )}
           </div>
+          {savedThisMonth>0&&(
+            <div style={{flex:1,background:'var(--surface-2)',border:'1px solid rgba(0,200,150,0.18)',borderRadius:12,padding:'9px 10px'}}>
+              <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>🏦 Poupado</div>
+              <div style={{fontSize:14,fontWeight:800,color:'#00C896',marginTop:2}}>{fmt(savedThisMonth)}</div>
+              <div style={{fontSize:9,fontWeight:600,marginTop:3,color:'rgba(255,255,255,0.4)'}}>não conta como gasto</div>
+            </div>
+          )}
         </div>
       </button>
 
+      {/* ── Insight do dia: a regra mais relevante de buildInsights ── */}
+      {topInsight&&(() => {
+        const toneStyle = {
+          danger:   { bg:'rgba(226,75,74,0.07)',  border:'rgba(226,75,74,0.28)',  accent:'#E24B4A' },
+          warning:  { bg:'rgba(245,200,66,0.07)', border:'rgba(245,200,66,0.30)', accent:'#F5C842' },
+          positive: { bg:'rgba(0,200,150,0.06)',  border:'rgba(0,200,150,0.25)',  accent:'#00C896' },
+          info:     { bg:'rgba(var(--ink-rgb),0.04)', border:'rgba(var(--ink-rgb),0.12)', accent:'var(--text1)' },
+        }[topInsight.tone]
+        return (
+          <button
+            type="button"
+            onClick={()=>insights.length>1&&setShowInsights(true)}
+            style={{width:'calc(100% - 40px)',textAlign:'left',margin:'12px 20px 0',display:'flex',alignItems:'flex-start',gap:11,background:toneStyle.bg,border:`1px solid ${toneStyle.border}`,borderRadius:16,padding:'12px 14px',fontFamily:'Inter, sans-serif',cursor:insights.length>1?'pointer':'default'}}
+          >
+            <span style={{fontSize:17,lineHeight:'20px'}} aria-hidden>{topInsight.icon}</span>
+            <div style={{flex:1}}>
+              <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:3}}>
+                <span style={{fontSize:10,fontWeight:800,letterSpacing:'0.07em',textTransform:'uppercase',color:toneStyle.accent}}>Insight</span>
+                {insights.length>1&&<span style={{fontSize:11,fontWeight:700,color:toneStyle.accent}}>Ver todos {insights.length} ›</span>}
+              </div>
+              <div style={{fontSize:12.5,fontWeight:600,color:'var(--text1)',lineHeight:1.5}}>{topInsight.text}</div>
+            </div>
+          </button>
+        )
+      })()}
+
       <div style={{padding:'0 20px'}} onClick={()=>moreOpen&&setMoreOpen(false)}>
+        {/* ── Recorrentes por pagar este mês ── */}
+        {pendingRules.length>0&&(
+          <>
+            <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',margin:'20px 0 10px'}}>
+              <span style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text3)'}}>A pagar este mês</span>
+              <button onClick={()=>setShowRecorrentes(true)} style={{background:'none',border:'none',cursor:'pointer',fontSize:11.5,fontWeight:700,color:'#F5C842',fontFamily:'Inter, sans-serif',padding:0}}>Gerir ›</button>
+            </div>
+            <div style={{display:'flex',flexDirection:'column',gap:8}}>
+              {pendingRules.map(rule=>(
+                <div key={rule.id} style={{display:'flex',alignItems:'center',gap:11,background:'var(--surface-2)',border:'1px solid rgba(245,200,66,0.22)',borderRadius:14,padding:'11px 13px'}}>
+                  <div style={{width:36,height:36,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,background:rule.type==='entrada'?'rgba(0,200,150,.10)':'rgba(226,75,74,.10)'}}>
+                    {catEmoji(rule.category)}
+                  </div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>
+                      {rule.category} <span style={{fontWeight:700,color:rule.type==='entrada'?'#00C896':'#E24B4A'}}>{rule.type==='entrada'?'+':'−'}{fmt(rule.amount)}</span>
+                    </div>
+                    <div style={{fontSize:10.5,color:'var(--text2)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                      todo dia {rule.day_of_month}{rule.description?` · ${rule.description}`:''}
+                    </div>
+                  </div>
+                  <button onClick={()=>skipRecurrence(rule)} aria-label={`Saltar ${rule.category} este mês`} style={{flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.12)',background:'transparent',color:'var(--text2)',borderRadius:10,padding:'8px 11px',fontSize:11.5,fontWeight:700,fontFamily:'Inter, sans-serif',cursor:'pointer'}}>Saltar</button>
+                  <button onClick={()=>postRecurrence(rule)} disabled={postingRuleId===rule.id} aria-label={`Registar ${rule.category}`} style={{flexShrink:0,border:'none',background:'linear-gradient(135deg, #F5C842, #E0A82A)',color:'#1A1200',borderRadius:10,padding:'8px 13px',fontSize:11.5,fontWeight:800,fontFamily:'Inter, sans-serif',cursor:'pointer',opacity:postingRuleId===rule.id?0.6:1}}>{postingRuleId===rule.id?'…':'Registar'}</button>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+
         {/* ── Orçamento (resumo) ── */}
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',margin:'20px 0 10px'}}>
           <span style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text3)'}}>Orçamento</span>
@@ -670,15 +1038,20 @@ export default function FinancasPage() {
               <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:9}}>
                 <span style={{fontSize:15}}>📋</span>
                 <span style={{fontSize:13,fontWeight:700,color: 'var(--ink)'}}>{format(new Date(),'MMMM',{locale:pt}).replace(/^./,c=>c.toUpperCase())}</span>
-                <span style={{marginLeft:'auto',fontSize:13,fontWeight:800,color:budgetPct>=100?'#E24B4A':budgetOnPace?'#00C896':'#F5C842'}}>{budgetPct}% usado</span>
+                <span style={{marginLeft:'auto',fontSize:13,fontWeight:800,color:budgetColor}}>{budgetPct}% usado</span>
               </div>
               <div style={{height:7,background:'var(--surface-3)',borderRadius:10,overflow:'hidden'}}>
-                <div style={{height:'100%',borderRadius:10,width:`${Math.min(100,budgetPct)}%`,background:budgetPct>=100?'#E24B4A':budgetOnPace?'#00C896':'#F5C842'}}/>
+                <div style={{height:'100%',borderRadius:10,width:`${Math.min(100,budgetPct)}%`,background:budgetColor}}/>
               </div>
               <div style={{display:'flex',justifyContent:'space-between',fontSize:10.5,color:'var(--text2)',marginTop:6}}>
                 <span>{fmt(totalSpentBudgeted)} de {fmt(totalBudget)}</span>
-                <span style={{color:budgetOnPace?'#00C896':'#F5C842',fontWeight:700}}>{budgetOnPace?'dentro do ritmo':'acima do ritmo'}</span>
+                <span style={{color:'var(--text1)',fontWeight:700}}>restam {fmt(Math.max(0,totalBudget-totalSpentBudgeted))}</span>
               </div>
+              {outsideBudget>0&&(
+                <div style={{fontSize:10.5,fontWeight:700,color:'#F5C842',marginTop:6}}>
+                  +{fmt(outsideBudget)} gastos em categorias sem orçamento
+                </div>
+              )}
               {budgetedCats.some(b=>b.spent>b.budget||b.pct>=85)&&(
                 <div style={{display:'flex',gap:7,marginTop:10,flexWrap:'wrap'}}>
                   {budgetedCats.filter(b=>b.spent>b.budget).slice(0,2).map(b=>(
@@ -747,7 +1120,6 @@ export default function FinancasPage() {
             {savingsGoal>0 ? (() => {
               const cur  = savedThisMonth
               const pct  = Math.min(100,Math.round(cur/savingsGoal*100))
-              const pace = cur >= savingsGoal*(dayOfMonth/daysInMonth)
               const done = cur>=savingsGoal
               return (
                 <>
@@ -758,7 +1130,7 @@ export default function FinancasPage() {
                     <div style={{fontSize:9.5,color:'var(--text2)'}}>{done?'meta atingida 🎉':`faltam ${fmt(savingsGoal-cur)} · ${daysLeft} dias`}</div>
                   </div>
                   <div style={{fontSize:13,fontWeight:800,color: 'var(--ink)'}}>{fmt(cur)} <span style={{color:'var(--text3)',fontSize:10}}>/ {fmt(savingsGoal)}</span></div>
-                  <div style={{fontSize:9.5,fontWeight:700,marginTop:2,color:done||pace?'#00C896':'#F5C842'}}>{done?'✓ atingida':pace?'no ritmo':'abaixo do ritmo'}</div>
+                  {done&&<div style={{fontSize:9.5,fontWeight:700,marginTop:2,color:'#00C896'}}>✓ atingida</div>}
                 </>
               )
             })() : (
@@ -770,6 +1142,64 @@ export default function FinancasPage() {
             )}
           </button>
         </div>
+
+        {/* ── Visão geral: top categorias do mês + 6 meses ── */}
+        {(catBreakdown.total>0||hasHistory)&&(
+          <>
+            <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text3)',margin:'20px 0 10px'}}>Visão geral</div>
+
+            {catBreakdown.total>0&&(
+              <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'13px 15px',marginBottom:9}}>
+                <div style={{fontSize:12.5,fontWeight:700,color:'var(--ink)',marginBottom:11}}>
+                  Para onde foi o dinheiro · {format(new Date(),'MMMM',{locale:pt})}
+                </div>
+                {catBreakdown.rows.map(({cat,v})=>{
+                  const pct = Math.round(v/catBreakdown.total*100)
+                  const other = cat==='Outros'
+                  return (
+                    <div key={cat} style={{marginBottom:9}}>
+                      <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
+                        <span style={{fontSize:11.5,fontWeight:600,color:'var(--text1)'}}>{other?'📦':catEmoji(cat)} {cat}</span>
+                        <span style={{fontSize:11,color:'var(--text2)'}}><b style={{color:'var(--text1)',fontWeight:700}}>{fmt(v)}</b> · {pct}%</span>
+                      </div>
+                      <div style={{height:8,background:'var(--surface-3)',borderRadius:4,overflow:'hidden'}}>
+                        <div style={{height:'100%',borderRadius:4,width:`${Math.max(2,pct)}%`,background:other?'rgba(var(--ink-rgb),0.25)':CHART_CAT}}/>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+
+            {hasHistory&&(
+              <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'13px 15px'}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+                  <span style={{fontSize:12.5,fontWeight:700,color:'var(--ink)'}}>Entradas vs. saídas · 6 meses</span>
+                  <span style={{display:'flex',gap:11,fontSize:10.5,color:'var(--text2)',fontWeight:600}}>
+                    <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:CHART_IN}}/>Entradas</span>
+                    <span style={{display:'flex',alignItems:'center',gap:5}}><span style={{width:8,height:8,borderRadius:4,background:CHART_OUT}}/>Saídas</span>
+                  </span>
+                </div>
+                <div
+                  style={{height:140}}
+                  role="img"
+                  aria-label={`Entradas e saídas dos últimos 6 meses. Mês atual: entradas ${fmt(totalIn)}, saídas ${fmt(totalOut)}.`}
+                >
+                  <ResponsiveContainer width="100%" height={140}>
+                    <BarChart data={monthlyChart} barGap={2}>
+                      <CartesianGrid vertical={false} stroke="rgba(var(--ink-rgb),.05)"/>
+                      <XAxis dataKey="label" tick={{fill:'rgba(var(--ink-rgb),0.35)',fontSize:11}} axisLine={false} tickLine={false}/>
+                      <YAxis hide/>
+                      <Tooltip contentStyle={TT} formatter={(v:number)=>fmt(v)} cursor={{fill:'rgba(var(--ink-rgb),0.04)'}}/>
+                      <Bar dataKey="entradas" name="Entradas" fill={CHART_IN} radius={[4,4,0,0]} maxBarSize={14}/>
+                      <Bar dataKey="saidas" name="Saídas" fill={CHART_OUT} radius={[4,4,0,0]} maxBarSize={14}/>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            )}
+          </>
+        )}
 
         {/* ── Movimentos recentes ── */}
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',margin:'20px 0 10px'}}>
@@ -831,6 +1261,40 @@ export default function FinancasPage() {
             {txQuery && <button onClick={()=>setTxQuery('')} style={{background:'none',border:'none',cursor:'pointer',color:'var(--text2)',fontSize:13,padding:4}}>✕</button>}
           </div>
 
+          {/* Navegação por mês (ou cabeçalho de resultados na pesquisa) */}
+          {searchMode ? (
+            <div style={{display:'flex',alignItems:'center',gap:8,padding:'6px 2px 4px',marginBottom:6}}>
+              <span style={{fontSize:12,fontWeight:700,color:'var(--text2)'}}>
+                {sheetBusy ? 'A pesquisar…' : `${sheetSourceTxs.length} resultado${sheetSourceTxs.length!==1?'s':''} em todo o histórico`}
+              </span>
+            </div>
+          ) : (
+            <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
+              <button
+                onClick={()=>setMonthCursor(d=>startOfMonth(subMonths(d,1)))}
+                aria-label="Mês anterior"
+                style={{width:34,height:34,borderRadius:11,flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.10)',background:'var(--surface-2)',color:'var(--text1)',cursor:'pointer',fontSize:15,fontWeight:700}}
+              >‹</button>
+              <div style={{flex:1,textAlign:'center'}}>
+                <div style={{fontSize:14,fontWeight:800,color:'var(--ink)',letterSpacing:'-0.2px'}}>
+                  {format(monthCursor,'MMMM yyyy',{locale:pt}).replace(/^./,c=>c.toUpperCase())}
+                </div>
+                <div style={{fontSize:10.5,color:'var(--text2)',marginTop:1}}>
+                  {sheetBusy ? 'a carregar…' : (() => {
+                    const net = sheetSourceTxs.reduce((a,t)=>a+(t.type==='entrada'?t.amount:-t.amount),0)
+                    return <>saldo <b style={{color:net>=0?'#00C896':'#E24B4A'}}>{net>=0?'+':'−'}{fmt(Math.abs(net))}</b> · {sheetSourceTxs.length} mov.</>
+                  })()}
+                </div>
+              </div>
+              <button
+                onClick={()=>setMonthCursor(d=>startOfMonth(addMonths(d,1)))}
+                disabled={isCurrentMonthCursor}
+                aria-label="Mês seguinte"
+                style={{width:34,height:34,borderRadius:11,flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.10)',background:'var(--surface-2)',color:'var(--text1)',cursor:isCurrentMonthCursor?'not-allowed':'pointer',opacity:isCurrentMonthCursor?0.35:1,fontSize:15,fontWeight:700}}
+              >›</button>
+            </div>
+          )}
+
           {/* Filtros */}
           <div style={{display:'flex',gap:7,overflowX:'auto',paddingBottom:4,marginBottom:4,scrollbarWidth:'none'}}>
             {([['all','Todas'],['entrada','↓ Entradas'],['saida','↑ Saídas']] as const).map(([k,l])=>(
@@ -866,12 +1330,18 @@ export default function FinancasPage() {
             </div>
           )}
 
-          {/* Vazio */}
-          {filteredTxs.length===0&&(
+          {/* Vazio (só quando não está a carregar) */}
+          {filteredTxs.length===0&&!sheetBusy&&(
             <div style={{textAlign:'center',padding:'40px 0',color:'var(--text2)'}}>
-              <div style={{fontSize:40,marginBottom:12}}>💸</div>
-              <div style={{fontSize:14,marginBottom:6}}>{filterActive?'Nada encontrado com este filtro.':'Sem transações ainda.'}</div>
-              {!filterActive&&<div style={{fontSize:12}}>Clica em + Registar ou importa um CSV.</div>}
+              <div style={{fontSize:40,marginBottom:12}}>{searchMode?'🔍':'💸'}</div>
+              <div style={{fontSize:14,marginBottom:6}}>
+                {searchMode
+                  ? `Nada encontrado para “${txQuery.trim()}”.`
+                  : (txFilter!=='all'||txCat)
+                    ? 'Nada com este filtro neste mês.'
+                    : `Sem movimentos em ${format(monthCursor,'MMMM',{locale:pt})}.`}
+              </div>
+              {!filterActive&&isCurrentMonthCursor&&<div style={{fontSize:12}}>Clica em + Registar ou importa um CSV.</div>}
             </div>
           )}
 
@@ -938,7 +1408,7 @@ export default function FinancasPage() {
                 <div style={{width:92,height:92,position:'relative',flexShrink:0}}>
                   <svg width="92" height="92" viewBox="0 0 92 92" style={{transform:'rotate(-90deg)'}}>
                     <circle cx="46" cy="46" r="38" fill="none" stroke="rgba(0,200,150,0.15)" strokeWidth="8"/>
-                    <circle cx="46" cy="46" r="38" fill="none" stroke={budgetPct>=100?'#E24B4A':budgetPct>monthPct+5?'#F5C842':'#00C896'} strokeWidth="8" strokeLinecap="round"
+                    <circle cx="46" cy="46" r="38" fill="none" stroke={budgetColor} strokeWidth="8" strokeLinecap="round"
                       strokeDasharray={2*Math.PI*38} strokeDashoffset={2*Math.PI*38*(1-budgetPct/100)}/>
                   </svg>
                   <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
@@ -954,8 +1424,7 @@ export default function FinancasPage() {
                     {fmt(totalSpentBudgeted)} <span style={{fontSize:13,fontWeight:600,color:'var(--text2)'}}>de {fmt(totalBudget)}</span>
                   </div>
                   <div style={{fontSize:11.5,color:'var(--text2)',marginTop:5,lineHeight:1.45}}>
-                    Restam <b style={{color: 'var(--ink)'}}>{fmt(Math.max(0,totalBudget-totalSpentBudgeted))}</b> para {daysLeft} dias ·{' '}
-                    <b style={{color:budgetOnPace?'#00C896':'#F5C842'}}>{budgetOnPace?'dentro do ritmo':'acima do ritmo'}</b>
+                    Restam <b style={{color: 'var(--ink)'}}>{fmt(Math.max(0,totalBudget-totalSpentBudgeted))}</b> para {daysLeft} dias.
                   </div>
                 </div>
               </div>
@@ -1147,6 +1616,44 @@ export default function FinancasPage() {
               <input type="date" value={fDate} onChange={e=>setFDate(e.target.value)} style={sheetInp}/>
             </div>
           </div>
+
+          {/* Sugestão de categoria pela descrição (mesma heurística do import) */}
+          {(() => {
+            if (fCat || fDesc.trim().length < 3) return null
+            const s = suggestCategory(fDesc, txType)
+            if (s === 'Outro') return null
+            return (
+              <button onClick={()=>setFCat(s)} style={{
+                display:'flex',alignItems:'center',gap:7,marginTop:12,padding:'9px 13px',
+                borderRadius:11,cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'Inter, sans-serif',
+                background:'rgba(0,200,150,0.08)',border:'1px solid rgba(0,200,150,0.3)',color:'#00C896',
+              }}>
+                💡 Sugestão: {catEmoji(s)} {s}
+              </button>
+            )
+          })()}
+
+          {/* Repetir todos os meses → cria uma regra recorrente */}
+          <button
+            onClick={()=>setFRepeat(v=>!v)}
+            role="switch"
+            aria-checked={fRepeat}
+            style={{
+              display:'flex',alignItems:'center',gap:11,width:'100%',marginTop:16,padding:'12px 14px',
+              borderRadius:13,cursor:'pointer',fontFamily:'Inter, sans-serif',textAlign:'left',
+              background:fRepeat?'rgba(245,200,66,0.08)':'var(--surface-2)',
+              border:`1px solid ${fRepeat?'rgba(245,200,66,0.4)':'rgba(var(--ink-rgb),0.10)'}`,
+            }}
+          >
+            <span style={{fontSize:17}}>🔁</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Repetir todos os meses</div>
+              <div style={{fontSize:11,color:'var(--text2)',marginTop:1}}>Aparece em &quot;a pagar&quot; no dia {Math.min(28,Math.max(1,Number(fDate.slice(8,10))||1))} de cada mês.</div>
+            </div>
+            <span style={{flexShrink:0,width:40,height:23,borderRadius:12,background:fRepeat?'#F5C842':'var(--surface-3)',position:'relative',transition:'background .2s'}}>
+              <span style={{position:'absolute',top:2,left:fRepeat?19:2,width:19,height:19,borderRadius:10,background:'#fff',transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
+            </span>
+          </button>
         </Sheet>
         )
       })()}
@@ -1397,12 +1904,159 @@ export default function FinancasPage() {
             return (
               <div style={{marginTop:10,background:'rgba(0,200,150,0.05)',border:'1px solid rgba(0,200,150,0.15)',borderRadius:13,padding:'11px 13px',fontSize:12,lineHeight:1.55,color:'var(--text1)'}}>
                 <b style={{color:'#00C896'}}>Mentor:</b> {above} dos últimos 6 meses acima da meta.
-                {projection&&<> Ao ritmo atual, a reserva fica completa em <b style={{color:'#00C896'}}>{projection}</b>.</>}
+                {projection&&<> Mantendo esta média, a reserva fica completa em <b style={{color:'#00C896'}}>{projection}</b>.</>}
               </div>
             )
           })()}
         </Sheet>
       )}
+
+      {/* ── Sheet: gestão de recorrentes ── */}
+      {showRecorrentes&&(
+        <Sheet tall icon="🔁" title="Recorrentes" onClose={()=>setShowRecorrentes(false)}>
+          <div style={{paddingTop:10}}>
+            {recurring.length>0 ? (
+              <>
+                {/* Resumo mensal */}
+                <div style={{display:'flex',gap:9,marginBottom:14}}>
+                  <div style={{flex:1,background:'rgba(0,200,150,0.06)',border:'1px solid rgba(0,200,150,0.18)',borderRadius:14,padding:'11px 13px'}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'rgba(0,200,150,0.9)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Entra / mês</div>
+                    <div style={{fontSize:16,fontWeight:800,color:'var(--ink)',marginTop:3}}>+{fmt(recurringInTotal)}</div>
+                  </div>
+                  <div style={{flex:1,background:'rgba(226,75,74,0.06)',border:'1px solid rgba(226,75,74,0.18)',borderRadius:14,padding:'11px 13px'}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'rgba(226,75,74,0.9)',textTransform:'uppercase',letterSpacing:'0.05em'}}>Sai / mês</div>
+                    <div style={{fontSize:16,fontWeight:800,color:'var(--ink)',marginTop:3}}>−{fmt(recurringOutTotal)}</div>
+                  </div>
+                </div>
+
+                {(recurring as RecurringRule[]).map(rule=>(
+                  <div key={rule.id} style={{display:'flex',alignItems:'center',gap:11,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'11px 13px',marginBottom:8,opacity:rule.active?1:0.55}}>
+                    <div style={{width:36,height:36,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,background:rule.type==='entrada'?'rgba(0,200,150,.10)':'rgba(226,75,74,.10)'}}>
+                      {catEmoji(rule.category)}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>
+                        {rule.category} <span style={{color:rule.type==='entrada'?'#00C896':'#E24B4A'}}>{rule.type==='entrada'?'+':'−'}{fmt(rule.amount)}</span>
+                      </div>
+                      <div style={{fontSize:10.5,color:'var(--text2)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                        todo dia {rule.day_of_month}{rule.description?` · ${rule.description}`:''}{rule.active?'':' · pausada'}
+                      </div>
+                    </div>
+                    <button onClick={()=>toggleRuleActive(rule)} aria-label={rule.active?'Pausar':'Retomar'} style={{flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.12)',background:'transparent',color:'var(--text2)',borderRadius:10,padding:'7px 10px',fontSize:11,fontWeight:700,fontFamily:'Inter, sans-serif',cursor:'pointer'}}>{rule.active?'Pausar':'Ativar'}</button>
+                    <button onClick={()=>deleteRule(rule)} aria-label="Remover recorrência" style={{flexShrink:0,border:'1px solid rgba(226,75,74,0.25)',background:'transparent',color:'#E24B4A',borderRadius:10,padding:'7px 9px',fontSize:12,fontWeight:700,fontFamily:'Inter, sans-serif',cursor:'pointer'}}>✕</button>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div style={{textAlign:'center',padding:'34px 10px',color:'var(--text2)'}}>
+                <div style={{fontSize:36,marginBottom:10}}>🔁</div>
+                <div style={{fontSize:14,fontWeight:600,color:'var(--text1)',marginBottom:6}}>Sem recorrentes ainda</div>
+                <div style={{fontSize:12,lineHeight:1.6}}>
+                  Ao registar um movimento (renda, salário, assinatura…), ativa
+                  <b style={{color:'var(--text1)'}}> &quot;Repetir todos os meses&quot;</b> e ele passa a aparecer aqui e em &quot;a pagar&quot;.
+                </div>
+              </div>
+            )}
+          </div>
+        </Sheet>
+      )}
+
+      {/* ── Sheet: feed completo de insights ── */}
+      {showInsights&&(
+        <Sheet tall icon="💡" title="Insights" onClose={()=>setShowInsights(false)}>
+          <div style={{paddingTop:10}}>
+            <p style={{fontSize:12,color:'var(--text2)',lineHeight:1.55,margin:'0 0 14px'}}>
+              Leituras automáticas dos teus movimentos deste mês, das mais urgentes para as informativas.
+            </p>
+            {insights.map(ins=>{
+              const t = {
+                danger:   { bg:'rgba(226,75,74,0.07)',  border:'rgba(226,75,74,0.28)',  accent:'#E24B4A' },
+                warning:  { bg:'rgba(245,200,66,0.07)', border:'rgba(245,200,66,0.30)', accent:'#F5C842' },
+                positive: { bg:'rgba(0,200,150,0.06)',  border:'rgba(0,200,150,0.25)',  accent:'#00C896' },
+                info:     { bg:'rgba(var(--ink-rgb),0.04)', border:'rgba(var(--ink-rgb),0.12)', accent:'var(--text1)' },
+              }[ins.tone]
+              return (
+                <div key={ins.id} style={{display:'flex',alignItems:'flex-start',gap:11,background:t.bg,border:`1px solid ${t.border}`,borderRadius:14,padding:'12px 14px',marginBottom:9}}>
+                  <span style={{fontSize:18,lineHeight:'22px'}} aria-hidden>{ins.icon}</span>
+                  <div style={{fontSize:12.5,fontWeight:600,color:'var(--text1)',lineHeight:1.5,flex:1}}>{ins.text}</div>
+                </div>
+              )
+            })}
+            {insights.length===0&&(
+              <div style={{textAlign:'center',padding:'30px 0',color:'var(--text2)',fontSize:13,lineHeight:1.6}}>
+                Sem insights por agora. Regista mais movimentos e define orçamentos — as leituras aparecem à medida que há dados.
+              </div>
+            )}
+          </div>
+        </Sheet>
+      )}
+
+      {/* ── Sheet: fecho do mês (resumo do mês anterior, 1×/mês) ── */}
+      {monthCloseOpen && (() => {
+        const { cur, before, label } = monthClose
+        const win = monthCloseHeadline(cur, before, fmt)
+        const winBg = win.tone==='positive' ? 'rgba(0,200,150,0.10)' : 'rgba(245,200,66,0.10)'
+        const winBorder = win.tone==='positive' ? 'rgba(0,200,150,0.35)' : 'rgba(245,200,66,0.35)'
+        const winColor = win.tone==='positive' ? '#00C896' : '#F5C842'
+        return (
+          <Sheet icon="📅" title={`Fecho de ${label}`} onClose={dismissMonthClose}
+            footer={
+              <button onClick={dismissMonthClose} style={{width:'100%',border:'none',borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:15,cursor:'pointer',background:'linear-gradient(135deg, #F5C842, #E0A82A)',color:'#1A1200'}}>
+                Começar {format(new Date(),'MMMM',{locale:pt})} ›
+              </button>
+            }>
+            <div style={{paddingTop:8}}>
+              {/* Vitória em destaque */}
+              <div style={{display:'flex',alignItems:'center',gap:12,background:winBg,border:`1px solid ${winBorder}`,borderRadius:18,padding:'16px 16px',marginBottom:14}}>
+                <span style={{fontSize:30,lineHeight:'34px'}} aria-hidden>{win.icon}</span>
+                <div style={{fontSize:15,fontWeight:800,color:winColor,lineHeight:1.35}}>{win.text}</div>
+              </div>
+
+              {/* Balanço grande */}
+              <div style={{textAlign:'center',margin:'6px 0 16px'}}>
+                <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--text3)',marginBottom:4}}>Balanço de {label.split(' ')[0]}</div>
+                <div style={{fontSize:34,fontWeight:900,letterSpacing:'-1px',color:cur.balance>=0?'#00C896':'#E24B4A'}}>{cur.balance>=0?'+':'−'}{fmt(Math.abs(cur.balance))}</div>
+                <div style={{fontSize:11,color:'var(--text2)',marginTop:2}}>entradas − gastos</div>
+              </div>
+
+              {/* Grelha de números */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:9}}>
+                <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'12px 13px'}}>
+                  <div style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>Entradas</div>
+                  <div style={{fontSize:16,fontWeight:800,color:'#00C896',marginTop:2}}>+{fmt(cur.income)}</div>
+                </div>
+                <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'12px 13px'}}>
+                  <div style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>Gastos</div>
+                  <div style={{fontSize:16,fontWeight:800,color:'#E24B4A',marginTop:2}}>−{fmt(cur.spending)}</div>
+                </div>
+                <div style={{background:'var(--surface-2)',border:'1px solid rgba(0,200,150,0.18)',borderRadius:14,padding:'12px 13px'}}>
+                  <div style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>🏦 Poupado</div>
+                  <div style={{fontSize:16,fontWeight:800,color:'#00C896',marginTop:2}}>{fmt(cur.saved)}</div>
+                </div>
+                <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'12px 13px'}}>
+                  <div style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>Maior gasto</div>
+                  {cur.topCat ? (
+                    <div style={{fontSize:13,fontWeight:800,color:'var(--ink)',marginTop:4,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap',overflow:'hidden'}}>
+                      <span>{catEmoji(cur.topCat.cat)}</span>
+                      <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{cur.topCat.cat}</span>
+                    </div>
+                  ) : <div style={{fontSize:13,color:'var(--text3)',marginTop:4}}>—</div>}
+                  {cur.topCat && <div style={{fontSize:11,color:'var(--text2)',marginTop:2}}>{fmt(cur.topCat.amount)}</div>}
+                </div>
+              </div>
+
+              {/* Comparação com o mês anterior */}
+              {(before.spending>0||before.income>0) && (
+                <div style={{marginTop:14,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:13,padding:'12px 14px',fontSize:12,lineHeight:1.6,color:'var(--text1)'}}>
+                  <b style={{color:'var(--ink)'}}>Vs. mês anterior:</b>{' '}
+                  gastos {cur.spending<=before.spending?'▼':'▲'} {fmt(Math.abs(cur.spending-before.spending))} ·{' '}
+                  poupança {cur.saved>=before.saved?'▲':'▼'} {fmt(Math.abs(cur.saved-before.saved))}
+                </div>
+              )}
+            </div>
+          </Sheet>
+        )
+      })()}
 
       <Nav/>
     </main>

@@ -1,6 +1,7 @@
 'use client'
 
 import type { FinancialImportCandidate, FinancialImportPreview, PdfImportResult } from '@/types'
+import { suggestCategory } from '@/lib/categorize'
 
 declare global {
   interface Window {
@@ -163,25 +164,6 @@ function guessType(amount: number | null, text: string): 'entrada' | 'saida' | n
   return amount >= 0 ? 'saida' : 'entrada'
 }
 
-function guessCategory(description: string, type: 'entrada' | 'saida' | null): string {
-  const text = description.toLowerCase()
-  if (type === 'entrada') {
-    if (/(sal[áa]rio|ordenado)/.test(text)) return 'Salário'
-    if (/(freelance|cliente|invoice|fatura)/.test(text)) return 'Freelance'
-    if (/(juros|dividendo|invest)/.test(text)) return 'Investimento'
-    return 'Outro'
-  }
-  if (/(continente|pingo doce|auchan|lidl|mercadona|supermerc)/.test(text)) return 'Alimentação'
-  if (/(uber|bolt|cp|metro|galp|bp|repsol|combust)/.test(text)) return 'Transporte'
-  if (/(farm[aá]cia|hospital|cl[ií]nica|sa[úu]de)/.test(text)) return 'Saúde'
-  if (/(netflix|spotify|disney|prime|assinatura)/.test(text)) return 'Assinaturas'
-  if (/(zara|h&m|bershka|pull&bear|roupa)/.test(text)) return 'Roupa'
-  if (/(fnac|udemy|curso|livro|propina|educa)/.test(text)) return 'Educação'
-  if (/(cinema|restaurante|caf[eé]|bar|lazer)/.test(text)) return 'Lazer'
-  if (/(renda|prest[aã]ção|condom[ií]nio|habita)/.test(text)) return 'Habitação'
-  return 'Outro'
-}
-
 function cleanDescription(line: string, dateMatch: string | null, amountMatch: string | null) {
   let next = line
   if (dateMatch) next = next.replace(dateMatch, ' ')
@@ -224,7 +206,7 @@ export function parseStatementPdf(result: PdfImportResult): FinancialImportPrevi
       description,
       amount: Math.abs(amount),
       type,
-      category: guessCategory(description, type),
+      category: suggestCategory(description, type),
       confidence,
       raw: line,
       selected: confidence !== 'low',
