@@ -12,8 +12,9 @@ export const CAT_COLORS = ['#7F77DD', '#1ECBB4', '#E8A838', '#E24B4A', '#1D9E75'
 
 // Categoria reservada: transferências de/para a poupança. É transferência, não
 // consumo nem rendimento — tratada à parte nas saídas/entradas e no balanço.
-// Saída + Poupança = depositar (soma ao poupado); entrada + Poupança =
-// levantar da poupança (subtrai ao poupado e volta à conta corrente).
+// O tipo lê-se do ponto de vista da poupança: entrada + Poupança = depositar
+// (o poupado sobe; o dinheiro sai da conta corrente); saída + Poupança =
+// levantar (o poupado desce; o dinheiro volta à conta corrente).
 export const SAVINGS_CAT = 'Poupança'
 
 // Sentinela do chip "Personalizar" nos formulários de transação.

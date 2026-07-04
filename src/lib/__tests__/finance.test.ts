@@ -213,13 +213,13 @@ describe('buildMonthSummary', () => {
     { date: '2026-06-02', type: 'entrada', amount: 1200, category: 'Salário' },
     { date: '2026-06-05', type: 'saida',   amount: 400,  category: 'Alimentação' },
     { date: '2026-06-08', type: 'saida',   amount: 150,  category: 'Transporte' },
-    { date: '2026-06-10', type: 'saida',   amount: 200,  category: 'Poupança' },
+    { date: '2026-06-10', type: 'entrada', amount: 200,  category: 'Poupança' },   // depósito na reserva
     { date: '2026-07-01', type: 'saida',   amount: 999,  category: 'Alimentação' }, // fora do intervalo
   ]
   it('separa gasto, poupança e maior categoria; poupança não entra no balanço', () => {
     const s = buildMonthSummary(m, '2026-06-01', '2026-06-30')
-    expect(s.income).toBe(1200)
-    expect(s.spending).toBe(550)          // 400 + 150 (Poupança fora)
+    expect(s.income).toBe(1200)           // o depósito na poupança não é rendimento
+    expect(s.spending).toBe(550)          // 400 + 150
     expect(s.saved).toBe(200)
     expect(s.balance).toBe(650)           // 1200 − 550
     expect(s.topCat).toEqual({ cat: 'Alimentação', amount: 400 })
@@ -227,23 +227,24 @@ describe('buildMonthSummary', () => {
   it('topCat é null sem gastos', () => {
     expect(buildMonthSummary([{ date: '2026-06-01', type: 'entrada', amount: 10, category: 'x' }], '2026-06-01', '2026-06-30').topCat).toBeNull()
   })
-  it('levantamento da poupança (entrada Poupança) subtrai ao poupado e não conta como rendimento', () => {
+  it('levantamento da poupança (saída Poupança) subtrai ao poupado e não conta como gasto', () => {
     const withWithdrawal: FinTx[] = [
       ...m,
-      { date: '2026-06-15', type: 'entrada', amount: 80, category: 'Poupança' },
+      { date: '2026-06-15', type: 'saida', amount: 80, category: 'Poupança' },
     ]
     const s = buildMonthSummary(withWithdrawal, '2026-06-01', '2026-06-30')
-    expect(s.income).toBe(1200)                 // o levantamento não é rendimento
+    expect(s.spending).toBe(550)                // o levantamento não é gasto
     expect(s.saved).toBe(120)                   // 200 depositados − 80 levantados
     expect(s.balance).toBe(650)                 // inalterado: transferências ficam fora
   })
   it('poupança do mês fica negativa quando levanta mais do que deposita', () => {
     const s = buildMonthSummary([
-      { date: '2026-06-10', type: 'saida',   amount: 50,  category: 'Poupança' },
-      { date: '2026-06-20', type: 'entrada', amount: 200, category: 'Poupança' },
+      { date: '2026-06-10', type: 'entrada', amount: 50,  category: 'Poupança' },
+      { date: '2026-06-20', type: 'saida',   amount: 200, category: 'Poupança' },
     ], '2026-06-01', '2026-06-30')
     expect(s.saved).toBe(-150)
     expect(s.income).toBe(0)
+    expect(s.spending).toBe(0)
   })
 })
 
@@ -354,10 +355,10 @@ describe('carryIn', () => {
   const txs: FinTx[] = [
     { date: '2026-06-02', type: 'entrada', amount: 1200, category: 'Salário' },
     { date: '2026-06-05', type: 'saida',   amount: 550,  category: 'Alimentação' },
-    { date: '2026-06-10', type: 'saida',   amount: 200,  category: 'Poupança' },   // conta como saída (saiu da conta)
+    { date: '2026-06-10', type: 'entrada', amount: 200,  category: 'Poupança' },   // depósito: sai da conta corrente
     { date: '2026-07-03', type: 'saida',   amount: 999,  category: 'Alimentação' }, // mês corrente: não conta
   ]
-  it('soma o líquido dos meses anteriores (poupança conta como saída da conta)', () => {
+  it('soma o líquido dos meses anteriores (depositar na poupança tira da conta)', () => {
     // 1200 − 550 − 200 = 450
     expect(carryIn(txs, '2026-07-01')).toBe(450)
   })
@@ -370,7 +371,7 @@ describe('carryIn', () => {
   it('levantar da poupança devolve o dinheiro à conta corrente', () => {
     const withWithdrawal: FinTx[] = [
       ...txs,
-      { date: '2026-06-15', type: 'entrada', amount: 100, category: 'Poupança' },
+      { date: '2026-06-15', type: 'saida', amount: 100, category: 'Poupança' },
     ]
     // 1200 − 550 − 200 + 100 = 550
     expect(carryIn(withWithdrawal, '2026-07-01')).toBe(550)

@@ -139,10 +139,10 @@ export default function QuickAction() {
     const { error } = await saveTransaction({ user_id:userId, type:txType, category:finalCat, description:txDesc.trim()||null, amount, date:txDate })
     if (error) { setTxSaving(false); setToast('Não foi possível guardar a transação.'); return }
     // A reserva segue os movimentos de "Poupança" também no registo rápido:
-    // depositar (saída) soma, levantar (entrada) subtrai — como em /financas.
+    // depositar (entrada) soma, levantar (saída) subtrai — como em /financas.
     if (finalCat === SAVINGS_CAT) {
       const profile = await getProfile(userId)
-      const delta = txType === 'saida' ? amount : -amount
+      const delta = txType === 'entrada' ? amount : -amount
       const next = Math.max(0, Number(profile?.fin_current_savings ?? 0) + delta)
       await updateFinancialGoals(userId, { fin_current_savings: next })
     }

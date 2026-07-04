@@ -210,7 +210,7 @@ export default function FinancasPage() {
   }
 
   // A reserva (fin_current_savings) segue os movimentos de "Poupança":
-  // depositar (saída) soma, levantar (entrada) subtrai; apagar/editar ajusta
+  // depositar (entrada) soma, levantar (saída) subtrai; apagar/editar ajusta
   // pela diferença. Fica sempre corrigível à mão no cartão da reserva.
   async function bumpSavings(uid: string, delta: number) {
     if (!delta) return
@@ -219,17 +219,17 @@ export default function FinancasPage() {
     setProfile(await getProfile(uid))
   }
   const savingsDelta = (type: 'entrada'|'saida', cat: string, amount: number) =>
-    cat === SAVINGS_CAT ? (type === 'saida' ? amount : -amount) : 0
+    cat === SAVINGS_CAT ? (type === 'entrada' ? amount : -amount) : 0
 
   // Métricas do mês atual
   const monthStart = format(startOfMonth(new Date()),'yyyy-MM-dd')
   const monthEnd   = format(endOfMonth(new Date()),'yyyy-MM-dd')
   const thisMonth  = useMemo(()=>txs.filter(t=>t.date>=monthStart&&t.date<=monthEnd),[txs,monthStart,monthEnd])
-  // Entradas = RENDIMENTO real. Uma entrada "Poupança" é um levantamento da
+  // Entradas = RENDIMENTO real. Uma entrada "Poupança" é um depósito na
   // reserva (transferência), não rendimento → fica fora das entradas/balanço.
   const totalIn    = useMemo(()=>thisMonth.filter(t=>t.type==='entrada'&&t.category!==SAVINGS_CAT).reduce((a,t)=>a+t.amount,0),[thisMonth])
-  // Saídas = GASTO real. A categoria "Poupança" é uma transferência (mover
-  // dinheiro para a reserva), não consumo → fica fora das saídas e do balanço.
+  // Saídas = GASTO real. Uma saída "Poupança" é um levantamento da reserva
+  // (transferência), não consumo → fica fora das saídas e do balanço.
   const totalOut   = useMemo(()=>thisMonth.filter(t=>t.type==='saida'&&t.category!==SAVINGS_CAT).reduce((a,t)=>a+t.amount,0),[thisMonth])
   const balance    = totalIn - totalOut
   // Histórico sem as transferências de/para poupança, para os gráficos e médias
@@ -372,12 +372,12 @@ export default function FinancasPage() {
     () => categoryTotals(thisMonth, monthStart, monthEnd),
     [thisMonth, monthStart, monthEnd],
   )
-  // Poupança do mês = líquido dos lançamentos "Poupança": depósitos (saída)
-  // somam, levantamentos (entrada) subtraem. Pode ficar negativa se levantou
+  // Poupança do mês = líquido dos lançamentos "Poupança": depósitos (entrada)
+  // somam, levantamentos (saída) subtraem. Pode ficar negativa se levantou
   // mais do que depositou.
   const savedThisMonth = useMemo(
     () => thisMonth.filter(t=>t.category===SAVINGS_CAT)
-      .reduce((a,t)=>a+(t.type==='saida'?t.amount:-t.amount),0),
+      .reduce((a,t)=>a+(t.type==='entrada'?t.amount:-t.amount),0),
     [thisMonth],
   )
   // Gasto por categoria SEM Poupança — para insights e "para onde foi o dinheiro"
@@ -970,7 +970,7 @@ export default function FinancasPage() {
             <div style={{flex:1,background:'var(--surface-2)',border:`1px solid ${savedThisMonth>0?'rgba(0,200,150,0.18)':'rgba(245,200,66,0.25)'}`,borderRadius:12,padding:'9px 10px'}}>
               <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>🏦 Poupado</div>
               <div style={{fontSize:14,fontWeight:800,color:savedThisMonth>0?'#00C896':'#F5C842',marginTop:2}}>{fmt(savedThisMonth)}</div>
-              <div style={{fontSize:9,fontWeight:600,marginTop:3,color:'rgba(255,255,255,0.4)'}}>{savedThisMonth>0?'não conta como gasto':'levantaste da reserva'}</div>
+              <div style={{fontSize:9,fontWeight:600,marginTop:3,color:'rgba(255,255,255,0.4)'}}>{savedThisMonth>0?'movido para a reserva':'levantaste da reserva'}</div>
             </div>
           )}
         </div>
