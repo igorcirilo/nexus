@@ -9,6 +9,10 @@ function reportErr(ctx: string, msg: string) {
   emitToast(`Erro: ${ctx}`, 'error')
 }
 
+// Chave (localStorage) da dieta selecionada — compartilhada entre a aba Dieta
+// e o Resumo, para que ambos mostrem o mesmo plano.
+export const DIET_PLAN_STORAGE_KEY = 'nexus-corpo-diet-plan'
+
 // ── Training Entries ────────────────────────────────────────
 
 export async function getTrainingEntries(userId: string, date: string) {

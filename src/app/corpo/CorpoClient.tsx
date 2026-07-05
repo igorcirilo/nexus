@@ -95,7 +95,9 @@ export default function CorpoClient({ userId, initialProfile, initialTrainingPla
           <WeightLog
             userId={userId}
             heightCm={profile?.height_cm ?? null}
+            goalWeight={profile?.goal_weight ?? null}
             onHeightSave={cm => setProfile(p => p ? { ...p, height_cm: cm } : p)}
+            onGoalSave={kg => setProfile(p => p ? { ...p, goal_weight: kg } : p)}
           />
         )}
       </div>

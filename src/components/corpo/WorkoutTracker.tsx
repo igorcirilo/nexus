@@ -5,6 +5,7 @@ import FileImportModal from '@/components/FileImportModal'
 import PlanReviewModal from '@/components/PlanReviewModal'
 import PlanSelector from '@/components/corpo/PlanSelector'
 import EmptyState from '@/components/EmptyState'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Icon from '@/components/ui/Icon'
 import { useToast } from '@/components/Toast'
 import { getTrainingPlans, saveTrainingPlan } from '@/lib/supabase'
@@ -68,6 +69,24 @@ function sessionKey(today: string): string {
   return `nexus-corpo-${today}`
 }
 
+// A seleção do treino do dia vive em localStorage (não sessionStorage):
+// num PWA o app é fechado/reaberto no meio do treino e a escolha não pode
+// se perder. A chave é diária; entradas antigas são limpas no BodyHub.
+function readDaySelection(today: string): { planId: string; sectionIdx: number; sectionTitle: string } | null {
+  try {
+    const key = sessionKey(today)
+    let stored = localStorage.getItem(key)
+    if (!stored) {
+      // Migração: seleções feitas antes desta mudança viviam em sessionStorage.
+      stored = sessionStorage.getItem(key)
+      if (stored) localStorage.setItem(key, stored)
+    }
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
+
 // ── Props ──────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -95,6 +114,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
     parsed: ParsedTrainingPlan
   } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [extras, setExtras] = useState<TrainingExercisePlan[]>([])
   const [addingExtra, setAddingExtra] = useState(false)
   const [newExtraName, setNewExtraName] = useState('')
@@ -115,20 +135,11 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   // "Escolher treino"/"Trocar"), para uma experiência mais fluida e menos invasiva.
 
   useEffect(() => {
-    const stored = sessionStorage.getItem(sessionKey(today))
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored) as {
-          planId: string
-          sectionIdx: number
-          sectionTitle: string
-        }
-        setPlanId(parsed.planId)
-        setSectionIdx(parsed.sectionIdx)
-        setSectionTitle(parsed.sectionTitle)
-      } catch {
-        // ignore
-      }
+    const parsed = readDaySelection(today)
+    if (parsed) {
+      setPlanId(parsed.planId)
+      setSectionIdx(parsed.sectionIdx)
+      setSectionTitle(parsed.sectionTitle)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -176,7 +187,11 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
     setSectionIdx(si)
     setSectionTitle(st)
     setShowSelector(false)
-    sessionStorage.setItem(sessionKey(today), JSON.stringify({ planId: pid, sectionIdx: si, sectionTitle: st }))
+    try {
+      localStorage.setItem(sessionKey(today), JSON.stringify({ planId: pid, sectionIdx: si, sectionTitle: st }))
+    } catch {
+      // ignore
+    }
   }
 
   // ── Auto-save (debounced) ────────────────────────────────────────────────────
@@ -223,6 +238,12 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
     if (saves[id]) return saves[id]
     if (prevSaves[id]) return { done: false, sets: prevSaves[id].sets }
     return defaultSave()
+  }
+
+  // Sem registro de hoje, os sets vêm da última sessão (memória). O usuário
+  // precisa conseguir distinguir "já registrei hoje" de "sugestão da última vez".
+  function isInherited(id: string): boolean {
+    return !saves[id] && !!prevSaves[id]
   }
 
   function toggleDone(id: string) {
@@ -339,7 +360,12 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
       setSectionIdx(0)
       setSectionTitle('')
       setSaves({})
-      sessionStorage.removeItem(sessionKey(today))
+      try {
+        localStorage.removeItem(sessionKey(today))
+        sessionStorage.removeItem(sessionKey(today))
+      } catch {
+        // ignore
+      }
     }
   }
 
@@ -456,7 +482,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                     color: 'var(--text3)',
                   }}
                 >
-                  {doneCount}/{totalCount} exercicios
+                  {doneCount}/{totalCount} exercícios
                 </span>
                 {saving && (
                   <span
@@ -466,7 +492,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                       color: 'var(--text3)',
                     }}
                   >
-                    A guardar...
+                    Salvando...
                   </span>
                 )}
               </div>
@@ -497,6 +523,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
               const save = getSave(ex.id)
               const isExpanded = expandedId === ex.id
               const label = setLabel(save)
+              const inherited = isInherited(ex.id)
 
               return (
                 <div
@@ -520,7 +547,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                     {/* Checkbox */}
                     <button
                       onClick={() => toggleDone(ex.id)}
-                      aria-label={save.done ? 'Marcar como nao feito' : 'Marcar como feito'}
+                      aria-label={save.done ? 'Marcar como não feito' : 'Marcar como feito'}
                       style={{
                         width: 22,
                         height: 22,
@@ -564,11 +591,12 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                           style={{
                             fontFamily: 'DM Sans, sans-serif',
                             fontSize: 11,
-                            color: 'var(--teal)',
+                            color: inherited ? 'var(--text3)' : 'var(--teal)',
+                            fontStyle: inherited ? 'italic' : 'normal',
                             margin: '2px 0 0',
                           }}
                         >
-                          {label}
+                          {inherited ? `última sessão · ${label}` : label}
                         </p>
                       ) : ex.detail ? (
                         <p
@@ -615,6 +643,19 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                         gap: 8,
                       }}
                     >
+                      {inherited && (
+                        <p
+                          style={{
+                            fontFamily: 'DM Sans, sans-serif',
+                            fontSize: 11,
+                            color: 'var(--text3)',
+                            fontStyle: 'italic',
+                            margin: 0,
+                          }}
+                        >
+                          Valores da última sessão — edite ou toque em Salvar para registrar hoje.
+                        </p>
+                      )}
                       {save.sets.map((s, si) => (
                         <div
                           key={si}
@@ -633,7 +674,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                               flexShrink: 0,
                             }}
                           >
-                            Serie {si + 1}
+                            Série {si + 1}
                           </span>
                           <input
                             type="number"
@@ -709,7 +750,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                             cursor: 'pointer',
                           }}
                         >
-                          + Serie
+                          + Série
                         </button>
                         <button
                           onClick={() => removeSet(ex.id)}
@@ -726,7 +767,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                             opacity: save.sets.length <= 1 ? 0.5 : 1,
                           }}
                         >
-                          - Serie
+                          - Série
                         </button>
                         <div style={{ flex: 1 }} />
                         <button
@@ -743,7 +784,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                             cursor: 'pointer',
                           }}
                         >
-                          Guardar ✓
+                          Salvar ✓
                         </button>
                       </div>
                     </div>
@@ -757,6 +798,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
               const save = getSave(ex.id)
               const isExpanded = expandedId === ex.id
               const label = setLabel(save)
+              const inherited = isInherited(ex.id)
               return (
                 <div
                   key={ex.id}
@@ -770,7 +812,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px' }}>
                     <button
                       onClick={() => toggleDone(ex.id)}
-                      aria-label={save.done ? 'Marcar como nao feito' : 'Marcar como feito'}
+                      aria-label={save.done ? 'Marcar como não feito' : 'Marcar como feito'}
                       style={{
                         width: 22, height: 22, borderRadius: 6,
                         border: save.done ? 'none' : '2px solid var(--border)',
@@ -793,8 +835,8 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                         {ex.name}
                       </p>
                       {label && (
-                        <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, color: 'var(--teal)', margin: '2px 0 0' }}>
-                          {label}
+                        <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, color: inherited ? 'var(--text3)' : 'var(--teal)', fontStyle: inherited ? 'italic' : 'normal', margin: '2px 0 0' }}>
+                          {inherited ? `última sessão · ${label}` : label}
                         </p>
                       )}
                     </div>
@@ -823,7 +865,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                       {save.sets.map((s, si) => (
                         <div key={si} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text3)', width: 52, flexShrink: 0 }}>
-                            Serie {si + 1}
+                            Série {si + 1}
                           </span>
                           <input type="number" inputMode="decimal" value={s.weight}
                             onChange={e => updateSet(ex.id, si, 'weight', e.target.value)}
@@ -840,14 +882,14 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                       ))}
                       <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
                         <button onClick={() => addSet(ex.id)} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
-                          + Serie
+                          + Série
                         </button>
                         <button onClick={() => removeSet(ex.id)} disabled={save.sets.length <= 1} style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: save.sets.length <= 1 ? 'var(--text3)' : 'var(--text2)', cursor: save.sets.length <= 1 ? 'not-allowed' : 'pointer', opacity: save.sets.length <= 1 ? 0.5 : 1 }}>
-                          - Serie
+                          - Série
                         </button>
                         <div style={{ flex: 1 }} />
                         <button onClick={() => collapseAndSave(ex.id)} style={{ background: 'var(--gold)', border: 'none', borderRadius: 8, padding: '7px 16px', fontFamily: 'Syne, sans-serif', fontSize: 13, fontWeight: 700, color: '#111', cursor: 'pointer' }}>
-                          Guardar ✓
+                          Salvar ✓
                         </button>
                       </div>
                     </div>
@@ -959,7 +1001,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                   {plan.title}
                 </p>
                 <button
-                  onClick={() => handleDeletePlan(plan.id)}
+                  onClick={() => setConfirmDeleteId(plan.id)}
                   aria-label="Remover plano"
                   style={{
                     background: 'none',
@@ -1036,6 +1078,18 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
           onCancel={() => setImportReview(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Excluir plano de treino?"
+        body={`"${plans.find(p => p.id === confirmDeleteId)?.title ?? 'Plano'}" e o vínculo com os treinos do dia serão removidos. Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir plano"
+        onConfirm={() => {
+          if (confirmDeleteId) handleDeletePlan(confirmDeleteId)
+          setConfirmDeleteId(null)
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   )
 }

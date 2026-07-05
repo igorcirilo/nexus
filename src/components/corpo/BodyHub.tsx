@@ -7,7 +7,7 @@ import { format, getISOWeek, subDays } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import { parseLocalDate } from '@/lib/date'
 import { getProfile } from '@/lib/supabase'
-import { getTrainingEntries, getDietMeals, getWeightLogs, type WeightLog } from '@/lib/body'
+import { getTrainingEntries, getDietMeals, getWeightLogs, DIET_PLAN_STORAGE_KEY, type WeightLog } from '@/lib/body'
 import {
   summarizeDietDay,
   type ParsedTrainingPlan,
@@ -72,10 +72,30 @@ function parseExercisesDone(notes: string | null | undefined): Record<string, bo
 }
 function readSession(today: string): { planId: string; sectionIdx: number; sectionTitle: string } | null {
   try {
-    const stored = sessionStorage.getItem(`nexus-corpo-${today}`)
+    // localStorage primeiro (persistência entre reaberturas do PWA); fallback
+    // ao sessionStorage para seleções feitas antes da migração.
+    const stored =
+      localStorage.getItem(`nexus-corpo-${today}`) ?? sessionStorage.getItem(`nexus-corpo-${today}`)
     return stored ? JSON.parse(stored) : null
   } catch {
     return null
+  }
+}
+
+// Remove chaves diárias antigas (seleção de treino e água) para o
+// localStorage não acumular uma entrada por dia indefinidamente.
+function cleanupOldDailyKeys(today: string) {
+  try {
+    const pattern = /^nexus-corpo-(water-)?(\d{4}-\d{2}-\d{2})$/
+    const stale: string[] = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      const match = key?.match(pattern)
+      if (match && match[2] < today) stale.push(key as string)
+    }
+    stale.forEach((key) => localStorage.removeItem(key))
+  } catch {
+    /* ignore */
   }
 }
 
@@ -94,8 +114,20 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
   const [workout, setWorkout] = useState<WorkoutSummary | null>(null)
   const [dietMeals, setDietMeals] = useState<DietMeal[] | null>(null)
   const [waterFilled, setWaterFilled] = useState(0)
+  const [selectedDietPlanId, setSelectedDietPlanId] = useState<string | null>(null)
 
-  const selectedDietPlan = dietPlans[0] ?? null
+  // Mesmo plano selecionado na aba Dieta — os macros do Resumo e da aba
+  // precisam bater. (Lido em efeito: localStorage não existe no SSR.)
+  useEffect(() => {
+    try {
+      setSelectedDietPlanId(localStorage.getItem(DIET_PLAN_STORAGE_KEY))
+    } catch {
+      /* ignore */
+    }
+    cleanupOldDailyKeys(today)
+  }, [today])
+
+  const selectedDietPlan = dietPlans.find((p) => p.id === selectedDietPlanId) ?? dietPlans[0] ?? null
   const dietParsed = getDietParsed(selectedDietPlan)
 
   // weights + profile
@@ -200,9 +232,8 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
   const chartMin = chartWeights.length ? Math.min(...chartWeights) : 0
   const chartMax = chartWeights.length ? Math.max(...chartWeights) : 1
   const chartRange = chartMax - chartMin || 1
-  const bars = chartWeights.length
-    ? chartWeights.map((w) => 35 + ((w - chartMin) / chartRange) * 60)
-    : [40, 55, 48, 70, 60, 75, 65]
+  // Sem dados não há barras "de exemplo" — dado falso mina a confiança.
+  const bars = chartWeights.map((w) => 35 + ((w - chartMin) / chartRange) * 60)
 
   // água
   const waterGoalL = (profile?.water_goal_ml ?? 3000) / 1000
@@ -278,7 +309,9 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
             <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-1.5px', lineHeight: 1 }}>
               {latest ? fmt1(Number(latest.weight_kg)) : '--'}
             </div>
-            <div style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500, marginTop: 2 }}>kg · Peso atual</div>
+            <div style={{ fontSize: 14, color: 'var(--text2)', fontWeight: 500, marginTop: 2 }}>
+              {latest ? 'kg · Peso atual' : 'Toque para registrar seu primeiro peso'}
+            </div>
             {monthDelta !== null && (
               <div
                 style={{
@@ -306,22 +339,39 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <HeroStat value={imc ? fmt1(imc) : '--'} label={imc ? `IMC · ${imcFaixa(imc)}` : 'IMC'} />
-            <HeroStat value={goalWeight ? `${fmt1(Number(goalWeight))} kg` : '--'} label="Meta" />
+            <HeroStat value={goalWeight ? `${fmt1(Number(goalWeight))} kg` : '--'} label={goalWeight ? 'Meta' : 'Definir meta'} />
           </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 32, position: 'relative' }}>
-          {bars.map((h, i) => (
-            <div
-              key={i}
-              style={{
-                flex: 1,
-                height: `${h}%`,
-                borderRadius: '3px 3px 0 0',
-                background: i === bars.length - 1 ? '#00C896' : 'rgba(0,200,150,0.2)',
-              }}
-            />
-          ))}
-        </div>
+        {bars.length > 0 ? (
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 32, position: 'relative' }}>
+            {bars.map((h, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  height: `${h}%`,
+                  borderRadius: '3px 3px 0 0',
+                  background: i === bars.length - 1 ? '#00C896' : 'rgba(0,200,150,0.2)',
+                }}
+              />
+            ))}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 4, height: 32, position: 'relative' }}>
+            {Array.from({ length: 7 }).map((_, i) => (
+              <div
+                key={i}
+                style={{
+                  flex: 1,
+                  height: '38%',
+                  borderRadius: '3px 3px 0 0',
+                  border: '1px dashed rgba(0,200,150,0.35)',
+                  background: 'transparent',
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Treino */}
@@ -407,7 +457,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
             <div>
               <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>Nenhum treino selecionado</div>
-              <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>Escolhe o treino de hoje</div>
+              <div style={{ fontSize: 13, color: 'var(--text2)', marginTop: 2 }}>Escolha o treino de hoje</div>
             </div>
             <div
               style={{
@@ -479,7 +529,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
         >
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Sem plano alimentar</div>
-            <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>Importa um plano para acompanhar</div>
+            <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>Importe um plano para acompanhar</div>
           </div>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6" />
