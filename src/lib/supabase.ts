@@ -426,6 +426,25 @@ export async function searchTransactions(userId: string, query: string) {
   return data ?? []
 }
 
+// Líquido de TODA a história da categoria "Poupança": depósitos (entrada) −
+// levantamentos (saída). É a componente transacional da reserva de emergência;
+// a reserva mostrada = profiles.fin_savings_base + este líquido, e por isso
+// nunca diverge dos movimentos (migration financas_reserva_v1.sql).
+export async function getSavingsNet(userId: string, savingsCat = 'Poupança') {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('type, amount')
+    .eq('user_id', userId)
+    .eq('category', savingsCat)
+
+  if (error) {
+    reportError('getSavingsNet error', error.message)
+    return 0
+  }
+  return ((data ?? []) as { type: string; amount: number }[])
+    .reduce((a, t) => a + (t.type === 'entrada' ? Number(t.amount) : -Number(t.amount)), 0)
+}
+
 // Todas as transações do utilizador (sem filtro de data) — usado na exportação CSV.
 export async function getAllTransactions(userId: string) {
   const { data, error } = await supabase
@@ -529,7 +548,14 @@ export async function deleteRecurringRule(id: string) {
 
 export async function updateFinancialGoals(
   userId: string,
-  goals: { fin_monthly_save?: number; fin_reserve_goal?: number; fin_current_savings?: number }
+  goals: {
+    fin_monthly_save?: number
+    fin_reserve_goal?: number
+    /** Legada — a reserva passou a derivar de fin_savings_base + movimentos. */
+    fin_current_savings?: number
+    /** Poupança fora do histórico (saldo inicial + ajustes manuais). */
+    fin_savings_base?: number
+  }
 ) {
   return supabase.from('profiles').update(goals).eq('id', userId)
 }

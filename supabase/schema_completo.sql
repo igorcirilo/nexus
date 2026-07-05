@@ -36,7 +36,11 @@ create table if not exists public.profiles (
   mission_today text,
   energy_today integer default 5,
   onboarded boolean default false,
-  fin_current_savings numeric(12,2) default 0,
+  fin_current_savings numeric(12,2) default 0, -- legada: a reserva passou a ser derivada (ver fin_savings_base)
+  -- Poupança fora do histórico registado (saldo inicial + ajustes manuais).
+  -- Reserva mostrada = fin_savings_base + Σ líquido das transações "Poupança"
+  -- (migration financas_reserva_v1.sql).
+  fin_savings_base numeric(12,2) default 0,
   fin_monthly_save numeric(10,2),
   fin_reserve_goal numeric(10,2),
   last_login_bonus date,

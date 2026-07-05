@@ -21,7 +21,8 @@ const profile = {
   fin_budgets: { Lazer: 100 },
   fin_monthly_save: null,
   fin_reserve_goal: null,
-  fin_current_savings: null,
+  fin_current_savings: null, // legada — a reserva deriva de fin_savings_base + movimentos
+  fin_savings_base: 0,
 }
 
 // "Hoje" fixo a 15-07-2026 (só o Date é falsificado; timers/promises reais).
@@ -41,6 +42,7 @@ const history = [
   { date: '2026-06-10', type: 'saida',   amount: 200,  category: 'Alimentação' },
   { date: '2026-06-01', type: 'entrada', amount: 1000, category: 'Salário' },
   { date: '2026-07-01', type: 'entrada', amount: 1000, category: 'Salário' },
+  { date: '2026-07-08', type: 'entrada', amount: 150,  category: 'Poupança' },
   { date: '2026-07-10', type: 'saida',   amount: 300,  category: 'Alimentação' },
   { date: '2026-07-12', type: 'saida',   amount: 90,   category: 'Lazer' },
 ]
@@ -67,6 +69,8 @@ vi.mock('@/lib/supabase', () => ({
   getProfile: vi.fn(async () => profile),
   getTransactions: vi.fn(async () => txsRecentes),
   getTransactionsByMonth: vi.fn(async () => history),
+  // Líquido all-time de "Poupança": coerente com o depósito t5 (150).
+  getSavingsNet: vi.fn(async () => 150),
   getAllTransactions: vi.fn(async () => txsRecentes),
   saveTransaction: vi.fn(async () => ({ data: null, error: null })),
   saveTransactionsBulk: vi.fn(async () => ({ data: [], error: null })),
@@ -99,6 +103,9 @@ async function renderPage() {
 
 describe('FinancasPage', () => {
   beforeEach(() => {
+    // Limpa o histórico de chamadas (mantém implementações): há testes que
+    // afirmam que certos escritores NÃO foram chamados (reserva derivada).
+    vi.clearAllMocks()
     vi.useFakeTimers({ toFake: ['Date'], now: TODAY })
     localStorage.clear()
     // Marca o fecho de junho como já visto, para não abrir sozinho nos testes
@@ -223,36 +230,65 @@ describe('FinancasPage', () => {
     expect(screen.getByText('150,00 €')).toBeDefined()
     // se contasse o depósito como entrada seriam 1150 — não deve aparecer
     expect(screen.queryByText(/1\s?150,00/)).toBeNull()
+    // na lista de movimentos, o depósito é rotulado como transferência interna
+    expect(screen.getByText(/depósito na reserva/)).toBeDefined()
   })
 
-  it('registar depósito (entrada Poupança) soma à reserva (fin_current_savings)', async () => {
-    const { updateFinancialGoals } = await import('@/lib/supabase')
+  it('o insight de poupança compara o poupado (transferências), não o balanço', async () => {
     await renderPage()
-    fireEvent.click(screen.getByLabelText('Registar movimento'))
-    fireEvent.click(screen.getByText('↓ Entrada'))
-    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '200' } })
-    fireEvent.click(screen.getByRole('button', { name: '🏦 Poupança' }))
-    fireEvent.click(screen.getByText('Guardar movimento'))
-    // reserva base 0 (profile.fin_current_savings null) + 200 = 200
-    await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 200 }))
+    fireEvent.click(await screen.findByText(/Ver todos \d+ ›/))
+    // poupado em julho = 150 (depósito t5); junho não tem depósitos (0).
+    // Se usasse o balanço seria "poupaste 610" vs. 800 de junho → sem insight.
+    expect(await screen.findByText(/Já poupaste 150,00 € este mês/)).toBeDefined()
   })
 
-  it('registar levantamento (saída Poupança) subtrai à reserva', async () => {
-    const { getProfile, updateFinancialGoals } = await import('@/lib/supabase')
-    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_current_savings: 500 })
+  it('o histórico de poupança mede o poupado por mês, não o que sobrou', async () => {
+    const { getProfile } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_monthly_save: 100 })
     await renderPage()
-    fireEvent.click(screen.getByLabelText('Registar movimento'))
-    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '200' } })
-    fireEvent.click(screen.getByRole('button', { name: '🏦 Poupança' }))
-    fireEvent.click(screen.getByText('Guardar movimento'))
-    // reserva 500 − 200 = 300 (tipo por omissão do formulário é saída)
-    await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 300 }))
+    fireEvent.click(screen.getByText(/💰 Poupança ·/))
+    expect(await screen.findByText('Poupança mensal')).toBeDefined()
+    // Só julho tem depósitos (150 ≥ meta 100). Com o "que sobrou" contaria
+    // também junho (800) e julho (610) → 2 meses.
+    expect(screen.getByText(/1 dos últimos 6 meses acima da meta/)).toBeDefined()
     ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
   })
 
-  it('trocar o tipo na edição converte depósito em levantamento e ajusta a reserva', async () => {
-    const { getProfile, updateTransaction, updateFinancialGoals } = await import('@/lib/supabase')
-    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_current_savings: 500 })
+  it('não sugere orçamento para Poupança (levantar da reserva não é gasto)', async () => {
+    const { getProfile, getTransactionsByMonth } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_budgets: {} })
+    ;(getTransactionsByMonth as ReturnType<typeof vi.fn>).mockResolvedValue([
+      ...history,
+      { date: '2026-05-20', type: 'saida', amount: 100, category: 'Poupança' },
+    ])
+    await renderPage()
+    fireEvent.click(screen.getByText('Definir orçamentos'))
+    // Só Alimentação tem média nos 3 meses anteriores; se o levantamento de
+    // Poupança contasse como gasto, apareceriam 2 sugestões.
+    expect(await screen.findByText('Aplicar todos (1)')).toBeDefined()
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+    ;(getTransactionsByMonth as ReturnType<typeof vi.fn>).mockResolvedValue(history)
+  })
+
+  it('reserva deriva da poupança: depósito entra E levantamento sai (simétrico)', async () => {
+    const { getProfile, getSavingsNet, updateFinancialGoals } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_reserve_goal: 1000, fin_savings_base: 350 })
+    // load: líquido 150 → reserva 350+150=500; após o levantamento de 200: −50 → 300.
+    ;(getSavingsNet as ReturnType<typeof vi.fn>).mockResolvedValueOnce(150).mockResolvedValueOnce(-50)
+    await renderPage()
+    expect(screen.getByText('500,00 €')).toBeDefined()
+    fireEvent.click(screen.getByLabelText('Registar movimento'))
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '200' } })
+    fireEvent.click(screen.getByRole('button', { name: '🏦 Poupança' }))
+    fireEvent.click(screen.getByText('Guardar movimento'))
+    // a reserva reflete o novo líquido sem escrever nada no perfil
+    expect(await screen.findByText('300,00 €')).toBeDefined()
+    expect(updateFinancialGoals).not.toHaveBeenCalled()
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+  })
+
+  it('editar/apagar movimentos não escreve a reserva — ela é recalculada dos movimentos', async () => {
+    const { updateTransaction, updateFinancialGoals, getSavingsNet } = await import('@/lib/supabase')
     await renderPage()
     // abre o depósito recente de Poupança (t5: entrada, 150) e troca para saída
     fireEvent.click(screen.getByText('Poupança'))
@@ -260,8 +296,29 @@ describe('FinancasPage', () => {
     fireEvent.click(screen.getByText('Guardar alterações'))
     await waitFor(() => expect(updateTransaction).toHaveBeenCalled())
     expect((updateTransaction as ReturnType<typeof vi.fn>).mock.calls.at(-1)![1]).toMatchObject({ type: 'saida', category: 'Poupança', amount: 150 })
-    // reserva: 500 + (−150 levantamento) − (+150 depósito original) = 200
-    await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_current_savings: 200 }))
+    // o líquido é refetchado (reload) e o perfil nunca é tocado
+    await waitFor(() => expect((getSavingsNet as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(1))
+    expect(updateFinancialGoals).not.toHaveBeenCalled()
+  })
+
+  it('editar a reserva à mão ajusta a base (valor − movimentos), com rastreabilidade', async () => {
+    const { getProfile, updateFinancialGoals } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_reserve_goal: 1000, fin_savings_base: 350 })
+    await renderPage()
+    fireEvent.click(screen.getByText(/🛡️ Reserva/))
+    expect(await screen.findByText('Reserva de emergência')).toBeDefined()
+    fireEvent.change(screen.getByPlaceholderText('Ex: 1200'), { target: { value: '300' } })
+    fireEvent.click(screen.getByText('Guardar meta'))
+    // total desejado 300 − líquido dos movimentos 150 = base 150
+    await waitFor(() => expect(updateFinancialGoals).toHaveBeenCalledWith('u1', { fin_reserve_goal: 1000, fin_savings_base: 150 }))
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+  })
+
+  it('sem a migração (fin_savings_base ausente) mostra o valor legado da reserva', async () => {
+    const { getProfile } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_savings_base: null, fin_current_savings: 777, fin_reserve_goal: 1000 })
+    await renderPage()
+    expect(screen.getByText('777,00 €')).toBeDefined()
     ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
   })
 

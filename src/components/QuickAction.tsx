@@ -3,9 +3,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { createHabitQuick, getProfile, saveFocusSession, saveTransaction, supabase, updateFinancialGoals } from '@/lib/supabase'
+import { createHabitQuick, saveFocusSession, saveTransaction, supabase } from '@/lib/supabase'
 import type { HabitArea } from '@/types'
-import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY, SAVINGS_CAT } from '@/lib/categories'
+import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY } from '@/lib/categories'
 
 const HABIT_AREAS: Array<{ key: HabitArea; label: string; icon: string; color: string }> = [
   { key: 'corpo',           label: 'Corpo',         icon: '💪', color: '#1ECBB4' },
@@ -138,14 +138,8 @@ export default function QuickAction() {
     setTxSaving(true)
     const { error } = await saveTransaction({ user_id:userId, type:txType, category:finalCat, description:txDesc.trim()||null, amount, date:txDate })
     if (error) { setTxSaving(false); setToast('Não foi possível guardar a transação.'); return }
-    // A reserva segue os movimentos de "Poupança" também no registo rápido:
-    // depositar (entrada) soma, levantar (saída) subtrai — como em /financas.
-    if (finalCat === SAVINGS_CAT) {
-      const profile = await getProfile(userId)
-      const delta = txType === 'entrada' ? amount : -amount
-      const next = Math.max(0, Number(profile?.fin_current_savings ?? 0) + delta)
-      await updateFinancialGoals(userId, { fin_current_savings: next })
-    }
+    // Movimentos de "Poupança" não precisam de escrita extra: a reserva é
+    // derivada dos próprios movimentos em /financas (base + líquido).
     setTxSaving(false)
     resetTxForm(); setShowTransaction(false); setToast('Transação guardada.')
     router.push('/financas')

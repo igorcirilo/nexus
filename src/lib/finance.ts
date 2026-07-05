@@ -353,9 +353,10 @@ export interface InsightInput {
   /** Média mensal de gasto por categoria nos últimos 3 meses completos. */
   catAvg3m: Record<string, number>
   budgets: Record<string, number>
-  /** Poupança líquida (entradas−saídas) do mês anterior completo. */
+  /** Poupança líquida do mês anterior completo: depósitos − levantamentos na
+   *  categoria de poupança (a mesma medida do cartão "Poupado"). */
   savingsPrevMonth: number
-  /** Poupança líquida do mês corrente até agora. */
+  /** Poupança líquida do mês corrente até agora (mesma medida). */
   savingsThisMonth: number
   /** Dias desde o último movimento registado (null = sem movimentos). */
   daysSinceLastTx: number | null

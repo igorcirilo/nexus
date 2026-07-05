@@ -10,6 +10,7 @@ import Nav from '@/components/Nav'
 import {
   requireUser, getProfile, getTransactions,
   getTransactionsByMonth, getAllTransactions, getTransactionsForMonth, searchTransactions,
+  getSavingsNet,
   saveTransaction, updateTransaction,
   saveTransactionsBulk, deleteTransaction, updateFinancialGoals, updateBudgets,
   getRecurringRules, saveRecurringRule, updateRecurringRule, deleteRecurringRule,
@@ -49,6 +50,16 @@ const LOG_REMINDER_TYPE = 'financas'
 const LOG_REMINDER_TIME = '21:00'
 const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
 
+// Movimentos de "Poupança" são transferências internas (conta corrente ↔
+// reserva), não receita/despesa — nas listas ganham cor própria e legenda,
+// para não se lerem como ganho ou gasto.
+const txAmountColor = (t:{type:'entrada'|'saida';category:string}) =>
+  t.category===SAVINGS_CAT ? '#F5C842' : t.type==='entrada' ? '#00C896' : '#E24B4A'
+const txIconBg = (t:{type:'entrada'|'saida';category:string}) =>
+  t.category===SAVINGS_CAT ? 'rgba(245,200,66,.10)' : t.type==='entrada' ? 'rgba(0,200,150,.10)' : 'rgba(226,75,74,.10)'
+const transferLabel = (t:{type:'entrada'|'saida';category:string}) =>
+  t.category===SAVINGS_CAT ? (t.type==='entrada' ? 'depósito na reserva' : 'levantamento da reserva') : null
+
 function dayLabel(date:string) {
   const today = format(new Date(),'yyyy-MM-dd')
   const yest  = format(subDays(new Date(),1),'yyyy-MM-dd')
@@ -81,6 +92,9 @@ export default function FinancasPage() {
   const [profile,    setProfile]   = useState<Profile|null>(null)
   const [txs,        setTxs]       = useState<Transaction[]>([])
   const [history,    setHistory]   = useState<Transaction[]>([])
+  // Líquido de toda a história de "Poupança" (depósitos − levantamentos).
+  // A reserva mostrada deriva daqui: fin_savings_base + savingsNet.
+  const [savingsNet, setSavingsNet] = useState(0)
   const [userId,     setUserId]    = useState<string|null>(null)
   const [moreOpen,   setMoreOpen] = useState(false)
   const [showMovimentos, setShowMovimentos] = useState(false)
@@ -153,16 +167,18 @@ export default function FinancasPage() {
     requireUser().then(async (user) => {
       if (!user) return
       setUserId(user.id)
-      const [prof, recent, hist, rules, reminders] = await Promise.all([
+      const [prof, recent, hist, savNet, rules, reminders] = await Promise.all([
         getProfile(user.id),
         getTransactions(user.id, 2),
         getTransactionsByMonth(user.id, 6),
+        getSavingsNet(user.id),
         getRecurringRules(user.id),
         getReminders(user.id),
       ])
       setProfile(prof)
       setTxs(recent as Transaction[])
       setHistory(hist as Transaction[])
+      setSavingsNet(savNet)
       setRecurring(rules as RecurringRule[])
       setLogReminderIds((reminders as { id:string; type:string }[]).filter(r => r.type===LOG_REMINDER_TYPE).map(r => r.id))
       // Recorrências saltadas neste mês vivem só no dispositivo (não é dado
@@ -195,13 +211,20 @@ export default function FinancasPage() {
     })
   }, [])
 
-  // Recarrega movimentos recentes (2m) + histórico (6m) após cada mutação.
-  // Fonte única: garante que tanto as listas como os gráficos de 6 meses ficam
-  // consistentes (o `history` não traz `id`, por isso não dá para filtrar local).
+  // Recarrega movimentos recentes (2m) + histórico (6m) + líquido da poupança
+  // após cada mutação. Fonte única: garante que listas, gráficos e reserva
+  // ficam consistentes (o `history` não traz `id`, por isso não dá para
+  // filtrar local). A reserva NÃO é escrita aqui — deriva de savingsNet, por
+  // isso adicionar/editar/apagar/importar refletem-se nela automaticamente.
   async function reloadTx(uid: string) {
-    const [r, h] = await Promise.all([getTransactions(uid, 2), getTransactionsByMonth(uid, 6)])
+    const [r, h, s] = await Promise.all([
+      getTransactions(uid, 2),
+      getTransactionsByMonth(uid, 6),
+      getSavingsNet(uid),
+    ])
     setTxs(r as Transaction[])
     setHistory(h as Transaction[])
+    setSavingsNet(s)
     // Invalida as caches do sheet de movimentos para refletir a mutação.
     setMonthCache({})
     setSearchResults(null)
@@ -209,18 +232,6 @@ export default function FinancasPage() {
   async function reloadRecurring(uid: string) {
     setRecurring(await getRecurringRules(uid) as RecurringRule[])
   }
-
-  // A reserva (fin_current_savings) segue os movimentos de "Poupança":
-  // depositar (entrada) soma, levantar (saída) subtrai; apagar/editar ajusta
-  // pela diferença. Fica sempre corrigível à mão no cartão da reserva.
-  async function bumpSavings(uid: string, delta: number) {
-    if (!delta) return
-    const next = Math.max(0, (profile?.fin_current_savings ?? 0) + delta)
-    await updateFinancialGoals(uid, { fin_current_savings: next })
-    setProfile(await getProfile(uid))
-  }
-  const savingsDelta = (type: 'entrada'|'saida', cat: string, amount: number) =>
-    cat === SAVINGS_CAT ? (type === 'entrada' ? amount : -amount) : 0
 
   // Métricas do mês atual
   const monthStart = format(startOfMonth(new Date()),'yyyy-MM-dd')
@@ -255,14 +266,22 @@ export default function FinancasPage() {
     () => [...CATEGORIES_OUT.filter(c => c !== 'Outro'), ...customOutCats, 'Outro'],
     [customOutCats],
   )
+  // Categorias orçamentáveis: as de saída SEM "Poupança" — um levantamento da
+  // reserva é transferência, não consumo, por isso não entra no gauge, nas
+  // sugestões nem nas médias do orçamento.
+  const BUDGET_CATS = useMemo(() => OUT_CATS.filter(c => c !== SAVINGS_CAT), [OUT_CATS])
 
-  // Gráfico 6 meses
+  // Gráfico 6 meses. `poupanca` = o que sobrou (entradas − saídas, sem
+  // transferências); `poupado` = líquido movido para a reserva (depósitos −
+  // levantamentos de "Poupança") — a mesma definição do cartão "Poupado" e da
+  // meta mensal, para todos os sítios que falam de "poupar" baterem certo.
   const monthlyChart = useMemo(()=>{
     const months = Array.from({length:6},(_,i)=>subMonths(new Date(),5-i))
     const ranges = months.map(d=>({start:format(startOfMonth(d),'yyyy-MM-dd'),end:format(endOfMonth(d),'yyyy-MM-dd')}))
     const series = monthlySavings(historyNoSavings, ranges)
-    return months.map((d,i)=>({label:format(d,'MMM',{locale:pt}),...series[i]}))
-  },[historyNoSavings])
+    const saved  = monthlySavings(history.filter(t=>t.category===SAVINGS_CAT), ranges)
+    return months.map((d,i)=>({label:format(d,'MMM',{locale:pt}),...series[i],poupado:saved[i].poupanca}))
+  },[history,historyNoSavings])
 
   // ── Médias dos últimos 3 meses completos (exclui o mês atual) ──
   const prev3Range = useMemo(() => ({
@@ -281,24 +300,24 @@ export default function FinancasPage() {
   }, [historyNoSavings, prev3Range])
   const catAvg3m = useMemo(() => {
     const map: Record<string,number> = {}
-    history.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
+    historyNoSavings.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
       .forEach(t => { map[t.category]=(map[t.category]??0)+t.amount })
     Object.keys(map).forEach(k => { map[k]=map[k]/3 })
     return map
-  }, [history, prev3Range])
+  }, [historyNoSavings, prev3Range])
   // Gasto por categoria nos últimos 4 meses (3 anteriores + atual) para sparkline
   const catMonthly = useMemo(() => {
     const map: Record<string,number[]> = {}
     for (let i=3;i>=0;i--) {
       const d=subMonths(new Date(),i)
       const s=format(startOfMonth(d),'yyyy-MM-dd'), e=format(endOfMonth(d),'yyyy-MM-dd')
-      const inMonth = history.filter(t=>t.type==='saida'&&t.date>=s&&t.date<=e)
+      const inMonth = historyNoSavings.filter(t=>t.type==='saida'&&t.date>=s&&t.date<=e)
       const perCat: Record<string,number> = {}
       inMonth.forEach(t=>{ perCat[t.category]=(perCat[t.category]??0)+t.amount })
-      OUT_CATS.forEach(c=>{ (map[c] ??= []).push(Math.round(perCat[c]??0)) })
+      BUDGET_CATS.forEach(c=>{ (map[c] ??= []).push(Math.round(perCat[c]??0)) })
     }
     return map
-  }, [history, OUT_CATS])
+  }, [historyNoSavings, BUDGET_CATS])
 
   // ── Movimentos: mês selecionado vs. pesquisa em todo o histórico ──
   // Pesquisa com ≥2 caracteres → resultados globais (server-side); caso
@@ -389,10 +408,10 @@ export default function FinancasPage() {
     return rest
   }, [spentByCat])
   const { rows: budgetedCats, unbudgeted: unbudgetedCats, totalBudget, totalSpent: totalSpentBudgeted, pct: budgetPct } =
-    buildBudgetSummary(budgets, spentByCat, OUT_CATS)
+    buildBudgetSummary(budgets, spentByCat, BUDGET_CATS)
   // Cor do orçamento por quanto já foi usado (sem comparar com o "ritmo" do mês).
   const budgetColor        = budgetPct >= 100 ? '#E24B4A' : budgetPct >= 85 ? '#F5C842' : '#00C896'
-  const budgetSuggestions  = OUT_CATS
+  const budgetSuggestions  = BUDGET_CATS
     .filter(c => (catAvg3m[c]??0) > 0)
     .map(c => ({ cat:c, avg:catAvg3m[c], suggested: Math.ceil((catAvg3m[c]*1.05)/10)*10 }))
 
@@ -437,13 +456,13 @@ export default function FinancasPage() {
     spentByCat: spendByCatOnly,
     catAvg3m,
     budgets,
-    savingsPrevMonth: monthlyChart.length >= 2 ? monthlyChart[monthlyChart.length-2].poupanca : 0,
-    savingsThisMonth: balance,
+    savingsPrevMonth: monthlyChart.length >= 2 ? monthlyChart[monthlyChart.length-2].poupado : 0,
+    savingsThisMonth: savedThisMonth,
     daysSinceLastTx,
     topAnomaly: anomalies[0] ?? null,
     subscriptionsMonthly,
     topRecurring,
-  }, fmt), [spendByCatOnly, catAvg3m, budgets, monthlyChart, balance, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring])
+  }, fmt), [spendByCatOnly, catAvg3m, budgets, monthlyChart, savedThisMonth, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring])
   const topInsight = insights[0] ?? null
   // Gasto do mês que o gauge do orçamento não vê (Poupança não é consumo).
   const outsideBudget = unbudgetedSpend(spentByCat, budgets, [SAVINGS_CAT])
@@ -537,19 +556,13 @@ export default function FinancasPage() {
       type: etType, category: etCat, description: etDesc.trim()||null, amount, date: etDate,
     })
     if (error) { showToast('Erro ao guardar.', 'error'); setTxEditSaving(false); return }
-    // Ajusta a reserva pela diferença de poupança (tipo e categoria podem mudar
-    // na edição: trocar depósito ↔ levantamento inverte o sinal).
-    await bumpSavings(userId,
-      savingsDelta(etType, etCat, amount) - savingsDelta(openTx.type, openTx.category, openTx.amount))
     await reloadTx(userId)
     setOpenTx(null); setTxEditSaving(false); showToast('Movimento atualizado!')
   }
 
   async function removeTxConfirmed() {
     if (!confirmDeleteTx || !userId) return
-    const tx = confirmDeleteTx
-    await removeTx(tx.id)
-    await bumpSavings(userId, -savingsDelta(tx.type, tx.category, tx.amount))
+    await removeTx(confirmDeleteTx.id)
     setConfirmDeleteTx(null)
     setOpenTx(null)
   }
@@ -562,10 +575,22 @@ export default function FinancasPage() {
   async function saveMeta() {
     if (!userId || !metaSheet) return
     setGSaving(true)
-    await updateFinancialGoals(userId, metaSheet==='reserva'
-      ? { fin_reserve_goal: gReserve?parseFloat(gReserve):undefined, fin_current_savings: gCurrent?parseFloat(gCurrent):undefined }
-      : { fin_monthly_save: gSave?parseFloat(gSave):undefined }
-    )
+    const goals: Parameters<typeof updateFinancialGoals>[1] = {}
+    if (metaSheet === 'reserva') {
+      if (gReserve) goals.fin_reserve_goal = parseFloat(gReserve)
+      const target = gCurrent ? parseFloat(gCurrent) : NaN
+      if (Number.isFinite(target)) {
+        // A reserva é derivada (base + movimentos de Poupança), por isso editar
+        // o total à mão ajusta a BASE — o que existe fora do histórico — e
+        // nunca reescreve movimentos. Pré-migração (sem fin_savings_base),
+        // mantém o comportamento legado de gravar o total diretamente.
+        if (profile?.fin_savings_base != null) goals.fin_savings_base = target - savingsNet
+        else goals.fin_current_savings = target
+      }
+    } else if (gSave) {
+      goals.fin_monthly_save = parseFloat(gSave)
+    }
+    await updateFinancialGoals(userId, goals)
     setProfile(await getProfile(userId))
     setMetaSheet(null); showToast('Meta atualizada!'); setGSaving(false)
   }
@@ -588,7 +613,6 @@ export default function FinancasPage() {
       if (rErr) showToast('Movimento guardado, mas não consegui criar a recorrência.', 'error')
       else await reloadRecurring(userId)
     }
-    await bumpSavings(userId, savingsDelta(txType, finalCat, amount))
     await reloadTx(userId)
     setFAmount(''); setFDesc(''); setFCat(''); setFCustomCat(''); setFRepeat(false); setShowForm(false)
     showToast(fRepeat?'Transação e recorrência criadas!':'Transação adicionada!'); setSaving(false)
@@ -607,7 +631,6 @@ export default function FinancasPage() {
     })
     setPostingRuleId(null)
     if (error) { showToast('Erro ao lançar. Aplicaste a migração financas_recurring_v1.sql?', 'error'); return }
-    await bumpSavings(userId, savingsDelta(rule.type, rule.category, rule.amount))
     await reloadTx(userId)
     showToast(`${rule.category} lançado!`)
   }
@@ -713,8 +736,6 @@ export default function FinancasPage() {
     }))
     const { error } = await saveTransactionsBulk(payloads)
     if (error) { showToast('Erro ao importar transações.', 'error'); setCsvImporting(false); return }
-    const savedSum = csvPreview.reduce((a,t)=>a+savingsDelta(t.type, t.category||'Outro', t.amount),0)
-    await bumpSavings(userId, savedSum)
     await reloadTx(userId)
     showToast(`${csvPreview.length} transações importadas!`)
     setCsvPreview(null)
@@ -757,8 +778,6 @@ export default function FinancasPage() {
     }))
     const { error } = await saveTransactionsBulk(rows)
     if (error) { showToast('Erro ao importar.', 'error'); setCsvImporting(false); return }
-    const savedSum = rows.reduce((a,r)=>a+savingsDelta(r.type, r.category, r.amount),0)
-    await bumpSavings(userId, savedSum)
     await reloadTx(userId)
     setPdfPreview(null)
     setCsvImporting(false)
@@ -767,7 +786,14 @@ export default function FinancasPage() {
 
   const savingsGoal    = profile?.fin_monthly_save    ?? 0
   const reserveGoal    = profile?.fin_reserve_goal    ?? 0
-  const currentSavings = profile?.fin_current_savings ?? 0
+  // Reserva DERIVADA da poupança vinculada: base (saldo inicial/ajustes fora
+  // do histórico) + líquido de todos os movimentos "Poupança". Uma única fonte
+  // de verdade — depósitos, levantamentos, edições, imports e apagados
+  // refletem-se sempre, sem escrita incremental que possa divergir. Se a
+  // migração financas_reserva_v1 ainda não foi aplicada, cai no valor legado.
+  const currentSavings = profile?.fin_savings_base != null
+    ? profile.fin_savings_base + savingsNet
+    : (profile?.fin_current_savings ?? 0)
 
   if (loading) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh'}}>
@@ -1092,7 +1118,7 @@ export default function FinancasPage() {
           >
             <div style={{fontSize:9.5,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'rgba(157,92,245,0.85)',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>🛡️ Reserva</div>
             {reserveGoal>0 ? (() => {
-              const pct = Math.min(100,Math.round(currentSavings/reserveGoal*100))
+              const pct = Math.min(100,Math.max(0,Math.round(currentSavings/reserveGoal*100)))
               const monthsCovered = avgExpenses3m>0 ? currentSavings/avgExpenses3m : null
               return (
                 <>
@@ -1227,14 +1253,14 @@ export default function FinancasPage() {
                 background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',
                 fontFamily:'Inter, sans-serif',textAlign:'left',width:'100%',marginBottom:6,
               }}>
-                <div style={{width:34,height:34,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,background:t.type==='entrada'?'rgba(0,200,150,.10)':'rgba(226,75,74,.10)'}}>
+                <div style={{width:34,height:34,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,background:txIconBg(t)}}>
                   {catEmoji(t.category)}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:12.5,fontWeight:600,color: 'var(--ink)'}}>{t.category}</div>
-                  <div style={{fontSize:10,color:'var(--text2)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{dayLabel(t.date)}{t.description?` · ${t.description}`:''}</div>
+                  <div style={{fontSize:10,color:'var(--text2)',marginTop:1,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{[dayLabel(t.date),transferLabel(t),t.description].filter(Boolean).join(' · ')}</div>
                 </div>
-                <div style={{fontWeight:800,fontSize:13,color:t.type==='entrada'?'#00C896':'#E24B4A',flexShrink:0}}>
+                <div style={{fontWeight:800,fontSize:13,color:txAmountColor(t),flexShrink:0}}>
                   {t.type==='entrada'?'+':'−'}{fmt(t.amount)}
                 </div>
               </button>
@@ -1370,14 +1396,14 @@ export default function FinancasPage() {
                       background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',
                       fontFamily:'Inter, sans-serif',textAlign:'left',width:'100%',
                     }}>
-                      <div style={{width:38,height:38,borderRadius:11,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,background:t.type==='entrada'?'rgba(0,200,150,.10)':'rgba(226,75,74,.10)'}}>
+                      <div style={{width:38,height:38,borderRadius:11,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,background:txIconBg(t)}}>
                         {catEmoji(t.category)}
                       </div>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:13.5,fontWeight:600,color: 'var(--ink)'}}>{t.category}</div>
-                        {t.description&&<div style={{fontSize:10.5,color:'var(--text2)',marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{t.description}</div>}
+                        {(transferLabel(t)||t.description)&&<div style={{fontSize:10.5,color:'var(--text2)',marginTop:2,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{[transferLabel(t),t.description].filter(Boolean).join(' · ')}</div>}
                       </div>
-                      <div style={{fontWeight:800,fontSize:14,color:t.type==='entrada'?'#00C896':'#E24B4A',flexShrink:0}}>
+                      <div style={{fontWeight:800,fontSize:14,color:txAmountColor(t),flexShrink:0}}>
                         {t.type==='entrada'?'+':'−'}{fmt(t.amount)}
                       </div>
                       <span style={{color:'var(--text3)',fontSize:14,flexShrink:0}}>›</span>
@@ -1537,7 +1563,7 @@ export default function FinancasPage() {
               )}
 
               <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text3)',margin:'18px 0 10px'}}>Todas as categorias</div>
-              {CATEGORIES_OUT.map(cat=>(
+              {BUDGET_CATS.map(cat=>(
                 <button key={cat} onClick={()=>{setBudgetSheet(cat);setBudgetVal('')}} style={{
                   width:'100%',display:'flex',alignItems:'center',gap:10,cursor:'pointer',fontFamily:'Inter, sans-serif',
                   background:'var(--surface-2)',border:'1px dashed rgba(var(--ink-rgb),0.12)',
@@ -1862,6 +1888,10 @@ export default function FinancasPage() {
 
           <label style={sheetLabel}>Poupança atual acumulada</label>
           <input type="number" step="0.01" value={gCurrent} onChange={e=>setGCurrent(e.target.value)} placeholder="Ex: 1200" style={sheetInp}/>
+          <div style={{fontSize:10.5,color:'var(--text3)',lineHeight:1.5,marginTop:6}}>
+            A reserva acompanha os teus movimentos de Poupança (depósitos − levantamentos).
+            Editar aqui ajusta o que tens guardado fora do registo — não altera movimentos.
+          </div>
 
           {avgExpenses3m>0&&(
             <div style={{marginTop:16,background:'rgba(157,92,245,0.07)',border:'1px solid rgba(157,92,245,0.2)',borderRadius:13,padding:'12px 14px',fontSize:12,lineHeight:1.55,color:'var(--text1)'}}>
@@ -1900,12 +1930,14 @@ export default function FinancasPage() {
             </div>
           )}
 
-          {/* Histórico de poupança + projeção (migrado da antiga tab Metas) */}
+          {/* Histórico de poupança + projeção (migrado da antiga tab Metas).
+              Usa o `poupado` (líquido movido para a reserva), a mesma medida
+              da meta acima — não o que sobrou do mês. */}
           <label style={sheetLabel}>Histórico de poupança</label>
           <div
             style={{height:110,overflow:'hidden'}}
             role="img"
-            aria-label={`Gráfico de poupança dos últimos 6 meses. Poupança do mês atual: ${fmt(monthlyChart[monthlyChart.length-1]?.poupanca ?? 0)}.`}
+            aria-label={`Gráfico de poupança dos últimos 6 meses. Poupança do mês atual: ${fmt(savedThisMonth)}.`}
           >
             <ResponsiveContainer width="100%" height={110}>
               <BarChart data={monthlyChart}>
@@ -1914,16 +1946,16 @@ export default function FinancasPage() {
                 <YAxis hide/>
                 <Tooltip contentStyle={TT} formatter={(v:number)=>fmt(v)}/>
                 {savingsGoal>0&&<ReferenceLine y={savingsGoal} stroke="rgba(245,200,66,0.55)" strokeDasharray="5 4"/>}
-                <Bar dataKey="poupanca" radius={[5,5,0,0]}>
-                  {monthlyChart.map((m,i)=><Cell key={i} fill={m.poupanca>=0?'#00C896':'#E24B4A'}/>)}
+                <Bar dataKey="poupado" name="Poupado" radius={[5,5,0,0]}>
+                  {monthlyChart.map((m,i)=><Cell key={i} fill={m.poupado>=0?'#00C896':'#E24B4A'}/>)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
           {(() => {
             if (savingsGoal<=0) return null
-            const above = monthlyChart.filter(m=>m.poupanca>=savingsGoal).length
-            const avgSave = monthlyChart.slice(0,5).reduce((a,m)=>a+m.poupanca,0)/Math.max(1,monthlyChart.slice(0,5).length)
+            const above = monthlyChart.filter(m=>m.poupado>=savingsGoal).length
+            const avgSave = monthlyChart.slice(0,5).reduce((a,m)=>a+m.poupado,0)/Math.max(1,monthlyChart.slice(0,5).length)
             const remaining = reserveGoal-currentSavings
             const projection = reserveGoal>0&&remaining>0&&avgSave>0
               ? format(addMonths(new Date(),Math.ceil(remaining/avgSave)),'MMM yyyy',{locale:pt})
