@@ -153,6 +153,9 @@ export interface Transaction {
   category: string
   description: string | null
   amount: number
+  /** Despesa paga pela reserva ("paga-te primeiro"): sai da reserva, aparece
+   *  nos gastos, não mexe no balanço do mês. Só em saídas de categoria ≠ Poupança. */
+  from_reserve?: boolean
   /** Regra recorrente que originou este lançamento (null = avulso). */
   recurring_id?: string | null
   created_at: string

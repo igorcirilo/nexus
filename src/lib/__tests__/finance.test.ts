@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   sumInRange,
   monthlySavings,
+  monthlyReserveChange,
   categoryTotals,
   buildBudgetSummary,
   unbudgetedSpend,
@@ -12,6 +13,9 @@ import {
   monthCloseHeadline,
   loggingStreak,
   carryIn,
+  cashFlow,
+  reserveFlow,
+  txKind,
   detectAnomalies,
   type AnomalyTx,
   type FinTx,
@@ -69,6 +73,47 @@ describe('categoryTotals', () => {
   })
   it('ignora entradas', () => {
     expect(categoryTotals(txs, '2026-01-01', '2026-01-31')).not.toHaveProperty('Salário')
+  })
+  it('inclui/exclui os gastos pagos pela reserva conforme includeReserve', () => {
+    const withReserve: FinTx[] = [
+      { date: '2026-01-10', type: 'saida', amount: 200, category: 'Alimentação' },
+      { date: '2026-01-15', type: 'saida', amount: 400, category: 'Saúde', from_reserve: true },
+    ]
+    // default (true): o gasto da reserva conta como consumo
+    expect(categoryTotals(withReserve, '2026-01-01', '2026-01-31')).toEqual({ Alimentação: 200, Saúde: 400 })
+    // gauge de orçamento (false): fica de fora
+    expect(categoryTotals(withReserve, '2026-01-01', '2026-01-31', { includeReserve: false })).toEqual({ Alimentação: 200 })
+  })
+})
+
+describe('txKind / cashFlow / reserveFlow', () => {
+  const cases: { t: FinTx; kind: string; cash: number; reserve: number }[] = [
+    { t: { date: 'd', type: 'entrada', amount: 100, category: 'Salário' },  kind: 'receita',      cash: 100,  reserve: 0 },
+    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Alimentação' }, kind: 'despesa',    cash: -100, reserve: 0 },
+    { t: { date: 'd', type: 'entrada', amount: 100, category: 'Poupança' },  kind: 'deposito',     cash: -100, reserve: 100 },
+    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Poupança' },  kind: 'levantamento', cash: 100,  reserve: -100 },
+    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Saúde', from_reserve: true }, kind: 'gastoReserva', cash: 0, reserve: -100 },
+  ]
+  it('classifica e dá os sinais certos sobre conta e reserva', () => {
+    for (const c of cases) {
+      expect(txKind(c.t)).toBe(c.kind)
+      expect(cashFlow(c.t)).toBe(c.cash)
+      expect(reserveFlow(c.t)).toBe(c.reserve)
+    }
+  })
+})
+
+describe('monthlyReserveChange', () => {
+  it('soma o fluxo-reserva por intervalo (depósito +, levantamento/gasto −)', () => {
+    const m: FinTx[] = [
+      { date: '2026-01-05', type: 'entrada', amount: 300, category: 'Poupança' },
+      { date: '2026-01-20', type: 'saida',   amount: 100, category: 'Poupança' },
+      { date: '2026-02-10', type: 'saida',   amount: 400, category: 'Saúde', from_reserve: true },
+    ]
+    expect(monthlyReserveChange(m, [
+      { start: '2026-01-01', end: '2026-01-31' },
+      { start: '2026-02-01', end: '2026-02-28' },
+    ])).toEqual([200, -400])
   })
 })
 
@@ -216,18 +261,18 @@ describe('buildMonthSummary', () => {
     { date: '2026-06-10', type: 'entrada', amount: 200,  category: 'Poupança' },   // depósito na reserva
     { date: '2026-07-01', type: 'saida',   amount: 999,  category: 'Alimentação' }, // fora do intervalo
   ]
-  it('separa gasto, poupança e maior categoria; poupança não entra no balanço', () => {
+  it('depositar reduz o balanço (paga-te primeiro); separa gasto e maior categoria', () => {
     const s = buildMonthSummary(m, '2026-06-01', '2026-06-30')
     expect(s.income).toBe(1200)           // o depósito na poupança não é rendimento
     expect(s.spending).toBe(550)          // 400 + 150
     expect(s.saved).toBe(200)
-    expect(s.balance).toBe(650)           // 1200 − 550
+    expect(s.balance).toBe(450)           // 1200 − 550 − 200 (depósito subtrai)
     expect(s.topCat).toEqual({ cat: 'Alimentação', amount: 400 })
   })
   it('topCat é null sem gastos', () => {
     expect(buildMonthSummary([{ date: '2026-06-01', type: 'entrada', amount: 10, category: 'x' }], '2026-06-01', '2026-06-30').topCat).toBeNull()
   })
-  it('levantamento da poupança (saída Poupança) subtrai ao poupado e não conta como gasto', () => {
+  it('levantamento da poupança (saída Poupança) devolve ao balanço e subtrai ao poupado', () => {
     const withWithdrawal: FinTx[] = [
       ...m,
       { date: '2026-06-15', type: 'saida', amount: 80, category: 'Poupança' },
@@ -235,7 +280,27 @@ describe('buildMonthSummary', () => {
     const s = buildMonthSummary(withWithdrawal, '2026-06-01', '2026-06-30')
     expect(s.spending).toBe(550)                // o levantamento não é gasto
     expect(s.saved).toBe(120)                   // 200 depositados − 80 levantados
-    expect(s.balance).toBe(650)                 // inalterado: transferências ficam fora
+    expect(s.balance).toBe(530)                 // 450 + 80 devolvidos à conta
+  })
+  it('gasto pago pela reserva: conta como gasto, reduz o poupado, não mexe no balanço', () => {
+    const withReserveSpend: FinTx[] = [
+      ...m,
+      { date: '2026-06-18', type: 'saida', amount: 500, category: 'Saúde', from_reserve: true },
+    ]
+    const s = buildMonthSummary(withReserveSpend, '2026-06-01', '2026-06-30')
+    expect(s.spending).toBe(1050)               // 550 + 500 (é consumo real)
+    expect(s.saved).toBe(-300)                  // 200 depositados − 500 gastos da reserva
+    expect(s.balance).toBe(450)                 // inalterado: já saiu da conta ao poupar
+    expect(s.topCat).toEqual({ cat: 'Saúde', amount: 500 })
+  })
+  it('poupar 300 e depois gastar 300 da reserva não descontam o balanço duas vezes', () => {
+    const s = buildMonthSummary([
+      { date: '2026-06-05', type: 'entrada', amount: 1000, category: 'Salário' },
+      { date: '2026-06-10', type: 'entrada', amount: 300,  category: 'Poupança' },
+      { date: '2026-06-20', type: 'saida',   amount: 300,  category: 'Saúde', from_reserve: true },
+    ], '2026-06-01', '2026-06-30')
+    expect(s.balance).toBe(700)                 // 1000 − 300 (só o depósito toca no balanço)
+    expect(s.saved).toBe(0)                     // 300 depositados − 300 gastos da reserva
   })
   it('poupança do mês fica negativa quando levanta mais do que deposita', () => {
     const s = buildMonthSummary([

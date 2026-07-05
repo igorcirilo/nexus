@@ -119,9 +119,9 @@ describe('FinancasPage', () => {
 
   it('mostra o balanço com legenda e comparação com o mês anterior (sem projeção/ritmo no hero)', async () => {
     await renderPage()
-    // entradas 1000 − saídas 390 (julho)
+    // balanço = 1000 − 390 − 150 (depósito, paga-te primeiro) = 460
     expect(screen.queryByText(/Saldo do mês/)).toBeNull()
-    expect(screen.getByText(/entradas − gastos de julho/)).toBeDefined()
+    expect(screen.getByText(/o que sobrou na conta depois de gastar e poupar/)).toBeDefined()
     // a projeção "ao ritmo atual" foi removida do hero
     expect(screen.queryByText(/Ao ritmo atual/)).toBeNull()
     // gastos até dia 15: julho 390 vs. junho 200 → ▲ 95%
@@ -131,7 +131,7 @@ describe('FinancasPage', () => {
   it('arrasta o saldo do mês anterior: começaste com X, disponível Y', async () => {
     await renderPage()
     // carryIn = 1000(jun) − 200(abr) − 200(mai) − 200(jun) = 400
-    // disponível = 400 + balance(610) − poupado(150) = 860
+    // balance(julho) = 1000 − 390 − 150(depósito) = 460; disponível = 400 + 460 = 860
     expect(screen.getByText(/Começaste julho com/)).toBeDefined()
     expect(screen.getByText('400,00 €')).toBeDefined()
     expect(screen.getByText('860,00 €')).toBeDefined()
@@ -232,6 +232,43 @@ describe('FinancasPage', () => {
     expect(screen.queryByText(/1\s?150,00/)).toBeNull()
     // na lista de movimentos, o depósito é rotulado como transferência interna
     expect(screen.getByText(/depósito na reserva/)).toBeDefined()
+  })
+
+  it('gasto pago pela reserva: aparece em "para onde foi", reduz a reserva, não mexe no balanço', async () => {
+    const { getProfile, getTransactions, getSavingsNet } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_reserve_goal: 1000, fin_savings_base: 500 })
+    ;(getTransactions as ReturnType<typeof vi.fn>).mockResolvedValue([
+      { id: 't6', user_id: 'u1', date: '2026-07-14', type: 'saida', category: 'Saúde', description: 'Dentista', amount: 400, from_reserve: true, created_at: '' },
+      ...txsRecentes,
+    ])
+    // reserva base 500 + líquido (depósito 150 − gasto reserva 400) = 250
+    ;(getSavingsNet as ReturnType<typeof vi.fn>).mockResolvedValue(150 - 400)
+    await renderPage()
+    // balanço inalterado pelo gasto da reserva: continua 460 (1000 − 390 − 150)
+    expect(screen.getByText('460,00 €')).toBeDefined()
+    // o gasto da reserva conta como consumo → aparece na lista E no breakdown
+    expect(screen.getByText(/Para onde foi o dinheiro/)).toBeDefined()
+    expect(screen.getAllByText(/Saúde/).length).toBeGreaterThanOrEqual(2)
+    // reserva desce: 500 + (150 − 400) = 250
+    expect(screen.getByText('250,00 €')).toBeDefined()
+    // rótulo de transferência na lista
+    expect(screen.getByText(/pago pela reserva/)).toBeDefined()
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+    ;(getTransactions as ReturnType<typeof vi.fn>).mockResolvedValue(txsRecentes)
+    ;(getSavingsNet as ReturnType<typeof vi.fn>).mockResolvedValue(150)
+  })
+
+  it('registar gasto pela reserva grava from_reserve=true', async () => {
+    const { saveTransaction } = await import('@/lib/supabase')
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Registar movimento'))
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '80' } })
+    fireEvent.click(screen.getByRole('button', { name: '💊 Saúde' }))
+    fireEvent.click(screen.getByLabelText('Pagar com a reserva'))
+    fireEvent.click(screen.getByText('Guardar movimento'))
+    await waitFor(() => expect(saveTransaction).toHaveBeenCalled())
+    const call = (saveTransaction as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0]
+    expect(call).toMatchObject({ type: 'saida', category: 'Saúde', amount: 80, from_reserve: true })
   })
 
   it('o insight de poupança compara o poupado (transferências), não o balanço', async () => {

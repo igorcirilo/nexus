@@ -9,11 +9,60 @@ export interface FinTx {
   type: 'entrada' | 'saida'
   amount: number
   category: string
+  /** Despesa paga pela reserva ("paga-te primeiro"): sai da reserva, aparece
+   *  nos gastos, mas não mexe no balanço/conta corrente. Só faz sentido em
+   *  saídas de categoria ≠ Poupança. */
+  from_reserve?: boolean
 }
 
 export interface DateRange {
   start: string // 'yyyy-MM-dd' inclusivo
   end: string   // 'yyyy-MM-dd' inclusivo
+}
+
+/**
+ * Tipo efetivo de um movimento no modelo "paga-te primeiro". A categoria de
+ * poupança é uma transferência conta↔reserva; uma saída normal é despesa; uma
+ * saída marcada `from_reserve` é dinheiro que se gasta a partir da reserva.
+ */
+export type TxKind = 'receita' | 'despesa' | 'deposito' | 'levantamento' | 'gastoReserva'
+
+export function txKind(
+  t: Pick<FinTx, 'type' | 'category' | 'from_reserve'>,
+  savingsCat = 'Poupança',
+): TxKind {
+  if (t.category === savingsCat) return t.type === 'entrada' ? 'deposito' : 'levantamento'
+  if (t.type === 'entrada') return 'receita'
+  return t.from_reserve ? 'gastoReserva' : 'despesa'
+}
+
+/**
+ * Fluxo sobre a CONTA CORRENTE (define o balanço do mês, no modelo paga-te
+ * primeiro): receita soma, despesa subtrai, depósito subtrai (poupar é pagar-se
+ * a si mesmo), levantamento devolve, gasto da reserva não toca na conta (o
+ * dinheiro já saiu da conta quando foi poupado). Pura → testável.
+ */
+export function cashFlow(t: FinTx, savingsCat = 'Poupança'): number {
+  switch (txKind(t, savingsCat)) {
+    case 'receita':      return t.amount
+    case 'despesa':      return -t.amount
+    case 'deposito':     return -t.amount
+    case 'levantamento': return t.amount
+    case 'gastoReserva': return 0
+  }
+}
+
+/**
+ * Fluxo sobre a RESERVA: depósito soma, levantamento subtrai, gasto da reserva
+ * subtrai (consome a reserva); receita/despesa não a tocam. Pura → testável.
+ */
+export function reserveFlow(t: FinTx, savingsCat = 'Poupança'): number {
+  switch (txKind(t, savingsCat)) {
+    case 'deposito':     return t.amount
+    case 'levantamento': return -t.amount
+    case 'gastoReserva': return -t.amount
+    default:             return 0
+  }
 }
 
 /** Soma dos montantes de um tipo dentro de um intervalo de datas (inclusivo). */
@@ -44,15 +93,41 @@ export function monthlySavings(
   })
 }
 
-/** Total de saídas por categoria dentro de um intervalo (inclusivo). */
+/** Variação líquida da reserva por intervalo (Σ `reserveFlow`), arredondada.
+ *  Para a série "poupado" do gráfico de 6 meses. */
+export function monthlyReserveChange(
+  txs: FinTx[],
+  ranges: DateRange[],
+  savingsCat = 'Poupança',
+): number[] {
+  return ranges.map(({ start, end }) =>
+    Math.round(
+      txs
+        .filter((t) => t.date >= start && t.date <= end)
+        .reduce((a, t) => a + reserveFlow(t, savingsCat), 0),
+    ),
+  )
+}
+
+/**
+ * Total de gasto por categoria dentro de um intervalo (inclusivo). Considera
+ * despesas e — se `includeReserve` (default) — também os gastos pagos pela
+ * reserva. Transferências (depósito/levantamento de Poupança) ficam sempre de
+ * fora. O gauge de orçamento passa `includeReserve:false` (o gasto da reserva é
+ * consumo excecional, não gasto mensal planeado); "para onde foi o dinheiro" e
+ * as anomalias usam o default `true`.
+ */
 export function categoryTotals(
   txs: FinTx[],
   start: string,
   end: string,
+  { includeReserve = true, savingsCat = 'Poupança' }: { includeReserve?: boolean; savingsCat?: string } = {},
 ): Record<string, number> {
   const map: Record<string, number> = {}
   for (const t of txs) {
-    if (t.type === 'saida' && t.date >= start && t.date <= end) {
+    if (t.date < start || t.date > end) continue
+    const kind = txKind(t, savingsCat)
+    if (kind === 'despesa' || (includeReserve && kind === 'gastoReserva')) {
       map[t.category] = (map[t.category] ?? 0) + t.amount
     }
   }
@@ -152,20 +227,17 @@ export function loggingStreak(dates: string[], today: string): LoggingStreak {
 
 /**
  * Saldo que "arrasta" para o início de um mês: o dinheiro líquido que sobrou
- * dos meses anteriores. É tudo o que entrou menos tudo o que saiu (gastos E
- * transferências para poupança) antes de `beforeDate` — ou seja, o que ficou
- * na conta corrente. Na categoria de poupança o tipo lê-se do ponto de vista
- * da poupança, por isso o fluxo de caixa é o inverso: depositar (entrada +
- * Poupança) tira dinheiro da conta corrente; levantar (saída + Poupança)
- * devolve-o. Pura → testável. Limitada ao histórico carregado, por isso conta
+ * na conta corrente dos meses anteriores. É a soma do fluxo-conta (`cashFlow`)
+ * de tudo antes de `beforeDate`: receitas somam, despesas e depósitos subtraem,
+ * levantamentos devolvem, e o gasto da reserva não conta (saiu da reserva, não
+ * da conta). Pura → testável. Limitada ao histórico carregado, por isso conta
  * a partir do primeiro movimento registado, não do saldo real.
  */
 export function carryIn(txs: FinTx[], beforeDate: string, savingsCat = 'Poupança'): number {
   let v = 0
   for (const t of txs) {
     if (t.date >= beforeDate) continue
-    const cash = t.type === 'entrada' ? t.amount : -t.amount
-    v += t.category === savingsCat ? -cash : cash
+    v += cashFlow(t, savingsCat)
   }
   return v
 }
@@ -173,11 +245,15 @@ export function carryIn(txs: FinTx[], beforeDate: string, savingsCat = 'Poupanç
 export interface MonthSummary {
   /** Rendimento real (exclui a categoria de poupança — é transferência). */
   income: number
-  /** Gasto real (exclui a categoria de poupança). */
+  /** Gasto real: despesas normais + gastos pagos pela reserva (ambos são
+   *  consumo). Exclui transferências (depósito/levantamento). */
   spending: number
-  /** Poupança líquida do mês: depósitos (entrada) − levantamentos (saída). */
+  /** Variação líquida da reserva no mês: depósitos − levantamentos − gastos
+   *  pagos pela reserva. Pode ficar negativa. */
   saved: number
-  /** income − spending (a poupança é transferência, não entra). */
+  /** Balanço da conta corrente no mês (paga-te primeiro): Σ `cashFlow` —
+   *  receitas − despesas − depósitos + levantamentos. O gasto da reserva não
+   *  entra (já saiu da conta quando foi poupado). */
   balance: number
   topCat: { cat: string; amount: number } | null
 }
@@ -192,23 +268,25 @@ export function buildMonthSummary(
   let income = 0
   let spending = 0
   let saved = 0
+  let balance = 0
   const byCat: Record<string, number> = {}
   for (const t of txs) {
     if (t.date < start || t.date > end) continue
-    if (t.category === savingsCat) {
-      saved += t.type === 'entrada' ? t.amount : -t.amount
-      continue
+    balance += cashFlow(t, savingsCat)
+    saved += reserveFlow(t, savingsCat)
+    const kind = txKind(t, savingsCat)
+    if (kind === 'receita') income += t.amount
+    else if (kind === 'despesa' || kind === 'gastoReserva') {
+      spending += t.amount
+      byCat[t.category] = (byCat[t.category] ?? 0) + t.amount
     }
-    if (t.type === 'entrada') { income += t.amount; continue }
-    spending += t.amount
-    byCat[t.category] = (byCat[t.category] ?? 0) + t.amount
   }
   const top = Object.entries(byCat).sort((a, b) => b[1] - a[1])[0]
   return {
     income,
     spending,
     saved,
-    balance: income - spending,
+    balance,
     topCat: top ? { cat: top[0], amount: top[1] } : null,
   }
 }

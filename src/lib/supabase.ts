@@ -7,6 +7,7 @@ import { todayISO } from '@/lib/date'
 import { emitToast } from '@/lib/toast-events'
 import { computeRitmo, buildRitmoDays, RITMO_WINDOW_DAYS } from '@/lib/ritmo'
 import { isHabitDueOn } from '@/lib/habit-schedule'
+import { reserveFlow, type FinTx } from '@/lib/finance'
 
 // NEXT_PUBLIC_* values are inlined at build time. During build/CI (and any
 // environment without them set) they are undefined, which makes createClient
@@ -376,7 +377,7 @@ export async function getTransactionsByMonth(userId: string, numMonths = 6) {
 
   const { data, error } = await supabase
     .from('transactions')
-    .select('date, type, amount, category')
+    .select('date, type, amount, category, from_reserve')
     .eq('user_id', userId)
     .gte('date', sinceStr)
     .order('date', { ascending: true })
@@ -426,23 +427,24 @@ export async function searchTransactions(userId: string, query: string) {
   return data ?? []
 }
 
-// Líquido de TODA a história da categoria "Poupança": depósitos (entrada) −
-// levantamentos (saída). É a componente transacional da reserva de emergência;
-// a reserva mostrada = profiles.fin_savings_base + este líquido, e por isso
-// nunca diverge dos movimentos (migration financas_reserva_v1.sql).
+// Variação líquida de TODA a história sobre a reserva (Σ reserveFlow):
+// depósitos (entrada Poupança) somam, levantamentos (saída Poupança) subtraem,
+// e as despesas pagas pela reserva (from_reserve) também subtraem. É a
+// componente transacional da reserva de emergência; a reserva mostrada =
+// profiles.fin_savings_base + este líquido, e por isso nunca diverge dos
+// movimentos (migrations financas_reserva_v1 + financas_gasto_reserva_v1).
 export async function getSavingsNet(userId: string, savingsCat = 'Poupança') {
   const { data, error } = await supabase
     .from('transactions')
-    .select('type, amount')
+    .select('type, amount, category, from_reserve')
     .eq('user_id', userId)
-    .eq('category', savingsCat)
+    .or(`category.eq.${savingsCat},from_reserve.eq.true`)
 
   if (error) {
     reportError('getSavingsNet error', error.message)
     return 0
   }
-  return ((data ?? []) as { type: string; amount: number }[])
-    .reduce((a, t) => a + (t.type === 'entrada' ? Number(t.amount) : -Number(t.amount)), 0)
+  return ((data ?? []) as FinTx[]).reduce((a, t) => a + reserveFlow(t, savingsCat), 0)
 }
 
 // Todas as transações do utilizador (sem filtro de data) — usado na exportação CSV.

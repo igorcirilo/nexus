@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { todayISO, localDateKey } from '@/lib/date'
+import { cashFlow, type FinTx } from '@/lib/finance'
 
 /**
  * Métricas-resumo das páginas principais, para a grelha 2x3 do Hoje v2.
@@ -66,18 +67,15 @@ async function metricFinancas(userId: string, monthStart: string): Promise<HojeM
   try {
     const { data } = await supabase
       .from('transactions')
-      .select('type, amount, category')
+      .select('date, type, amount, category, from_reserve')
       .eq('user_id', userId)
       .gte('date', monthStart)
-    const rows = (data ?? []) as { type: string; amount: number; category: string }[]
+    const rows = (data ?? []) as FinTx[]
     if (rows.length === 0) return null
-    // "Poupança" é transferência (depositar na reserva ou levantar dela), não
-    // gasto nem rendimento → fica de fora do balanço, coerente com /financas.
-    const net = rows.reduce((sum, t) => {
-      if (t.category === 'Poupança') return sum
-      if (t.type === 'entrada') return sum + Number(t.amount)
-      return sum - Number(t.amount)
-    }, 0)
+    // Balanço do mês no modelo "paga-te primeiro" (Σ cashFlow), coerente com o
+    // hero de /financas: receitas − despesas − depósitos + levantamentos; o
+    // gasto pago pela reserva não entra (já saiu da conta ao poupar).
+    const net = rows.reduce((sum, t) => sum + cashFlow(t), 0)
     return { netMonth: Math.round(net) }
   } catch {
     return null
