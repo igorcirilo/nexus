@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { createHabitQuick, saveFocusSession, saveTransaction, supabase } from '@/lib/supabase'
 import type { HabitArea } from '@/types'
-import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY } from '@/lib/categories'
+import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY, SAVINGS_CAT } from '@/lib/categories'
 
 const HABIT_AREAS: Array<{ key: HabitArea; label: string; icon: string; color: string }> = [
   { key: 'corpo',           label: 'Corpo',         icon: '💪', color: '#1ECBB4' },
@@ -51,6 +51,7 @@ export default function QuickAction() {
   const [txType,      setTxType]      = useState<'entrada'|'saida'>('saida')
   const [txCategory,  setTxCategory]  = useState('Alimentação')
   const [txCustomCat, setTxCustomCat] = useState('')
+  const [txFromReserve, setTxFromReserve] = useState(false)
   const [txDesc,      setTxDesc]      = useState('')
   const [txAmount,    setTxAmount]    = useState('')
   const [txDate,      setTxDate]      = useState(format(new Date(),'yyyy-MM-dd'))
@@ -116,7 +117,7 @@ export default function QuickAction() {
   const pct = Math.round(((25*60 - secondsLeft)/(25*60)) * 100)
 
   function resetHabitForm() { setHabitName(''); setHabitArea('produtividade'); setHabitWindow('') }
-  function resetTxForm()    { setTxType('saida'); setTxCategory('Alimentação'); setTxCustomCat(''); setTxDesc(''); setTxAmount(''); setTxDate(format(new Date(),'yyyy-MM-dd')) }
+  function resetTxForm()    { setTxType('saida'); setTxCategory('Alimentação'); setTxCustomCat(''); setTxDesc(''); setTxAmount(''); setTxDate(format(new Date(),'yyyy-MM-dd')); setTxFromReserve(false) }
 
   async function handleSaveHabit() {
     if (!userId || !habitName.trim()) return
@@ -135,8 +136,10 @@ export default function QuickAction() {
     // Determinar categoria final
     const finalCat = txCategory === CUSTOM_KEY ? txCustomCat.trim() : txCategory
     if (!finalCat) return
+    // "Pago pela reserva" só se aplica a saídas de categoria ≠ Poupança.
+    const fromReserve = txType==='saida' && finalCat!==SAVINGS_CAT && txFromReserve
     setTxSaving(true)
-    const { error } = await saveTransaction({ user_id:userId, type:txType, category:finalCat, description:txDesc.trim()||null, amount, date:txDate })
+    const { error } = await saveTransaction({ user_id:userId, type:txType, category:finalCat, description:txDesc.trim()||null, amount, date:txDate, from_reserve:fromReserve })
     if (error) { setTxSaving(false); setToast('Não foi possível guardar a transação.'); return }
     // Movimentos de "Poupança" não precisam de escrita extra: a reserva é
     // derivada dos próprios movimentos em /financas (base + líquido).
@@ -295,6 +298,28 @@ export default function QuickAction() {
                 <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Descrição</div>
                 <input value={txDesc} onChange={e=>setTxDesc(e.target.value)} placeholder="Opcional" style={inputStyle}/>
               </div>
+
+              {/* Pagar com a reserva (só saídas de categoria ≠ Poupança) */}
+              {txType==='saida' && (txCategory===CUSTOM_KEY ? txCustomCat.trim() : txCategory) && (txCategory===CUSTOM_KEY ? txCustomCat.trim() : txCategory)!==SAVINGS_CAT && (
+                <button
+                  onClick={()=>setTxFromReserve(v=>!v)}
+                  role="switch"
+                  aria-checked={txFromReserve}
+                  aria-label="Pagar com a reserva"
+                  style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'12px 14px',borderRadius:12,cursor:'pointer',textAlign:'left',
+                    background:txFromReserve?'rgba(245,200,66,0.10)':'var(--bg2)',
+                    border:`0.5px solid ${txFromReserve?'rgba(245,200,66,0.5)':'var(--border)'}`}}
+                >
+                  <span style={{fontSize:16}}>🏦</span>
+                  <div style={{flex:1}}>
+                    <div style={{fontSize:13,fontWeight:700,color:'var(--text1)'}}>Pagar com a reserva</div>
+                    <div style={{fontSize:11,color:'var(--text3)',marginTop:1}}>Sai da reserva, aparece nos gastos, não mexe no balanço do mês.</div>
+                  </div>
+                  <span style={{flexShrink:0,width:38,height:22,borderRadius:11,background:txFromReserve?'var(--gold)':'var(--bg3)',position:'relative',transition:'background .2s'}}>
+                    <span style={{position:'absolute',top:2,left:txFromReserve?18:2,width:18,height:18,borderRadius:9,background:'#fff',transition:'left .2s'}}/>
+                  </span>
+                </button>
+              )}
             </div>
             <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)',display:'flex',gap:10}}>
               <button onClick={()=>setShowTransaction(false)} style={{flex:1,padding:'14px 0',borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancelar</button>

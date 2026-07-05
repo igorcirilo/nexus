@@ -210,6 +210,9 @@ create table if not exists public.transactions (
   category text not null,
   description text,
   amount numeric(10,2) not null,
+  -- Despesa paga pela reserva ("paga-te primeiro"): saída de categoria real que
+  -- sai da reserva, não da conta corrente (migration financas_gasto_reserva_v1).
+  from_reserve boolean not null default false,
   created_at timestamptz default now()
 );
 
