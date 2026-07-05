@@ -37,7 +37,9 @@ export interface Profile {
   xp_weekly_goal?: number | null
   completion_pct_goal?: number | null
 
-  fin_current_savings?: number | null
+  fin_current_savings?: number | null // legada: reserva agora derivada (fin_savings_base + movimentos)
+  /** Poupança fora do histórico registado (saldo inicial + ajustes manuais). */
+  fin_savings_base?: number | null
   fin_monthly_save?: number | null
   fin_debt_goal?: number | null
   fin_reserve_goal?: number | null

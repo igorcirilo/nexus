@@ -102,7 +102,9 @@ export default function PerfilPage() {
         goal_weight: prof?.goal_weight ?? '',
         water_goal_ml: prof?.water_goal_ml ?? 2000,
         workouts_per_week: prof?.workouts_per_week ?? 3,
-        fin_current_savings: prof?.fin_current_savings ?? '',
+        // fin_current_savings ficou de fora de propósito: a reserva é derivada
+        // dos movimentos de Poupança em /financas; gravar aqui um snapshot
+        // antigo do perfil reescrevia-a silenciosamente (bug de divergência).
         fin_monthly_save: prof?.fin_monthly_save ?? '',
         fin_debt_goal: prof?.fin_debt_goal ?? '',
         fin_reserve_goal: prof?.fin_reserve_goal ?? '',
