@@ -60,6 +60,10 @@ create table if not exists public.profiles (
   sleep_goal_h numeric(4,1),
   read_pages_day integer,
   fin_debt_goal numeric(12,2),
+  -- Categorias de saída criadas pelo utilizador ({name,emoji}) e categorias
+  -- marcadas como "conta fixa" (migration financas_categorias_v1.sql).
+  fin_categories jsonb not null default '[]'::jsonb,
+  fin_fixed_cats jsonb not null default '[]'::jsonb,
   goal_90_personal text,
   goal_90_career text,
   goal_90_health text,

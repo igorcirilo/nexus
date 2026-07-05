@@ -13,6 +13,7 @@ import {
   getSavingsNet,
   saveTransaction, updateTransaction,
   saveTransactionsBulk, deleteTransaction, updateFinancialGoals, updateBudgets,
+  updateCustomCategories, updateFixedCats, renameTransactionCategory,
   getRecurringRules, saveRecurringRule, updateRecurringRule, deleteRecurringRule,
   getReminders, saveReminder, deleteReminder,
 } from '@/lib/supabase'
@@ -38,7 +39,14 @@ import {
 import { Sheet, StepChips, sheetLabel, sheetInp } from '@/components/financas/Sheet'
 import { format, startOfMonth, endOfMonth, subMonths, subDays, addMonths, getDaysInMonth, getDate } from 'date-fns'
 import { pt } from 'date-fns/locale'
-import type { Profile, Transaction, RecurringRule, FinancialImportPreview, FinancialImportCandidate } from '@/types'
+import type { Profile, Transaction, RecurringRule, FinancialImportPreview, FinancialImportCandidate, CustomCategory } from '@/types'
+
+// Paleta de emojis para categorias personalizadas (inline — a CSP bloqueia libs).
+const CAT_EMOJI_CHOICES = [
+  '📦','🛒','🍔','☕','🍺','🍕','🚗','⛽','🚌','✈️','🏠','🛋️','💡','💧','🔥','📱',
+  '💊','🏥','🦷','💪','🏋️','⚽','🎮','🎬','🎵','📚','🎓','👕','👟','💄','✂️','🐶',
+  '🐱','🎁','💳','🏦','📈','🔧','🧾','🌱','🍼','🚬','🎸','🧳','⚙️','❤️',
+]
 
 // Cores de gráfico validadas (luminosidade, croma, separação CVD e contraste)
 // contra as superfícies dos dois temas (#11131C escuro / #FFFFFF claro).
@@ -110,6 +118,15 @@ export default function FinancasPage() {
   const [showOrcamento,  setShowOrcamento]  = useState(false)
   const [loading,    setLoading]   = useState(true)
   const [budgets,    setBudgets]   = useState<Record<string,number>>({})
+  // Categorias personalizadas (nome+emoji) e categorias marcadas como "conta fixa".
+  const [customCats, setCustomCats] = useState<CustomCategory[]>([])
+  const [fixedCats,  setFixedCats]  = useState<string[]>([])
+  // Sheet de criar/editar categoria (editing = nome original, null = criar nova).
+  const [catSheet,   setCatSheet]   = useState<{ editing: string | null } | null>(null)
+  const [catName,    setCatName]    = useState('')
+  const [catEmojiVal,setCatEmojiVal]= useState('📦')
+  const [catSaving,  setCatSaving]  = useState(false)
+  const [confirmDeleteCat, setConfirmDeleteCat] = useState<string|null>(null)
   // Form transação
   const [showForm,   setShowForm]  = useState(false)
   const [txType,     setTxType]    = useState<'entrada'|'saida'>('saida')
@@ -189,6 +206,8 @@ export default function FinancasPage() {
       setProfile(prof)
       setTxs(recent as Transaction[])
       setHistory(hist as Transaction[])
+      setCustomCats((prof?.fin_categories ?? []) as CustomCategory[])
+      setFixedCats((prof?.fin_fixed_cats ?? []) as string[])
       setSavingsNet(savNet)
       setRecurring(rules as RecurringRule[])
       setLogReminderIds((reminders as { id:string; type:string }[]).filter(r => r.type===LOG_REMINDER_TYPE).map(r => r.id))
@@ -274,8 +293,15 @@ export default function FinancasPage() {
     const known = new Set([...CATEGORIES_OUT, ...CATEGORIES_IN])
     const found = new Set<string>()
     ;[...txs, ...history].forEach(t => { if (t.type === 'saida' && !known.has(t.category)) found.add(t.category) })
+    // Categorias criadas no orçamento aparecem mesmo sem movimentos ainda.
+    customCats.forEach(c => { if (!known.has(c.name)) found.add(c.name) })
     return Array.from(found).sort()
-  }, [txs, history])
+  }, [txs, history, customCats])
+  // Emoji de uma categoria: primeiro o escolhido nas personalizadas, senão o mapa base.
+  const emojiFor = useMemo(() => {
+    const m = new Map(customCats.map(c => [c.name, c.emoji] as const))
+    return (cat: string): string => m.get(cat) ?? catEmoji(cat)
+  }, [customCats])
   // Lista de categorias de saída usada em orçamento/listas, com "Outro" sempre no fim.
   const OUT_CATS = useMemo(
     () => [...CATEGORIES_OUT.filter(c => c !== 'Outro'), ...customOutCats, 'Outro'],
@@ -432,7 +458,7 @@ export default function FinancasPage() {
     return rest
   }, [spentByCat])
   const { rows: budgetedCats, unbudgeted: unbudgetedCats, totalBudget, totalSpent: totalSpentBudgeted, pct: budgetPct } =
-    buildBudgetSummary(budgets, spentByCatBudget, BUDGET_CATS)
+    buildBudgetSummary(budgets, spentByCatBudget, BUDGET_CATS, fixedCats)
   // Cor do orçamento por quanto já foi usado (sem comparar com o "ritmo" do mês).
   const budgetColor        = budgetPct >= 100 ? '#E24B4A' : budgetPct >= 85 ? '#F5C842' : '#00C896'
   const budgetSuggestions  = BUDGET_CATS
@@ -481,13 +507,14 @@ export default function FinancasPage() {
     spentByCat: spendByCatOnly,
     catAvg3m,
     budgets,
+    fixedCats,
     savingsPrevMonth: monthlyChart.length >= 2 ? monthlyChart[monthlyChart.length-2].poupado : 0,
     savingsThisMonth: savedThisMonth,
     daysSinceLastTx,
     topAnomaly: anomalies[0] ?? null,
     subscriptionsMonthly,
     topRecurring,
-  }, fmt), [spendByCatOnly, catAvg3m, budgets, monthlyChart, savedThisMonth, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring])
+  }, fmt), [spendByCatOnly, catAvg3m, budgets, fixedCats, monthlyChart, savedThisMonth, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring])
   const topInsight = insights[0] ?? null
   // Gasto do mês que o gauge do orçamento não vê (categorias sem orçamento).
   // Usa o mapa do orçamento (sem gastos da reserva) para bater com o gauge.
@@ -709,6 +736,80 @@ export default function FinancasPage() {
     const n=parseFloat(val); if (isNaN(n)||n<0) return
     persistBudgets({...budgets,[cat]:n})
     showToast('Orçamento guardado.')
+  }
+
+  // ── Categorias personalizadas (criar/renomear/apagar) e contas fixas ──
+  function persistCustomCats(next: CustomCategory[]) {
+    setCustomCats(next)
+    if (userId) updateCustomCategories(userId, next)
+  }
+  function persistFixedCats(next: string[]) {
+    setFixedCats(next)
+    if (userId) updateFixedCats(userId, next)
+  }
+  const isCustomCat = (cat: string) =>
+    !CATEGORIES_OUT.includes(cat) && !CATEGORIES_IN.includes(cat)
+
+  function openNewCat() {
+    setCatSheet({ editing: null }); setCatName(''); setCatEmojiVal('📦')
+  }
+  function openEditCat(cat: string) {
+    const c = customCats.find(x => x.name === cat)
+    setCatSheet({ editing: cat }); setCatName(cat); setCatEmojiVal(c?.emoji ?? emojiFor(cat))
+  }
+
+  async function saveCat() {
+    if (!userId || catSaving) return
+    const name = catName.trim()
+    if (!name) { showToast('Dá um nome à categoria.', 'error'); return }
+    const editing = catSheet?.editing ?? null
+    // Nome duplicado (contra base ou outra personalizada), ignorando a própria.
+    const clash =
+      CATEGORIES_OUT.includes(name) || CATEGORIES_IN.includes(name) ||
+      customCats.some(c => c.name === name && c.name !== editing)
+    if (clash) { showToast('Já existe uma categoria com esse nome.', 'error'); return }
+    setCatSaving(true)
+    if (editing && editing !== name) {
+      // Renomear: movimentos, orçamento e "conta fixa" seguem o novo nome.
+      const { error } = await renameTransactionCategory(userId, editing, name)
+      if (error) { showToast('Erro ao renomear.', 'error'); setCatSaving(false); return }
+      persistCustomCats(customCats.map(c => c.name === editing ? { name, emoji: catEmojiVal } : c))
+      if ((budgets[editing] ?? 0) > 0) {
+        const { [editing]: val, ...rest } = budgets
+        persistBudgets({ ...rest, [name]: val })
+      }
+      if (fixedCats.includes(editing)) persistFixedCats(fixedCats.map(c => c === editing ? name : c))
+      await reloadTx(userId)
+    } else if (editing) {
+      // Só mudou o emoji.
+      persistCustomCats(customCats.map(c => c.name === editing ? { name, emoji: catEmojiVal } : c))
+    } else {
+      persistCustomCats([...customCats, { name, emoji: catEmojiVal }])
+    }
+    setCatSheet(null); setCatSaving(false)
+    showToast(editing ? 'Categoria atualizada!' : 'Categoria criada!')
+  }
+
+  async function deleteCatConfirmed() {
+    if (!userId || !confirmDeleteCat) return
+    const cat = confirmDeleteCat
+    // Reatribui os movimentos a "Outro" e limpa orçamento / conta fixa.
+    const { error } = await renameTransactionCategory(userId, cat, 'Outro')
+    if (error) { showToast('Erro ao apagar.', 'error'); return }
+    persistCustomCats(customCats.filter(c => c.name !== cat))
+    if ((budgets[cat] ?? 0) > 0) {
+      const { [cat]: _omit, ...rest } = budgets
+      void _omit
+      persistBudgets(rest)
+    }
+    if (fixedCats.includes(cat)) persistFixedCats(fixedCats.filter(c => c !== cat))
+    setConfirmDeleteCat(null); setBudgetSheet(null)
+    await reloadTx(userId)
+    showToast('Categoria apagada. Movimentos passaram para “Outro”.')
+  }
+
+  function toggleFixedCat(cat: string) {
+    persistFixedCats(fixedCats.includes(cat) ? fixedCats.filter(c => c !== cat) : [...fixedCats, cat])
   }
 
   // Exporta todo o histórico no mesmo formato que a importação aceita
@@ -1074,7 +1175,7 @@ export default function FinancasPage() {
               {pendingRules.map(rule=>(
                 <div key={rule.id} style={{display:'flex',alignItems:'center',gap:11,background:'var(--surface-2)',border:'1px solid rgba(245,200,66,0.22)',borderRadius:14,padding:'11px 13px'}}>
                   <div style={{width:36,height:36,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,background:rule.type==='entrada'?'rgba(0,200,150,.10)':'rgba(226,75,74,.10)'}}>
-                    {catEmoji(rule.category)}
+                    {emojiFor(rule.category)}
                   </div>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>
@@ -1117,13 +1218,13 @@ export default function FinancasPage() {
                   +{fmt(outsideBudget)} gastos em categorias sem orçamento
                 </div>
               )}
-              {budgetedCats.some(b=>b.spent>b.budget||b.pct>=85)&&(
+              {budgetedCats.some(b=>b.spent>b.budget||(b.pct>=85&&!b.fixed))&&(
                 <div style={{display:'flex',gap:7,marginTop:10,flexWrap:'wrap'}}>
                   {budgetedCats.filter(b=>b.spent>b.budget).slice(0,2).map(b=>(
-                    <span key={b.cat} style={{display:'flex',alignItems:'center',gap:6,fontSize:10.5,fontWeight:700,borderRadius:9,padding:'6px 10px',background:'rgba(226,75,74,0.10)',color:'#E24B4A'}}>{catEmoji(b.cat)} {b.cat} +{fmt(b.spent-b.budget)}</span>
+                    <span key={b.cat} style={{display:'flex',alignItems:'center',gap:6,fontSize:10.5,fontWeight:700,borderRadius:9,padding:'6px 10px',background:'rgba(226,75,74,0.10)',color:'#E24B4A'}}>{emojiFor(b.cat)} {b.cat} +{fmt(b.spent-b.budget)}</span>
                   ))}
-                  {budgetedCats.filter(b=>b.spent<=b.budget&&b.pct>=85).slice(0,2).map(b=>(
-                    <span key={b.cat} style={{display:'flex',alignItems:'center',gap:6,fontSize:10.5,fontWeight:700,borderRadius:9,padding:'6px 10px',background:'rgba(245,200,66,0.10)',color:'#F5C842'}}>{catEmoji(b.cat)} {b.cat} {b.pct}%</span>
+                  {budgetedCats.filter(b=>b.spent<=b.budget&&b.pct>=85&&!b.fixed).slice(0,2).map(b=>(
+                    <span key={b.cat} style={{display:'flex',alignItems:'center',gap:6,fontSize:10.5,fontWeight:700,borderRadius:9,padding:'6px 10px',background:'rgba(245,200,66,0.10)',color:'#F5C842'}}>{emojiFor(b.cat)} {b.cat} {b.pct}%</span>
                   ))}
                 </div>
               )}
@@ -1224,7 +1325,7 @@ export default function FinancasPage() {
                   return (
                     <div key={cat} style={{marginBottom:9}}>
                       <div style={{display:'flex',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
-                        <span style={{fontSize:11.5,fontWeight:600,color:'var(--text1)'}}>{other?'📦':catEmoji(cat)} {cat}</span>
+                        <span style={{fontSize:11.5,fontWeight:600,color:'var(--text1)'}}>{other?'📦':emojiFor(cat)} {cat}</span>
                         <span style={{fontSize:11,color:'var(--text2)'}}><b style={{color:'var(--text1)',fontWeight:700}}>{fmt(v)}</b> · {pct}%</span>
                       </div>
                       <div style={{height:8,background:'var(--surface-3)',borderRadius:4,overflow:'hidden'}}>
@@ -1286,7 +1387,7 @@ export default function FinancasPage() {
                 fontFamily:'Inter, sans-serif',textAlign:'left',width:'100%',marginBottom:6,
               }}>
                 <div style={{width:34,height:34,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,background:txIconBg(t)}}>
-                  {catEmoji(t.category)}
+                  {emojiFor(t.category)}
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:12.5,fontWeight:600,color: 'var(--ink)'}}>{t.category}</div>
@@ -1378,7 +1479,7 @@ export default function FinancasPage() {
                 color:txCat===c?'#F5C842':'rgba(var(--ink-rgb),0.5)',
                 background:txCat===c?'rgba(245,200,66,0.12)':'transparent',
                 fontFamily:'Inter, sans-serif',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:5,
-              }}>{catEmoji(c)} {c}{txCat===c?' ✕':''}</button>
+              }}>{emojiFor(c)} {c}{txCat===c?' ✕':''}</button>
             ))}
           </div>
 
@@ -1429,7 +1530,7 @@ export default function FinancasPage() {
                       fontFamily:'Inter, sans-serif',textAlign:'left',width:'100%',
                     }}>
                       <div style={{width:38,height:38,borderRadius:11,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:17,background:txIconBg(t)}}>
-                        {catEmoji(t.category)}
+                        {emojiFor(t.category)}
                       </div>
                       <div style={{flex:1,minWidth:0}}>
                         <div style={{fontSize:13.5,fontWeight:600,color: 'var(--ink)'}}>{t.category}</div>
@@ -1461,6 +1562,15 @@ export default function FinancasPage() {
       {showOrcamento&&(
         <Sheet tall icon="📋" title={`Orçamento de ${format(new Date(),'MMMM',{locale:pt})}`} onClose={()=>setShowOrcamento(false)}>
         <div style={{paddingTop:10}}>
+          {/* Criar categoria personalizada */}
+          <button onClick={openNewCat} style={{
+            width:'100%',display:'flex',alignItems:'center',gap:10,cursor:'pointer',fontFamily:'Inter, sans-serif',
+            background:'var(--surface-2)',border:'1px dashed rgba(245,200,66,0.4)',borderRadius:13,padding:'11px 13px',marginBottom:12,
+          }}>
+            <span style={{fontSize:16}}>➕</span>
+            <span style={{fontSize:12.5,fontWeight:700,color:'#F5C842'}}>Nova categoria</span>
+            <span style={{marginLeft:'auto',fontSize:11,color:'var(--text3)'}}>nome + emoji</span>
+          </button>
           {budgetedCats.length>0 ? (
             <>
               {/* Gauge global do mês */}
@@ -1495,9 +1605,10 @@ export default function FinancasPage() {
               </div>
 
               {/* Categorias por uso */}
-              {budgetedCats.map(({cat,budget,spent,pct})=>{
+              {budgetedCats.map(({cat,budget,spent,pct,fixed})=>{
                 const over = spent>budget
-                const warn = !over && pct>=85
+                // Conta fixa: atingir o orçamento é normal → sem aviso "atenção".
+                const warn = !over && !fixed && pct>=85
                 return (
                   <button key={cat} onClick={()=>{setBudgetSheet(cat);setBudgetVal(String(budget))}} style={{
                     width:'100%',textAlign:'left',cursor:'pointer',fontFamily:'Inter, sans-serif',
@@ -1507,22 +1618,23 @@ export default function FinancasPage() {
                   }}>
                     <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:9}}>
                       <div style={{width:32,height:32,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,background:over?'rgba(226,75,74,0.12)':warn?'rgba(245,200,66,0.12)':'rgba(var(--ink-rgb),0.06)'}}>
-                        {catEmoji(cat)}
+                        {emojiFor(cat)}
                       </div>
                       <div style={{fontSize:13,fontWeight:700,color: 'var(--ink)'}}>{cat}</div>
                       {over&&<span style={{fontSize:9.5,fontWeight:800,borderRadius:7,padding:'3px 7px',background:'rgba(226,75,74,0.12)',color:'#E24B4A',flexShrink:0}}>+{fmt(spent-budget)} acima</span>}
                       {warn&&<span style={{fontSize:9.5,fontWeight:800,borderRadius:7,padding:'3px 7px',background:'rgba(245,200,66,0.12)',color:'#F5C842',flexShrink:0}}>atenção</span>}
+                      {fixed&&!over&&<span style={{fontSize:9.5,fontWeight:800,borderRadius:7,padding:'3px 7px',background:'rgba(var(--ink-rgb),0.06)',color:'var(--text2)',flexShrink:0}}>📌 fixa</span>}
                       <div style={{marginLeft:'auto',fontSize:12.5,fontWeight:700,color:'var(--text1)',flexShrink:0}}>
                         {fmt(spent)} <span style={{color:'var(--text3)',fontWeight:600}}>/ {fmt(budget)}</span>
                       </div>
                       <span style={{color:'var(--text3)',fontSize:14}}>›</span>
                     </div>
                     <div style={{height:6,background:'var(--surface-3)',borderRadius:10,overflow:'hidden'}}>
-                      <div style={{height:'100%',borderRadius:10,width:`${Math.min(100,pct)}%`,background:over?'#E24B4A':warn?'#F5C842':'#00C896',transition:'width .4s'}}/>
+                      <div style={{height:'100%',borderRadius:10,width:`${Math.min(100,pct)}%`,background:over?'#E24B4A':warn?'#F5C842':fixed?'#7F77DD':'#00C896',transition:'width .4s'}}/>
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',fontSize:10,color:'var(--text3)',marginTop:5}}>
                       <span>{pct}% usado</span>
-                      <span>{over?`excedeu o orçamento`:`${fmt(budget-spent)} restantes`}</span>
+                      <span>{over?`excedeu o orçamento`:fixed&&pct>=100?`no valor previsto`:`${fmt(budget-spent)} restantes`}</span>
                     </div>
                   </button>
                 )
@@ -1538,7 +1650,7 @@ export default function FinancasPage() {
                       background:'var(--surface-2)',border:'1px dashed rgba(var(--ink-rgb),0.12)',
                       borderRadius:13,padding:'10px 13px',marginBottom:7,
                     }}>
-                      <span style={{fontSize:15}}>{catEmoji(cat)}</span>
+                      <span style={{fontSize:15}}>{emojiFor(cat)}</span>
                       <span style={{fontSize:12.5,fontWeight:600,color:'var(--text2)'}}>
                         {cat}{(spentByCat[cat]??0)>0?` · ${fmt(spentByCat[cat])} este mês`:''}
                       </span>
@@ -1568,7 +1680,7 @@ export default function FinancasPage() {
                   <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text3)',margin:'4px 0 10px'}}>Sugestões prontas a aplicar</div>
                   {budgetSuggestions.map(({cat,avg,suggested})=>(
                     <div key={cat} style={{display:'flex',alignItems:'center',gap:10,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:15,padding:'12px 14px',marginBottom:8}}>
-                      <span style={{fontSize:16}}>{catEmoji(cat)}</span>
+                      <span style={{fontSize:16}}>{emojiFor(cat)}</span>
                       <span style={{fontSize:13,fontWeight:700,color: 'var(--ink)'}}>{cat}</span>
                       <span style={{marginLeft:'auto',fontSize:11.5,color:'var(--text3)',fontWeight:600}}>média {fmt(avg)} →</span>
                       <span style={{fontSize:13,fontWeight:800,color: 'var(--ink)'}}>{fmt(suggested)}</span>
@@ -1601,7 +1713,7 @@ export default function FinancasPage() {
                   background:'var(--surface-2)',border:'1px dashed rgba(var(--ink-rgb),0.12)',
                   borderRadius:13,padding:'10px 13px',marginBottom:7,
                 }}>
-                  <span style={{fontSize:15}}>{catEmoji(cat)}</span>
+                  <span style={{fontSize:15}}>{emojiFor(cat)}</span>
                   <span style={{fontSize:12.5,fontWeight:600,color:'var(--text2)'}}>{cat}</span>
                   <span style={{marginLeft:'auto',fontSize:11,fontWeight:800,color:'#F5C842'}}>Definir</span>
                 </button>
@@ -1653,7 +1765,7 @@ export default function FinancasPage() {
                 background:fCat===cat?'rgba(245,200,66,0.10)':'rgba(var(--ink-rgb),0.03)',
                 border:`1px solid ${fCat===cat?'rgba(245,200,66,0.45)':'rgba(var(--ink-rgb),0.10)'}`,
                 color:fCat===cat?'#F5C842':'rgba(var(--ink-rgb),0.55)',
-              }}>{catEmoji(cat)} {cat}</button>
+              }}>{emojiFor(cat)} {cat}</button>
             ))}
             <button onClick={()=>setFCat(CUSTOM_KEY)} style={{
               display:'flex',alignItems:'center',gap:6,padding:'8px 12px',borderRadius:11,cursor:'pointer',
@@ -1695,7 +1807,7 @@ export default function FinancasPage() {
                 borderRadius:11,cursor:'pointer',fontSize:12,fontWeight:700,fontFamily:'Inter, sans-serif',
                 background:'rgba(0,200,150,0.08)',border:'1px solid rgba(0,200,150,0.3)',color:'#00C896',
               }}>
-                💡 Sugestão: {catEmoji(s)} {s}
+                💡 Sugestão: {emojiFor(s)} {s}
               </button>
             )
           })()}
@@ -1752,7 +1864,7 @@ export default function FinancasPage() {
 
       {/* ── Sheet: detalhe/edição de movimento ── */}
       {openTx && !confirmDeleteTx && (
-        <Sheet icon={catEmoji(etCat||openTx.category)} title="Movimento" onClose={()=>setOpenTx(null)}
+        <Sheet icon={emojiFor(etCat||openTx.category)} title="Movimento" onClose={()=>setOpenTx(null)}
           footer={
             <button onClick={saveTxEdit} disabled={txEditSaving||!etAmount||!etCat} style={{
               width:'100%',border:'none',borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:15,
@@ -1802,7 +1914,7 @@ export default function FinancasPage() {
                 background:etCat===cat?'rgba(245,200,66,0.10)':'rgba(var(--ink-rgb),0.03)',
                 border:`1px solid ${etCat===cat?'rgba(245,200,66,0.45)':'rgba(var(--ink-rgb),0.10)'}`,
                 color:etCat===cat?'#F5C842':'rgba(var(--ink-rgb),0.55)',
-              }}>{catEmoji(cat)} {cat}</button>
+              }}>{emojiFor(cat)} {cat}</button>
             ))}
           </div>
 
@@ -1879,7 +1991,7 @@ export default function FinancasPage() {
         const n     = parseFloat(budgetVal.replace(',','.'))
         const folga = Number.isFinite(n)&&avg>0 ? n-avg : null
         return (
-          <Sheet icon={catEmoji(budgetSheet)} title={`Orçamento · ${budgetSheet}`} onClose={()=>setBudgetSheet(null)}
+          <Sheet icon={emojiFor(budgetSheet)} title={`Orçamento · ${budgetSheet}`} onClose={()=>setBudgetSheet(null)}
             footer={
               <button
                 onClick={()=>{saveBudget(budgetSheet,budgetVal||'0');setBudgetSheet(null)}}
@@ -1931,9 +2043,50 @@ export default function FinancasPage() {
               </>
             )}
 
+            {/* Conta fixa: valor previsível → não avisa ao atingir o orçamento */}
+            <button
+              onClick={()=>toggleFixedCat(budgetSheet)}
+              role="switch"
+              aria-checked={fixedCats.includes(budgetSheet)}
+              aria-label="Conta fixa"
+              style={{
+                display:'flex',alignItems:'center',gap:11,width:'100%',marginTop:16,padding:'12px 14px',
+                borderRadius:13,cursor:'pointer',fontFamily:'Inter, sans-serif',textAlign:'left',
+                background:fixedCats.includes(budgetSheet)?'rgba(127,119,221,0.10)':'var(--surface-2)',
+                border:`1px solid ${fixedCats.includes(budgetSheet)?'rgba(127,119,221,0.45)':'rgba(var(--ink-rgb),0.10)'}`,
+              }}
+            >
+              <span style={{fontSize:17}}>📌</span>
+              <div style={{flex:1}}>
+                <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>Conta fixa</div>
+                <div style={{fontSize:11,color:'var(--text2)',marginTop:1}}>Valor previsível (ex.: renda) — não avisa ao atingir o orçamento, só se ultrapassar.</div>
+              </div>
+              <span style={{flexShrink:0,width:40,height:23,borderRadius:12,background:fixedCats.includes(budgetSheet)?'#7F77DD':'var(--surface-3)',position:'relative',transition:'background .2s'}}>
+                <span style={{position:'absolute',top:2,left:fixedCats.includes(budgetSheet)?19:2,width:19,height:19,borderRadius:10,background:'#fff',transition:'left .2s',boxShadow:'0 1px 3px rgba(0,0,0,0.3)'}}/>
+              </span>
+            </button>
+
+            {/* Editar/apagar — só categorias personalizadas */}
+            {isCustomCat(budgetSheet)&&(
+              <div style={{display:'flex',gap:8,marginTop:10}}>
+                <button onClick={()=>{const c=budgetSheet;setBudgetSheet(null);openEditCat(c)}} style={{
+                  flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:8,
+                  border:'1px solid rgba(var(--ink-rgb),0.10)',borderRadius:13,padding:'12px 14px',
+                  background:'transparent',fontSize:12.5,fontWeight:700,color:'var(--text1)',
+                  fontFamily:'Inter, sans-serif',cursor:'pointer',
+                }}>✏️ Editar categoria</button>
+                <button onClick={()=>setConfirmDeleteCat(budgetSheet)} style={{
+                  flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:8,
+                  border:'1px solid rgba(226,75,74,0.25)',borderRadius:13,padding:'12px 14px',
+                  background:'transparent',fontSize:12.5,fontWeight:700,color:'#E24B4A',
+                  fontFamily:'Inter, sans-serif',cursor:'pointer',
+                }}>🗑 Apagar</button>
+              </div>
+            )}
+
             {(budgets[budgetSheet]??0)>0&&(
               <button onClick={()=>{saveBudget(budgetSheet,'0');setBudgetSheet(null)}} style={{
-                marginTop:16,width:'100%',display:'flex',alignItems:'center',gap:10,
+                marginTop:10,width:'100%',display:'flex',alignItems:'center',gap:10,
                 border:'1px solid rgba(var(--ink-rgb),0.10)',borderRadius:13,padding:'12px 14px',
                 background:'transparent',fontSize:12.5,fontWeight:600,color:'var(--text2)',
                 fontFamily:'Inter, sans-serif',cursor:'pointer',
@@ -1943,6 +2096,60 @@ export default function FinancasPage() {
               </button>
             )}
           </Sheet>
+        )
+      })()}
+
+      {/* ── Sheet: criar/editar categoria ── */}
+      {catSheet && (
+        <Sheet icon={catEmojiVal} title={catSheet.editing ? 'Editar categoria' : 'Nova categoria'} onClose={()=>setCatSheet(null)}
+          footer={
+            <button onClick={saveCat} disabled={catSaving||!catName.trim()} style={{
+              width:'100%',border:'none',borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:15,
+              cursor:catName.trim()?'pointer':'not-allowed',
+              background:catName.trim()?'linear-gradient(135deg, #F5C842, #E0A82A)':'rgba(var(--ink-rgb),0.06)',
+              color:catName.trim()?'#1A1200':'rgba(var(--ink-rgb),0.35)',
+            }}>{catSaving?'A guardar…':(catSheet.editing?'Guardar alterações':'Criar categoria')}</button>
+          }>
+          <label style={sheetLabel}>Nome</label>
+          <input value={catName} onChange={e=>setCatName(e.target.value)} placeholder="Ex: Ginásio, Veterinário…" style={sheetInp} autoFocus/>
+          {catSheet.editing && (
+            <div style={{fontSize:10.5,color:'var(--text3)',lineHeight:1.5,marginTop:6}}>
+              Renomear atualiza também os movimentos e o orçamento desta categoria.
+            </div>
+          )}
+
+          <label style={sheetLabel}>Emoji</label>
+          <div style={{display:'flex',flexWrap:'wrap',gap:7}}>
+            {CAT_EMOJI_CHOICES.map(e=>(
+              <button key={e} onClick={()=>setCatEmojiVal(e)} aria-label={`Emoji ${e}`} style={{
+                width:38,height:38,borderRadius:11,cursor:'pointer',fontSize:18,display:'flex',alignItems:'center',justifyContent:'center',
+                background:catEmojiVal===e?'rgba(245,200,66,0.14)':'rgba(var(--ink-rgb),0.03)',
+                border:`1px solid ${catEmojiVal===e?'rgba(245,200,66,0.5)':'rgba(var(--ink-rgb),0.10)'}`,
+              }}>{e}</button>
+            ))}
+          </div>
+        </Sheet>
+      )}
+
+      {/* ── Confirmação de apagar categoria ── */}
+      {confirmDeleteCat && (() => {
+        const n = [...txs, ...history].filter(t => t.category === confirmDeleteCat).length
+        return (
+          <div
+            style={{position:'fixed',inset:0,zIndex:10001,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,.7)',padding:24}}
+            onClick={e=>e.target===e.currentTarget&&setConfirmDeleteCat(null)}
+          >
+            <div style={{width:'100%',maxWidth:340,background:'var(--surface-pop)',border:'1px solid rgba(var(--ink-rgb),0.12)',borderRadius:20,padding:'22px 20px',fontFamily:'Inter, sans-serif'}}>
+              <div style={{fontSize:16,fontWeight:800,color: 'var(--ink)',marginBottom:8}}>Apagar “{confirmDeleteCat}”?</div>
+              <p style={{fontSize:13,color:'var(--text2)',lineHeight:1.5,marginBottom:18}}>
+                A categoria é removida do orçamento{n>0?<> e {n} movimento{n!==1?'s':''} {n!==1?'passam':'passa'} para <b style={{color:'var(--ink)'}}>Outro</b></>:''}. Esta ação é irreversível.
+              </p>
+              <div style={{display:'flex',gap:10}}>
+                <button onClick={()=>setConfirmDeleteCat(null)} style={{flex:1,padding:'12px 0',borderRadius:13,border:'1px solid rgba(var(--ink-rgb),0.12)',background:'var(--surface-2)',color:'var(--text1)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>Cancelar</button>
+                <button onClick={deleteCatConfirmed} style={{flex:1,padding:'12px 0',borderRadius:13,border:'none',background:'#E24B4A',color: 'var(--on-accent)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>Apagar</button>
+              </div>
+            </div>
+          </div>
         )
       })()}
 
@@ -2075,7 +2282,7 @@ export default function FinancasPage() {
                 {(recurring as RecurringRule[]).map(rule=>(
                   <div key={rule.id} style={{display:'flex',alignItems:'center',gap:11,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:14,padding:'11px 13px',marginBottom:8,opacity:rule.active?1:0.55}}>
                     <div style={{width:36,height:36,borderRadius:10,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,background:rule.type==='entrada'?'rgba(0,200,150,.10)':'rgba(226,75,74,.10)'}}>
-                      {catEmoji(rule.category)}
+                      {emojiFor(rule.category)}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontSize:13,fontWeight:700,color:'var(--ink)'}}>
@@ -2180,7 +2387,7 @@ export default function FinancasPage() {
                   <div style={{fontSize:10,color:'var(--text2)',fontWeight:600}}>Maior gasto</div>
                   {cur.topCat ? (
                     <div style={{fontSize:13,fontWeight:800,color:'var(--ink)',marginTop:4,display:'flex',alignItems:'center',gap:5,whiteSpace:'nowrap',overflow:'hidden'}}>
-                      <span>{catEmoji(cur.topCat.cat)}</span>
+                      <span>{emojiFor(cur.topCat.cat)}</span>
                       <span style={{overflow:'hidden',textOverflow:'ellipsis'}}>{cur.topCat.cat}</span>
                     </div>
                   ) : <div style={{fontSize:13,color:'var(--text3)',marginTop:4}}>—</div>}

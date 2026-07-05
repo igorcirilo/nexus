@@ -78,6 +78,9 @@ vi.mock('@/lib/supabase', () => ({
   deleteTransaction: vi.fn(async () => ({ error: null })),
   updateFinancialGoals: vi.fn(async () => ({})),
   updateBudgets: vi.fn(async () => ({})),
+  updateCustomCategories: vi.fn(async () => ({})),
+  updateFixedCats: vi.fn(async () => ({})),
+  renameTransactionCategory: vi.fn(async () => ({ error: null })),
   getRecurringRules: vi.fn(async () => RULES),
   saveRecurringRule: vi.fn(async () => ({ data: null, error: null })),
   updateRecurringRule: vi.fn(async () => ({ data: null, error: null })),
@@ -305,6 +308,60 @@ describe('FinancasPage', () => {
     expect(await screen.findByText('Aplicar todos (1)')).toBeDefined()
     ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
     ;(getTransactionsByMonth as ReturnType<typeof vi.fn>).mockResolvedValue(history)
+  })
+
+  it('cria uma categoria personalizada com emoji (persistida via updateCustomCategories)', async () => {
+    const { updateCustomCategories } = await import('@/lib/supabase')
+    await renderPage()
+    // abre o sheet de orçamento pelo cartão-resumo (…% usado)
+    fireEvent.click(screen.getByText(/% usado/).closest('button')!)
+    fireEvent.click(await screen.findByText('Nova categoria'))
+    fireEvent.change(screen.getByPlaceholderText(/Ginásio, Veterinário/), { target: { value: 'Ginásio' } })
+    fireEvent.click(screen.getByLabelText('Emoji 🏋️'))
+    fireEvent.click(screen.getByText('Criar categoria'))
+    await waitFor(() => expect(updateCustomCategories).toHaveBeenCalledWith('u1', [{ name: 'Ginásio', emoji: '🏋️' }]))
+    // fica disponível como chip no formulário de nova transação
+    fireEvent.click(screen.getByLabelText('Registar movimento'))
+    expect(screen.getByRole('button', { name: /🏋️ Ginásio/ })).toBeDefined()
+  })
+
+  it('renomear uma categoria personalizada atualiza os movimentos e o orçamento', async () => {
+    const { getProfile, renameTransactionCategory } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...profile, fin_categories: [{ name: 'Ginásio', emoji: '🏋️' }], fin_budgets: { Lazer: 100, Ginásio: 50 },
+    })
+    await renderPage()
+    fireEvent.click(screen.getByText(/% usado/).closest('button')!)
+    fireEvent.click((await screen.findByText('Ginásio')).closest('button')!)
+    fireEvent.click(await screen.findByText('✏️ Editar categoria'))
+    fireEvent.change(await screen.findByDisplayValue('Ginásio'), { target: { value: 'Academia' } })
+    fireEvent.click(screen.getByText('Guardar alterações'))
+    await waitFor(() => expect(renameTransactionCategory).toHaveBeenCalledWith('u1', 'Ginásio', 'Academia'))
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+  })
+
+  it('apagar uma categoria personalizada reatribui os movimentos a "Outro"', async () => {
+    const { getProfile, renameTransactionCategory } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...profile, fin_categories: [{ name: 'Ginásio', emoji: '🏋️' }], fin_budgets: { Lazer: 100, Ginásio: 50 },
+    })
+    await renderPage()
+    fireEvent.click(screen.getByText(/% usado/).closest('button')!)
+    fireEvent.click((await screen.findByText('Ginásio')).closest('button')!)
+    fireEvent.click(await screen.findByText('🗑 Apagar'))
+    fireEvent.click(await screen.findByText('Apagar'))
+    await waitFor(() => expect(renameTransactionCategory).toHaveBeenCalledWith('u1', 'Ginásio', 'Outro'))
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+  })
+
+  it('conta fixa não dispara o aviso "quase" ao atingir o orçamento', async () => {
+    const { getProfile } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_fixed_cats: ['Lazer'] })
+    await renderPage()
+    // Lazer está a 90% (90/100) — normalmente amarelo; como fixa, sem chip nem insight
+    expect(screen.queryByText(/Lazer 90%/)).toBeNull()
+    expect(screen.queryByText(/de ultrapassar o orçamento de Lazer/)).toBeNull()
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
   })
 
   it('reserva deriva da poupança: depósito entra E levantamento sai (simétrico)', async () => {

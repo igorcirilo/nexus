@@ -144,6 +144,12 @@ describe('buildBudgetSummary', () => {
   it('não divide por zero sem orçamentos', () => {
     expect(buildBudgetSummary({}, spent, outCats).pct).toBe(0)
   })
+
+  it('marca as linhas de contas fixas com fixed:true', () => {
+    const s = buildBudgetSummary(budgets, spent, outCats, ['Transporte'])
+    expect(s.rows.find((r) => r.cat === 'Transporte')!.fixed).toBe(true)
+    expect(s.rows.find((r) => r.cat === 'Alimentação')!.fixed).toBe(false)
+  })
 })
 
 describe('unbudgetedSpend', () => {
@@ -180,6 +186,24 @@ describe('buildInsights', () => {
     expect(ids).toContain('budget-over-Lazer')
     expect(ids).toContain('budget-near-Alimentação')
     expect(ids.indexOf('budget-over-Lazer')).toBeLessThan(ids.indexOf('budget-near-Alimentação'))
+  })
+
+  it('não avisa "quase" para contas fixas (mas mantém "ultrapassou")', () => {
+    const out = buildInsights({
+      ...base,
+      budgets: { Renda: 500, Alimentação: 400 },
+      spentByCat: { Renda: 500, Alimentação: 350 },
+      fixedCats: ['Renda'],
+    }, eur)
+    const ids = out.map((i) => i.id)
+    // Renda a 100% é fixa → sem aviso "quase"; Alimentação a 87% mantém
+    expect(ids).not.toContain('budget-near-Renda')
+    expect(ids).toContain('budget-near-Alimentação')
+    // ultrapassar uma conta fixa continua a avisar
+    const over = buildInsights({
+      ...base, budgets: { Renda: 500 }, spentByCat: { Renda: 560 }, fixedCats: ['Renda'],
+    }, eur)
+    expect(over.map((i) => i.id)).toContain('budget-over-Renda')
   })
 
   it('deteta desvio ≥15% face à média 3m, ignorando médias pequenas', () => {

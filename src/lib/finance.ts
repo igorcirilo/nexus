@@ -139,6 +139,8 @@ export interface BudgetRow {
   budget: number
   spent: number
   pct: number
+  /** Conta fixa (valor previsível): atingir o orçamento é normal, não avisa. */
+  fixed: boolean
 }
 
 export interface BudgetSummary {
@@ -153,19 +155,22 @@ export interface BudgetSummary {
 /**
  * Resumo de orçamento: categorias com orçamento > 0 (ordenadas por % gasto,
  * desc), categorias sem orçamento, e os totais/gauge. `spentByCat` costuma vir
- * de `categoryTotals` do mês atual.
+ * de `categoryTotals` do mês atual. `fixedCats` marca contas fixas (a UI usa
+ * `row.fixed` para não avisar quando atingem o orçamento — é o esperado).
  */
 export function buildBudgetSummary(
   budgets: Record<string, number>,
   spentByCat: Record<string, number>,
   outCats: string[],
+  fixedCats: string[] = [],
 ): BudgetSummary {
+  const fixed = new Set(fixedCats)
   const rows = outCats
     .filter((c) => (budgets[c] ?? 0) > 0)
     .map((c) => {
       const budget = budgets[c]
       const spent = spentByCat[c] ?? 0
-      return { cat: c, budget, spent, pct: Math.round((spent / budget) * 100) }
+      return { cat: c, budget, spent, pct: Math.round((spent / budget) * 100), fixed: fixed.has(c) }
     })
     .sort((a, b) => b.pct - a.pct)
   const unbudgeted = outCats.filter((c) => (budgets[c] ?? 0) <= 0)
@@ -431,6 +436,8 @@ export interface InsightInput {
   /** Média mensal de gasto por categoria nos últimos 3 meses completos. */
   catAvg3m: Record<string, number>
   budgets: Record<string, number>
+  /** Categorias "conta fixa": não geram o aviso de "quase a ultrapassar". */
+  fixedCats?: string[]
   /** Poupança líquida do mês anterior completo: depósitos − levantamentos na
    *  categoria de poupança (a mesma medida do cartão "Poupado"). */
   savingsPrevMonth: number
@@ -454,10 +461,11 @@ export interface InsightInput {
 export function buildInsights(input: InsightInput, fmt: (v: number) => string): Insight[] {
   const out: Insight[] = []
   const {
-    spentByCat, catAvg3m, budgets,
+    spentByCat, catAvg3m, budgets, fixedCats = [],
     savingsPrevMonth, savingsThisMonth, daysSinceLastTx,
     topAnomaly, subscriptionsMonthly = 0, topRecurring,
   } = input
+  const fixed = new Set(fixedCats)
 
   // Orçamentos: primeiro os já ultrapassados, depois os quase (≥85%).
   const budgeted = Object.entries(budgets).filter(([, b]) => b > 0)
@@ -471,7 +479,9 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
       text: `Ultrapassaste o orçamento de ${overCat.cat} em ${fmt(overCat.over)}.`,
     })
   }
+  // Contas fixas ficam de fora do aviso "quase" — atingir o orçamento é normal.
   const nearCat = budgeted
+    .filter(([cat]) => !fixed.has(cat))
     .map(([cat, b]) => ({ cat, left: b - (spentByCat[cat] ?? 0), pct: (spentByCat[cat] ?? 0) / b }))
     .filter((c) => c.pct >= 0.85 && c.left > 0)
     .sort((a, b) => b.pct - a.pct)[0]

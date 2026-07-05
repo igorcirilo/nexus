@@ -45,6 +45,16 @@ export interface Profile {
   fin_reserve_goal?: number | null
   /** Orçamentos por categoria (€/mês). Fonte de verdade no Supabase. */
   fin_budgets?: Record<string, number> | null
+  /** Categorias de saída criadas pelo utilizador (nome + emoji). */
+  fin_categories?: CustomCategory[] | null
+  /** Categorias marcadas como "conta fixa" (não avisam ao atingir o orçamento). */
+  fin_fixed_cats?: string[] | null
+}
+
+/** Categoria de saída personalizada, criada/editada no orçamento. */
+export interface CustomCategory {
+  name: string
+  emoji: string
 }
 
 export type HabitArea =

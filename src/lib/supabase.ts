@@ -568,6 +568,29 @@ export async function updateBudgets(userId: string, budgets: Record<string, numb
   return supabase.from('profiles').update({ fin_budgets: budgets } as Record<string, unknown>).eq('id', userId)
 }
 
+// Categorias de saída criadas pelo utilizador ({name,emoji}), em fin_categories.
+export async function updateCustomCategories(userId: string, cats: { name: string; emoji: string }[]) {
+  return supabase.from('profiles').update({ fin_categories: cats } as Record<string, unknown>).eq('id', userId)
+}
+
+// Categorias marcadas como "conta fixa" (não avisam ao atingir o orçamento).
+export async function updateFixedCats(userId: string, cats: string[]) {
+  return supabase.from('profiles').update({ fin_fixed_cats: cats } as Record<string, unknown>).eq('id', userId)
+}
+
+// Renomeia (ou reatribui) a categoria de todos os movimentos do utilizador:
+// update em massa `category = to where category = from`. Usado ao renomear uma
+// categoria personalizada (to = novo nome) e ao apagá-la (to = 'Outro').
+export async function renameTransactionCategory(userId: string, from: string, to: string) {
+  const { error } = await supabase
+    .from('transactions')
+    .update({ category: to })
+    .eq('user_id', userId)
+    .eq('category', from)
+  if (error) reportError('renameTransactionCategory error', error.message)
+  return { error }
+}
+
 
 
 // ── Corpo ───────────────────────────────────────────────────
