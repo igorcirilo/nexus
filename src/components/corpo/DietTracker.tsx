@@ -5,16 +5,17 @@ import type { CSSProperties } from 'react'
 import FileImportModal from '@/components/FileImportModal'
 import PlanReviewModal from '@/components/PlanReviewModal'
 import EmptyState from '@/components/EmptyState'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Icon, { type IconName } from '@/components/ui/Icon'
 import { useToast } from '@/components/Toast'
 import { getDietPlans, saveDietPlan } from '@/lib/supabase'
-import { getDietMeals, upsertDietMeal, deleteDietPlan } from '@/lib/body'
+import { getDietMeals, upsertDietMeal, deleteDietPlan, DIET_PLAN_STORAGE_KEY } from '@/lib/body'
 import { parseDietImport, normalizeDisplayText, type ParsedDietPlan } from '@/lib/body-plan'
 import type { DietPlan, DietMeal, DietMealKey, FileImportResult } from '@/types'
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
 
 const MEALS = [
-  { key: 'pequeno_almoco', label: 'Pequeno-almoço', icon: 'coffee' },
+  { key: 'pequeno_almoco', label: 'Café da manhã', icon: 'coffee' },
   { key: 'almoco', label: 'Almoço', icon: 'utensils' },
   { key: 'lanche', label: 'Lanche', icon: 'cup' },
   { key: 'jantar', label: 'Jantar', icon: 'moon' },
@@ -241,7 +242,29 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
   const [mealState, setMealState] = useState<Record<string, MealNotesPayload>>({})
   const [showImport, setShowImport] = useState(false)
   const [importReview, setImportReview] = useState<{ result: FileImportResult; parsed: ParsedDietPlan } | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const noteTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
+
+  // Restaura a dieta selecionada (compartilhada com o Resumo via localStorage).
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(DIET_PLAN_STORAGE_KEY)
+      if (stored && initialPlans.some((p) => p.id === stored)) setSelectedId(stored)
+    } catch {
+      /* ignore */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Persiste a seleção para o Resumo mostrar o mesmo plano.
+  useEffect(() => {
+    try {
+      if (selectedId) localStorage.setItem(DIET_PLAN_STORAGE_KEY, selectedId)
+      else localStorage.removeItem(DIET_PLAN_STORAGE_KEY)
+    } catch {
+      /* ignore */
+    }
+  }, [selectedId])
 
   useEffect(() => {
     async function loadMeals() {
@@ -419,6 +442,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
   const macroSelecionados = { carboidratos: 0, proteinas: 0, gorduras: 0 }
   const macroPlano = { carboidratos: 0, proteinas: 0, gorduras: 0 }
   let kcalSelecionadas = 0
+  let kcalPlano = 0
   if (parsed) {
     for (const meal of parsed.meals) {
       const log = selectedId ? getMealLog(meal.key as DietMealKey) : undefined
@@ -434,6 +458,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
         macroPlano.carboidratos += c
         macroPlano.proteinas += p
         macroPlano.gorduras += g
+        kcalPlano += parseGramsValue(parsedItem.kcal)
         if (payload.items?.[itemCheckKey(item)]) {
           macroSelecionados.carboidratos += c
           macroSelecionados.proteinas += p
@@ -452,6 +477,17 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
   const totalMacrosSelecionados = macroChartData.reduce((acc, m) => acc + m.value, 0)
   const macroPieData = macroChartData.filter((m) => m.value > 0)
   const hasMacroData = macroPlano.carboidratos + macroPlano.proteinas + macroPlano.gorduras > 0
+
+  // Renderiza as refeições a partir do plano importado (não da lista fixa):
+  // refeições fora do molde padrão também aparecem, com ícone/rótulo genérico.
+  const mealMetaByKey: Record<string, { label: string; icon: IconName }> = Object.fromEntries(
+    MEALS.map((m) => [m.key, { label: m.label, icon: m.icon }])
+  )
+  const mealOrder = (key: string) => {
+    const idx = MEALS.findIndex((m) => m.key === key)
+    return idx === -1 ? MEALS.length : idx
+  }
+  const orderedMeals = parsed ? [...parsed.meals].sort((a, b) => mealOrder(a.key) - mealOrder(b.key)) : []
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -535,7 +571,9 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                   <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--gold)' }}>
                     {Math.round(kcalSelecionadas)}
                   </span>
-                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>kcal</span>
+                  <span style={{ fontSize: 12, color: 'var(--text3)' }}>
+                    {kcalPlano > 0 ? `/ ${Math.round(kcalPlano)} kcal` : 'kcal'}
+                  </span>
                 </div>
               </div>
 
@@ -580,25 +618,26 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                 </>
               ) : (
                 <div style={{ padding: '24px 8px', textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>
-                  Marca itens nas refeições para ver os macros somados.
+                  Marque os itens das refeições para ver os macros somados.
                 </div>
               )}
             </div>
           )}
 
-          {MEALS.map((meal) => {
-            const mealPlan = parsed.meals.find((m) => m.key === meal.key)
-            if (!mealPlan || mealPlan.items.length === 0) return null
+          {orderedMeals.map((mealPlan) => {
+            if (mealPlan.items.length === 0) return null
+            const meta =
+              mealMetaByKey[mealPlan.key] ?? { label: mealPlan.label || 'Refeição', icon: 'utensils' as IconName }
 
-            const log = getMealLog(meal.key as DietMealKey)
-            const payload = selectedId ? getMealPayload(selectedId, meal.key as DietMealKey, log) : { freeText: '' }
+            const log = getMealLog(mealPlan.key as DietMealKey)
+            const payload = selectedId ? getMealPayload(selectedId, mealPlan.key as DietMealKey, log) : { freeText: '' }
             const checkedCount = mealPlan.items.filter((item) => payload.items?.[itemCheckKey(item)]).length
             const done = mealPlan.items.length > 0 ? checkedCount === mealPlan.items.length : (log?.completed ?? false)
             const noteText = payload.freeText ?? ''
 
             return (
               <div
-                key={meal.key}
+                key={mealPlan.key}
                 style={{
                   background: 'var(--bg1)',
                   border: `1px solid ${done ? 'var(--teal)' : 'var(--border)'}`,
@@ -617,7 +656,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                   }}
                 >
                   <button
-                    onClick={() => toggleMeal(meal.key as DietMealKey)}
+                    onClick={() => toggleMeal(mealPlan.key as DietMealKey)}
                     aria-label={done ? 'Limpar refeição' : 'Marcar refeição completa'}
                     style={{
                       width: 22,
@@ -652,7 +691,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                       flexShrink: 0,
                     }}
                   >
-                    <Icon name={meal.icon as IconName} size={16} />
+                    <Icon name={meta.icon as IconName} size={16} />
                   </span>
                   <span
                     style={{
@@ -666,7 +705,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                       transition: 'color 0.2s ease',
                     }}
                   >
-                    {meal.label}
+                    {meta.label}
                   </span>
 
                   <div style={{ fontSize: 11, color: done ? 'var(--teal)' : 'var(--text3)', marginRight: 8 }}>
@@ -674,7 +713,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                   </div>
 
                   <button
-                    onClick={() => toggleMeal(meal.key as DietMealKey)}
+                    onClick={() => toggleMeal(mealPlan.key as DietMealKey)}
                     style={{
                       border: '1px solid var(--border)',
                       background: done ? 'rgba(30,203,180,.12)' : 'var(--bg2)',
@@ -697,7 +736,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                     return (
                       <button
                         key={idx}
-                        onClick={() => toggleMealItem(meal.key as DietMealKey, item, mealPlan.items)}
+                        onClick={() => toggleMealItem(mealPlan.key as DietMealKey, item, mealPlan.items)}
                         style={{
                           display: 'flex',
                           alignItems: 'flex-start',
@@ -806,7 +845,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                 <div style={{ padding: '0 14px 12px' }}>
                   <textarea
                     value={noteText}
-                    onChange={(e) => handleNoteChange(meal.key as DietMealKey, e.target.value)}
+                    onChange={(e) => handleNoteChange(mealPlan.key as DietMealKey, e.target.value)}
                     placeholder="Notas (opcional)..."
                     rows={2}
                     style={{
@@ -825,7 +864,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                     }}
                   />
                   <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 6 }}>
-                    Regista substituições, fome, saciedade ou observações da refeição.
+                    Registre substituições, fome, saciedade ou observações da refeição.
                   </div>
                 </div>
               </div>
@@ -891,7 +930,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                   {normalizeDisplayText(plan.title)}
                 </button>
                 <button
-                  onClick={() => handleDelete(plan.id)}
+                  onClick={() => setConfirmDeleteId(plan.id)}
                   aria-label="Remover dieta"
                   style={{
                     background: 'none',
@@ -953,6 +992,18 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
           onCancel={() => setImportReview(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Excluir plano de dieta?"
+        body={`"${normalizeDisplayText(plans.find((p) => p.id === confirmDeleteId)?.title ?? 'Dieta')}" e os registros de refeições dele serão removidos. Esta ação não pode ser desfeita.`}
+        confirmLabel="Excluir dieta"
+        onConfirm={() => {
+          if (confirmDeleteId) handleDelete(confirmDeleteId)
+          setConfirmDeleteId(null)
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   )
 }

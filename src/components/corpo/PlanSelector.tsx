@@ -103,7 +103,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                 lineHeight: 1.3,
               }}
             >
-              Que treino fazes hoje?
+              Qual é o treino de hoje?
             </p>
             <p
               style={{
@@ -113,7 +113,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                 margin: '4px 0 0',
               }}
             >
-              Escolhe o plano e a secao
+              Escolha o plano e a seção
             </p>
           </div>
           <button
@@ -165,7 +165,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                   textAlign: 'center',
                 }}
               >
-                Ainda nao tens nenhum plano de treino importado.
+                Você ainda não tem nenhum plano de treino importado.
               </p>
               <button
                 onClick={onImport}
@@ -240,7 +240,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                               margin: '3px 0 0',
                             }}
                           >
-                            {sections.length} secao{sections.length !== 1 ? 'es' : ''}
+                            {sections.length} {sections.length !== 1 ? 'seções' : 'seção'}
                           </p>
                         </div>
                         <span
@@ -273,7 +273,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                                 padding: '12px 16px',
                               }}
                             >
-                              Nenhuma secao encontrada neste plano.
+                              Nenhuma seção encontrada neste plano.
                             </p>
                           ) : (
                             sections.map((section, idx) => (
@@ -318,7 +318,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                                       margin: '2px 0 0',
                                     }}
                                   >
-                                    {section.exercises.length} exercicio
+                                    {section.exercises.length} exercício
                                     {section.exercises.length !== 1 ? 's' : ''}
                                   </p>
                                 </div>

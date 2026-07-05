@@ -1,9 +1,10 @@
 'use client'
 import { useEffect, useRef, useState } from 'react'
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts'
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
 import { format } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import EmptyState from '@/components/EmptyState'
+import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/components/Toast'
 import { getWeightLogs, upsertWeightLog, deleteWeightLog, type WeightLog } from '@/lib/body'
 import { updateProfile } from '@/lib/supabase'
@@ -12,12 +13,14 @@ import { todayISO, parseLocalDate } from '@/lib/date'
 interface Props {
   userId: string
   heightCm: number | null
+  goalWeight: number | null
   onHeightSave: (cm: number) => void
+  onGoalSave: (kg: number) => void
 }
 
 type Filter = 30 | 90 | 0
 
-export default function WeightLogComponent({ userId, heightCm, onHeightSave }: Props) {
+export default function WeightLogComponent({ userId, heightCm, goalWeight, onHeightSave, onGoalSave }: Props) {
   const toast = useToast()
   const [logs, setLogs] = useState<WeightLog[]>([])
   const [filter, setFilter] = useState<Filter>(30)
@@ -28,6 +31,10 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
   const [heightVal, setHeightVal] = useState(heightCm ? String(heightCm) : '')
   const [heightEditing, setHeightEditing] = useState(heightCm === null)
   const [heightSaving, setHeightSaving] = useState(false)
+  const [goalVal, setGoalVal] = useState(goalWeight ? String(goalWeight) : '')
+  const [goalEditing, setGoalEditing] = useState(false)
+  const [goalSaving, setGoalSaving] = useState(false)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
   useEffect(() => {
     getWeightLogs(userId, filter || undefined).then(setLogs)
@@ -35,11 +42,11 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
 
   async function handleSave() {
     const kg = parseFloat(weightIn.replace(',', '.'))
-    if (isNaN(kg) || kg <= 0 || kg > 500) { toast.error('Peso inválido'); return }
+    if (isNaN(kg) || kg <= 0 || kg > 500) { toast.error('Insira um peso entre 1 e 500 kg'); return }
     setSaving(true)
     await upsertWeightLog(userId, dateIn, kg)
     setSaving(false)
-    toast.success('Peso registado!')
+    toast.success('Peso registrado!')
     setWeightIn('')
     getWeightLogs(userId, filter || undefined).then(setLogs)
   }
@@ -51,13 +58,24 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
 
   async function handleHeightSave() {
     const cm = parseFloat(heightVal.replace(',', '.'))
-    if (isNaN(cm) || cm < 50 || cm > 250) { toast.error('Altura inválida'); return }
+    if (isNaN(cm) || cm < 50 || cm > 250) { toast.error('Insira uma altura entre 50 e 250 cm'); return }
     setHeightSaving(true)
     await updateProfile(userId, { height_cm: cm })
     setHeightSaving(false)
     setHeightEditing(false)
     onHeightSave(cm)
-    toast.success('Altura guardada!')
+    toast.success('Altura salva!')
+  }
+
+  async function handleGoalSave() {
+    const kg = parseFloat(goalVal.replace(',', '.'))
+    if (isNaN(kg) || kg <= 0 || kg > 500) { toast.error('Insira uma meta entre 1 e 500 kg'); return }
+    setGoalSaving(true)
+    await updateProfile(userId, { goal_weight: kg })
+    setGoalSaving(false)
+    setGoalEditing(false)
+    onGoalSave(kg)
+    toast.success('Meta salva!')
   }
 
   // Média móvel de 7 registos: suaviza o ruído diário e mostra a tendência real,
@@ -74,9 +92,11 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
 
   // Domínio Y com folga generosa: evita que o eixo auto-escale e exagere
   // variações pequenas, transformando ruído em "queda/subida" dramática.
+  // A meta entra no domínio para a linha de referência ficar sempre visível.
   const weights = logs.map(l => Number(l.weight_kg))
-  const dataMin = weights.length ? Math.min(...weights) : 0
-  const dataMax = weights.length ? Math.max(...weights) : 0
+  const domainValues = goalWeight ? [...weights, Number(goalWeight)] : weights
+  const dataMin = domainValues.length ? Math.min(...domainValues) : 0
+  const dataMax = domainValues.length ? Math.max(...domainValues) : 0
   const yPad = Math.max(2, dataMax - dataMin)
   const yDomain: [number, number] = [Math.floor(dataMin - yPad), Math.ceil(dataMax + yPad)]
 
@@ -90,6 +110,11 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
   const deltaArrow = deltaNum === null ? '' : Math.abs(deltaNum) < 0.1 ? '→' : deltaNum > 0 ? '↑' : '↓'
   const deltaLabel = deltaNum === null ? '' : Math.abs(deltaNum) < 0.1 ? 'estável' : `${deltaArrow} ${deltaAbs} kg`
 
+  // Distância até a meta — responde "quanto falta?" sem juízo de valor.
+  const goalDelta = goalWeight !== null && latest ? Number(latest.weight_kg) - Number(goalWeight) : null
+  const goalDeltaLabel =
+    goalDelta === null ? '' : Math.abs(goalDelta) < 0.1 ? 'na meta' : `${Math.abs(goalDelta).toFixed(1).replace('.', ',')} kg`
+
   const filterLabels: { value: Filter; label: string }[] = [
     { value: 30, label: '30d' },
     { value: 90, label: '90d' },
@@ -99,40 +124,80 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* Altura card */}
-      <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: heightEditing ? 10 : 0 }}>
-          <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Altura
+      {/* Altura + Meta */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: 150, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: heightEditing ? 10 : 0 }}>
+            <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Altura
+            </div>
+            {!heightEditing && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Syne, sans-serif' }}>
+                  {heightCm} cm
+                </span>
+                <button onClick={() => setHeightEditing(true)} style={{ fontSize: 12, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
+                  editar
+                </button>
+              </div>
+            )}
           </div>
-          {!heightEditing && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Syne, sans-serif' }}>
-                {heightCm} cm
-              </span>
-              <button onClick={() => setHeightEditing(true)} style={{ fontSize: 12, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
-                editar
+          {heightEditing && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="number"
+                inputMode="decimal"
+                placeholder="170"
+                value={heightVal}
+                onChange={e => setHeightVal(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleHeightSave() }}
+                style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text1)', fontFamily: 'DM Sans, sans-serif', fontSize: 14, padding: '8px 10px', outline: 'none', width: 74 }}
+              />
+              <span style={{ fontSize: 13, color: 'var(--text3)' }}>cm</span>
+              <button onClick={handleHeightSave} disabled={heightSaving || !heightVal} style={{ background: heightVal ? 'var(--gold)' : 'var(--bg3)', color: heightVal ? '#000' : 'var(--text3)', border: 'none', borderRadius: 8, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 14, padding: '8px 14px', cursor: heightVal ? 'pointer' : 'not-allowed' }}>
+                {heightSaving ? 'Salvando…' : 'Salvar'}
               </button>
             </div>
           )}
         </div>
-        {heightEditing && (
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <input
-              type="number"
-              inputMode="decimal"
-              placeholder="170"
-              value={heightVal}
-              onChange={e => setHeightVal(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') handleHeightSave() }}
-              style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text1)', fontFamily: 'DM Sans, sans-serif', fontSize: 14, padding: '8px 10px', outline: 'none', width: 90 }}
-            />
-            <span style={{ fontSize: 13, color: 'var(--text3)' }}>cm</span>
-            <button onClick={handleHeightSave} disabled={heightSaving || !heightVal} style={{ background: heightVal ? 'var(--gold)' : 'var(--bg3)', color: heightVal ? '#000' : 'var(--text3)', border: 'none', borderRadius: 8, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 14, padding: '8px 16px', cursor: heightVal ? 'pointer' : 'not-allowed' }}>
-              {heightSaving ? 'A guardar…' : 'Guardar'}
-            </button>
+
+        {/* Meta de peso: editável aqui (o Resumo apenas exibe) */}
+        <div style={{ flex: 1, minWidth: 150, background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: goalEditing ? 10 : 0 }}>
+            <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Meta
+            </div>
+            {!goalEditing && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                {goalWeight !== null && (
+                  <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Syne, sans-serif' }}>
+                    {Number(goalWeight)} kg
+                  </span>
+                )}
+                <button onClick={() => setGoalEditing(true)} style={{ fontSize: 12, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
+                  {goalWeight !== null ? 'editar' : 'definir'}
+                </button>
+              </div>
+            )}
           </div>
-        )}
+          {goalEditing && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="number"
+                inputMode="decimal"
+                placeholder="72.0"
+                value={goalVal}
+                onChange={e => setGoalVal(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') handleGoalSave() }}
+                style={{ background: 'var(--bg3)', border: '1px solid var(--border)', borderRadius: 8, color: 'var(--text1)', fontFamily: 'DM Sans, sans-serif', fontSize: 14, padding: '8px 10px', outline: 'none', width: 74 }}
+              />
+              <span style={{ fontSize: 13, color: 'var(--text3)' }}>kg</span>
+              <button onClick={handleGoalSave} disabled={goalSaving || !goalVal} style={{ background: goalVal ? 'var(--gold)' : 'var(--bg3)', color: goalVal ? '#000' : 'var(--text3)', border: 'none', borderRadius: 8, fontFamily: 'DM Sans, sans-serif', fontWeight: 600, fontSize: 14, padding: '8px 14px', cursor: goalVal ? 'pointer' : 'not-allowed' }}>
+                {goalSaving ? 'Salvando…' : 'Salvar'}
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Input row */}
@@ -200,7 +265,7 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
             transition: 'background 0.15s',
           }}
         >
-          {saving ? 'A guardar…' : 'Registar'}
+          {saving ? 'Salvando…' : 'Registrar'}
         </button>
       </div>
 
@@ -240,6 +305,28 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
                 color: 'var(--text1)',
               }}>
                 {deltaLabel}
+              </div>
+            </div>
+          )}
+
+          {goalDelta !== null && (
+            <div style={{
+              background: 'var(--bg2)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              padding: '10px 16px',
+              flex: 1,
+            }}>
+              <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                {Math.abs(goalDelta) < 0.1 ? 'Meta' : 'Até a meta'}
+              </div>
+              <div style={{
+                fontSize: 20,
+                fontWeight: 700,
+                fontFamily: 'Syne, sans-serif',
+                color: 'var(--text1)',
+              }}>
+                {goalDeltaLabel}
               </div>
             </div>
           )}
@@ -290,6 +377,16 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={chartData} margin={{ top: 4, right: 12, left: -8, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+              {/* Meta de peso: referência visual constante — responde "quanto falta?" */}
+              {goalWeight !== null && (
+                <ReferenceLine
+                  y={Number(goalWeight)}
+                  stroke="var(--gold)"
+                  strokeDasharray="5 4"
+                  strokeWidth={1.5}
+                  label={{ value: 'Meta', position: 'insideTopRight', fill: 'var(--gold)', fontSize: 10, fontFamily: 'DM Sans, sans-serif' }}
+                />
+              )}
               <XAxis
                 dataKey="date"
                 tick={{ fontSize: 10, fill: 'var(--text3)', fontFamily: 'DM Sans, sans-serif' }}
@@ -346,8 +443,14 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
               <i style={{ width: 6, height: 6, background: 'var(--text3)', borderRadius: '50%', display: 'inline-block' }} />
-              Registo diário
+              Registro diário
             </span>
+            {goalWeight !== null && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <i style={{ width: 14, height: 0, borderTop: '2px dashed var(--gold)', display: 'inline-block' }} />
+                Meta
+              </span>
+            )}
           </div>
         </div>
       )}
@@ -397,7 +500,7 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
                   {format(parseLocalDate(l.date), "d 'de' MMM", { locale: pt })}
                 </span>
                 <button
-                  onClick={() => handleDelete(l.id)}
+                  onClick={() => setConfirmDeleteId(l.id)}
                   style={{
                     background: 'none',
                     border: 'none',
@@ -408,7 +511,7 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
                     padding: '2px 4px',
                     borderRadius: 4,
                   }}
-                  aria-label="Eliminar registo"
+                  aria-label="Excluir registro"
                 >
                   ×
                 </button>
@@ -417,6 +520,23 @@ export default function WeightLogComponent({ userId, heightCm, onHeightSave }: P
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={confirmDeleteId !== null}
+        title="Excluir registro de peso?"
+        body={(() => {
+          const log = logs.find(l => l.id === confirmDeleteId)
+          return log
+            ? `O registro de ${Number(log.weight_kg)} kg em ${format(parseLocalDate(log.date), "d 'de' MMMM", { locale: pt })} será removido. Esta ação não pode ser desfeita.`
+            : 'Este registro será removido. Esta ação não pode ser desfeita.'
+        })()}
+        confirmLabel="Excluir registro"
+        onConfirm={() => {
+          if (confirmDeleteId) handleDelete(confirmDeleteId)
+          setConfirmDeleteId(null)
+        }}
+        onCancel={() => setConfirmDeleteId(null)}
+      />
     </div>
   )
 }

@@ -10,8 +10,8 @@ export default function CorpoError({ error, reset }: { error: Error & { digest?:
 
   return (
     <ErrorState
-      title="Os teus dados não carregaram"
-      body="Tivemos um problema a carregar o teu progresso corporal. Verifica a ligação e tenta de novo."
+      title="Seus dados não carregaram"
+      body="Tivemos um problema ao carregar seu progresso corporal. Verifique a conexão e tente de novo."
       onRetry={reset}
     />
   )
