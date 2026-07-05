@@ -41,6 +41,7 @@ const history = [
   { date: '2026-06-10', type: 'saida',   amount: 200,  category: 'Alimentação' },
   { date: '2026-06-01', type: 'entrada', amount: 1000, category: 'Salário' },
   { date: '2026-07-01', type: 'entrada', amount: 1000, category: 'Salário' },
+  { date: '2026-07-08', type: 'entrada', amount: 150,  category: 'Poupança' },
   { date: '2026-07-10', type: 'saida',   amount: 300,  category: 'Alimentação' },
   { date: '2026-07-12', type: 'saida',   amount: 90,   category: 'Lazer' },
 ]
@@ -223,6 +224,42 @@ describe('FinancasPage', () => {
     expect(screen.getByText('150,00 €')).toBeDefined()
     // se contasse o depósito como entrada seriam 1150 — não deve aparecer
     expect(screen.queryByText(/1\s?150,00/)).toBeNull()
+  })
+
+  it('o insight de poupança compara o poupado (transferências), não o balanço', async () => {
+    await renderPage()
+    fireEvent.click(await screen.findByText(/Ver todos \d+ ›/))
+    // poupado em julho = 150 (depósito t5); junho não tem depósitos (0).
+    // Se usasse o balanço seria "poupaste 610" vs. 800 de junho → sem insight.
+    expect(await screen.findByText(/Já poupaste 150,00 € este mês/)).toBeDefined()
+  })
+
+  it('o histórico de poupança mede o poupado por mês, não o que sobrou', async () => {
+    const { getProfile } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_monthly_save: 100 })
+    await renderPage()
+    fireEvent.click(screen.getByText(/💰 Poupança ·/))
+    expect(await screen.findByText('Poupança mensal')).toBeDefined()
+    // Só julho tem depósitos (150 ≥ meta 100). Com o "que sobrou" contaria
+    // também junho (800) e julho (610) → 2 meses.
+    expect(screen.getByText(/1 dos últimos 6 meses acima da meta/)).toBeDefined()
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+  })
+
+  it('não sugere orçamento para Poupança (levantar da reserva não é gasto)', async () => {
+    const { getProfile, getTransactionsByMonth } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_budgets: {} })
+    ;(getTransactionsByMonth as ReturnType<typeof vi.fn>).mockResolvedValue([
+      ...history,
+      { date: '2026-05-20', type: 'saida', amount: 100, category: 'Poupança' },
+    ])
+    await renderPage()
+    fireEvent.click(screen.getByText('Definir orçamentos'))
+    // Só Alimentação tem média nos 3 meses anteriores; se o levantamento de
+    // Poupança contasse como gasto, apareceriam 2 sugestões.
+    expect(await screen.findByText('Aplicar todos (1)')).toBeDefined()
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+    ;(getTransactionsByMonth as ReturnType<typeof vi.fn>).mockResolvedValue(history)
   })
 
   it('registar depósito (entrada Poupança) soma à reserva (fin_current_savings)', async () => {

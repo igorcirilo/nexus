@@ -255,14 +255,22 @@ export default function FinancasPage() {
     () => [...CATEGORIES_OUT.filter(c => c !== 'Outro'), ...customOutCats, 'Outro'],
     [customOutCats],
   )
+  // Categorias orçamentáveis: as de saída SEM "Poupança" — um levantamento da
+  // reserva é transferência, não consumo, por isso não entra no gauge, nas
+  // sugestões nem nas médias do orçamento.
+  const BUDGET_CATS = useMemo(() => OUT_CATS.filter(c => c !== SAVINGS_CAT), [OUT_CATS])
 
-  // Gráfico 6 meses
+  // Gráfico 6 meses. `poupanca` = o que sobrou (entradas − saídas, sem
+  // transferências); `poupado` = líquido movido para a reserva (depósitos −
+  // levantamentos de "Poupança") — a mesma definição do cartão "Poupado" e da
+  // meta mensal, para todos os sítios que falam de "poupar" baterem certo.
   const monthlyChart = useMemo(()=>{
     const months = Array.from({length:6},(_,i)=>subMonths(new Date(),5-i))
     const ranges = months.map(d=>({start:format(startOfMonth(d),'yyyy-MM-dd'),end:format(endOfMonth(d),'yyyy-MM-dd')}))
     const series = monthlySavings(historyNoSavings, ranges)
-    return months.map((d,i)=>({label:format(d,'MMM',{locale:pt}),...series[i]}))
-  },[historyNoSavings])
+    const saved  = monthlySavings(history.filter(t=>t.category===SAVINGS_CAT), ranges)
+    return months.map((d,i)=>({label:format(d,'MMM',{locale:pt}),...series[i],poupado:saved[i].poupanca}))
+  },[history,historyNoSavings])
 
   // ── Médias dos últimos 3 meses completos (exclui o mês atual) ──
   const prev3Range = useMemo(() => ({
@@ -281,24 +289,24 @@ export default function FinancasPage() {
   }, [historyNoSavings, prev3Range])
   const catAvg3m = useMemo(() => {
     const map: Record<string,number> = {}
-    history.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
+    historyNoSavings.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
       .forEach(t => { map[t.category]=(map[t.category]??0)+t.amount })
     Object.keys(map).forEach(k => { map[k]=map[k]/3 })
     return map
-  }, [history, prev3Range])
+  }, [historyNoSavings, prev3Range])
   // Gasto por categoria nos últimos 4 meses (3 anteriores + atual) para sparkline
   const catMonthly = useMemo(() => {
     const map: Record<string,number[]> = {}
     for (let i=3;i>=0;i--) {
       const d=subMonths(new Date(),i)
       const s=format(startOfMonth(d),'yyyy-MM-dd'), e=format(endOfMonth(d),'yyyy-MM-dd')
-      const inMonth = history.filter(t=>t.type==='saida'&&t.date>=s&&t.date<=e)
+      const inMonth = historyNoSavings.filter(t=>t.type==='saida'&&t.date>=s&&t.date<=e)
       const perCat: Record<string,number> = {}
       inMonth.forEach(t=>{ perCat[t.category]=(perCat[t.category]??0)+t.amount })
-      OUT_CATS.forEach(c=>{ (map[c] ??= []).push(Math.round(perCat[c]??0)) })
+      BUDGET_CATS.forEach(c=>{ (map[c] ??= []).push(Math.round(perCat[c]??0)) })
     }
     return map
-  }, [history, OUT_CATS])
+  }, [historyNoSavings, BUDGET_CATS])
 
   // ── Movimentos: mês selecionado vs. pesquisa em todo o histórico ──
   // Pesquisa com ≥2 caracteres → resultados globais (server-side); caso
@@ -389,10 +397,10 @@ export default function FinancasPage() {
     return rest
   }, [spentByCat])
   const { rows: budgetedCats, unbudgeted: unbudgetedCats, totalBudget, totalSpent: totalSpentBudgeted, pct: budgetPct } =
-    buildBudgetSummary(budgets, spentByCat, OUT_CATS)
+    buildBudgetSummary(budgets, spentByCat, BUDGET_CATS)
   // Cor do orçamento por quanto já foi usado (sem comparar com o "ritmo" do mês).
   const budgetColor        = budgetPct >= 100 ? '#E24B4A' : budgetPct >= 85 ? '#F5C842' : '#00C896'
-  const budgetSuggestions  = OUT_CATS
+  const budgetSuggestions  = BUDGET_CATS
     .filter(c => (catAvg3m[c]??0) > 0)
     .map(c => ({ cat:c, avg:catAvg3m[c], suggested: Math.ceil((catAvg3m[c]*1.05)/10)*10 }))
 
@@ -437,13 +445,13 @@ export default function FinancasPage() {
     spentByCat: spendByCatOnly,
     catAvg3m,
     budgets,
-    savingsPrevMonth: monthlyChart.length >= 2 ? monthlyChart[monthlyChart.length-2].poupanca : 0,
-    savingsThisMonth: balance,
+    savingsPrevMonth: monthlyChart.length >= 2 ? monthlyChart[monthlyChart.length-2].poupado : 0,
+    savingsThisMonth: savedThisMonth,
     daysSinceLastTx,
     topAnomaly: anomalies[0] ?? null,
     subscriptionsMonthly,
     topRecurring,
-  }, fmt), [spendByCatOnly, catAvg3m, budgets, monthlyChart, balance, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring])
+  }, fmt), [spendByCatOnly, catAvg3m, budgets, monthlyChart, savedThisMonth, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring])
   const topInsight = insights[0] ?? null
   // Gasto do mês que o gauge do orçamento não vê (Poupança não é consumo).
   const outsideBudget = unbudgetedSpend(spentByCat, budgets, [SAVINGS_CAT])
@@ -1537,7 +1545,7 @@ export default function FinancasPage() {
               )}
 
               <div style={{fontSize:11,fontWeight:700,letterSpacing:'0.1em',textTransform:'uppercase',color:'var(--text3)',margin:'18px 0 10px'}}>Todas as categorias</div>
-              {CATEGORIES_OUT.map(cat=>(
+              {BUDGET_CATS.map(cat=>(
                 <button key={cat} onClick={()=>{setBudgetSheet(cat);setBudgetVal('')}} style={{
                   width:'100%',display:'flex',alignItems:'center',gap:10,cursor:'pointer',fontFamily:'Inter, sans-serif',
                   background:'var(--surface-2)',border:'1px dashed rgba(var(--ink-rgb),0.12)',
@@ -1900,12 +1908,14 @@ export default function FinancasPage() {
             </div>
           )}
 
-          {/* Histórico de poupança + projeção (migrado da antiga tab Metas) */}
+          {/* Histórico de poupança + projeção (migrado da antiga tab Metas).
+              Usa o `poupado` (líquido movido para a reserva), a mesma medida
+              da meta acima — não o que sobrou do mês. */}
           <label style={sheetLabel}>Histórico de poupança</label>
           <div
             style={{height:110,overflow:'hidden'}}
             role="img"
-            aria-label={`Gráfico de poupança dos últimos 6 meses. Poupança do mês atual: ${fmt(monthlyChart[monthlyChart.length-1]?.poupanca ?? 0)}.`}
+            aria-label={`Gráfico de poupança dos últimos 6 meses. Poupança do mês atual: ${fmt(savedThisMonth)}.`}
           >
             <ResponsiveContainer width="100%" height={110}>
               <BarChart data={monthlyChart}>
@@ -1914,16 +1924,16 @@ export default function FinancasPage() {
                 <YAxis hide/>
                 <Tooltip contentStyle={TT} formatter={(v:number)=>fmt(v)}/>
                 {savingsGoal>0&&<ReferenceLine y={savingsGoal} stroke="rgba(245,200,66,0.55)" strokeDasharray="5 4"/>}
-                <Bar dataKey="poupanca" radius={[5,5,0,0]}>
-                  {monthlyChart.map((m,i)=><Cell key={i} fill={m.poupanca>=0?'#00C896':'#E24B4A'}/>)}
+                <Bar dataKey="poupado" name="Poupado" radius={[5,5,0,0]}>
+                  {monthlyChart.map((m,i)=><Cell key={i} fill={m.poupado>=0?'#00C896':'#E24B4A'}/>)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>
           {(() => {
             if (savingsGoal<=0) return null
-            const above = monthlyChart.filter(m=>m.poupanca>=savingsGoal).length
-            const avgSave = monthlyChart.slice(0,5).reduce((a,m)=>a+m.poupanca,0)/Math.max(1,monthlyChart.slice(0,5).length)
+            const above = monthlyChart.filter(m=>m.poupado>=savingsGoal).length
+            const avgSave = monthlyChart.slice(0,5).reduce((a,m)=>a+m.poupado,0)/Math.max(1,monthlyChart.slice(0,5).length)
             const remaining = reserveGoal-currentSavings
             const projection = reserveGoal>0&&remaining>0&&avgSave>0
               ? format(addMonths(new Date(),Math.ceil(remaining/avgSave)),'MMM yyyy',{locale:pt})
