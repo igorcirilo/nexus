@@ -1562,15 +1562,6 @@ export default function FinancasPage() {
       {showOrcamento&&(
         <Sheet tall icon="📋" title={`Orçamento de ${format(new Date(),'MMMM',{locale:pt})}`} onClose={()=>setShowOrcamento(false)}>
         <div style={{paddingTop:10}}>
-          {/* Criar categoria personalizada */}
-          <button onClick={openNewCat} style={{
-            width:'100%',display:'flex',alignItems:'center',gap:10,cursor:'pointer',fontFamily:'Inter, sans-serif',
-            background:'var(--surface-2)',border:'1px dashed rgba(245,200,66,0.4)',borderRadius:13,padding:'11px 13px',marginBottom:12,
-          }}>
-            <span style={{fontSize:16}}>➕</span>
-            <span style={{fontSize:12.5,fontWeight:700,color:'#F5C842'}}>Nova categoria</span>
-            <span style={{marginLeft:'auto',fontSize:11,color:'var(--text3)'}}>nome + emoji</span>
-          </button>
           {budgetedCats.length>0 ? (
             <>
               {/* Gauge global do mês */}
@@ -1720,6 +1711,16 @@ export default function FinancasPage() {
               ))}
             </>
           )}
+
+          {/* Criar categoria personalizada — no fim da lista */}
+          <button onClick={openNewCat} style={{
+            width:'100%',display:'flex',alignItems:'center',gap:10,cursor:'pointer',fontFamily:'Inter, sans-serif',
+            background:'var(--surface-2)',border:'1px dashed rgba(245,200,66,0.4)',borderRadius:13,padding:'11px 13px',marginTop:14,
+          }}>
+            <span style={{fontSize:16}}>➕</span>
+            <span style={{fontSize:12.5,fontWeight:700,color:'#F5C842'}}>Nova categoria</span>
+            <span style={{marginLeft:'auto',fontSize:11,color:'var(--text3)'}}>nome + emoji</span>
+          </button>
         </div>
         </Sheet>
       )}
