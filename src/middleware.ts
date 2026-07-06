@@ -51,5 +51,5 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   // Corre em todas as rotas exceto assets estáticos e ficheiros do PWA.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-.*|icon-.*).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-.*|worker-.*|push-worker.js|icon-.*).*)'],
 }
