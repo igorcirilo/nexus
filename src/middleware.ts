@@ -13,6 +13,13 @@ export async function middleware(request: NextRequest) {
   let response = NextResponse.next({ request: { headers: request.headers } })
 
   const supabase = createServerClient(supabaseUrl, supabaseAnon, {
+    global: {
+      // Aborta chamadas ao Supabase Auth que fiquem penduradas. Sem isto, um
+      // Supabase lento/em baixo segura o request até ao limite da middleware
+      // e o site inteiro responde 504 MIDDLEWARE_INVOCATION_TIMEOUT.
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, signal: AbortSignal.timeout(5_000) }),
+    },
     cookies: {
       get(name: string) {
         return request.cookies.get(name)?.value
@@ -31,12 +38,18 @@ export async function middleware(request: NextRequest) {
   })
 
   // Apenas refresca a sessão (não bloqueia rotas — o redirect continua nas páginas).
-  await supabase.auth.getUser()
+  // Se o refresh falhar ou exceder o timeout, seguimos sem sessão fresca:
+  // as páginas continuam a tratar da auth e o utilizador pode sempre recarregar.
+  try {
+    await supabase.auth.getUser()
+  } catch {
+    // Supabase indisponível/lento — não bloquear o request por causa disso.
+  }
 
   return response
 }
 
 export const config = {
   // Corre em todas as rotas exceto assets estáticos e ficheiros do PWA.
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-.*|icon-.*).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|workbox-.*|worker-.*|push-worker.js|icon-.*).*)'],
 }
