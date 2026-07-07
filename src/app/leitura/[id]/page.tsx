@@ -67,7 +67,7 @@ export default function LeituraReaderPage() {
   const [book, setBook]           = useState<Book | null>(null)
   const [loading, setLoading]     = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
-  const [resumePrompt, setResumePrompt] = useState<number | null>(null)
+  const [resumeNotice, setResumeNotice] = useState<number | null>(null)
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [tocOpen, setTocOpen]           = useState(false)
@@ -124,14 +124,17 @@ export default function LeituraReaderPage() {
     if (!isNaN(requestedPage) && requestedPage > 0) {
       setCurrentPage(clamp(requestedPage, 1, maxPage))
     } else if (savedPage > 1) {
-      setCurrentPage(1)
-      setResumePrompt(clamp(savedPage, 1, maxPage))
+      // Retomar direto (convenção Kindle/Apple Books): abre já na página
+      // guardada e oferece "ir ao início" como ação secundária, em vez do
+      // antigo bottom-sheet "Retomar?". Elimina um toque em todas as
+      // aberturas e a janela em que o efeito de persistência gravava
+      // current_page=1 antes de o utilizador responder ao prompt.
+      setCurrentPage(clamp(savedPage, 1, maxPage))
+      setResumeNotice(clamp(savedPage, 1, maxPage))
     }
     // else default page 1 already set
 
     // Só após resolver a página inicial é que permitimos persistir alterações.
-    // Evita que o efeito de persistência grave current_page=1 no paint inicial,
-    // apagando a página guardada antes de o utilizador tocar em "Retomar".
     hydrated.current = true
   }
 
@@ -162,6 +165,14 @@ export default function LeituraReaderPage() {
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  // ── Aviso "Retomado na p. N" auto-dispensa ─────────────────────────────────
+
+  useEffect(() => {
+    if (resumeNotice === null) return
+    const t = setTimeout(() => setResumeNotice(null), 6000)
+    return () => clearTimeout(t)
+  }, [resumeNotice])
 
   // ── Derived values ────────────────────────────────────────────────────────
 
@@ -214,19 +225,42 @@ export default function LeituraReaderPage() {
 
   useEffect(() => {
     if (!userId || !bookId) return
-    sessionStartRef.current = { time: Date.now(), page: currentPageRef.current }
-    return () => {
+
+    function startSession() {
+      sessionStartRef.current = { time: Date.now(), page: currentPageRef.current }
+    }
+
+    // Grava a sessão em curso e limpa o relógio. Chamado no cleanup, mas
+    // também em visibilitychange/pagehide — quando o SO mata o PWA ou o
+    // separador vai para background, o cleanup do efeito pode não correr e
+    // os minutos perdiam-se por completo.
+    function flushSession() {
       const start = sessionStartRef.current
+      sessionStartRef.current = null
       if (!start) return
-      const durationMs      = Date.now() - start.time
-      const durationMinutes = Math.min(Math.round(durationMs / 60000), 240)
+      const durationMinutes = Math.min(Math.round((Date.now() - start.time) / 60000), 240)
       if (durationMinutes < 1) return
       const pagesRead = Math.max(0, currentPageRef.current - start.page)
       void saveReadingSession({
-        user_id: userId, book_id: bookId,
+        user_id: userId!, book_id: bookId!,
         date: todayISO(),
         duration_minutes: durationMinutes, pages_read: pagesRead,
       })
+    }
+
+    function onVisibility() {
+      if (document.visibilityState === 'hidden') flushSession()
+      else startSession()
+    }
+
+    startSession()
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', flushSession)
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', flushSession)
+      flushSession()
     }
   }, [userId, bookId])
 
@@ -525,60 +559,42 @@ export default function LeituraReaderPage() {
         </div>
       )}
 
-      {/* ── Resume prompt — Extra C ────────────────────────────────────────── */}
-      {resumePrompt !== null && (
+      {/* ── Aviso "Retomado na p. N" (retomar direto + ir ao início) ──────── */}
+      {resumeNotice !== null && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(0,0,0,0.55)',
-          display: 'flex', alignItems: 'flex-end',
+          position: 'fixed',
+          bottom: readingMode === 'paginado' ? 150 : 92,
+          left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+          display: 'flex', alignItems: 'center', gap: 12,
+          maxWidth: 'calc(100% - 32px)',
+          background: isDark ? '#1E2330' : palette.panel,
+          border: `1px solid ${palette.accent}55`, borderRadius: 14,
+          padding: '10px 12px 10px 16px', boxShadow: '0 4px 20px rgba(0,0,0,0.22)',
+          fontFamily: 'Inter, sans-serif',
         }}>
-          <div style={{
-            width: '100%', background: sheetBg, borderRadius: '24px 24px 0 0',
-            padding: '8px 22px calc(28px + env(safe-area-inset-bottom))',
-            border: `1px solid ${palette.border}`, borderBottom: 'none',
-          }}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: palette.border, margin: '8px auto 22px' }} />
-            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 24 }}>
-              <div style={{
-                width: 46, height: 46, borderRadius: 14, flexShrink: 0,
-                background: `${palette.accent}18`, border: `1px solid ${palette.accent}30`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
-              }}>
-                📖
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: palette.text, marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>
-                  Retomar leitura?
-                </div>
-                <div style={{ fontSize: 14, color: `${palette.text}75`, lineHeight: 1.55, fontFamily: 'Inter, sans-serif' }}>
-                  Ficaste na página&nbsp;<strong style={{ color: palette.text }}>{resumePrompt}</strong>. Continuar daí?
-                </div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setResumePrompt(null)}
-                style={{
-                  flex: 1, padding: '13px', borderRadius: 14,
-                  border: `1px solid ${palette.border}`, background: 'transparent',
-                  color: palette.text, fontFamily: 'Inter, sans-serif',
-                  fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                }}
-              >
-                Começar do início
-              </button>
-              <button
-                onClick={() => { setCurrentPage(resumePrompt); setResumePrompt(null) }}
-                style={{
-                  flex: 1, padding: '13px', borderRadius: 14, border: 'none',
-                  background: palette.accent, color: '#111',
-                  fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                }}
-              >
-                Retomar p.&nbsp;{resumePrompt}
-              </button>
-            </div>
-          </div>
+          <span style={{ fontSize: 13, color: palette.text, whiteSpace: 'nowrap' }}>
+            Retomado na p.&nbsp;{resumeNotice}
+          </span>
+          <button
+            onClick={() => { setCurrentPage(1); setResumeNotice(null) }}
+            style={{
+              border: 'none', background: 'transparent', color: palette.accent,
+              fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap', padding: 0,
+            }}
+          >
+            Ir para o início
+          </button>
+          <button
+            onClick={() => setResumeNotice(null)}
+            aria-label="Dispensar"
+            style={{
+              border: 'none', background: 'transparent', color: `${palette.text}70`,
+              fontSize: 17, cursor: 'pointer', lineHeight: 1, padding: '0 2px',
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
 
