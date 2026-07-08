@@ -811,6 +811,11 @@ export default function LeituraReaderPage() {
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: `${palette.text}55`, fontFamily: 'Inter, sans-serif' }}>
                 Sumário
               </div>
+              {book.raw_content?.tocAuto && toc.length > 0 && (
+                <div style={{ fontSize: 11, color: `${palette.text}55`, fontFamily: 'Inter, sans-serif', marginTop: 6, lineHeight: 1.45 }}>
+                  Gerado automaticamente (marcos a cada 10 páginas) — não foram detetados capítulos neste PDF.
+                </div>
+              )}
             </div>
             <div style={{ overflowY: 'auto', padding: '0 16px 28px' }}>
               {toc.length === 0

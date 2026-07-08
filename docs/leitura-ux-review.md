@@ -28,7 +28,11 @@
 >   editáveis na importação. `deleteBook`/`updateBook` na camada de dados.
 >   *Falta*: estado "abandonado" (precisa de coluna `status` + reajuste das
 >   derivações do hub) e reordenar a fila.
-> - ⏳ Restantes itens (5–15) por fazer.
+> - ✅ **Item 5 — Importação mais clara**: PDF escaneado (sem texto) bloqueia o
+>   guardar com explicação + opção "guardar mesmo assim"; barra de progresso
+>   página-a-página na extração; TOC de fallback rotulado como automático na
+>   folha do sumário do reader (`tocAuto`).
+> - ⏳ Restantes itens (6–15) por fazer.
 >
 > Verificação: `tsc`, `next lint` e `next build` limpos. Falta validação em
 > dispositivo real dos fluxos de runtime (retomar, contagem de sessões, e o

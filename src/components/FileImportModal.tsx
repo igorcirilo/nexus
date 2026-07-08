@@ -234,6 +234,12 @@ export default function FileImportModal({
   const [error, setError] = useState('')
   const [result, setResult] = useState<FileImportResult | null>(null)
   const [selectedFileName, setSelectedFileName] = useState('')
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  // PDFs sem texto extraível (scan/imagem) geram um livro inutilizável.
+  // Exigimos confirmação explícita antes de deixar guardar.
+  const [allowUnusable, setAllowUnusable] = useState(false)
+
+  const isUnusablePdf = result?.kind === 'pdf' && !result.hasUsefulText
 
   const accept = useMemo(() => {
     if (kind === 'pdf') return '.pdf,application/pdf'
@@ -248,6 +254,8 @@ export default function FileImportModal({
     setStatus('loading')
     setError('')
     setResult(null)
+    setProgress(null)
+    setAllowUnusable(false)
 
     try {
       const lower = file.name.toLowerCase()
@@ -259,7 +267,7 @@ export default function FileImportModal({
       }
 
       const parsed = fileKind === 'pdf'
-        ? await extractPdfText(file)
+        ? await extractPdfText(file, (done, total) => setProgress({ done, total }))
         : await parseSpreadsheetFile(file)
 
       setResult(parsed)
@@ -267,6 +275,8 @@ export default function FileImportModal({
     } catch (err) {
       setStatus('error')
       setError(err instanceof Error ? err.message : 'Nao foi possivel ler o ficheiro.')
+    } finally {
+      setProgress(null)
     }
   }
 
@@ -287,6 +297,8 @@ export default function FileImportModal({
     setError('')
     setResult(null)
     setSelectedFileName('')
+    setProgress(null)
+    setAllowUnusable(false)
   }
 
   return (
@@ -405,7 +417,18 @@ export default function FileImportModal({
 
           {status === 'loading' && (
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14, fontSize: 13, color: 'var(--text2)' }}>
-              A ler conteudo e a montar preview...
+              {progress && progress.total > 0
+                ? `A extrair texto… página ${progress.done} de ${progress.total}`
+                : 'A ler conteúdo e a montar pré-visualização…'}
+              {progress && progress.total > 0 && (
+                <div style={{ height: 6, background: 'var(--bg3)', borderRadius: 6, overflow: 'hidden', marginTop: 10 }}>
+                  <div style={{
+                    height: '100%', borderRadius: 6,
+                    width: `${Math.round((progress.done / progress.total) * 100)}%`,
+                    background: 'var(--gold)', transition: 'width 0.2s ease',
+                  }} />
+                </div>
+              )}
             </div>
           )}
 
@@ -416,6 +439,27 @@ export default function FileImportModal({
           )}
 
           {result && <ImportPreview result={result} />}
+
+          {isUnusablePdf && (
+            <div style={{ background: 'rgba(226,75,74,.08)', border: '0.5px solid rgba(226,75,74,.35)', borderRadius: 14, padding: 14, display: 'grid', gap: 10 }}>
+              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: '#FFB4B1' }}>
+                Este PDF não tem texto extraível
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
+                Parece ser um documento digitalizado (imagem). Se o guardares, o livro abrirá sem texto para ler.
+                Converte-o para um PDF com texto pesquisável antes de importar.
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--text2)', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={allowUnusable}
+                  onChange={(event) => setAllowUnusable(event.target.checked)}
+                  style={{ accentColor: 'var(--gold)', width: 16, height: 16 }}
+                />
+                Guardar mesmo assim
+              </label>
+            </div>
+          )}
         </div>
 
         <div style={{ padding: 16, borderTop: '0.5px solid var(--border)', display: 'flex', justifyContent: 'space-between', gap: 10 }}>
@@ -451,22 +495,27 @@ export default function FileImportModal({
             >
               Fechar
             </button>
-            <button
-              disabled={!result || !onConfirm}
-              onClick={handleConfirm}
-              style={{
-                background: !result || !onConfirm ? 'rgba(232,168,56,.35)' : 'var(--gold)',
-                color: 'var(--on-bright)',
-                border: 'none',
-                borderRadius: 12,
-                padding: '10px 16px',
-                fontFamily: 'Syne, sans-serif',
-                fontWeight: 700,
-                cursor: !result || !onConfirm ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {confirmLabel}
-            </button>
+            {(() => {
+              const blocked = !result || !onConfirm || (isUnusablePdf && !allowUnusable)
+              return (
+                <button
+                  disabled={blocked}
+                  onClick={handleConfirm}
+                  style={{
+                    background: blocked ? 'rgba(232,168,56,.35)' : 'var(--gold)',
+                    color: 'var(--on-bright)',
+                    border: 'none',
+                    borderRadius: 12,
+                    padding: '10px 16px',
+                    fontFamily: 'Syne, sans-serif',
+                    fontWeight: 700,
+                    cursor: blocked ? 'not-allowed' : 'pointer',
+                  }}
+                >
+                  {confirmLabel}
+                </button>
+              )
+            })()}
           </div>
         </div>
       </div>

@@ -28,8 +28,14 @@ function inferTitle(fileName: string) {
   return fileName.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim()
 }
 
-function buildToc(pages: Array<{ pageNumber: number; text: string }>) {
-  const toc = pages
+// Devolve o sumário e sinaliza se foi gerado por heurística de fallback
+// (marcos "a cada 10 páginas"), para que a UI possa avisar em vez de mostrar
+// uma lista de números sem explicação.
+function buildToc(pages: Array<{ pageNumber: number; text: string }>): {
+  toc: Array<{ label: string; page: number }>
+  auto: boolean
+} {
+  const detected = pages
     .map((page) => {
       const lines = page.text
         .split(/\r?\n/)
@@ -48,11 +54,12 @@ function buildToc(pages: Array<{ pageNumber: number; text: string }>) {
     })
     .filter(Boolean) as Array<{ label: string; page: number }>
 
-  if (toc.length > 0) return toc.slice(0, 24)
+  if (detected.length > 0) return { toc: detected.slice(0, 24), auto: false }
 
-  return pages
+  const fallback = pages
     .filter((page) => page.pageNumber === 1 || (page.pageNumber - 1) % 10 === 0)
     .map((page) => ({ label: `Página ${page.pageNumber}`, page: page.pageNumber }))
+  return { toc: fallback, auto: true }
 }
 
 const COVER_GRADS = [
@@ -205,6 +212,7 @@ export default function LeituraPage() {
 
     if (metaSheet.mode === 'create') {
       const { result } = metaSheet
+      const { toc, auto } = buildToc(result.pages)
       const { error } = await saveBook({
         user_id: userId, title, author,
         source_file_name: result.meta.fileName,
@@ -213,7 +221,8 @@ export default function LeituraPage() {
           pageCount: result.pageCount,
           extractedText: result.extractedText,
           pages: result.pages,
-          toc: buildToc(result.pages),
+          toc,
+          tocAuto: auto,
         },
       })
       if (error) { showToast('Erro ao importar ebook.'); return }
