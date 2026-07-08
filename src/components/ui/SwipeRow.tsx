@@ -2,30 +2,40 @@
 
 import { useRef, useState } from 'react'
 
-/** Quanto o swipe revela do botão de ação (px). */
+/** Quanto o swipe revela de cada botão de ação (px). */
 export const SWIPE_ACTION_W = 78
 
+export type SwipeSide = 'left' | 'right'
+
+export interface SwipeAction {
+  label: string
+  color: string
+  onAction: () => void
+}
+
 /**
- * Linha com swipe para a esquerda que revela um botão de ação (iOS-like).
- * Só captura o gesto quando o movimento é claramente horizontal, para não
- * roubar o scroll vertical da página. Partilhada pelas listas de lembretes
- * e hábitos da página Hoje.
+ * Linha com swipe nos dois sentidos (iOS-like): deslizar da esquerda para a
+ * direita revela a ação da esquerda (editar), da direita para a esquerda a
+ * da direita (apagar). Só captura o gesto quando o movimento é claramente
+ * horizontal, para não roubar o scroll vertical. Partilhada pelas listas de
+ * lembretes e hábitos da página Hoje.
  */
 export default function SwipeRow({
   open,
   onOpenChange,
-  actionLabel,
-  actionColor,
-  onAction,
+  leftAction,
+  rightAction,
   onClickRow,
   children,
   borderRadius = 10,
 }: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  actionLabel: string
-  actionColor: string
-  onAction: () => void
+  /** Lado atualmente revelado (controlado pelo pai para abrir um de cada vez). */
+  open: SwipeSide | null
+  onOpenChange: (side: SwipeSide | null) => void
+  /** Revelada ao deslizar esquerda → direita (tipicamente Editar). */
+  leftAction?: SwipeAction
+  /** Revelada ao deslizar direita → esquerda (tipicamente Apagar). */
+  rightAction?: SwipeAction
   onClickRow: () => void
   children: React.ReactNode
   borderRadius?: number
@@ -36,13 +46,14 @@ export default function SwipeRow({
   const axis = useRef<'h' | 'v' | null>(null)
   const moved = useRef(false)
 
-  const shown = dragging ? tx : open ? -SWIPE_ACTION_W : 0
+  const restTx = open === 'right' ? -SWIPE_ACTION_W : open === 'left' ? SWIPE_ACTION_W : 0
+  const shown = dragging ? tx : restTx
 
   function down(e: React.PointerEvent) {
-    start.current = { x: e.clientX, y: e.clientY, tx: open ? -SWIPE_ACTION_W : 0 }
+    start.current = { x: e.clientX, y: e.clientY, tx: restTx }
     axis.current = null
     moved.current = false
-    setTx(open ? -SWIPE_ACTION_W : 0)
+    setTx(restTx)
     setDragging(true)
   }
 
@@ -57,33 +68,55 @@ export default function SwipeRow({
     }
     if (axis.current !== 'h') return
     moved.current = true
-    setTx(Math.min(0, Math.max(-SWIPE_ACTION_W - 26, start.current.tx + dx)))
+    const min = rightAction ? -SWIPE_ACTION_W - 26 : 0
+    const max = leftAction ? SWIPE_ACTION_W + 26 : 0
+    setTx(Math.min(max, Math.max(min, start.current.tx + dx)))
   }
 
   function up() {
     if (!start.current) return
     setDragging(false)
-    if (axis.current === 'h') onOpenChange(tx < -SWIPE_ACTION_W / 2)
+    if (axis.current === 'h') {
+      if (rightAction && tx < -SWIPE_ACTION_W / 2) onOpenChange('right')
+      else if (leftAction && tx > SWIPE_ACTION_W / 2) onOpenChange('left')
+      else onOpenChange(null)
+    }
     start.current = null
     axis.current = null
   }
 
+  const actionBtn = (side: SwipeSide, action: SwipeAction): React.CSSProperties => ({
+    position: 'absolute', top: 0, bottom: 0, width: SWIPE_ACTION_W,
+    ...(side === 'left' ? { left: 0 } : { right: 0 }),
+    border: 'none', background: action.color, color: '#fff',
+    fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 700, fontSize: 13,
+    cursor: 'pointer', touchAction: 'manipulation',
+  })
+
   return (
     <div style={{ position: 'relative', overflow: 'hidden', borderRadius }}>
-      <button
-        type="button"
-        onClick={onAction}
-        tabIndex={open ? 0 : -1}
-        aria-hidden={!open}
-        style={{
-          position: 'absolute', top: 0, right: 0, bottom: 0, width: SWIPE_ACTION_W,
-          border: 'none', background: actionColor, color: '#fff',
-          fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 700, fontSize: 13,
-          cursor: 'pointer', touchAction: 'manipulation',
-        }}
-      >
-        {actionLabel}
-      </button>
+      {leftAction && (
+        <button
+          type="button"
+          onClick={leftAction.onAction}
+          tabIndex={open === 'left' ? 0 : -1}
+          aria-hidden={open !== 'left'}
+          style={actionBtn('left', leftAction)}
+        >
+          {leftAction.label}
+        </button>
+      )}
+      {rightAction && (
+        <button
+          type="button"
+          onClick={rightAction.onAction}
+          tabIndex={open === 'right' ? 0 : -1}
+          aria-hidden={open !== 'right'}
+          style={actionBtn('right', rightAction)}
+        >
+          {rightAction.label}
+        </button>
+      )}
       <div
         onPointerDown={down}
         onPointerMove={move}
@@ -91,7 +124,7 @@ export default function SwipeRow({
         onPointerCancel={up}
         onClick={() => {
           if (moved.current) return
-          if (open) { onOpenChange(false); return }
+          if (open) { onOpenChange(null); return }
           onClickRow()
         }}
         style={{

@@ -17,9 +17,9 @@ interface TodayRemindersListProps {
   onToggle: (item: TodayReminderItem, done: boolean) => Promise<void> | void
   /** Cria um item avulso de hoje; devolve true em sucesso (limpa o input). */
   onCreate: (title: string, time: string | null) => Promise<boolean>
-  /** Apagar (só eventos — para lembretes recorrentes o swipe mostra Editar). */
+  /** Swipe direita→esquerda: apagar o item (evento ou lembrete recorrente). */
   onDelete: (item: TodayReminderItem) => Promise<void> | void
-  /** Tocar na linha: editar evento (sheet) ou abrir /lembretes. */
+  /** Swipe esquerda→direita ou toque na linha: abre a página onde se edita. */
   onEdit: (item: TodayReminderItem) => void
 }
 
@@ -33,7 +33,7 @@ export default function TodayRemindersList({ items, onToggle, onCreate, onDelete
   // Itens acabados de concluir ficam uns instantes na lista antes de "descer".
   const [justCompleted, setJustCompleted] = useState<Set<string>>(new Set())
   const [showCompleted, setShowCompleted] = useState(false)
-  const [openSwipeKey, setOpenSwipeKey] = useState<string | null>(null)
+  const [openSwipe, setOpenSwipe] = useState<{ key: string; side: 'left' | 'right' } | null>(null)
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([])
 
   // Adição inline (à la iOS: escreve, Enter cria, continua a escrever).
@@ -92,15 +92,10 @@ export default function TodayRemindersList({ items, onToggle, onCreate, onDelete
     return (
       <SwipeRow
         key={item.key}
-        open={openSwipeKey === item.key}
-        onOpenChange={(open) => setOpenSwipeKey(open ? item.key : (openSwipeKey === item.key ? null : openSwipeKey))}
-        actionLabel={item.itemType === 'event' ? 'Apagar' : 'Editar'}
-        actionColor={item.itemType === 'event' ? '#E24B4A' : 'var(--accent)'}
-        onAction={() => {
-          setOpenSwipeKey(null)
-          if (item.itemType === 'event') void onDelete(item)
-          else onEdit(item)
-        }}
+        open={openSwipe?.key === item.key ? openSwipe.side : null}
+        onOpenChange={(side) => setOpenSwipe(side ? { key: item.key, side } : (openSwipe?.key === item.key ? null : openSwipe))}
+        leftAction={{ label: 'Editar', color: 'var(--accent)', onAction: () => { setOpenSwipe(null); onEdit(item) } }}
+        rightAction={{ label: 'Apagar', color: '#E24B4A', onAction: () => { setOpenSwipe(null); void onDelete(item) } }}
         onClickRow={() => onEdit(item)}
       >
         <div

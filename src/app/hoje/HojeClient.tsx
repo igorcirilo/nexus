@@ -35,6 +35,7 @@ import {
   toggleDayItemCheck,
   saveAgendaEvent,
   deleteAgendaEvent,
+  deleteReminder,
   supabase,
 } from '@/lib/supabase'
 import type { AgendaEvent } from '@/lib/supabase'
@@ -293,19 +294,41 @@ export default function HojeClient({
     return true
   }
 
-  async function handleDeleteDayItem(item: Pick<TodayReminderItem, 'itemType' | 'id' | 'key'>) {
-    if (item.itemType !== 'event') return
-    const { error } = await deleteAgendaEvent(item.id, userId)
-    if (error) {
-      triggerToast('Não foi possível apagar.')
-      return
+  async function handleDeleteDayItem(item: TodayReminderItem) {
+    if (item.itemType === 'reminder') {
+      // Apagar um recorrente remove-o de TODOS os dias — pede confirmação.
+      if (!window.confirm(`Apagar o lembrete "${item.title}"? Deixa de se repetir.`)) return
+      const { error } = await deleteReminder(item.id)
+      if (error) {
+        triggerToast('Não foi possível apagar.')
+        return
+      }
+      setReminders((prev) => prev.filter((r) => r.id !== item.id))
+    } else {
+      const { error } = await deleteAgendaEvent(item.id, userId)
+      if (error) {
+        triggerToast('Não foi possível apagar.')
+        return
+      }
+      setEvents((prev) => prev.filter((e) => e.id !== item.id))
     }
-    setEvents((prev) => prev.filter((e) => e.id !== item.id))
     setDayChecks((prev) => {
       const next = { ...prev }
       delete next[item.key]
       return next
     })
+  }
+
+  async function handleDeleteHabit(habit: TodayHabitView) {
+    // Mesmo fluxo destrutivo da página /habitos (delete com confirmação).
+    if (!window.confirm(`Apagar o hábito "${habit.name}" e o seu histórico?`)) return
+    const { error } = await supabase.from('habits').delete().eq('id', habit.id).eq('user_id', userId)
+    if (error) {
+      triggerToast('Não foi possível apagar.')
+      return
+    }
+    setHabits((prev) => prev.filter((h) => h.id !== habit.id))
+    setRitmo(await getRitmo(userId))
   }
 
   function handleEditDayItem(item: TodayReminderItem) {
@@ -497,6 +520,7 @@ export default function HojeClient({
             totalCount={totalHabits}
             onToggle={handleToggleHabit}
             onAddHabit={() => setAddOpen(true)}
+            onDelete={handleDeleteHabit}
           />
         </div>
       )}

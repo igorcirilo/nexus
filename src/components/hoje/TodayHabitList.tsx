@@ -19,11 +19,13 @@ interface TodayHabitListProps {
   totalCount: number
   onToggle: (id: string, done: boolean) => Promise<void> | void
   onAddHabit: () => void
+  /** Swipe direita→esquerda: apagar o hábito (com confirmação no pai). */
+  onDelete: (habit: TodayHabitView) => Promise<void> | void
 }
 
-export default function TodayHabitList({ habits, doneCount, totalCount, onToggle, onAddHabit }: TodayHabitListProps) {
+export default function TodayHabitList({ habits, doneCount, totalCount, onToggle, onAddHabit, onDelete }: TodayHabitListProps) {
   const [savingId, setSavingId] = useState<string | null>(null)
-  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null)
+  const [openSwipe, setOpenSwipe] = useState<{ id: string; side: 'left' | 'right' } | null>(null)
 
   async function toggle(h: TodayHabitView) {
     if (savingId) return
@@ -85,11 +87,10 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
           return (
             <SwipeRow
               key={h.id}
-              open={openSwipeId === h.id}
-              onOpenChange={(open) => setOpenSwipeId(open ? h.id : (openSwipeId === h.id ? null : openSwipeId))}
-              actionLabel="Editar"
-              actionColor="var(--accent)"
-              onAction={goToHabits}
+              open={openSwipe?.id === h.id ? openSwipe.side : null}
+              onOpenChange={(side) => setOpenSwipe(side ? { id: h.id, side } : (openSwipe?.id === h.id ? null : openSwipe))}
+              leftAction={{ label: 'Editar', color: 'var(--accent)', onAction: goToHabits }}
+              rightAction={{ label: 'Apagar', color: '#E24B4A', onAction: () => { setOpenSwipe(null); void onDelete(h) } }}
               onClickRow={goToHabits}
               borderRadius={15}
             >
