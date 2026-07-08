@@ -54,10 +54,10 @@ create table if not exists public.reading_preferences (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   theme text not null default 'sepia',
-  reading_mode text not null default 'scroll',
+  reading_mode text not null default 'paginado',
   font_scale numeric(4,2) not null default 1,
-  line_height numeric(4,2) not null default 1.7,
-  margin_px integer not null default 20,
+  line_height numeric(4,2) not null default 1.8,
+  margin_px integer not null default 24,
   updated_at timestamptz not null default now(),
   unique(user_id)
 );
@@ -152,3 +152,11 @@ create index if not exists idx_book_progress_user_book on public.book_progress(u
 create index if not exists idx_book_highlights_user_book on public.book_highlights(user_id, book_id, page);
 create index if not exists idx_book_notes_user_book on public.book_notes(user_id, book_id, page);
 create index if not exists idx_book_bookmarks_user_book on public.book_bookmarks(user_id, book_id, page);
+
+-- Alinha os defaults com o fallback do reader (paginado/1.8/24). Como a tabela
+-- é criada com `if not exists`, estes ALTERs corrigem instâncias já
+-- implantadas ao re-executar o ficheiro. Só afetam inserções sem estas
+-- colunas — as linhas existentes mantêm os valores já escolhidos pelo utilizador.
+alter table public.reading_preferences alter column reading_mode set default 'paginado';
+alter table public.reading_preferences alter column line_height set default 1.8;
+alter table public.reading_preferences alter column margin_px set default 24;

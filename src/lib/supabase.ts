@@ -686,6 +686,10 @@ export async function saveDietPlan(payload: Record<string, unknown>) {
 
 
 // ── Leitura ────────────────────────────────────────────────
+// Lança em caso de erro (além do toast) para que o hub distinga "biblioteca
+// vazia" de "falha ao carregar" e possa oferecer nova tentativa. Chamada só
+// pela página de leitura, por isso a convenção do resto do código (devolver
+// []/null) fica intacta.
 export async function getBooks(userId: string) {
   const { data, error } = await supabase
     .from('books')
@@ -695,12 +699,15 @@ export async function getBooks(userId: string) {
 
   if (error) {
     reportError('getBooks error', error.message)
-    return []
+    throw new Error(error.message)
   }
 
   return data ?? []
 }
 
+// Devolve null só quando o livro não existe (PGRST116); lança nos restantes
+// erros para o reader mostrar um estado de erro com retry em vez de conflar
+// "não encontrado" com "falha de rede".
 export async function getBookById(bookId: string, userId: string) {
   const { data, error } = await supabase
     .from('books')
@@ -710,8 +717,9 @@ export async function getBookById(bookId: string, userId: string) {
     .single()
 
   if (error) {
+    if (error.code === 'PGRST116') return null
     reportError('getBookById error', error.message)
-    return null
+    throw new Error(error.message)
   }
 
   return data
@@ -726,6 +734,36 @@ export async function saveBook(payload: Record<string, unknown>) {
 
   if (error) reportError('saveBook error', error.message)
   return { data, error }
+}
+
+// Edita metadados do livro (título/autor/cover_label). Só os campos passados
+// são alterados. As linhas de progresso/anotações/sessões ficam intactas.
+export async function updateBook(
+  bookId: string,
+  userId: string,
+  patch: { title?: string; author?: string | null; cover_label?: string | null },
+) {
+  const { error } = await supabase
+    .from('books')
+    .update(patch)
+    .eq('id', bookId)
+    .eq('user_id', userId)
+
+  if (error) reportError('updateBook error', error.message)
+  return { error }
+}
+
+// Apaga o livro. As tabelas dependentes (progress, highlights, notes,
+// bookmarks) têm ON DELETE CASCADE no schema, por isso são removidas juntas.
+export async function deleteBook(bookId: string, userId: string) {
+  const { error } = await supabase
+    .from('books')
+    .delete()
+    .eq('id', bookId)
+    .eq('user_id', userId)
+
+  if (error) reportError('deleteBook error', error.message)
+  return { error }
 }
 
 export async function getBookProgress(bookId: string, userId: string) {
