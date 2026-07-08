@@ -690,6 +690,36 @@ export async function saveBook(payload: Record<string, unknown>) {
   return { data, error }
 }
 
+// Edita metadados do livro (título/autor/cover_label). Só os campos passados
+// são alterados. As linhas de progresso/anotações/sessões ficam intactas.
+export async function updateBook(
+  bookId: string,
+  userId: string,
+  patch: { title?: string; author?: string | null; cover_label?: string | null },
+) {
+  const { error } = await supabase
+    .from('books')
+    .update(patch)
+    .eq('id', bookId)
+    .eq('user_id', userId)
+
+  if (error) reportError('updateBook error', error.message)
+  return { error }
+}
+
+// Apaga o livro. As tabelas dependentes (progress, highlights, notes,
+// bookmarks) têm ON DELETE CASCADE no schema, por isso são removidas juntas.
+export async function deleteBook(bookId: string, userId: string) {
+  const { error } = await supabase
+    .from('books')
+    .delete()
+    .eq('id', bookId)
+    .eq('user_id', userId)
+
+  if (error) reportError('deleteBook error', error.message)
+  return { error }
+}
+
 export async function getBookProgress(bookId: string, userId: string) {
   const { data, error } = await supabase
     .from('book_progress')

@@ -23,7 +23,12 @@
 >   página atual ao rolar; TOC/marcadores/retomar rolam até à secção.
 > - ✅ **Item 3 — Sessões resilientes + defaults**: flush de sessão e progresso
 >   em `visibilitychange`/`pagehide`; defaults do SQL alinhados (paginado/1.8/24).
-> - ⏳ Restantes itens (4–15) por fazer.
+> - ✅ **Item 4 — Gestão de biblioteca** (parcial): apagar (com confirmação
+>   inline), editar título/autor, marcar como concluído, e passo de metadados
+>   editáveis na importação. `deleteBook`/`updateBook` na camada de dados.
+>   *Falta*: estado "abandonado" (precisa de coluna `status` + reajuste das
+>   derivações do hub) e reordenar a fila.
+> - ⏳ Restantes itens (5–15) por fazer.
 >
 > Verificação: `tsc`, `next lint` e `next build` limpos. Falta validação em
 > dispositivo real dos fluxos de runtime (retomar, contagem de sessões, e o

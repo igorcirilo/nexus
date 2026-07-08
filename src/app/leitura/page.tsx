@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import LeituraHub from '@/components/leitura/LeituraHub'
 import FileImportModal from '@/components/FileImportModal'
-import { requireUser, getBooks, getBookProgress, getBookHighlights, saveBook, getReadingSessionsThisWeek } from '@/lib/supabase'
+import { requireUser, getBooks, getBookProgress, getBookHighlights, saveBook, updateBook, deleteBook, saveBookProgress, getReadingSessionsThisWeek } from '@/lib/supabase'
 import { darkCardInk } from '@/lib/theme'
 import { localDateKey } from '@/lib/date'
-import type { Book, BookProgress, BookHighlight, FileImportResult } from '@/types'
+import type { Book, BookProgress, BookHighlight, FileImportResult, PdfImportResult } from '@/types'
 
 interface WeeklyStats {
   days: Array<{ date: string; minutes: number }>
@@ -17,6 +17,12 @@ interface WeeklyStats {
   avgMinPerDay: number
   pagesPerDay: number
 }
+
+// Folha de metadados reutilizada para dois fluxos: rever título/autor ao
+// importar ('create') e editar um livro já na biblioteca ('edit').
+type MetaSheet =
+  | { mode: 'create'; result: PdfImportResult }
+  | { mode: 'edit'; book: Book }
 
 function inferTitle(fileName: string) {
   return fileName.replace(/\.pdf$/i, '').replace(/[_-]+/g, ' ').trim()
@@ -68,6 +74,13 @@ export default function LeituraPage() {
   const [books, setBooks] = useState<Book[]>([])
   const [progressMap, setProgressMap] = useState<Record<string, BookProgress | null>>({})
   const [highlights, setHighlights] = useState<BookHighlight[]>([])
+  // Gestão da biblioteca: folha de metadados (importar/editar), menu por
+  // livro e confirmação de apagar.
+  const [metaSheet, setMetaSheet]   = useState<MetaSheet | null>(null)
+  const [metaTitle, setMetaTitle]   = useState('')
+  const [metaAuthor, setMetaAuthor] = useState('')
+  const [menuBookId, setMenuBookId] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [weeklyStats, setWeeklyStats] = useState<WeeklyStats>(() => {
     const now         = new Date()
     const dayOfWeek   = now.getDay()
@@ -144,6 +157,12 @@ export default function LeituraPage() {
     setWeeklyStats({ days: wDays, totalMinutes, daysWithReading, avgMinPerDay, pagesPerDay })
   }
 
+  // Fecha qualquer menu/confirmação de livro quando a Biblioteca é fechada,
+  // para não reabrir num estado intermédio.
+  useEffect(() => {
+    if (!showBiblioteca) { setMenuBookId(null); setConfirmDeleteId(null) }
+  }, [showBiblioteca])
+
   useEffect(() => {
     let active = true
 
@@ -161,31 +180,72 @@ export default function LeituraPage() {
     return () => { active = false }
   }, [])
 
+  // Em vez de guardar logo com o título inferido do nome do ficheiro, abre a
+  // folha de metadados para o utilizador rever/editar título e autor antes.
   async function handleImport(result: FileImportResult) {
     if (!userId || result.kind !== 'pdf') return
-
-    const title = inferTitle(result.meta.fileName)
-    const toc = buildToc(result.pages)
-
-    const { error } = await saveBook({
-      user_id: userId,
-      title,
-      author: null,
-      source_file_name: result.meta.fileName,
-      cover_label: title.slice(0, 1).toUpperCase(),
-      raw_content: {
-        pageCount: result.pageCount,
-        extractedText: result.extractedText,
-        pages: result.pages,
-        toc,
-      },
-    })
-
-    if (error) { showToast('Erro ao importar ebook.'); return }
-
-    await loadData(userId)
     setShowImport(false)
-    showToast('Ebook importado com sucesso.')
+    setMetaTitle(inferTitle(result.meta.fileName))
+    setMetaAuthor('')
+    setMetaSheet({ mode: 'create', result })
+  }
+
+  function openEdit(book: Book) {
+    setMenuBookId(null)
+    setMetaTitle(book.title)
+    setMetaAuthor(book.author ?? '')
+    setMetaSheet({ mode: 'edit', book })
+  }
+
+  async function saveMeta() {
+    if (!userId || !metaSheet) return
+    const title  = metaTitle.trim() || 'Sem título'
+    const author = metaAuthor.trim() || null
+    const cover  = title.slice(0, 1).toUpperCase()
+
+    if (metaSheet.mode === 'create') {
+      const { result } = metaSheet
+      const { error } = await saveBook({
+        user_id: userId, title, author,
+        source_file_name: result.meta.fileName,
+        cover_label: cover,
+        raw_content: {
+          pageCount: result.pageCount,
+          extractedText: result.extractedText,
+          pages: result.pages,
+          toc: buildToc(result.pages),
+        },
+      })
+      if (error) { showToast('Erro ao importar ebook.'); return }
+      showToast('Ebook importado com sucesso.')
+    } else {
+      const { error } = await updateBook(metaSheet.book.id, userId, { title, author, cover_label: cover })
+      if (error) { showToast('Erro ao guardar alterações.'); return }
+      showToast('Livro atualizado.')
+    }
+
+    setMetaSheet(null)
+    await loadData(userId)
+  }
+
+  async function handleDeleteBook(bookId: string) {
+    if (!userId) return
+    const { error } = await deleteBook(bookId, userId)
+    setConfirmDeleteId(null)
+    setMenuBookId(null)
+    if (error) { showToast('Erro ao apagar livro.'); return }
+    showToast('Livro apagado.')
+    await loadData(userId)
+  }
+
+  async function markCompleted(book: Book) {
+    if (!userId) return
+    setMenuBookId(null)
+    const pc = book.raw_content?.pageCount ?? 1
+    const { error } = await saveBookProgress({ user_id: userId, book_id: book.id, current_page: pc, progress_pct: 100 })
+    if (error) { showToast('Erro ao atualizar.'); return }
+    showToast('Marcado como concluído.')
+    await loadData(userId)
   }
 
   const stats = useMemo(() => {
@@ -206,6 +266,12 @@ export default function LeituraPage() {
     books.filter(b => (progressMap[b.id]?.progress_pct ?? 0) === 0),
     [books, progressMap]
   )
+
+  const actionBtn: CSSProperties = {
+    flex: 1, padding: '8px 4px', borderRadius: 9, cursor: 'pointer',
+    background: 'var(--surface-3)', border: '1px solid rgba(var(--ink-rgb),0.08)',
+    color: 'var(--text1)', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 12,
+  }
 
   if (loading) {
     return (
@@ -300,43 +366,94 @@ export default function LeituraPage() {
                   const grad = COVER_GRADS[idx % COVER_GRADS.length]
                   const isActive = pct > 0 && pct < 100
 
+                  const isMenuOpen = menuBookId === book.id
+
                   return (
                     <div
                       key={book.id}
-                      onClick={() => { setShowBiblioteca(false); router.push(`/leitura/${book.id}`) }}
                       style={{
-                        display:'flex', gap:14, alignItems:'flex-start',
                         background:'var(--surface-2)', border:`1px solid ${isActive ? 'rgba(245,200,66,0.15)' : 'rgba(var(--ink-rgb),0.07)'}`,
-                        borderRadius:16, padding:14, cursor:'pointer',
+                        borderRadius:16, padding:14,
                       }}
                     >
-                      <div style={{
-                        ...darkCardInk,
-                        width:52, height:70, borderRadius:8, flexShrink:0,
-                        background:grad, display:'flex', alignItems:'center', justifyContent:'center',
-                        color:'var(--text1)', fontWeight:900, fontSize:20,
-                        boxShadow:'0 4px 14px rgba(0,0,0,0.4)',
-                      }}>
-                        {(book.cover_label ?? book.title.charAt(0)).toUpperCase()}
-                      </div>
-                      <div style={{ flex:1, minWidth:0 }}>
-                        <div style={{ fontSize:15, fontWeight:700, color: 'var(--ink)', marginBottom:3, lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                          {book.title}
-                        </div>
-                        <div style={{ fontSize:11, color:'var(--text3)', marginBottom:10 }}>
-                          {book.source_file_name ?? 'PDF importado'}
-                        </div>
-                        <div style={{ height:5, background:'var(--surface-3)', borderRadius:5, overflow:'hidden', marginBottom:5 }}>
+                      <div style={{ display:'flex', gap:14, alignItems:'flex-start' }}>
+                        <div
+                          onClick={() => { setShowBiblioteca(false); router.push(`/leitura/${book.id}`) }}
+                          style={{ display:'flex', gap:14, alignItems:'flex-start', flex:1, minWidth:0, cursor:'pointer' }}
+                        >
                           <div style={{
-                            height:'100%', borderRadius:5, width:`${pct}%`,
-                            background: pct >= 100 ? '#00C896' : 'linear-gradient(90deg, #F5C842, #E07B2A)',
-                          }} />
+                            ...darkCardInk,
+                            width:52, height:70, borderRadius:8, flexShrink:0,
+                            background:grad, display:'flex', alignItems:'center', justifyContent:'center',
+                            color:'var(--text1)', fontWeight:900, fontSize:20,
+                            boxShadow:'0 4px 14px rgba(0,0,0,0.4)',
+                          }}>
+                            {(book.cover_label ?? book.title.charAt(0)).toUpperCase()}
+                          </div>
+                          <div style={{ flex:1, minWidth:0 }}>
+                            <div style={{ fontSize:15, fontWeight:700, color: 'var(--ink)', marginBottom:3, lineHeight:1.3, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                              {book.title}
+                            </div>
+                            <div style={{ fontSize:11, color:'var(--text3)', marginBottom:10, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                              {book.author ?? book.source_file_name ?? 'PDF importado'}
+                            </div>
+                            <div style={{ height:5, background:'var(--surface-3)', borderRadius:5, overflow:'hidden', marginBottom:5 }}>
+                              <div style={{
+                                height:'100%', borderRadius:5, width:`${pct}%`,
+                                background: pct >= 100 ? '#00C896' : 'linear-gradient(90deg, #F5C842, #E07B2A)',
+                              }} />
+                            </div>
+                            <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--text3)' }}>
+                              <span>{pct >= 100 ? '✓ Concluído' : `${pct}% lido`}</span>
+                              <span>Página {curPage}</span>
+                            </div>
+                          </div>
                         </div>
-                        <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--text3)' }}>
-                          <span>{pct >= 100 ? '✓ Concluído' : `${pct}% lido`}</span>
-                          <span>Página {curPage}</span>
-                        </div>
+                        <button
+                          aria-label="Ações do livro"
+                          onClick={() => setMenuBookId(isMenuOpen ? null : book.id)}
+                          style={{
+                            width:32, height:32, borderRadius:9, flexShrink:0,
+                            background: isMenuOpen ? 'var(--surface-3)' : 'transparent',
+                            border:'none', cursor:'pointer', color:'var(--text2)',
+                            display:'flex', alignItems:'center', justifyContent:'center', fontSize:18,
+                          }}
+                        >
+                          ⋯
+                        </button>
                       </div>
+
+                      {isMenuOpen && (
+                        confirmDeleteId === book.id ? (
+                          <div style={{ marginTop:12, paddingTop:12, borderTop:'1px solid rgba(var(--ink-rgb),0.06)' }}>
+                            <div style={{ fontSize:12, color:'var(--text2)', marginBottom:10, lineHeight:1.4 }}>
+                              Apagar este livro e todo o progresso, destaques e notas? Não pode ser anulado.
+                            </div>
+                            <div style={{ display:'flex', gap:8 }}>
+                              <button onClick={() => setConfirmDeleteId(null)} style={actionBtn}>Cancelar</button>
+                              <button
+                                onClick={() => handleDeleteBook(book.id)}
+                                style={{ ...actionBtn, background:'#E24B4A', border:'none', color:'#fff', fontWeight:700 }}
+                              >
+                                Apagar
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div style={{ display:'flex', gap:8, marginTop:12, paddingTop:12, borderTop:'1px solid rgba(var(--ink-rgb),0.06)' }}>
+                            <button onClick={() => openEdit(book)} style={actionBtn}>Editar</button>
+                            {pct < 100 && (
+                              <button onClick={() => markCompleted(book)} style={actionBtn}>Concluído</button>
+                            )}
+                            <button
+                              onClick={() => setConfirmDeleteId(book.id)}
+                              style={{ ...actionBtn, color:'#E24B4A', border:'1px solid rgba(226,75,74,0.3)' }}
+                            >
+                              Apagar
+                            </button>
+                          </div>
+                        )
+                      )}
                     </div>
                   )
                 })
@@ -354,6 +471,77 @@ export default function LeituraPage() {
         onConfirm={handleImport}
         confirmLabel="Guardar ebook"
       />
+
+      {/* ── Folha de metadados (rever ao importar / editar depois) ─────────── */}
+      {metaSheet && (
+        <div
+          style={{ position:'fixed', inset:0, zIndex:10000, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'flex-end' }}
+          onClick={e => e.target === e.currentTarget && setMetaSheet(null)}
+        >
+          <div style={{
+            width:'100%', maxWidth:480, margin:'0 auto',
+            background:'var(--surface-page)', borderRadius:'20px 20px 0 0',
+            borderTop:'1px solid rgba(var(--ink-rgb),0.08)',
+            padding:'20px 20px calc(24px + env(safe-area-inset-bottom))',
+            fontFamily:'Inter, sans-serif',
+          }}>
+            <div style={{ width:36, height:4, borderRadius:2, background:'rgba(var(--ink-rgb),0.15)', margin:'0 auto 18px' }} />
+            <div style={{ fontSize:17, fontWeight:800, color:'var(--ink)', marginBottom:4 }}>
+              {metaSheet.mode === 'create' ? 'Detalhes do ebook' : 'Editar livro'}
+            </div>
+            <div style={{ fontSize:12, color:'var(--text3)', marginBottom:18 }}>
+              {metaSheet.mode === 'create'
+                ? 'Revê o título e adiciona o autor antes de guardar.'
+                : 'Corrige o título ou o autor deste livro.'}
+            </div>
+
+            <label style={{ fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text3)' }}>Título</label>
+            <input
+              value={metaTitle}
+              onChange={e => setMetaTitle(e.target.value)}
+              placeholder="Título do livro"
+              style={{
+                width:'100%', marginTop:6, marginBottom:14, padding:'11px 12px', borderRadius:12,
+                background:'var(--surface-2)', border:'1px solid rgba(var(--ink-rgb),0.1)',
+                color:'var(--ink)', fontFamily:'Inter, sans-serif', fontSize:14, outline:'none',
+              }}
+            />
+
+            <label style={{ fontSize:11, fontWeight:700, letterSpacing:'0.06em', textTransform:'uppercase', color:'var(--text3)' }}>Autor</label>
+            <input
+              value={metaAuthor}
+              onChange={e => setMetaAuthor(e.target.value)}
+              placeholder="Autor (opcional)"
+              style={{
+                width:'100%', marginTop:6, marginBottom:20, padding:'11px 12px', borderRadius:12,
+                background:'var(--surface-2)', border:'1px solid rgba(var(--ink-rgb),0.1)',
+                color:'var(--ink)', fontFamily:'Inter, sans-serif', fontSize:14, outline:'none',
+              }}
+            />
+
+            <div style={{ display:'flex', gap:10 }}>
+              <button
+                onClick={() => setMetaSheet(null)}
+                style={{ flex:1, padding:'12px', borderRadius:12, border:'1px solid rgba(var(--ink-rgb),0.12)', background:'transparent', color:'var(--text1)', fontFamily:'Inter, sans-serif', fontWeight:600, fontSize:14, cursor:'pointer' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveMeta}
+                disabled={!metaTitle.trim()}
+                style={{
+                  flex:1, padding:'12px', borderRadius:12, border:'none',
+                  background: metaTitle.trim() ? 'linear-gradient(135deg, #F5C842, #E07B2A)' : 'rgba(245,200,66,0.35)',
+                  color:'var(--surface-page)', fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:14,
+                  cursor: metaTitle.trim() ? 'pointer' : 'not-allowed',
+                }}
+              >
+                {metaSheet.mode === 'create' ? 'Guardar ebook' : 'Guardar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   )
 }
