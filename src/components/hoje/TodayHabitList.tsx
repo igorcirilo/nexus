@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Icon from '@/components/ui/Icon'
+import SwipeRow from '@/components/ui/SwipeRow'
 
 export interface TodayHabitView {
   id: string
@@ -22,6 +23,7 @@ interface TodayHabitListProps {
 
 export default function TodayHabitList({ habits, doneCount, totalCount, onToggle, onAddHabit }: TodayHabitListProps) {
   const [savingId, setSavingId] = useState<string | null>(null)
+  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null)
 
   async function toggle(h: TodayHabitView) {
     if (savingId) return
@@ -31,6 +33,10 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
     } finally {
       setSavingId(null)
     }
+  }
+
+  function goToHabits() {
+    window.location.href = '/habitos'
   }
 
   return (
@@ -77,76 +83,87 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
           const isSaving = savingId === h.id
           const isBusy = savingId !== null
           return (
-            <button
+            <SwipeRow
               key={h.id}
-              type="button"
-              onClick={() => toggle(h)}
-              disabled={isBusy}
-              aria-pressed={h.done}
-              aria-busy={isSaving}
-              aria-label={`${h.done ? 'Desmarcar' : 'Concluir'} hábito ${h.name}`}
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'auto minmax(0, 1fr)',
-                alignItems: 'center',
-                gap: 12,
-                width: '100%',
-                textAlign: 'left',
-                padding: '12px 10px',
-                borderRadius: 15,
-                background: 'rgba(13,15,20,.2)',
-                border: `0.5px solid ${h.done ? 'rgba(30,203,180,.3)' : 'var(--border)'}`,
-                borderLeft: `3px solid ${h.color}`,
-                opacity: h.done ? 0.62 : isBusy && !isSaving ? 0.5 : 1,
-                cursor: isBusy ? 'not-allowed' : 'pointer',
-                minHeight: 44,
-                touchAction: 'manipulation',
-              }}
+              open={openSwipeId === h.id}
+              onOpenChange={(open) => setOpenSwipeId(open ? h.id : (openSwipeId === h.id ? null : openSwipeId))}
+              actionLabel="Editar"
+              actionColor="var(--accent)"
+              onAction={goToHabits}
+              onClickRow={goToHabits}
+              borderRadius={15}
             >
-              <span
+              <div
+                aria-busy={isSaving}
                 style={{
-                  width: 34,
-                  height: 34,
-                  borderRadius: '50%',
-                  border: h.done ? 'none' : '2px solid var(--text3)',
-                  color: 'var(--teal)',
-                  background: h.done ? 'rgba(30,203,180,.12)' : 'transparent',
-                  display: 'inline-flex',
+                  display: 'grid',
+                  gridTemplateColumns: 'auto minmax(0, 1fr)',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
+                  gap: 12,
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '12px 10px',
+                  borderRadius: 15,
+                  background: 'rgba(13,15,20,.2)',
+                  border: `0.5px solid ${h.done ? 'rgba(30,203,180,.3)' : 'var(--border)'}`,
+                  borderLeft: `3px solid ${h.color}`,
+                  opacity: h.done ? 0.62 : isBusy && !isSaving ? 0.5 : 1,
+                  minHeight: 44,
                 }}
               >
-                {h.done && <Icon name="check" size={16} />}
-              </span>
-              <div style={{ minWidth: 0 }}>
-                <h3
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); void toggle(h) }}
+                  disabled={isBusy}
+                  aria-pressed={h.done}
+                  aria-label={`${h.done ? 'Desmarcar' : 'Concluir'} hábito ${h.name}`}
                   style={{
-                    fontFamily: 'var(--font-dm), "DM Sans", sans-serif',
-                    fontWeight: 700,
-                    fontSize: 16,
-                    lineHeight: 1.22,
-                    color: h.done ? 'var(--text3)' : 'var(--text1)',
-                    textDecoration: h.done ? 'line-through' : 'none',
-                    marginBottom: 4,
-                    overflow: 'hidden',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflowWrap: 'anywhere',
+                    width: 34,
+                    height: 34,
+                    borderRadius: '50%',
+                    border: h.done ? 'none' : '2px solid var(--text3)',
+                    color: 'var(--teal)',
+                    background: h.done ? 'rgba(30,203,180,.12)' : 'transparent',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    cursor: isBusy ? 'not-allowed' : 'pointer',
+                    padding: 0,
+                    touchAction: 'manipulation',
                   }}
                 >
-                  {h.name}
-                </h3>
-                <div style={{ display: 'flex', gap: 7, fontSize: 13, minWidth: 0, alignItems: 'center' }}>
-                  <span style={{ color: h.color, fontWeight: 600, flexShrink: 0 }}>{h.areaLabel}</span>
-                  {h.timeWindow && <span style={{ color: 'var(--text3)', flexShrink: 0 }}>·</span>}
-                  {h.timeWindow && (
-                    <span style={{ color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.timeWindow}</span>
-                  )}
+                  {h.done && <Icon name="check" size={16} />}
+                </button>
+                <div style={{ minWidth: 0 }}>
+                  <h3
+                    style={{
+                      fontFamily: 'var(--font-dm), "DM Sans", sans-serif',
+                      fontWeight: 700,
+                      fontSize: 16,
+                      lineHeight: 1.22,
+                      color: h.done ? 'var(--text3)' : 'var(--text1)',
+                      textDecoration: h.done ? 'line-through' : 'none',
+                      marginBottom: 4,
+                      overflow: 'hidden',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflowWrap: 'anywhere',
+                    }}
+                  >
+                    {h.name}
+                  </h3>
+                  <div style={{ display: 'flex', gap: 7, fontSize: 13, minWidth: 0, alignItems: 'center' }}>
+                    <span style={{ color: h.color, fontWeight: 600, flexShrink: 0 }}>{h.areaLabel}</span>
+                    {h.timeWindow && <span style={{ color: 'var(--text3)', flexShrink: 0 }}>·</span>}
+                    {h.timeWindow && (
+                      <span style={{ color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.timeWindow}</span>
+                    )}
+                  </div>
                 </div>
               </div>
-            </button>
+            </SwipeRow>
           )
         })}
 

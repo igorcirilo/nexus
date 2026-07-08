@@ -302,6 +302,32 @@ export default function CalendarioClient({ userId }: { userId: string }) {
             <b style={{ color: '#00C896' }}>Mentor:</b> {c.insights.slice(0, 2).join(' ')}
           </div>
         )}
+
+        {/* ── Atalho: página de lembretes recorrentes ── */}
+        <a
+          href="/lembretes"
+          style={{
+            marginTop: 16, display: 'flex', alignItems: 'center', gap: 12,
+            background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.08)',
+            borderRadius: 16, padding: '14px 16px', textDecoration: 'none',
+            fontFamily: FONT, touchAction: 'manipulation',
+          }}
+        >
+          <span style={{
+            width: 36, height: 36, borderRadius: 11, flexShrink: 0,
+            background: 'rgba(245,200,66,0.12)', display: 'flex',
+            alignItems: 'center', justifyContent: 'center', fontSize: 17,
+          }}>
+            🔔
+          </span>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text1)', marginBottom: 2 }}>Lembretes</span>
+            <span style={{ display: 'block', fontSize: 11, color: 'var(--text3)' }}>Gerir lembretes recorrentes e horários</span>
+          </span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </a>
       </div>
 
       {/* ── Sheet: detalhe do dia ── */}

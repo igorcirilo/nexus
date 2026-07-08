@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Icon from '@/components/ui/Icon'
+import SwipeRow from '@/components/ui/SwipeRow'
 import { isOverdue, type TodayReminderItem } from '@/lib/today-reminders'
 
 /**
@@ -22,8 +23,6 @@ interface TodayRemindersListProps {
   onEdit: (item: TodayReminderItem) => void
 }
 
-/** Quanto o swipe revela do botão de ação (px). */
-const ACTION_W = 78
 /** Tempo que o item riscado fica no lugar antes de descer para Concluídos. */
 const COMPLETE_LINGER_MS = 1300
 
@@ -304,105 +303,5 @@ export default function TodayRemindersList({ items, onToggle, onCreate, onDelete
         )}
       </div>
     </section>
-  )
-}
-
-/**
- * Linha com swipe para a esquerda que revela um botão de ação (iOS-like).
- * Só captura o gesto quando o movimento é claramente horizontal, para não
- * roubar o scroll vertical da página.
- */
-function SwipeRow({
-  open,
-  onOpenChange,
-  actionLabel,
-  actionColor,
-  onAction,
-  onClickRow,
-  children,
-}: {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  actionLabel: string
-  actionColor: string
-  onAction: () => void
-  onClickRow: () => void
-  children: React.ReactNode
-}) {
-  const [tx, setTx] = useState(0)
-  const [dragging, setDragging] = useState(false)
-  const start = useRef<{ x: number; y: number; tx: number } | null>(null)
-  const axis = useRef<'h' | 'v' | null>(null)
-  const moved = useRef(false)
-
-  const shown = dragging ? tx : open ? -ACTION_W : 0
-
-  function down(e: React.PointerEvent) {
-    start.current = { x: e.clientX, y: e.clientY, tx: open ? -ACTION_W : 0 }
-    axis.current = null
-    moved.current = false
-    setTx(open ? -ACTION_W : 0)
-    setDragging(true)
-  }
-
-  function move(e: React.PointerEvent) {
-    if (!start.current) return
-    const dx = e.clientX - start.current.x
-    const dy = e.clientY - start.current.y
-    if (!axis.current) {
-      if (Math.abs(dx) < 7 && Math.abs(dy) < 7) return
-      axis.current = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
-      if (axis.current === 'h') (e.currentTarget as Element).setPointerCapture?.(e.pointerId)
-    }
-    if (axis.current !== 'h') return
-    moved.current = true
-    setTx(Math.min(0, Math.max(-ACTION_W - 26, start.current.tx + dx)))
-  }
-
-  function up() {
-    if (!start.current) return
-    setDragging(false)
-    if (axis.current === 'h') onOpenChange(tx < -ACTION_W / 2)
-    start.current = null
-    axis.current = null
-  }
-
-  return (
-    <div style={{ position: 'relative', overflow: 'hidden', borderRadius: 10 }}>
-      <button
-        type="button"
-        onClick={onAction}
-        tabIndex={open ? 0 : -1}
-        aria-hidden={!open}
-        style={{
-          position: 'absolute', top: 0, right: 0, bottom: 0, width: ACTION_W,
-          border: 'none', background: actionColor, color: '#fff',
-          fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 700, fontSize: 13,
-          cursor: 'pointer', touchAction: 'manipulation',
-        }}
-      >
-        {actionLabel}
-      </button>
-      <div
-        onPointerDown={down}
-        onPointerMove={move}
-        onPointerUp={up}
-        onPointerCancel={up}
-        onClick={() => {
-          if (moved.current) return
-          if (open) { onOpenChange(false); return }
-          onClickRow()
-        }}
-        style={{
-          transform: `translateX(${shown}px)`,
-          transition: dragging ? 'none' : 'transform .22s ease',
-          background: 'rgba(var(--card-rgb),1)',
-          touchAction: 'pan-y',
-          cursor: 'pointer',
-        }}
-      >
-        {children}
-      </div>
-    </div>
   )
 }

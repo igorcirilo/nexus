@@ -16,7 +16,6 @@ import ProactiveAssistant from '@/components/hoje/ProactiveAssistant'
 import MetricsGrid from '@/components/hoje/MetricsGrid'
 import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
 import TodayRemindersList from '@/components/hoje/TodayRemindersList'
-import EventEditSheet from '@/components/hoje/EventEditSheet'
 import Icon from '@/components/ui/Icon'
 import {
   getProfile,
@@ -110,8 +109,6 @@ export default function HojeClient({
   const [events, setEvents] = useState<AgendaEvent[]>([])
   const [reminders, setReminders] = useState<ReminderRow[]>([])
   const [dayChecks, setDayChecks] = useState<Record<string, boolean>>({})
-  const [editingEvent, setEditingEvent] = useState<AgendaEvent | null>(null)
-  const [eventSaving, setEventSaving] = useState(false)
   const today = todayISO()
   const hour = new Date().getHours()
 
@@ -192,6 +189,19 @@ export default function HojeClient({
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Lembrete criado no quick action (navbar) com a página Hoje já aberta:
+  // entra na lista sem precisar de recarregar.
+  useEffect(() => {
+    function onCreated(e: Event) {
+      const ev = (e as CustomEvent<AgendaEvent>).detail
+      if (!ev || ev.date !== today) return
+      setEvents((prev) => (prev.some((x) => x.id === ev.id) ? prev : [...prev, ev]))
+    }
+    window.addEventListener('nexus:agenda-event-created', onCreated)
+    return () => window.removeEventListener('nexus:agenda-event-created', onCreated)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -296,39 +306,12 @@ export default function HojeClient({
       delete next[item.key]
       return next
     })
-    setEditingEvent((prev) => (prev?.id === item.id ? null : prev))
   }
 
   function handleEditDayItem(item: TodayReminderItem) {
-    if (item.itemType === 'reminder') {
-      // Lembretes recorrentes editam-se na página própria (dias, hora, tipo).
-      window.location.href = '/lembretes'
-      return
-    }
-    setEditingEvent(events.find((e) => e.id === item.id) ?? null)
-  }
-
-  async function handleSaveEventEdit(title: string, time: string | null) {
-    if (!editingEvent) return
-    setEventSaving(true)
-    try {
-      const { data, error } = await saveAgendaEvent({
-        id: editingEvent.id,
-        user_id: userId,
-        title,
-        time,
-        end_time: time ? editingEvent.end_time : null,
-        all_day: !time,
-      })
-      if (error || !data) {
-        triggerToast('Não foi possível guardar.')
-        return
-      }
-      setEvents((prev) => prev.map((e) => (e.id === data.id ? data : e)))
-      setEditingEvent(null)
-    } finally {
-      setEventSaving(false)
-    }
+    // Tocar num item leva à página onde ele se gere: itens da agenda (incluindo
+    // os criados no quick-add) em /calendario, recorrentes em /lembretes.
+    window.location.href = item.itemType === 'event' ? '/calendario' : '/lembretes'
   }
 
   async function handleCreateManualHabit(name: string, area: HabitArea) {
@@ -458,18 +441,6 @@ export default function HojeClient({
       )}
 
       <AddTaskSheet open={addOpen} saving={addSaving} onClose={() => setAddOpen(false)} onCreate={handleCreateManualHabit} />
-      <EventEditSheet
-        open={editingEvent !== null}
-        initialTitle={editingEvent?.title ?? ''}
-        initialTime={editingEvent?.all_day ? null : editingEvent?.time?.slice(0, 5) ?? null}
-        saving={eventSaving}
-        onClose={() => setEditingEvent(null)}
-        onSave={handleSaveEventEdit}
-        onDelete={async () => {
-          if (!editingEvent) return
-          await handleDeleteDayItem({ itemType: 'event', id: editingEvent.id, key: `event:${editingEvent.id}` })
-        }}
-      />
 
       <header style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>

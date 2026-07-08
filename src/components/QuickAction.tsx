@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { createHabitQuick, saveFocusSession, saveTransaction, supabase } from '@/lib/supabase'
+import { createHabitQuick, saveAgendaEvent, saveFocusSession, saveTransaction, supabase } from '@/lib/supabase'
 import type { HabitArea } from '@/types'
 import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY, SAVINGS_CAT } from '@/lib/categories'
 
@@ -34,6 +34,13 @@ export default function QuickAction() {
   const [showPomodoro,    setShowPomodoro]    = useState(false)
   const [showHabit,       setShowHabit]       = useState(false)
   const [showTransaction, setShowTransaction] = useState(false)
+  const [showReminder,    setShowReminder]    = useState(false)
+
+  // Lembrete rápido (item avulso na agenda)
+  const [remTitle,  setRemTitle]  = useState('')
+  const [remDate,   setRemDate]   = useState(format(new Date(),'yyyy-MM-dd'))
+  const [remTime,   setRemTime]   = useState('')
+  const [remSaving, setRemSaving] = useState(false)
 
   // Pomodoro
   const [secondsLeft,   setSecondsLeft]   = useState(25 * 60)
@@ -62,7 +69,7 @@ export default function QuickAction() {
   }, [])
 
   useEffect(() => {
-    setOpen(false); setShowHabit(false); setShowTransaction(false)
+    setOpen(false); setShowHabit(false); setShowTransaction(false); setShowReminder(false)
   }, [pathname])
 
   useEffect(() => {
@@ -79,7 +86,7 @@ export default function QuickAction() {
   useEffect(() => {
     if (!open) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') { setOpen(false); setShowPomodoro(false); setShowHabit(false); setShowTransaction(false) }
+      if (e.key === 'Escape') { setOpen(false); setShowPomodoro(false); setShowHabit(false); setShowTransaction(false); setShowReminder(false) }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
@@ -117,6 +124,7 @@ export default function QuickAction() {
   const pct = Math.round(((25*60 - secondsLeft)/(25*60)) * 100)
 
   function resetHabitForm() { setHabitName(''); setHabitArea('produtividade'); setHabitWindow('') }
+  function resetRemForm()   { setRemTitle(''); setRemDate(format(new Date(),'yyyy-MM-dd')); setRemTime('') }
   function resetTxForm()    { setTxType('saida'); setTxCategory('Alimentação'); setTxCustomCat(''); setTxDesc(''); setTxAmount(''); setTxDate(format(new Date(),'yyyy-MM-dd')); setTxFromReserve(false) }
 
   async function handleSaveHabit() {
@@ -127,6 +135,28 @@ export default function QuickAction() {
     if (error) { setToast('Não foi possível criar o hábito.'); return }
     resetHabitForm(); setShowHabit(false); setToast('Hábito criado.')
     router.push('/habitos')
+  }
+
+  async function handleSaveReminder() {
+    if (!userId || !remTitle.trim() || !remDate) return
+    setRemSaving(true)
+    // Lembrete rápido = evento da agenda: aparece em /calendario e, se for
+    // para hoje, na lista "Lembretes de hoje" da página Hoje.
+    const { data, error } = await saveAgendaEvent({
+      user_id: userId, title: remTitle.trim(), date: remDate,
+      time: remTime || null, all_day: !remTime,
+    })
+    setRemSaving(false)
+    if (error || !data) { setToast('Não foi possível criar o lembrete.'); return }
+    const isToday = remDate === format(new Date(),'yyyy-MM-dd')
+    resetRemForm(); setShowReminder(false); setToast('Lembrete criado.')
+    if (isToday) {
+      // Se a página Hoje estiver aberta, entra na lista sem recarregar.
+      window.dispatchEvent(new CustomEvent('nexus:agenda-event-created', { detail: data }))
+      if (pathname !== '/hoje') router.push('/hoje')
+    } else {
+      router.push('/calendario')
+    }
   }
 
   async function handleSaveTransaction() {
@@ -155,6 +185,7 @@ export default function QuickAction() {
   }
 
   const actions = [
+    { label:'Lembrete',  icon:'🔔', color:'#F5C842',      bg:'rgba(245,200,66,.12)', onClick:()=>{ setShowReminder(true);     setOpen(false) } },
     { label:'Hábito',    icon:'✅', color:'var(--teal)', bg:'rgba(30,203,180,.12)',  onClick:()=>{ setShowHabit(true);        setOpen(false) } },
     { label:'Transação', icon:'💰', color:'var(--gold)', bg:'rgba(232,168,56,.12)', onClick:()=>{ setShowTransaction(true);  setOpen(false) } },
     { label:'Pomodoro',  icon:'⏱',  color:'var(--accent)',bg:'rgba(127,119,221,.12)',onClick:()=>{ setShowPomodoro(true);    setOpen(false) } },
@@ -219,6 +250,44 @@ export default function QuickAction() {
               <button onClick={()=>setShowHabit(false)} style={{flex:1,padding:'14px 0',borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancelar</button>
               <button onClick={handleSaveHabit} disabled={habitSaving||!habitName.trim()} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'var(--teal)',color:'#0D0F14',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',opacity:habitSaving||!habitName.trim()?0.6:1}}>
                 {habitSaving?'A guardar…':'Guardar hábito'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Novo Lembrete ── */}
+      {showReminder && (
+        <div onClick={()=>!remSaving&&setShowReminder(false)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}}>
+          <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxHeight:'90vh',background:'var(--bg1)',borderTopLeftRadius:24,borderTopRightRadius:24,border:'0.5px solid var(--border)',display:'flex',flexDirection:'column'}}>
+            <div style={{padding:'18px 24px 14px',borderBottom:'0.5px solid var(--border)'}}>
+              <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Novo lembrete</div>
+              <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>Aparece na agenda e, se for para hoje, na página Hoje.</div>
+            </div>
+            <div style={{padding:'18px 24px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:14}}>
+
+              {/* Título */}
+              <div>
+                <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Título</div>
+                <input value={remTitle} onChange={e=>setRemTitle(e.target.value)} placeholder="Ex: Pagar a renda" style={inputStyle} autoFocus/>
+              </div>
+
+              {/* Data + Hora */}
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+                <div>
+                  <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Data</div>
+                  <input value={remDate} onChange={e=>setRemDate(e.target.value)} type="date" style={inputStyle}/>
+                </div>
+                <div>
+                  <div style={{fontSize:11,color:'var(--text3)',marginBottom:6}}>Hora (opcional)</div>
+                  <input value={remTime} onChange={e=>setRemTime(e.target.value)} type="time" style={inputStyle}/>
+                </div>
+              </div>
+            </div>
+            <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)',display:'flex',gap:10}}>
+              <button onClick={()=>setShowReminder(false)} style={{flex:1,padding:'14px 0',borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancelar</button>
+              <button onClick={handleSaveReminder} disabled={remSaving||!remTitle.trim()||!remDate} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'#F5C842',color:'#1A1200',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',opacity:remSaving||!remTitle.trim()||!remDate?0.6:1}}>
+                {remSaving?'A guardar…':'Guardar lembrete'}
               </button>
             </div>
           </div>
