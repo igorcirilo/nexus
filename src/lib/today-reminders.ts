@@ -43,6 +43,14 @@ export function isReminderDueOn(days: unknown, date: Date): boolean {
   return days.some((d) => Number(d) === dow)
 }
 
+/** A hora do item já passou hoje? (pinta o horário de vermelho, à la iOS) */
+export function isOverdue(time: string | null, now: Date): boolean {
+  if (!time) return false
+  const [h, m] = time.split(':').map(Number)
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return false
+  return now.getHours() * 60 + now.getMinutes() > h * 60 + m
+}
+
 /** Normaliza hora Postgres ('09:00:00') para exibição ('09:00'). */
 function normalizeTime(time: string | null | undefined): string | null {
   if (!time) return null

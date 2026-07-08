@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildTodayReminderItems, isReminderDueOn, REMINDER_ACCENT } from '@/lib/today-reminders'
+import { buildTodayReminderItems, isOverdue, isReminderDueOn, REMINDER_ACCENT } from '@/lib/today-reminders'
 
 // 2026-07-06 é uma segunda-feira (getDay() = 1).
 const MONDAY = new Date('2026-07-06T12:00:00')
@@ -30,6 +30,25 @@ describe('isReminderDueOn', () => {
     expect(isReminderDueOn(null, MONDAY)).toBe(false)
     expect(isReminderDueOn(undefined, MONDAY)).toBe(false)
     expect(isReminderDueOn('1', MONDAY)).toBe(false)
+  })
+})
+
+describe('isOverdue', () => {
+  const now = new Date('2026-07-06T14:30:00')
+
+  it('hora anterior à atual → atrasado', () => {
+    expect(isOverdue('09:00', now)).toBe(true)
+    expect(isOverdue('14:29', now)).toBe(true)
+  })
+
+  it('hora futura ou igual → não atrasado', () => {
+    expect(isOverdue('14:30', now)).toBe(false)
+    expect(isOverdue('20:00', now)).toBe(false)
+  })
+
+  it('sem hora ou hora inválida → não atrasado', () => {
+    expect(isOverdue(null, now)).toBe(false)
+    expect(isOverdue('abc', now)).toBe(false)
   })
 })
 
