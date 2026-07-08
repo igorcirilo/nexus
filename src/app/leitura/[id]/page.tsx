@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import Nav from '@/components/Nav'
+import ErrorState from '@/components/ui/ErrorState'
 import { todayISO } from '@/lib/date'
 import {
   requireUser,
@@ -66,6 +67,8 @@ export default function LeituraReaderPage() {
   const [userId, setUserId]       = useState<string | null>(null)
   const [book, setBook]           = useState<Book | null>(null)
   const [loading, setLoading]     = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [retryKey, setRetryKey]   = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
   const [resumeNotice, setResumeNotice] = useState<number | null>(null)
 
@@ -144,6 +147,8 @@ export default function LeituraReaderPage() {
 
   useEffect(() => {
     let active = true
+    setLoadError(false)
+    setLoading(true)
     async function bootstrap() {
       const user = await requireUser()
       if (!user) return
@@ -153,10 +158,15 @@ export default function LeituraReaderPage() {
       if (!active) return
       setLoading(false)
     }
-    bootstrap()
+    bootstrap().catch((err) => {
+      if (!active) return
+      console.error('[leitura/reader] falha ao carregar:', err)
+      setLoadError(true)
+      setLoading(false)
+    })
     return () => { active = false }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId])
+  }, [bookId, retryKey])
 
   // ── Header auto-hide on scroll ────────────────────────────────────────────
 
@@ -405,6 +415,15 @@ export default function LeituraReaderPage() {
 
   // ── Loading / error states ────────────────────────────────────────────────
 
+  if (loadError) {
+    return (
+      <ErrorState
+        title="O livro não carregou"
+        body="Tivemos um problema a abrir este livro. Verifica a ligação e tenta de novo."
+        onRetry={() => setRetryKey(k => k + 1)}
+      />
+    )
+  }
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#10131A', color: 'rgba(255,255,255,0.4)', fontFamily: 'Inter, sans-serif', fontSize: 14 }}>
@@ -414,8 +433,11 @@ export default function LeituraReaderPage() {
   }
   if (!book) {
     return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: 'var(--text3)' }}>
-        Livro não encontrado.
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', flexDirection: 'column', gap: 14, color: 'var(--text3)', fontFamily: 'Inter, sans-serif', padding: '0 28px', textAlign: 'center' }}>
+        <div>Livro não encontrado.</div>
+        <Link href="/leitura" style={{ textDecoration: 'none', color: 'var(--gold, #E8A838)', fontWeight: 700, fontSize: 14 }}>
+          ← Voltar à Leitura
+        </Link>
       </div>
     )
   }

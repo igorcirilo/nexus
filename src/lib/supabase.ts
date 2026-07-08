@@ -648,6 +648,10 @@ export async function saveDietPlan(payload: Record<string, unknown>) {
 
 
 // ── Leitura ────────────────────────────────────────────────
+// Lança em caso de erro (além do toast) para que o hub distinga "biblioteca
+// vazia" de "falha ao carregar" e possa oferecer nova tentativa. Chamada só
+// pela página de leitura, por isso a convenção do resto do código (devolver
+// []/null) fica intacta.
 export async function getBooks(userId: string) {
   const { data, error } = await supabase
     .from('books')
@@ -657,12 +661,15 @@ export async function getBooks(userId: string) {
 
   if (error) {
     reportError('getBooks error', error.message)
-    return []
+    throw new Error(error.message)
   }
 
   return data ?? []
 }
 
+// Devolve null só quando o livro não existe (PGRST116); lança nos restantes
+// erros para o reader mostrar um estado de erro com retry em vez de conflar
+// "não encontrado" com "falha de rede".
 export async function getBookById(bookId: string, userId: string) {
   const { data, error } = await supabase
     .from('books')
@@ -672,8 +679,9 @@ export async function getBookById(bookId: string, userId: string) {
     .single()
 
   if (error) {
+    if (error.code === 'PGRST116') return null
     reportError('getBookById error', error.message)
-    return null
+    throw new Error(error.message)
   }
 
   return data

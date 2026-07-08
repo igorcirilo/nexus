@@ -32,7 +32,11 @@
 >   guardar com explicação + opção "guardar mesmo assim"; barra de progresso
 >   página-a-página na extração; TOC de fallback rotulado como automático na
 >   folha do sumário do reader (`tocAuto`).
-> - ⏳ Restantes itens (6–15) por fazer.
+> - ✅ **Item 6 — Erros visíveis**: hub e reader mostram `ErrorState` com
+>   "Tentar de novo" quando o carregamento falha (via `getBooks`/`getBookById`
+>   que agora sinalizam erro); "Livro não encontrado" ganhou link de voltar;
+>   saves falhados já surgiam via toast global (`reportError`→`emitToast`).
+> - ⏳ Restantes itens (7–15) por fazer.
 >
 > Verificação: `tsc`, `next lint` e `next build` limpos. Falta validação em
 > dispositivo real dos fluxos de runtime (retomar, contagem de sessões, e o

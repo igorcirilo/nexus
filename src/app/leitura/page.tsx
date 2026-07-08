@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
 import LeituraHub from '@/components/leitura/LeituraHub'
 import FileImportModal from '@/components/FileImportModal'
+import ErrorState from '@/components/ui/ErrorState'
 import { requireUser, getBooks, getBookProgress, getBookHighlights, saveBook, updateBook, deleteBook, saveBookProgress, getReadingSessionsThisWeek } from '@/lib/supabase'
 import { darkCardInk } from '@/lib/theme'
 import { localDateKey } from '@/lib/date'
@@ -75,6 +76,8 @@ export default function LeituraPage() {
   const router = useRouter()
   const [userId, setUserId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [retryKey, setRetryKey] = useState(0)
   const [showImport, setShowImport] = useState(false)
   const [showBiblioteca, setShowBiblioteca] = useState(false)
   const [toast, setToast] = useState('')
@@ -172,6 +175,8 @@ export default function LeituraPage() {
 
   useEffect(() => {
     let active = true
+    setLoadError(false)
+    setLoading(true)
 
     async function bootstrap() {
       const user = await requireUser()
@@ -183,9 +188,15 @@ export default function LeituraPage() {
       setLoading(false)
     }
 
-    bootstrap()
+    bootstrap().catch((err) => {
+      if (!active) return
+      console.error('[leitura] falha ao carregar dados:', err)
+      setLoadError(true)
+      setLoading(false)
+    })
     return () => { active = false }
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retryKey])
 
   // Em vez de guardar logo com o título inferido do nome do ficheiro, abre a
   // folha de metadados para o utilizador rever/editar título e autor antes.
@@ -280,6 +291,19 @@ export default function LeituraPage() {
     flex: 1, padding: '8px 4px', borderRadius: 9, cursor: 'pointer',
     background: 'var(--surface-3)', border: '1px solid rgba(var(--ink-rgb),0.08)',
     color: 'var(--text1)', fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 12,
+  }
+
+  if (loadError) {
+    return (
+      <>
+        <ErrorState
+          title="A leitura não carregou"
+          body="Tivemos um problema a carregar a tua biblioteca. Verifica a ligação e tenta de novo."
+          onRetry={() => setRetryKey(k => k + 1)}
+        />
+        <Nav />
+      </>
+    )
   }
 
   if (loading) {
