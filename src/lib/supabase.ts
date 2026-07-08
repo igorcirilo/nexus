@@ -348,6 +348,44 @@ export async function deleteAgendaEvent(id: string, userId?: string) {
   return { error }
 }
 
+// ── Lembretes de hoje (checks diários) ─────────────────────
+// Check-off organizacional de lembretes/eventos na página Hoje. Espelha o
+// padrão de habit_logs (upsert por dia) mas NÃO alimenta ofensiva/Ritmo.
+export type DayItemCheck = {
+  item_type: 'reminder' | 'event'
+  item_id: string
+  completed: boolean
+}
+
+export async function getDayChecks(userId: string, date: string): Promise<DayItemCheck[]> {
+  const { data, error } = await supabase
+    .from('day_item_checks')
+    .select('item_type, item_id, completed')
+    .eq('user_id', userId)
+    .eq('date', date)
+  if (error) {
+    reportError('getDayChecks error', error.message)
+    return []
+  }
+  return (data ?? []) as DayItemCheck[]
+}
+
+export async function toggleDayItemCheck(
+  userId: string,
+  itemType: 'reminder' | 'event',
+  itemId: string,
+  date: string,
+  completed: boolean,
+) {
+  const { error } = await supabase.from('day_item_checks').upsert(
+    { user_id: userId, item_type: itemType, item_id: itemId, date, completed,
+      completed_at: new Date().toISOString() },
+    { onConflict: 'user_id,item_type,item_id,date' },
+  )
+  if (error) reportError('toggleDayItemCheck error', error.message)
+  return { error }
+}
+
 // ── Transacções financeiras ─────────────────────────────────
 export async function getTransactions(userId: string, months = 1) {
   const since = new Date()

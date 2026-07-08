@@ -22,6 +22,7 @@ export const USER_DATA_TABLES = [
   // Agenda & lembretes
   'reminders',
   'agenda_events',
+  'day_item_checks',
   // Finanças
   'transactions',
   // Avaliações / áreas da vida

@@ -837,3 +837,37 @@ insert into public.badges (key, name, description, icon) values
   ('ritmo_80',         'Em Chamas',    'Atingiste um Ritmo de 80 ou mais.', '🚀'),
   ('consistencia_30',  'Inabalável',   'A tua melhor ofensiva chegou aos 30 dias.', '🏔️')
 on conflict (key) do nothing;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- day_item_checks — check-off diário dos "Lembretes de hoje" (página Hoje):
+-- lembretes recorrentes (reminders) e eventos da agenda (agenda_events).
+-- Organizacional apenas — não alimenta ofensiva/Ritmo/badges.
+-- Aplicada via migration day_item_checks_v1.sql.
+-- ─────────────────────────────────────────────────────────────────────────────
+create table if not exists public.day_item_checks (
+  id           uuid not null default gen_random_uuid(),
+  user_id      uuid not null,
+  item_type    text not null,
+  item_id      uuid not null,
+  date         date not null,
+  completed    boolean not null default true,
+  completed_at timestamptz not null default now(),
+  constraint day_item_checks_pkey primary key (id),
+  constraint day_item_checks_user_id_fkey foreign key (user_id) references public.profiles(id) on delete cascade,
+  constraint day_item_checks_type_check check (item_type in ('reminder', 'event')),
+  constraint day_item_checks_unique unique (user_id, item_type, item_id, date)
+);
+create index if not exists day_item_checks_user_date_idx on public.day_item_checks (user_id, date);
+alter table public.day_item_checks enable row level security;
+do $$ begin
+  create policy day_item_checks_select_own on public.day_item_checks for select using (auth.uid() = user_id);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create policy day_item_checks_insert_own on public.day_item_checks for insert with check (auth.uid() = user_id);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create policy day_item_checks_update_own on public.day_item_checks for update using (auth.uid() = user_id) with check (auth.uid() = user_id);
+exception when duplicate_object then null; end $$;
+do $$ begin
+  create policy day_item_checks_delete_own on public.day_item_checks for delete using (auth.uid() = user_id);
+exception when duplicate_object then null; end $$;
