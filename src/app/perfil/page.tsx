@@ -45,13 +45,15 @@ const rowStyle: React.CSSProperties = {
   gap: 12,
 }
 
+// Mesmas 6 conquistas do catálogo da BD (checkAndAwardBadges); as badges de XP
+// foram removidas do produto e nunca seriam desbloqueadas aqui.
 const LOCKED_BADGES = [
   { key: 'primeiro_checkin', name: 'Primeira Vez', icon: '🌅' },
   { key: 'streak_7', name: 'Uma Semana', icon: '🔥' },
   { key: 'streak_21', name: 'Três Semanas', icon: '⚡' },
   { key: 'streak_100', name: 'Centenário', icon: '💎' },
-  { key: 'xp_1000', name: 'Mil Pontos', icon: '⭐' },
-  { key: 'xp_5000', name: 'Veterano', icon: '🏆' },
+  { key: 'ritmo_80', name: 'Em Chamas', icon: '🚀' },
+  { key: 'consistencia_30', name: 'Inabalável', icon: '🏔️' },
 ]
 
 export default function PerfilPage() {
@@ -102,12 +104,10 @@ export default function PerfilPage() {
         goal_weight: prof?.goal_weight ?? '',
         water_goal_ml: prof?.water_goal_ml ?? 2000,
         workouts_per_week: prof?.workouts_per_week ?? 3,
-        // fin_current_savings ficou de fora de propósito: a reserva é derivada
-        // dos movimentos de Poupança em /financas; gravar aqui um snapshot
-        // antigo do perfil reescrevia-a silenciosamente (bug de divergência).
-        fin_monthly_save: prof?.fin_monthly_save ?? '',
-        fin_debt_goal: prof?.fin_debt_goal ?? '',
-        fin_reserve_goal: prof?.fin_reserve_goal ?? '',
+        // Campos financeiros ficam de fora de propósito: são geridos em
+        // /financas e não têm inputs nesta página; incluí-los no form fazia o
+        // Guardar reescrevê-los com um snapshot antigo (bug de divergência,
+        // o mesmo que já afetou fin_current_savings).
       })
       setLoading(false)
     }
@@ -131,6 +131,9 @@ export default function PerfilPage() {
       emitToast('Não foi possível guardar o perfil.', 'error')
       return
     }
+    // Reflete o que foi gravado no estado local: o hub (tab resumo) lê de
+    // `profile`, não do form, e mostrava valores antigos até recarregar.
+    setProfile((p) => (p ? { ...p, ...payload } as Profile : p))
     setSaved(true)
     setTimeout(() => setSaved(false), 2200)
   }

@@ -1020,7 +1020,8 @@ export async function getReadingSessionsThisWeek(userId: string) {
 
 export async function getTrainingCount30d(userId: string): Promise<number> {
   const since = new Date()
-  since.setDate(since.getDate() - 30)
+  // Janela de 30 dias incluindo hoje (gte é inclusivo; -30 cobria 31 dias).
+  since.setDate(since.getDate() - 29)
   const sinceStr = format(since, 'yyyy-MM-dd')
 
   const { count, error } = await supabase
@@ -1036,7 +1037,8 @@ export async function getTrainingCount30d(userId: string): Promise<number> {
 
 export async function getReadingPages30d(userId: string): Promise<number> {
   const since = new Date()
-  since.setDate(since.getDate() - 30)
+  // Janela de 30 dias incluindo hoje (gte é inclusivo; -30 cobria 31 dias).
+  since.setDate(since.getDate() - 29)
   const sinceStr = format(since, 'yyyy-MM-dd')
 
   const { data, error } = await supabase
