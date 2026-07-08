@@ -13,6 +13,21 @@
 > Legenda de esforço: **B** baixo · **M** médio · **A** alto.
 > Tudo o que está marcado *(confirmado no código)* foi verificado na fonte;
 > o que depende de comportamento em dispositivo real está sinalizado.
+>
+> **Estado de implementação** (atualizado à medida que os itens do plano são
+> feitos):
+> - ✅ **Item 1 — Retomar direto**: reader abre na página guardada + aviso
+>   "Retomado na p. N · Ir para o início"; removido o bottom-sheet e a janela
+>   de perda de posição.
+> - ✅ **Item 2 — Tracking no modo scroll**: `IntersectionObserver` atualiza a
+>   página atual ao rolar; TOC/marcadores/retomar rolam até à secção.
+> - ✅ **Item 3 — Sessões resilientes + defaults**: flush de sessão e progresso
+>   em `visibilitychange`/`pagehide`; defaults do SQL alinhados (paginado/1.8/24).
+> - ⏳ Restantes itens (4–15) por fazer.
+>
+> Verificação: `tsc`, `next lint` e `next build` limpos. Falta validação em
+> dispositivo real dos fluxos de runtime (retomar, contagem de sessões, e o
+> scroll-tracking em PDFs grandes).
 
 ---
 

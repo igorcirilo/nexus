@@ -85,9 +85,13 @@ export default function LeituraReaderPage() {
 
   const sessionStartRef  = useRef<{ time: number; page: number } | null>(null)
   const currentPageRef   = useRef(1)
+  const pageCountRef     = useRef(1)
   const touchStartX      = useRef<number | null>(null)
   const headerTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hydrated         = useRef(false)
+  // Secções de página do modo scroll (chave = pageNumber). Alimenta o
+  // IntersectionObserver que atualiza a página atual à medida que se rola.
+  const pageSectionRefs  = useRef<Map<number, HTMLElement>>(new Map())
 
   function showToast(msg: string) {
     setToast(msg)
@@ -176,10 +180,11 @@ export default function LeituraReaderPage() {
 
   // ── Derived values ────────────────────────────────────────────────────────
 
-  const pages     = book?.raw_content?.pages ?? []
+  // Estabiliza a referência: sem o useMemo, `pages`/`toc` são arrays novos a
+  // cada render — o que faria o efeito do IntersectionObserver reconstruir-se
+  // (e re-scrollar) a cada render, e o useMemo do capítulo recalcular sempre.
+  const pages     = useMemo(() => book?.raw_content?.pages ?? [], [book])
   const pageCount = book?.raw_content?.pageCount ?? 1
-  // Estabiliza a referência: sem o useMemo, `toc` é um array novo a cada render
-  // e faz o useMemo do capítulo atual recalcular sempre.
   const toc       = useMemo(() => book?.raw_content?.toc ?? [], [book])
   const currentPageData = pages.find(p => p.pageNumber === currentPage) ?? pages[0]
 
@@ -213,13 +218,22 @@ export default function LeituraReaderPage() {
 
   // ── Persist progress ──────────────────────────────────────────────────────
 
+  // Debounced: no modo scroll o IntersectionObserver muda `currentPage` a cada
+  // fronteira de página cruzada; sem debounce isso geraria dezenas de upserts
+  // durante um único gesto de rolagem. Guarda-se só a posição de repouso.
+  // O flush em visibilitychange/pagehide (efeito de sessão) cobre o caso de o
+  // app ser fechado antes de o debounce disparar.
   useEffect(() => {
     if (!userId || !bookId || !book || !hydrated.current) return
     const pct = Math.round((currentPage / Math.max(pageCount, 1)) * 100)
-    saveBookProgress({ user_id: userId, book_id: bookId, current_page: currentPage, progress_pct: pct })
+    const t = setTimeout(() => {
+      saveBookProgress({ user_id: userId, book_id: bookId, current_page: currentPage, progress_pct: pct })
+    }, 600)
+    return () => clearTimeout(t)
   }, [userId, bookId, book, currentPage, pageCount])
 
   useEffect(() => { currentPageRef.current = currentPage }, [currentPage])
+  useEffect(() => { pageCountRef.current = pageCount }, [pageCount])
 
   // ── Session tracking ──────────────────────────────────────────────────────
 
@@ -248,23 +262,82 @@ export default function LeituraReaderPage() {
       })
     }
 
+    // Grava a posição atual imediatamente (sem esperar o debounce). Usa refs
+    // para valores vivos, evitando fechar sobre um pageCount obsoleto.
+    function flushProgress() {
+      if (!hydrated.current) return
+      const pct = Math.round((currentPageRef.current / Math.max(pageCountRef.current, 1)) * 100)
+      void saveBookProgress({
+        user_id: userId!, book_id: bookId!,
+        current_page: currentPageRef.current, progress_pct: pct,
+      })
+    }
+
+    function onHidden() { flushSession(); flushProgress() }
+
     function onVisibility() {
-      if (document.visibilityState === 'hidden') flushSession()
+      if (document.visibilityState === 'hidden') onHidden()
       else startSession()
     }
 
     startSession()
     document.addEventListener('visibilitychange', onVisibility)
-    window.addEventListener('pagehide', flushSession)
+    window.addEventListener('pagehide', onHidden)
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibility)
-      window.removeEventListener('pagehide', flushSession)
+      window.removeEventListener('pagehide', onHidden)
       flushSession()
+      flushProgress()
     }
   }, [userId, bookId])
 
+  // ── Modo scroll: página atual segue o scroll (IntersectionObserver) ────────
+
+  useEffect(() => {
+    if (loading || readingMode !== 'scroll' || pages.length === 0) return
+
+    // 1) Salta para a página resolvida (retomar / troca de modo) antes de
+    //    reagir ao scroll — senão o observer detetaria a página 1 no topo e
+    //    sobrescreveria a posição guardada logo à abertura.
+    let restored = false
+    pageSectionRefs.current.get(currentPageRef.current)?.scrollIntoView({ block: 'start' })
+    const raf = requestAnimationFrame(() => { restored = true })
+
+    // 2) A secção que cruza o centro do ecrã (banda fina via rootMargin) passa
+    //    a ser a página atual — alimentando progresso, sessões e ETA.
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!restored) return
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          const p = Number((entry.target as HTMLElement).dataset.page)
+          if (p) setCurrentPage(p)
+        }
+      },
+      { rootMargin: '-45% 0px -45% 0px' },
+    )
+    pageSectionRefs.current.forEach((el) => observer.observe(el))
+
+    return () => {
+      cancelAnimationFrame(raf)
+      observer.disconnect()
+    }
+  }, [loading, readingMode, pages])
+
   // ── Prefs update ──────────────────────────────────────────────────────────
+
+  // Navega para uma página respeitando o modo: em folheio troca a página; em
+  // scroll rola até à secção (o observer trata de atualizar currentPage).
+  function goToPage(p: number) {
+    const target = clamp(p, 1, pageCount)
+    setCurrentPage(target)
+    if (readingMode === 'scroll') {
+      requestAnimationFrame(() => {
+        pageSectionRefs.current.get(target)?.scrollIntoView({ block: 'start' })
+      })
+    }
+  }
 
   async function updatePrefs(next: Partial<ReadingPreference>) {
     if (!userId || !prefs) return
@@ -434,7 +507,15 @@ export default function LeituraReaderPage() {
       }}>
         {readingMode === 'scroll'
           ? pages.map(page => (
-              <section key={page.pageNumber} style={{ marginBottom: 36 }}>
+              <section
+                key={page.pageNumber}
+                data-page={page.pageNumber}
+                ref={(el) => {
+                  if (el) pageSectionRefs.current.set(page.pageNumber, el)
+                  else pageSectionRefs.current.delete(page.pageNumber)
+                }}
+                style={{ marginBottom: 36 }}
+              >
                 <div style={{
                   fontSize: 10, color: `${palette.text}50`, marginBottom: 14,
                   textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'Inter, sans-serif',
@@ -576,7 +657,7 @@ export default function LeituraReaderPage() {
             Retomado na p.&nbsp;{resumeNotice}
           </span>
           <button
-            onClick={() => { setCurrentPage(1); setResumeNotice(null) }}
+            onClick={() => { goToPage(1); setResumeNotice(null) }}
             style={{
               border: 'none', background: 'transparent', color: palette.accent,
               fontWeight: 700, fontSize: 13, cursor: 'pointer',
@@ -739,7 +820,7 @@ export default function LeituraReaderPage() {
                     return (
                       <button
                         key={`${item.page}-${item.label}`}
-                        onClick={() => { setCurrentPage(item.page); setTocOpen(false) }}
+                        onClick={() => { goToPage(item.page); setTocOpen(false) }}
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left',
                           border: 'none', borderRadius: 12, padding: '11px 14px', marginBottom: 4,
@@ -924,7 +1005,7 @@ export default function LeituraReaderPage() {
                     : bookmarks.map(b => (
                         <button
                           key={b.id}
-                          onClick={() => { setCurrentPage(b.page); setAnnOpen(false) }}
+                          onClick={() => { goToPage(b.page); setAnnOpen(false) }}
                           style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left',
                             border: 'none', borderRadius: 12, padding: '11px 14px', marginBottom: 6,
