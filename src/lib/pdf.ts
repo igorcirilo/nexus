@@ -76,7 +76,10 @@ function normalizePdfText(input: string) {
     .trim()
 }
 
-export async function extractPdfText(file: File): Promise<PdfImportResult> {
+export async function extractPdfText(
+  file: File,
+  onProgress?: (done: number, total: number) => void,
+): Promise<PdfImportResult> {
   if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.pdf')) {
     throw new Error('Ficheiro inválido. Envia um PDF.')
   }
@@ -90,6 +93,7 @@ export async function extractPdfText(file: File): Promise<PdfImportResult> {
   const pages = []
   const warnings: string[] = []
 
+  onProgress?.(0, pdf.numPages)
   for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
     const page = await pdf.getPage(pageNumber)
     const content = await page.getTextContent()
@@ -97,6 +101,7 @@ export async function extractPdfText(file: File): Promise<PdfImportResult> {
       content.items.map((item) => `${item.str ?? ''}${item.hasEOL ? '\n' : ' '}`).join('')
     )
     pages.push({ pageNumber, text })
+    onProgress?.(pageNumber, pdf.numPages)
   }
 
   const extractedText = normalizePdfText(

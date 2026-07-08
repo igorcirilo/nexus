@@ -111,7 +111,8 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
   const [isDark, setIsDark] = useState(true)
   useEffect(() => { setIsDark(getTheme() === 'dark') }, [])
 
-  const initial = (profile.username ?? email ?? 'U').charAt(0).toUpperCase()
+  // `||` em vez de `??`: username gravado como '' deixava a inicial em branco.
+  const initial = (profile.username || email || 'U').charAt(0).toUpperCase()
   const ritmoPct = Math.min(100, Math.max(0, ritmo))
 
   return (
@@ -205,7 +206,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
 
         {/* Username */}
         <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', marginBottom: 4, letterSpacing: '-0.3px' }}>
-          {profile.username ?? 'Sem nome'}
+          {profile.username || 'Sem nome'}
         </div>
 
         {/* Level badge */}

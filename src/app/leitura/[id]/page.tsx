@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import Nav from '@/components/Nav'
+import ErrorState from '@/components/ui/ErrorState'
 import { todayISO } from '@/lib/date'
 import {
   requireUser,
@@ -66,8 +67,10 @@ export default function LeituraReaderPage() {
   const [userId, setUserId]       = useState<string | null>(null)
   const [book, setBook]           = useState<Book | null>(null)
   const [loading, setLoading]     = useState(true)
+  const [loadError, setLoadError] = useState(false)
+  const [retryKey, setRetryKey]   = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
-  const [resumePrompt, setResumePrompt] = useState<number | null>(null)
+  const [resumeNotice, setResumeNotice] = useState<number | null>(null)
 
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [tocOpen, setTocOpen]           = useState(false)
@@ -85,9 +88,13 @@ export default function LeituraReaderPage() {
 
   const sessionStartRef  = useRef<{ time: number; page: number } | null>(null)
   const currentPageRef   = useRef(1)
+  const pageCountRef     = useRef(1)
   const touchStartX      = useRef<number | null>(null)
   const headerTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hydrated         = useRef(false)
+  // Secções de página do modo scroll (chave = pageNumber). Alimenta o
+  // IntersectionObserver que atualiza a página atual à medida que se rola.
+  const pageSectionRefs  = useRef<Map<number, HTMLElement>>(new Map())
 
   function showToast(msg: string) {
     setToast(msg)
@@ -124,19 +131,24 @@ export default function LeituraReaderPage() {
     if (!isNaN(requestedPage) && requestedPage > 0) {
       setCurrentPage(clamp(requestedPage, 1, maxPage))
     } else if (savedPage > 1) {
-      setCurrentPage(1)
-      setResumePrompt(clamp(savedPage, 1, maxPage))
+      // Retomar direto (convenção Kindle/Apple Books): abre já na página
+      // guardada e oferece "ir ao início" como ação secundária, em vez do
+      // antigo bottom-sheet "Retomar?". Elimina um toque em todas as
+      // aberturas e a janela em que o efeito de persistência gravava
+      // current_page=1 antes de o utilizador responder ao prompt.
+      setCurrentPage(clamp(savedPage, 1, maxPage))
+      setResumeNotice(clamp(savedPage, 1, maxPage))
     }
     // else default page 1 already set
 
     // Só após resolver a página inicial é que permitimos persistir alterações.
-    // Evita que o efeito de persistência grave current_page=1 no paint inicial,
-    // apagando a página guardada antes de o utilizador tocar em "Retomar".
     hydrated.current = true
   }
 
   useEffect(() => {
     let active = true
+    setLoadError(false)
+    setLoading(true)
     async function bootstrap() {
       const user = await requireUser()
       if (!user) return
@@ -146,10 +158,15 @@ export default function LeituraReaderPage() {
       if (!active) return
       setLoading(false)
     }
-    bootstrap()
+    bootstrap().catch((err) => {
+      if (!active) return
+      console.error('[leitura/reader] falha ao carregar:', err)
+      setLoadError(true)
+      setLoading(false)
+    })
     return () => { active = false }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bookId])
+  }, [bookId, retryKey])
 
   // ── Header auto-hide on scroll ────────────────────────────────────────────
 
@@ -163,12 +180,21 @@ export default function LeituraReaderPage() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  // ── Aviso "Retomado na p. N" auto-dispensa ─────────────────────────────────
+
+  useEffect(() => {
+    if (resumeNotice === null) return
+    const t = setTimeout(() => setResumeNotice(null), 6000)
+    return () => clearTimeout(t)
+  }, [resumeNotice])
+
   // ── Derived values ────────────────────────────────────────────────────────
 
-  const pages     = book?.raw_content?.pages ?? []
+  // Estabiliza a referência: sem o useMemo, `pages`/`toc` são arrays novos a
+  // cada render — o que faria o efeito do IntersectionObserver reconstruir-se
+  // (e re-scrollar) a cada render, e o useMemo do capítulo recalcular sempre.
+  const pages     = useMemo(() => book?.raw_content?.pages ?? [], [book])
   const pageCount = book?.raw_content?.pageCount ?? 1
-  // Estabiliza a referência: sem o useMemo, `toc` é um array novo a cada render
-  // e faz o useMemo do capítulo atual recalcular sempre.
   const toc       = useMemo(() => book?.raw_content?.toc ?? [], [book])
   const currentPageData = pages.find(p => p.pageNumber === currentPage) ?? pages[0]
 
@@ -202,35 +228,126 @@ export default function LeituraReaderPage() {
 
   // ── Persist progress ──────────────────────────────────────────────────────
 
+  // Debounced: no modo scroll o IntersectionObserver muda `currentPage` a cada
+  // fronteira de página cruzada; sem debounce isso geraria dezenas de upserts
+  // durante um único gesto de rolagem. Guarda-se só a posição de repouso.
+  // O flush em visibilitychange/pagehide (efeito de sessão) cobre o caso de o
+  // app ser fechado antes de o debounce disparar.
   useEffect(() => {
     if (!userId || !bookId || !book || !hydrated.current) return
     const pct = Math.round((currentPage / Math.max(pageCount, 1)) * 100)
-    saveBookProgress({ user_id: userId, book_id: bookId, current_page: currentPage, progress_pct: pct })
+    const t = setTimeout(() => {
+      saveBookProgress({ user_id: userId, book_id: bookId, current_page: currentPage, progress_pct: pct })
+    }, 600)
+    return () => clearTimeout(t)
   }, [userId, bookId, book, currentPage, pageCount])
 
   useEffect(() => { currentPageRef.current = currentPage }, [currentPage])
+  useEffect(() => { pageCountRef.current = pageCount }, [pageCount])
 
   // ── Session tracking ──────────────────────────────────────────────────────
 
   useEffect(() => {
     if (!userId || !bookId) return
-    sessionStartRef.current = { time: Date.now(), page: currentPageRef.current }
-    return () => {
+
+    function startSession() {
+      sessionStartRef.current = { time: Date.now(), page: currentPageRef.current }
+    }
+
+    // Grava a sessão em curso e limpa o relógio. Chamado no cleanup, mas
+    // também em visibilitychange/pagehide — quando o SO mata o PWA ou o
+    // separador vai para background, o cleanup do efeito pode não correr e
+    // os minutos perdiam-se por completo.
+    function flushSession() {
       const start = sessionStartRef.current
+      sessionStartRef.current = null
       if (!start) return
-      const durationMs      = Date.now() - start.time
-      const durationMinutes = Math.min(Math.round(durationMs / 60000), 240)
+      const durationMinutes = Math.min(Math.round((Date.now() - start.time) / 60000), 240)
       if (durationMinutes < 1) return
       const pagesRead = Math.max(0, currentPageRef.current - start.page)
       void saveReadingSession({
-        user_id: userId, book_id: bookId,
+        user_id: userId!, book_id: bookId!,
         date: todayISO(),
         duration_minutes: durationMinutes, pages_read: pagesRead,
       })
     }
+
+    // Grava a posição atual imediatamente (sem esperar o debounce). Usa refs
+    // para valores vivos, evitando fechar sobre um pageCount obsoleto.
+    function flushProgress() {
+      if (!hydrated.current) return
+      const pct = Math.round((currentPageRef.current / Math.max(pageCountRef.current, 1)) * 100)
+      void saveBookProgress({
+        user_id: userId!, book_id: bookId!,
+        current_page: currentPageRef.current, progress_pct: pct,
+      })
+    }
+
+    function onHidden() { flushSession(); flushProgress() }
+
+    function onVisibility() {
+      if (document.visibilityState === 'hidden') onHidden()
+      else startSession()
+    }
+
+    startSession()
+    document.addEventListener('visibilitychange', onVisibility)
+    window.addEventListener('pagehide', onHidden)
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      window.removeEventListener('pagehide', onHidden)
+      flushSession()
+      flushProgress()
+    }
   }, [userId, bookId])
 
+  // ── Modo scroll: página atual segue o scroll (IntersectionObserver) ────────
+
+  useEffect(() => {
+    if (loading || readingMode !== 'scroll' || pages.length === 0) return
+
+    // 1) Salta para a página resolvida (retomar / troca de modo) antes de
+    //    reagir ao scroll — senão o observer detetaria a página 1 no topo e
+    //    sobrescreveria a posição guardada logo à abertura.
+    let restored = false
+    pageSectionRefs.current.get(currentPageRef.current)?.scrollIntoView({ block: 'start' })
+    const raf = requestAnimationFrame(() => { restored = true })
+
+    // 2) A secção que cruza o centro do ecrã (banda fina via rootMargin) passa
+    //    a ser a página atual — alimentando progresso, sessões e ETA.
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!restored) return
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          const p = Number((entry.target as HTMLElement).dataset.page)
+          if (p) setCurrentPage(p)
+        }
+      },
+      { rootMargin: '-45% 0px -45% 0px' },
+    )
+    pageSectionRefs.current.forEach((el) => observer.observe(el))
+
+    return () => {
+      cancelAnimationFrame(raf)
+      observer.disconnect()
+    }
+  }, [loading, readingMode, pages])
+
   // ── Prefs update ──────────────────────────────────────────────────────────
+
+  // Navega para uma página respeitando o modo: em folheio troca a página; em
+  // scroll rola até à secção (o observer trata de atualizar currentPage).
+  function goToPage(p: number) {
+    const target = clamp(p, 1, pageCount)
+    setCurrentPage(target)
+    if (readingMode === 'scroll') {
+      requestAnimationFrame(() => {
+        pageSectionRefs.current.get(target)?.scrollIntoView({ block: 'start' })
+      })
+    }
+  }
 
   async function updatePrefs(next: Partial<ReadingPreference>) {
     if (!userId || !prefs) return
@@ -298,6 +415,15 @@ export default function LeituraReaderPage() {
 
   // ── Loading / error states ────────────────────────────────────────────────
 
+  if (loadError) {
+    return (
+      <ErrorState
+        title="O livro não carregou"
+        body="Tivemos um problema a abrir este livro. Verifica a ligação e tenta de novo."
+        onRetry={() => setRetryKey(k => k + 1)}
+      />
+    )
+  }
   if (loading) {
     return (
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#10131A', color: 'rgba(255,255,255,0.4)', fontFamily: 'Inter, sans-serif', fontSize: 14 }}>
@@ -307,8 +433,11 @@ export default function LeituraReaderPage() {
   }
   if (!book) {
     return (
-      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', color: 'var(--text3)' }}>
-        Livro não encontrado.
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', flexDirection: 'column', gap: 14, color: 'var(--text3)', fontFamily: 'Inter, sans-serif', padding: '0 28px', textAlign: 'center' }}>
+        <div>Livro não encontrado.</div>
+        <Link href="/leitura" style={{ textDecoration: 'none', color: 'var(--gold, #E8A838)', fontWeight: 700, fontSize: 14 }}>
+          ← Voltar à Leitura
+        </Link>
       </div>
     )
   }
@@ -400,7 +529,15 @@ export default function LeituraReaderPage() {
       }}>
         {readingMode === 'scroll'
           ? pages.map(page => (
-              <section key={page.pageNumber} style={{ marginBottom: 36 }}>
+              <section
+                key={page.pageNumber}
+                data-page={page.pageNumber}
+                ref={(el) => {
+                  if (el) pageSectionRefs.current.set(page.pageNumber, el)
+                  else pageSectionRefs.current.delete(page.pageNumber)
+                }}
+                style={{ marginBottom: 36 }}
+              >
                 <div style={{
                   fontSize: 10, color: `${palette.text}50`, marginBottom: 14,
                   textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'Inter, sans-serif',
@@ -525,60 +662,42 @@ export default function LeituraReaderPage() {
         </div>
       )}
 
-      {/* ── Resume prompt — Extra C ────────────────────────────────────────── */}
-      {resumePrompt !== null && (
+      {/* ── Aviso "Retomado na p. N" (retomar direto + ir ao início) ──────── */}
+      {resumeNotice !== null && (
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 9999,
-          background: 'rgba(0,0,0,0.55)',
-          display: 'flex', alignItems: 'flex-end',
+          position: 'fixed',
+          bottom: readingMode === 'paginado' ? 150 : 92,
+          left: '50%', transform: 'translateX(-50%)', zIndex: 200,
+          display: 'flex', alignItems: 'center', gap: 12,
+          maxWidth: 'calc(100% - 32px)',
+          background: isDark ? '#1E2330' : palette.panel,
+          border: `1px solid ${palette.accent}55`, borderRadius: 14,
+          padding: '10px 12px 10px 16px', boxShadow: '0 4px 20px rgba(0,0,0,0.22)',
+          fontFamily: 'Inter, sans-serif',
         }}>
-          <div style={{
-            width: '100%', background: sheetBg, borderRadius: '24px 24px 0 0',
-            padding: '8px 22px calc(28px + env(safe-area-inset-bottom))',
-            border: `1px solid ${palette.border}`, borderBottom: 'none',
-          }}>
-            <div style={{ width: 36, height: 4, borderRadius: 2, background: palette.border, margin: '8px auto 22px' }} />
-            <div style={{ display: 'flex', gap: 14, alignItems: 'flex-start', marginBottom: 24 }}>
-              <div style={{
-                width: 46, height: 46, borderRadius: 14, flexShrink: 0,
-                background: `${palette.accent}18`, border: `1px solid ${palette.accent}30`,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22,
-              }}>
-                📖
-              </div>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 16, color: palette.text, marginBottom: 5, fontFamily: 'Inter, sans-serif' }}>
-                  Retomar leitura?
-                </div>
-                <div style={{ fontSize: 14, color: `${palette.text}75`, lineHeight: 1.55, fontFamily: 'Inter, sans-serif' }}>
-                  Ficaste na página&nbsp;<strong style={{ color: palette.text }}>{resumePrompt}</strong>. Continuar daí?
-                </div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                onClick={() => setResumePrompt(null)}
-                style={{
-                  flex: 1, padding: '13px', borderRadius: 14,
-                  border: `1px solid ${palette.border}`, background: 'transparent',
-                  color: palette.text, fontFamily: 'Inter, sans-serif',
-                  fontWeight: 600, fontSize: 14, cursor: 'pointer',
-                }}
-              >
-                Começar do início
-              </button>
-              <button
-                onClick={() => { setCurrentPage(resumePrompt); setResumePrompt(null) }}
-                style={{
-                  flex: 1, padding: '13px', borderRadius: 14, border: 'none',
-                  background: palette.accent, color: '#111',
-                  fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
-                }}
-              >
-                Retomar p.&nbsp;{resumePrompt}
-              </button>
-            </div>
-          </div>
+          <span style={{ fontSize: 13, color: palette.text, whiteSpace: 'nowrap' }}>
+            Retomado na p.&nbsp;{resumeNotice}
+          </span>
+          <button
+            onClick={() => { goToPage(1); setResumeNotice(null) }}
+            style={{
+              border: 'none', background: 'transparent', color: palette.accent,
+              fontWeight: 700, fontSize: 13, cursor: 'pointer',
+              fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap', padding: 0,
+            }}
+          >
+            Ir para o início
+          </button>
+          <button
+            onClick={() => setResumeNotice(null)}
+            aria-label="Dispensar"
+            style={{
+              border: 'none', background: 'transparent', color: `${palette.text}70`,
+              fontSize: 17, cursor: 'pointer', lineHeight: 1, padding: '0 2px',
+            }}
+          >
+            ×
+          </button>
         </div>
       )}
 
@@ -714,6 +833,11 @@ export default function LeituraReaderPage() {
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: `${palette.text}55`, fontFamily: 'Inter, sans-serif' }}>
                 Sumário
               </div>
+              {book.raw_content?.tocAuto && toc.length > 0 && (
+                <div style={{ fontSize: 11, color: `${palette.text}55`, fontFamily: 'Inter, sans-serif', marginTop: 6, lineHeight: 1.45 }}>
+                  Gerado automaticamente (marcos a cada 10 páginas) — não foram detetados capítulos neste PDF.
+                </div>
+              )}
             </div>
             <div style={{ overflowY: 'auto', padding: '0 16px 28px' }}>
               {toc.length === 0
@@ -723,7 +847,7 @@ export default function LeituraReaderPage() {
                     return (
                       <button
                         key={`${item.page}-${item.label}`}
-                        onClick={() => { setCurrentPage(item.page); setTocOpen(false) }}
+                        onClick={() => { goToPage(item.page); setTocOpen(false) }}
                         style={{
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left',
                           border: 'none', borderRadius: 12, padding: '11px 14px', marginBottom: 4,
@@ -908,7 +1032,7 @@ export default function LeituraReaderPage() {
                     : bookmarks.map(b => (
                         <button
                           key={b.id}
-                          onClick={() => { setCurrentPage(b.page); setAnnOpen(false) }}
+                          onClick={() => { goToPage(b.page); setAnnOpen(false) }}
                           style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', textAlign: 'left',
                             border: 'none', borderRadius: 12, padding: '11px 14px', marginBottom: 6,

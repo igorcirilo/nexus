@@ -15,6 +15,8 @@ import AddTaskSheet from '@/components/hoje/AddTaskSheet'
 import ProactiveAssistant from '@/components/hoje/ProactiveAssistant'
 import MetricsGrid from '@/components/hoje/MetricsGrid'
 import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
+import TodayRemindersList from '@/components/hoje/TodayRemindersList'
+import AddReminderSheet from '@/components/hoje/AddReminderSheet'
 import Icon from '@/components/ui/Icon'
 import {
   getProfile,
@@ -29,9 +31,14 @@ import {
   claimStreakRecovery,
   getGoals90,
   getAgendaEvents,
+  getReminders,
+  getDayChecks,
+  toggleDayItemCheck,
+  saveAgendaEvent,
   supabase,
 } from '@/lib/supabase'
 import type { AgendaEvent } from '@/lib/supabase'
+import { buildTodayReminderItems, type TodayReminderItem } from '@/lib/today-reminders'
 import { getMentorMessage } from '@/lib/mentor'
 import { buildDayPlan } from '@/lib/day-planner'
 import { detectPendencias } from '@/lib/pendencias'
@@ -45,6 +52,10 @@ import type { Profile, Checkin, Habit, HabitArea, Answers, Goal90 } from '@/type
 import StreakRecovery from '@/components/StreakRecovery'
 
 type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[] }
+
+// Forma devolvida por getReminders; days chega como text[] da BD (strings),
+// por isso fica unknown e a coerção vive em buildTodayReminderItems.
+type ReminderRow = { id: string; title: string; time: string | null; days: unknown; active: boolean; type: string }
 
 const cleanDisplayText = repairMojibake
 
@@ -96,6 +107,10 @@ export default function HojeClient({
   const [metrics, setMetrics] = useState<HojeMetrics | null>(null)
   const [goals, setGoals] = useState<Goal90[]>([])
   const [events, setEvents] = useState<AgendaEvent[]>([])
+  const [reminders, setReminders] = useState<ReminderRow[]>([])
+  const [dayChecks, setDayChecks] = useState<Record<string, boolean>>({})
+  const [reminderAddOpen, setReminderAddOpen] = useState(false)
+  const [reminderSaving, setReminderSaving] = useState(false)
   const today = todayISO()
   const hour = new Date().getHours()
 
@@ -161,12 +176,16 @@ export default function HojeClient({
       getHojeMetrics(userId),
       getGoals90(userId),
       getAgendaEvents(userId, now.getFullYear(), now.getMonth() + 1),
+      getReminders(userId),
+      getDayChecks(userId, today),
     ])
-      .then(([m, g, ev]) => {
+      .then(([m, g, ev, rem, checks]) => {
         if (cancelled) return
         setMetrics(m)
         setGoals((g ?? []) as Goal90[])
         setEvents(((ev ?? []) as AgendaEvent[]).filter((e) => e.date === today))
+        setReminders((rem ?? []) as ReminderRow[])
+        setDayChecks(Object.fromEntries(checks.map((c) => [`${c.item_type}:${c.item_id}`, c.completed])))
       })
       .catch((err) => console.error('[hoje] métricas/assistente falharam:', err))
     return () => {
@@ -232,6 +251,42 @@ export default function HojeClient({
     }
   }
 
+  async function handleToggleDayItem(item: TodayReminderItem, done: boolean) {
+    // Check apenas organizacional: risca da lista, mas NÃO mexe na ofensiva,
+    // no Ritmo nem nas badges — isso continua reservado a hábitos/check-ins.
+    const prevChecks = dayChecks
+    setDayChecks((prev) => ({ ...prev, [item.key]: done }))
+    const { error } = await toggleDayItemCheck(userId, item.itemType, item.id, today, done)
+    if (error) {
+      setDayChecks(prevChecks)
+      triggerToast('Não foi possível guardar. Tenta de novo.')
+      return
+    }
+    if (done) triggerToast(`${cleanDisplayText(item.title)} — feito`)
+  }
+
+  async function handleQuickAddReminder(title: string, time: string | null) {
+    setReminderSaving(true)
+    try {
+      // Item avulso de hoje = evento da agenda: aparece também em /calendario.
+      const { data, error } = await saveAgendaEvent({
+        user_id: userId,
+        title,
+        date: today,
+        time,
+        all_day: !time,
+      })
+      if (error || !data) {
+        triggerToast('Não foi possível criar o lembrete.')
+        return
+      }
+      setEvents((prev) => [...prev, data])
+      setReminderAddOpen(false)
+    } finally {
+      setReminderSaving(false)
+    }
+  }
+
   async function handleCreateManualHabit(name: string, area: HabitArea) {
     setAddSaving(true)
     try {
@@ -285,6 +340,7 @@ export default function HojeClient({
   const totalHabits = dueHabits.length
   const nightCheckin = todayCheckins.find((c) => c.phase === 'noite') ?? null
   const currentPhase = phaseForHour(hour)
+  const reminderItems = buildTodayReminderItems({ events, reminders, date: todayDate, checks: dayChecks })
   const habitViews: TodayHabitView[] = dueHabits.map((h) => ({
     id: h.id,
     name: cleanDisplayText(h.name),
@@ -358,6 +414,7 @@ export default function HojeClient({
       )}
 
       <AddTaskSheet open={addOpen} saving={addSaving} onClose={() => setAddOpen(false)} onCreate={handleCreateManualHabit} />
+      <AddReminderSheet open={reminderAddOpen} saving={reminderSaving} onClose={() => setReminderAddOpen(false)} onCreate={handleQuickAddReminder} />
 
       <header style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -417,6 +474,11 @@ export default function HojeClient({
           />
         </div>
       )}
+
+      {/* Lembretes/eventos do dia com check organizacional + quick-add. */}
+      <div id="hoje-lembretes">
+        <TodayRemindersList items={reminderItems} onToggle={handleToggleDayItem} onAdd={() => setReminderAddOpen(true)} />
+      </div>
 
       {/* Grelha 2x3 com as métricas das páginas principais. */}
       {!noHabits && metrics && <MetricsGrid metrics={metrics} />}

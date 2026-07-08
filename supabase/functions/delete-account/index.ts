@@ -23,7 +23,7 @@ const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 // Ordem filhos → pais (igual a src/lib/account.ts).
 const USER_DATA_TABLES = [
   'habit_logs', 'habits', 'checkins', 'focus_sessions', 'user_badges',
-  'goal_milestones', 'goals_90', 'reminders', 'agenda_events', 'transactions',
+  'goal_milestones', 'goals_90', 'reminders', 'agenda_events', 'day_item_checks', 'transactions',
   'user_assessments', 'life_area_scores', 'body_measurements', 'training_entries',
   'training_plans', 'diet_meals', 'diet_plans', 'book_bookmarks', 'book_highlights',
   'book_notes', 'book_progress', 'reading_sessions', 'reading_preferences', 'books',

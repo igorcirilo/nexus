@@ -348,6 +348,44 @@ export async function deleteAgendaEvent(id: string, userId?: string) {
   return { error }
 }
 
+// ── Lembretes de hoje (checks diários) ─────────────────────
+// Check-off organizacional de lembretes/eventos na página Hoje. Espelha o
+// padrão de habit_logs (upsert por dia) mas NÃO alimenta ofensiva/Ritmo.
+export type DayItemCheck = {
+  item_type: 'reminder' | 'event'
+  item_id: string
+  completed: boolean
+}
+
+export async function getDayChecks(userId: string, date: string): Promise<DayItemCheck[]> {
+  const { data, error } = await supabase
+    .from('day_item_checks')
+    .select('item_type, item_id, completed')
+    .eq('user_id', userId)
+    .eq('date', date)
+  if (error) {
+    reportError('getDayChecks error', error.message)
+    return []
+  }
+  return (data ?? []) as DayItemCheck[]
+}
+
+export async function toggleDayItemCheck(
+  userId: string,
+  itemType: 'reminder' | 'event',
+  itemId: string,
+  date: string,
+  completed: boolean,
+) {
+  const { error } = await supabase.from('day_item_checks').upsert(
+    { user_id: userId, item_type: itemType, item_id: itemId, date, completed,
+      completed_at: new Date().toISOString() },
+    { onConflict: 'user_id,item_type,item_id,date' },
+  )
+  if (error) reportError('toggleDayItemCheck error', error.message)
+  return { error }
+}
+
 // ── Transacções financeiras ─────────────────────────────────
 export async function getTransactions(userId: string, months = 1) {
   const since = new Date()
@@ -648,6 +686,10 @@ export async function saveDietPlan(payload: Record<string, unknown>) {
 
 
 // ── Leitura ────────────────────────────────────────────────
+// Lança em caso de erro (além do toast) para que o hub distinga "biblioteca
+// vazia" de "falha ao carregar" e possa oferecer nova tentativa. Chamada só
+// pela página de leitura, por isso a convenção do resto do código (devolver
+// []/null) fica intacta.
 export async function getBooks(userId: string) {
   const { data, error } = await supabase
     .from('books')
@@ -657,12 +699,15 @@ export async function getBooks(userId: string) {
 
   if (error) {
     reportError('getBooks error', error.message)
-    return []
+    throw new Error(error.message)
   }
 
   return data ?? []
 }
 
+// Devolve null só quando o livro não existe (PGRST116); lança nos restantes
+// erros para o reader mostrar um estado de erro com retry em vez de conflar
+// "não encontrado" com "falha de rede".
 export async function getBookById(bookId: string, userId: string) {
   const { data, error } = await supabase
     .from('books')
@@ -672,8 +717,9 @@ export async function getBookById(bookId: string, userId: string) {
     .single()
 
   if (error) {
+    if (error.code === 'PGRST116') return null
     reportError('getBookById error', error.message)
-    return null
+    throw new Error(error.message)
   }
 
   return data
@@ -688,6 +734,36 @@ export async function saveBook(payload: Record<string, unknown>) {
 
   if (error) reportError('saveBook error', error.message)
   return { data, error }
+}
+
+// Edita metadados do livro (título/autor/cover_label). Só os campos passados
+// são alterados. As linhas de progresso/anotações/sessões ficam intactas.
+export async function updateBook(
+  bookId: string,
+  userId: string,
+  patch: { title?: string; author?: string | null; cover_label?: string | null },
+) {
+  const { error } = await supabase
+    .from('books')
+    .update(patch)
+    .eq('id', bookId)
+    .eq('user_id', userId)
+
+  if (error) reportError('updateBook error', error.message)
+  return { error }
+}
+
+// Apaga o livro. As tabelas dependentes (progress, highlights, notes,
+// bookmarks) têm ON DELETE CASCADE no schema, por isso são removidas juntas.
+export async function deleteBook(bookId: string, userId: string) {
+  const { error } = await supabase
+    .from('books')
+    .delete()
+    .eq('id', bookId)
+    .eq('user_id', userId)
+
+  if (error) reportError('deleteBook error', error.message)
+  return { error }
 }
 
 export async function getBookProgress(bookId: string, userId: string) {
@@ -1020,7 +1096,8 @@ export async function getReadingSessionsThisWeek(userId: string) {
 
 export async function getTrainingCount30d(userId: string): Promise<number> {
   const since = new Date()
-  since.setDate(since.getDate() - 30)
+  // Janela de 30 dias incluindo hoje (gte é inclusivo; -30 cobria 31 dias).
+  since.setDate(since.getDate() - 29)
   const sinceStr = format(since, 'yyyy-MM-dd')
 
   const { count, error } = await supabase
@@ -1036,7 +1113,8 @@ export async function getTrainingCount30d(userId: string): Promise<number> {
 
 export async function getReadingPages30d(userId: string): Promise<number> {
   const since = new Date()
-  since.setDate(since.getDate() - 30)
+  // Janela de 30 dias incluindo hoje (gte é inclusivo; -30 cobria 31 dias).
+  since.setDate(since.getDate() - 29)
   const sinceStr = format(since, 'yyyy-MM-dd')
 
   const { data, error } = await supabase

@@ -340,6 +340,9 @@ export interface Book {
     extractedText: string
     pages: Array<{ pageNumber: number; text: string }>
     toc?: Array<{ label: string; page: number }>
+    // true quando o sumário foi gerado por fallback (marcos a cada 10 páginas)
+    // e não por deteção real de capítulos.
+    tocAuto?: boolean
   } | null
   created_at: string
 }
