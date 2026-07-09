@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { createHabitQuick, saveReminder, saveFocusSession, saveTransaction, supabase } from '@/lib/supabase'
 import type { HabitArea } from '@/types'
-import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY, SAVINGS_CAT } from '@/lib/categories'
+import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY, isTransferCat } from '@/lib/categories'
 
 const HABIT_AREAS: Array<{ key: HabitArea; label: string; icon: string; color: string }> = [
   { key: 'corpo',           label: 'Corpo',         icon: '💪', color: '#1ECBB4' },
@@ -166,8 +166,8 @@ export default function QuickAction() {
     // Determinar categoria final
     const finalCat = txCategory === CUSTOM_KEY ? txCustomCat.trim() : txCategory
     if (!finalCat) return
-    // "Pago pela reserva" só se aplica a saídas de categoria ≠ Poupança.
-    const fromReserve = txType==='saida' && finalCat!==SAVINGS_CAT && txFromReserve
+    // "Pago pela reserva" só se aplica a saídas que não sejam transferências.
+    const fromReserve = txType==='saida' && !isTransferCat(finalCat) && txFromReserve
     setTxSaving(true)
     const { error } = await saveTransaction({ user_id:userId, type:txType, category:finalCat, description:txDesc.trim()||null, amount, date:txDate, from_reserve:fromReserve })
     if (error) { setTxSaving(false); setToast('Não foi possível guardar a transação.'); return }
@@ -368,8 +368,8 @@ export default function QuickAction() {
                 <input value={txDesc} onChange={e=>setTxDesc(e.target.value)} placeholder="Opcional" style={inputStyle}/>
               </div>
 
-              {/* Pagar com a reserva (só saídas de categoria ≠ Poupança) */}
-              {txType==='saida' && (txCategory===CUSTOM_KEY ? txCustomCat.trim() : txCategory) && (txCategory===CUSTOM_KEY ? txCustomCat.trim() : txCategory)!==SAVINGS_CAT && (
+              {/* Pagar com a reserva (só saídas que não sejam transferências) */}
+              {txType==='saida' && (txCategory===CUSTOM_KEY ? txCustomCat.trim() : txCategory) && !isTransferCat(txCategory===CUSTOM_KEY ? txCustomCat.trim() : txCategory) && (
                 <button
                   onClick={()=>setTxFromReserve(v=>!v)}
                   role="switch"

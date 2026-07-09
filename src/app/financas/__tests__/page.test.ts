@@ -261,6 +261,41 @@ describe('FinancasPage', () => {
     ;(getSavingsNet as ReturnType<typeof vi.fn>).mockResolvedValue(150)
   })
 
+  it('aportes: Emergências enche a reserva, Investimentos conta na meta, e o orçamento vê os envelopes', async () => {
+    const { getProfile, getTransactions, getTransactionsByMonth, getSavingsNet } = await import('@/lib/supabase')
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ...profile,
+      fin_budgets: { Emergências: 140, Investimentos: 210 },
+      fin_monthly_save: 350, fin_reserve_goal: 4800, fin_savings_base: 0,
+    })
+    const aportes = [
+      { id: 'a1', user_id: 'u1', date: '2026-07-05', type: 'saida',   category: 'Emergências',   description: null, amount: 140,  created_at: '' },
+      { id: 'a2', user_id: 'u1', date: '2026-07-05', type: 'saida',   category: 'Investimentos', description: null, amount: 210,  created_at: '' },
+      { id: 'a3', user_id: 'u1', date: '2026-07-10', type: 'saida',   category: 'Alimentação',   description: null, amount: 100,  created_at: '' },
+      { id: 'a4', user_id: 'u1', date: '2026-07-01', type: 'entrada', category: 'Salário',       description: null, amount: 1000, created_at: '' },
+    ]
+    ;(getTransactions as ReturnType<typeof vi.fn>).mockResolvedValue(aportes)
+    ;(getTransactionsByMonth as ReturnType<typeof vi.fn>).mockResolvedValue(aportes)
+    // líquido da reserva = só o aporte de Emergências (140)
+    ;(getSavingsNet as ReturnType<typeof vi.fn>).mockResolvedValue(140)
+    await renderPage()
+    // meta mensal de poupança: 140 + 210 = 350 → atingida
+    expect(screen.getByText(/meta atingida/)).toBeDefined()
+    // cartão Reserva mostra o aporte de emergência (base 0 + 140)
+    expect(screen.getAllByText('140,00 €').length).toBeGreaterThanOrEqual(1)
+    // envelopes do orçamento cheios: 350 de 350 → 100% usado
+    expect(screen.getByText(/100% usado/)).toBeDefined()
+    // só a Alimentação (100) é gasto fora do orçamento — os aportes não
+    expect(screen.getByText(/\+100,00\s?€ gastos em categorias sem orçamento/)).toBeDefined()
+    // rótulos de transferência na lista de movimentos
+    expect(screen.getByText(/aporte à reserva/)).toBeDefined()
+    expect(screen.getByText(/aporte a investimentos/)).toBeDefined()
+    ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
+    ;(getTransactions as ReturnType<typeof vi.fn>).mockResolvedValue(txsRecentes)
+    ;(getTransactionsByMonth as ReturnType<typeof vi.fn>).mockResolvedValue(history)
+    ;(getSavingsNet as ReturnType<typeof vi.fn>).mockResolvedValue(150)
+  })
+
   it('registar gasto pela reserva grava from_reserve=true', async () => {
     const { saveTransaction } = await import('@/lib/supabase')
     await renderPage()

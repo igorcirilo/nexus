@@ -9,6 +9,12 @@ describe('suggestCategory', () => {
     expect(suggestCategory('Renda julho', 'saida')).toBe('Habitação')
   })
 
+  it('sugere as categorias de aporte para saídas', () => {
+    expect(suggestCategory('Aporte ETF mundial', 'saida')).toBe('Investimentos')
+    expect(suggestCategory('Trade Republic', 'saida')).toBe('Investimentos')
+    expect(suggestCategory('Fundo de emergência julho', 'saida')).toBe('Emergências')
+  })
+
   it('sugere categorias de entrada', () => {
     expect(suggestCategory('Salário junho', 'entrada')).toBe('Salário')
     expect(suggestCategory('Fatura cliente X', 'entrada')).toBe('Freelance')

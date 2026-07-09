@@ -8,6 +8,7 @@ import { emitToast } from '@/lib/toast-events'
 import { computeRitmo, buildRitmoDays, RITMO_WINDOW_DAYS } from '@/lib/ritmo'
 import { isHabitDueOn } from '@/lib/habit-schedule'
 import { reserveFlow, type FinTx } from '@/lib/finance'
+import { EMERGENCY_CAT } from '@/lib/categories'
 
 // NEXT_PUBLIC_* values are inlined at build time. During build/CI (and any
 // environment without them set) they are undefined, which makes createClient
@@ -466,9 +467,10 @@ export async function searchTransactions(userId: string, query: string) {
 }
 
 // Variação líquida de TODA a história sobre a reserva (Σ reserveFlow):
-// depósitos (entrada Poupança) somam, levantamentos (saída Poupança) subtraem,
-// e as despesas pagas pela reserva (from_reserve) também subtraem. É a
-// componente transacional da reserva de emergência; a reserva mostrada =
+// depósitos (entrada Poupança) e aportes de emergência (saída Emergências)
+// somam, levantamentos (saída Poupança) e resgates subtraem, e as despesas
+// pagas pela reserva (from_reserve) também subtraem. É a componente
+// transacional da reserva de emergência; a reserva mostrada =
 // profiles.fin_savings_base + este líquido, e por isso nunca diverge dos
 // movimentos (migrations financas_reserva_v1 + financas_gasto_reserva_v1).
 export async function getSavingsNet(userId: string, savingsCat = 'Poupança') {
@@ -476,7 +478,7 @@ export async function getSavingsNet(userId: string, savingsCat = 'Poupança') {
     .from('transactions')
     .select('type, amount, category, from_reserve')
     .eq('user_id', userId)
-    .or(`category.eq.${savingsCat},from_reserve.eq.true`)
+    .or(`category.in.("${savingsCat}","${EMERGENCY_CAT}"),from_reserve.eq.true`)
 
   if (error) {
     reportError('getSavingsNet error', error.message)
