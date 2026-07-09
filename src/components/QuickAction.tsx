@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
-import { createHabitQuick, saveAgendaEvent, saveFocusSession, saveTransaction, supabase } from '@/lib/supabase'
+import { createHabitQuick, saveReminder, saveFocusSession, saveTransaction, supabase } from '@/lib/supabase'
 import type { HabitArea } from '@/types'
 import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY, SAVINGS_CAT } from '@/lib/categories'
 
@@ -140,11 +140,11 @@ export default function QuickAction() {
   async function handleSaveReminder() {
     if (!userId || !remTitle.trim() || !remDate) return
     setRemSaving(true)
-    // Lembrete rápido = evento da agenda: aparece em /calendario e, se for
-    // para hoje, na lista "Lembretes de hoje" da página Hoje.
-    const { data, error } = await saveAgendaEvent({
+    // Lembrete avulso (reminders com date): gere-se em /lembretes e, se for
+    // para hoje, aparece na lista "Lembretes de hoje" da página Hoje.
+    const { data, error } = await saveReminder({
       user_id: userId, title: remTitle.trim(), date: remDate,
-      time: remTime || null, all_day: !remTime,
+      time: remTime || null, days: [], type: 'custom', active: true,
     })
     setRemSaving(false)
     if (error || !data) { setToast('Não foi possível criar o lembrete.'); return }
@@ -152,10 +152,10 @@ export default function QuickAction() {
     resetRemForm(); setShowReminder(false); setToast('Lembrete criado.')
     if (isToday) {
       // Se a página Hoje estiver aberta, entra na lista sem recarregar.
-      window.dispatchEvent(new CustomEvent('nexus:agenda-event-created', { detail: data }))
+      window.dispatchEvent(new CustomEvent('nexus:reminder-created', { detail: data }))
       if (pathname !== '/hoje') router.push('/hoje')
     } else {
-      router.push('/calendario')
+      router.push('/lembretes')
     }
   }
 
@@ -262,7 +262,7 @@ export default function QuickAction() {
           <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxHeight:'90vh',background:'var(--bg1)',borderTopLeftRadius:24,borderTopRightRadius:24,border:'0.5px solid var(--border)',display:'flex',flexDirection:'column'}}>
             <div style={{padding:'18px 24px 14px',borderBottom:'0.5px solid var(--border)'}}>
               <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Novo lembrete</div>
-              <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>Aparece na agenda e, se for para hoje, na página Hoje.</div>
+              <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>Só para o dia escolhido. Se for hoje, aparece na página Hoje.</div>
             </div>
             <div style={{padding:'18px 24px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:14}}>
 

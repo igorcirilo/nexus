@@ -871,3 +871,11 @@ exception when duplicate_object then null; end $$;
 do $$ begin
   create policy day_item_checks_delete_own on public.day_item_checks for delete using (auth.uid() = user_id);
 exception when duplicate_object then null; end $$;
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- reminders.date — lembretes avulsos (quick-add da página Hoje). date
+-- preenchida = só nesse dia (days ignorado); null = recorrente (comportamento
+-- antigo). Aplicada via migration reminders_one_off_v1.sql.
+-- ─────────────────────────────────────────────────────────────────────────────
+alter table public.reminders add column if not exists date date;
+create index if not exists reminders_user_date_idx on public.reminders (user_id, date) where date is not null;

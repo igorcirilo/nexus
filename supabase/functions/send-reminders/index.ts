@@ -87,6 +87,8 @@ interface Reminder {
   time: string | null
   days: string[] | null
   type: string
+  /** Preenchida = lembrete avulso só desse dia (days ignorado). */
+  date: string | null
   last_sent_at: string | null
 }
 
@@ -144,7 +146,7 @@ Deno.serve(async (req) => {
   const [remindersRes, eventsRes, habitsRes] = await Promise.all([
     supabase
       .from('reminders')
-      .select('id, user_id, title, description, time, days, type, last_sent_at')
+      .select('id, user_id, title, description, time, days, type, date, last_sent_at')
       .eq('active', true),
     supabase
       .from('agenda_events')
@@ -226,10 +228,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    // ── Lembretes recorrentes ──────────────────────────────────────────────
+    // ── Lembretes (recorrentes ou avulsos com date) ────────────────────────
     for (const r of reminderByUser.get(userId) ?? []) {
-      const days = (r.days ?? []).map(String)
-      if (!days.includes(String(dow))) continue
+      if (r.date) {
+        // Avulso: só no próprio dia (data local do utilizador); days ignorado.
+        if (r.date !== date) continue
+      } else {
+        const days = (r.days ?? []).map(String)
+        if (!days.includes(String(dow))) continue
+      }
       if (!r.time || String(r.time).slice(0, 5) !== hhmm) continue
       if (r.last_sent_at && new Date(r.last_sent_at) >= minuteStart) continue
 

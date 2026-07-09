@@ -20,7 +20,8 @@ export interface TodayReminderItem {
 export interface TodayReminderInput {
   /** Eventos da agenda JÁ filtrados para a data de hoje. */
   events: { id: string; title: string; time: string | null; all_day: boolean; color: string }[]
-  reminders: { id: string; title: string; time: string | null; days: unknown; active: boolean }[]
+  /** date preenchida = lembrete avulso desse dia; null = recorrente (days). */
+  reminders: { id: string; title: string; time: string | null; days: unknown; active: boolean; date?: string | null }[]
   date: Date
   /** Mapa `${itemType}:${id}` → completed. */
   checks: Record<string, boolean>
@@ -57,6 +58,13 @@ function normalizeTime(time: string | null | undefined): string | null {
   return time.slice(0, 5)
 }
 
+/** Data local em yyyy-MM-dd (sem UTC — igual ao todayISO da app). */
+function toLocalISO(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
+}
+
 /** Chave de ordenação: itens com hora primeiro (ascendente), depois os sem hora. */
 function sortKey(item: TodayReminderItem): string {
   return item.time ?? '99:99'
@@ -79,8 +87,10 @@ export function buildTodayReminderItems(input: TodayReminderInput): TodayReminde
     }
   })
 
+  const todayStr = toLocalISO(date)
   const reminderItems: TodayReminderItem[] = reminders
-    .filter((r) => r.active && isReminderDueOn(r.days, date))
+    // Avulso (date preenchida): só no próprio dia. Recorrente: dias da semana.
+    .filter((r) => r.active && (r.date ? r.date === todayStr : isReminderDueOn(r.days, date)))
     .map((r) => {
       const key = `reminder:${r.id}`
       return {

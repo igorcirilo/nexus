@@ -4,8 +4,8 @@ import { buildTodayReminderItems, isOverdue, isReminderDueOn, REMINDER_ACCENT } 
 // 2026-07-06 é uma segunda-feira (getDay() = 1).
 const MONDAY = new Date('2026-07-06T12:00:00')
 
-function reminder(overrides: Partial<{ id: string; title: string; time: string | null; days: unknown; active: boolean }> = {}) {
-  return { id: 'r1', title: 'Beber água', time: '09:00', days: [1], active: true, ...overrides }
+function reminder(overrides: Partial<{ id: string; title: string; time: string | null; days: unknown; active: boolean; date: string | null }> = {}) {
+  return { id: 'r1', title: 'Beber água', time: '09:00', days: [1], active: true, date: null, ...overrides }
 }
 
 function event(overrides: Partial<{ id: string; title: string; time: string | null; all_day: boolean; color: string }> = {}) {
@@ -53,6 +53,19 @@ describe('isOverdue', () => {
 })
 
 describe('buildTodayReminderItems', () => {
+  it('lembrete avulso (date) aparece só no próprio dia, ignorando days', () => {
+    const items = buildTodayReminderItems({
+      events: [],
+      reminders: [
+        reminder({ id: 'hoje', days: [], date: '2026-07-06' }),
+        reminder({ id: 'amanha', days: [1], date: '2026-07-07' }),
+      ],
+      date: MONDAY,
+      checks: {},
+    })
+    expect(items.map((i) => i.id)).toEqual(['hoje'])
+  })
+
   it('exclui lembretes inativos e não devidos hoje', () => {
     const items = buildTodayReminderItems({
       events: [],

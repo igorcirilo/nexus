@@ -33,7 +33,7 @@ import {
   getReminders,
   getDayChecks,
   toggleDayItemCheck,
-  saveAgendaEvent,
+  saveReminder,
   deleteAgendaEvent,
   deleteReminder,
   supabase,
@@ -55,8 +55,9 @@ import StreakRecovery from '@/components/StreakRecovery'
 type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[] }
 
 // Forma devolvida por getReminders; days chega como text[] da BD (strings),
-// por isso fica unknown e a coerção vive em buildTodayReminderItems.
-type ReminderRow = { id: string; title: string; time: string | null; days: unknown; active: boolean; type: string }
+// por isso fica unknown e a coerção vive em buildTodayReminderItems. date
+// preenchida = lembrete avulso desse dia (quick-add); null = recorrente.
+type ReminderRow = { id: string; title: string; time: string | null; days: unknown; active: boolean; type: string; date: string | null }
 
 const cleanDisplayText = repairMojibake
 
@@ -197,12 +198,12 @@ export default function HojeClient({
   // entra na lista sem precisar de recarregar.
   useEffect(() => {
     function onCreated(e: Event) {
-      const ev = (e as CustomEvent<AgendaEvent>).detail
-      if (!ev || ev.date !== today) return
-      setEvents((prev) => (prev.some((x) => x.id === ev.id) ? prev : [...prev, ev]))
+      const rem = (e as CustomEvent<ReminderRow>).detail
+      if (!rem || rem.date !== today) return
+      setReminders((prev) => (prev.some((x) => x.id === rem.id) ? prev : [...prev, rem]))
     }
-    window.addEventListener('nexus:agenda-event-created', onCreated)
-    return () => window.removeEventListener('nexus:agenda-event-created', onCreated)
+    window.addEventListener('nexus:reminder-created', onCreated)
+    return () => window.removeEventListener('nexus:reminder-created', onCreated)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -278,19 +279,22 @@ export default function HojeClient({
   }
 
   async function handleQuickAddReminder(title: string, time: string | null): Promise<boolean> {
-    // Item avulso de hoje = evento da agenda: aparece também em /calendario.
-    const { data, error } = await saveAgendaEvent({
+    // Lembrete avulso de hoje: vive na tabela reminders com date preenchida
+    // (days vazio), gere-se em /lembretes e recebe push à hora marcada.
+    const { data, error } = await saveReminder({
       user_id: userId,
       title,
-      date: today,
       time,
-      all_day: !time,
+      days: [],
+      type: 'custom',
+      date: today,
+      active: true,
     })
     if (error || !data) {
       triggerToast('Não foi possível criar o lembrete.')
       return false
     }
-    setEvents((prev) => [...prev, data])
+    setReminders((prev) => [...prev, data as ReminderRow])
     return true
   }
 

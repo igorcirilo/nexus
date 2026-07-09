@@ -96,7 +96,10 @@ export default function CalendarioClient({ userId }: { userId: string }) {
 
   const todayDow = getDay(new Date())
   const todayEvents = c.events.filter(e => e.date === c.today).sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''))
-  const todayReminders = c.reminders.filter(r => r.active && r.days.includes(todayDow)).sort((a, b) => a.time.localeCompare(b.time))
+  // Avulsos (date preenchida) entram só no próprio dia; recorrentes por dia da semana.
+  const todayReminders = c.reminders
+    .filter(r => r.active && (r.date ? r.date === c.today : r.days.includes(todayDow)))
+    .sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''))
 
   // ── células da grelha (mês ou semana) ──
   const gridDays = c.viewMode === 'month'
@@ -287,7 +290,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{r.title}</div>
                   <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 1 }}>
-                    {r.time.slice(0, 5)} · {r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
+                    {r.time ? r.time.slice(0, 5) : 'Sem hora'} · {r.date ? 'só este dia' : r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
                   </div>
                 </div>
                 <span style={{ ...timelineTag, background: 'rgba(245,200,66,0.12)', color: '#F5C842' }}>alerta</span>
@@ -493,7 +496,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{r.title}</div>
                     <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 1 }}>
-                      {r.time.slice(0, 5)} · {r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
+                      {r.time ? r.time.slice(0, 5) : 'Sem hora'} · {r.date ? 'só este dia' : r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
                     </div>
                   </div>
                   <button

@@ -184,7 +184,7 @@ export async function updateFullProfile(userId: string, updates: Record<string, 
 export async function getReminders(userId: string) {
   const { data } = await supabase
     .from('reminders')
-    .select('id, title, time, days, active, type')
+    .select('id, title, time, days, active, type, date')
     .eq('user_id', userId)
     .order('time')
   return data ?? []
@@ -193,9 +193,9 @@ export async function getReminders(userId: string) {
 export async function saveReminder(payload: Record<string, unknown>) {
   if (payload.id) {
     const { id, ...rest } = payload
-    return supabase.from('reminders').update(rest).eq('id', id)
+    return supabase.from('reminders').update(rest).eq('id', id).select().single()
   }
-  return supabase.from('reminders').insert(payload)
+  return supabase.from('reminders').insert(payload).select().single()
 }
 
 export async function deleteReminder(id: string) {
