@@ -16,7 +16,6 @@ import ProactiveAssistant from '@/components/hoje/ProactiveAssistant'
 import MetricsGrid from '@/components/hoje/MetricsGrid'
 import TodayHabitList, { type TodayHabitView } from '@/components/hoje/TodayHabitList'
 import TodayRemindersList from '@/components/hoje/TodayRemindersList'
-import AddReminderSheet from '@/components/hoje/AddReminderSheet'
 import Icon from '@/components/ui/Icon'
 import {
   getProfile,
@@ -34,7 +33,9 @@ import {
   getReminders,
   getDayChecks,
   toggleDayItemCheck,
-  saveAgendaEvent,
+  saveReminder,
+  deleteAgendaEvent,
+  deleteReminder,
   supabase,
 } from '@/lib/supabase'
 import type { AgendaEvent } from '@/lib/supabase'
@@ -54,8 +55,9 @@ import StreakRecovery from '@/components/StreakRecovery'
 type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[] }
 
 // Forma devolvida por getReminders; days chega como text[] da BD (strings),
-// por isso fica unknown e a coerção vive em buildTodayReminderItems.
-type ReminderRow = { id: string; title: string; time: string | null; days: unknown; active: boolean; type: string }
+// por isso fica unknown e a coerção vive em buildTodayReminderItems. date
+// preenchida = lembrete avulso desse dia (quick-add); null = recorrente.
+type ReminderRow = { id: string; title: string; time: string | null; days: unknown; active: boolean; type: string; date: string | null }
 
 const cleanDisplayText = repairMojibake
 
@@ -109,8 +111,6 @@ export default function HojeClient({
   const [events, setEvents] = useState<AgendaEvent[]>([])
   const [reminders, setReminders] = useState<ReminderRow[]>([])
   const [dayChecks, setDayChecks] = useState<Record<string, boolean>>({})
-  const [reminderAddOpen, setReminderAddOpen] = useState(false)
-  const [reminderSaving, setReminderSaving] = useState(false)
   const today = todayISO()
   const hour = new Date().getHours()
 
@@ -194,6 +194,19 @@ export default function HojeClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Lembrete criado no quick action (navbar) com a página Hoje já aberta:
+  // entra na lista sem precisar de recarregar.
+  useEffect(() => {
+    function onCreated(e: Event) {
+      const rem = (e as CustomEvent<ReminderRow>).detail
+      if (!rem || rem.date !== today) return
+      setReminders((prev) => (prev.some((x) => x.id === rem.id) ? prev : [...prev, rem]))
+    }
+    window.addEventListener('nexus:reminder-created', onCreated)
+    return () => window.removeEventListener('nexus:reminder-created', onCreated)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   async function handleStreakRecover() {
     const success = await claimStreakRecovery(userId)
     if (success) {
@@ -265,26 +278,67 @@ export default function HojeClient({
     if (done) triggerToast(`${cleanDisplayText(item.title)} — feito`)
   }
 
-  async function handleQuickAddReminder(title: string, time: string | null) {
-    setReminderSaving(true)
-    try {
-      // Item avulso de hoje = evento da agenda: aparece também em /calendario.
-      const { data, error } = await saveAgendaEvent({
-        user_id: userId,
-        title,
-        date: today,
-        time,
-        all_day: !time,
-      })
-      if (error || !data) {
-        triggerToast('Não foi possível criar o lembrete.')
+  async function handleQuickAddReminder(title: string, time: string | null): Promise<boolean> {
+    // Lembrete avulso de hoje: vive na tabela reminders com date preenchida
+    // (days vazio), gere-se em /lembretes e recebe push à hora marcada.
+    const { data, error } = await saveReminder({
+      user_id: userId,
+      title,
+      time,
+      days: [],
+      type: 'custom',
+      date: today,
+      active: true,
+    })
+    if (error || !data) {
+      triggerToast('Não foi possível criar o lembrete.')
+      return false
+    }
+    setReminders((prev) => [...prev, data as ReminderRow])
+    return true
+  }
+
+  async function handleDeleteDayItem(item: TodayReminderItem) {
+    if (item.itemType === 'reminder') {
+      // Apagar um recorrente remove-o de TODOS os dias — pede confirmação.
+      if (!window.confirm(`Apagar o lembrete "${item.title}"? Deixa de se repetir.`)) return
+      const { error } = await deleteReminder(item.id)
+      if (error) {
+        triggerToast('Não foi possível apagar.')
         return
       }
-      setEvents((prev) => [...prev, data])
-      setReminderAddOpen(false)
-    } finally {
-      setReminderSaving(false)
+      setReminders((prev) => prev.filter((r) => r.id !== item.id))
+    } else {
+      const { error } = await deleteAgendaEvent(item.id, userId)
+      if (error) {
+        triggerToast('Não foi possível apagar.')
+        return
+      }
+      setEvents((prev) => prev.filter((e) => e.id !== item.id))
     }
+    setDayChecks((prev) => {
+      const next = { ...prev }
+      delete next[item.key]
+      return next
+    })
+  }
+
+  async function handleDeleteHabit(habit: TodayHabitView) {
+    // Mesmo fluxo destrutivo da página /habitos (delete com confirmação).
+    if (!window.confirm(`Apagar o hábito "${habit.name}" e o seu histórico?`)) return
+    const { error } = await supabase.from('habits').delete().eq('id', habit.id).eq('user_id', userId)
+    if (error) {
+      triggerToast('Não foi possível apagar.')
+      return
+    }
+    setHabits((prev) => prev.filter((h) => h.id !== habit.id))
+    setRitmo(await getRitmo(userId))
+  }
+
+  function handleEditDayItem(item: TodayReminderItem) {
+    // Tocar num item leva à página onde ele se gere: itens da agenda (incluindo
+    // os criados no quick-add) em /calendario, recorrentes em /lembretes.
+    window.location.href = item.itemType === 'event' ? '/calendario' : '/lembretes'
   }
 
   async function handleCreateManualHabit(name: string, area: HabitArea) {
@@ -414,7 +468,6 @@ export default function HojeClient({
       )}
 
       <AddTaskSheet open={addOpen} saving={addSaving} onClose={() => setAddOpen(false)} onCreate={handleCreateManualHabit} />
-      <AddReminderSheet open={reminderAddOpen} saving={reminderSaving} onClose={() => setReminderAddOpen(false)} onCreate={handleQuickAddReminder} />
 
       <header style={{ padding: '28px 20px 0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
@@ -471,13 +524,20 @@ export default function HojeClient({
             totalCount={totalHabits}
             onToggle={handleToggleHabit}
             onAddHabit={() => setAddOpen(true)}
+            onDelete={handleDeleteHabit}
           />
         </div>
       )}
 
-      {/* Lembretes/eventos do dia com check organizacional + quick-add. */}
+      {/* Lembretes/eventos do dia (estilo iOS): check, adição inline, swipe. */}
       <div id="hoje-lembretes">
-        <TodayRemindersList items={reminderItems} onToggle={handleToggleDayItem} onAdd={() => setReminderAddOpen(true)} />
+        <TodayRemindersList
+          items={reminderItems}
+          onToggle={handleToggleDayItem}
+          onCreate={handleQuickAddReminder}
+          onDelete={handleDeleteDayItem}
+          onEdit={handleEditDayItem}
+        />
       </div>
 
       {/* Grelha 2x3 com as métricas das páginas principais. */}

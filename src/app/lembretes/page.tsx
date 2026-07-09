@@ -18,10 +18,12 @@ type Reminder = {
   user_id: string
   title: string
   description: string | null
-  time: string
+  time: string | null
   days: number[]
   active: boolean
   type: string
+  /** Preenchida = lembrete avulso só desse dia (quick-add); null = recorrente. */
+  date?: string | null
 }
 
 type FormState = {
@@ -93,7 +95,7 @@ export default function LembretesPage() {
   }
 
   function edit(r: Reminder) {
-    setForm({ id: r.id, title: r.title, description: r.description ?? '', time: r.time, days: r.days, type: r.type })
+    setForm({ id: r.id, title: r.title, description: r.description ?? '', time: r.time ?? '08:00', days: r.days, type: r.type })
     setShowForm(true)
   }
 
@@ -175,17 +177,23 @@ export default function LembretesPage() {
               <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--text1)', marginBottom: 3 }}>{r.title}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, color: 'var(--gold)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
-                  {r.time.slice(0,5)}
+                  {r.time ? r.time.slice(0,5) : 'Sem hora'}
                 </span>
-                <div style={{ display: 'flex', gap: 3 }}>
-                  {DAYS.map((d, i) => (
-                    <span key={i} style={{
-                      width: 18, height: 18, borderRadius: 5, fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      background: r.days.includes(i) ? 'var(--accent)' : 'var(--bg3)',
-                      color: r.days.includes(i) ? 'white' : 'var(--text3)',
-                    }}>{d[0]}</span>
-                  ))}
-                </div>
+                {r.date ? (
+                  <span style={{ fontSize: 11, color: 'var(--accent)', background: 'rgba(127,119,221,.12)', borderRadius: 6, padding: '2px 8px', fontWeight: 600 }}>
+                    só {new Date(`${r.date}T12:00:00`).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
+                  </span>
+                ) : (
+                  <div style={{ display: 'flex', gap: 3 }}>
+                    {DAYS.map((d, i) => (
+                      <span key={i} style={{
+                        width: 18, height: 18, borderRadius: 5, fontSize: 9, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: r.days.includes(i) ? 'var(--accent)' : 'var(--bg3)',
+                        color: r.days.includes(i) ? 'white' : 'var(--text3)',
+                      }}>{d[0]}</span>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 

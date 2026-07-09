@@ -9,7 +9,8 @@ export type CalendarTab = 'calendario' | 'checkin' | 'lembretes' | 'agenda'
 export type ViewMode = 'month' | 'week'
 export type StreakSide = 'start' | 'middle' | 'end' | 'solo' | null
 export type Recurrence = 'none' | 'diario' | 'semanal' | 'mensal'
-export type Reminder = { id: string; title: string; time: string; days: number[]; active: boolean; type: string }
+/** date preenchida = lembrete avulso só desse dia (quick-add); null = recorrente. */
+export type Reminder = { id: string; title: string; time: string | null; days: number[]; active: boolean; type: string; date?: string | null }
 export type Checkin = {
   phase: string
   energy?: number

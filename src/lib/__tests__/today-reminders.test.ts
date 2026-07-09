@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { buildTodayReminderItems, isReminderDueOn, REMINDER_ACCENT } from '@/lib/today-reminders'
+import { buildTodayReminderItems, isOverdue, isReminderDueOn, REMINDER_ACCENT } from '@/lib/today-reminders'
 
 // 2026-07-06 é uma segunda-feira (getDay() = 1).
 const MONDAY = new Date('2026-07-06T12:00:00')
 
-function reminder(overrides: Partial<{ id: string; title: string; time: string | null; days: unknown; active: boolean }> = {}) {
-  return { id: 'r1', title: 'Beber água', time: '09:00', days: [1], active: true, ...overrides }
+function reminder(overrides: Partial<{ id: string; title: string; time: string | null; days: unknown; active: boolean; date: string | null }> = {}) {
+  return { id: 'r1', title: 'Beber água', time: '09:00', days: [1], active: true, date: null, ...overrides }
 }
 
 function event(overrides: Partial<{ id: string; title: string; time: string | null; all_day: boolean; color: string }> = {}) {
@@ -33,7 +33,39 @@ describe('isReminderDueOn', () => {
   })
 })
 
+describe('isOverdue', () => {
+  const now = new Date('2026-07-06T14:30:00')
+
+  it('hora anterior à atual → atrasado', () => {
+    expect(isOverdue('09:00', now)).toBe(true)
+    expect(isOverdue('14:29', now)).toBe(true)
+  })
+
+  it('hora futura ou igual → não atrasado', () => {
+    expect(isOverdue('14:30', now)).toBe(false)
+    expect(isOverdue('20:00', now)).toBe(false)
+  })
+
+  it('sem hora ou hora inválida → não atrasado', () => {
+    expect(isOverdue(null, now)).toBe(false)
+    expect(isOverdue('abc', now)).toBe(false)
+  })
+})
+
 describe('buildTodayReminderItems', () => {
+  it('lembrete avulso (date) aparece só no próprio dia, ignorando days', () => {
+    const items = buildTodayReminderItems({
+      events: [],
+      reminders: [
+        reminder({ id: 'hoje', days: [], date: '2026-07-06' }),
+        reminder({ id: 'amanha', days: [1], date: '2026-07-07' }),
+      ],
+      date: MONDAY,
+      checks: {},
+    })
+    expect(items.map((i) => i.id)).toEqual(['hoje'])
+  })
+
   it('exclui lembretes inativos e não devidos hoje', () => {
     const items = buildTodayReminderItems({
       events: [],

@@ -20,7 +20,8 @@ export interface TodayReminderItem {
 export interface TodayReminderInput {
   /** Eventos da agenda JÁ filtrados para a data de hoje. */
   events: { id: string; title: string; time: string | null; all_day: boolean; color: string }[]
-  reminders: { id: string; title: string; time: string | null; days: unknown; active: boolean }[]
+  /** date preenchida = lembrete avulso desse dia; null = recorrente (days). */
+  reminders: { id: string; title: string; time: string | null; days: unknown; active: boolean; date?: string | null }[]
   date: Date
   /** Mapa `${itemType}:${id}` → completed. */
   checks: Record<string, boolean>
@@ -43,10 +44,25 @@ export function isReminderDueOn(days: unknown, date: Date): boolean {
   return days.some((d) => Number(d) === dow)
 }
 
+/** A hora do item já passou hoje? (pinta o horário de vermelho, à la iOS) */
+export function isOverdue(time: string | null, now: Date): boolean {
+  if (!time) return false
+  const [h, m] = time.split(':').map(Number)
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return false
+  return now.getHours() * 60 + now.getMinutes() > h * 60 + m
+}
+
 /** Normaliza hora Postgres ('09:00:00') para exibição ('09:00'). */
 function normalizeTime(time: string | null | undefined): string | null {
   if (!time) return null
   return time.slice(0, 5)
+}
+
+/** Data local em yyyy-MM-dd (sem UTC — igual ao todayISO da app). */
+function toLocalISO(d: Date): string {
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
 }
 
 /** Chave de ordenação: itens com hora primeiro (ascendente), depois os sem hora. */
@@ -71,8 +87,10 @@ export function buildTodayReminderItems(input: TodayReminderInput): TodayReminde
     }
   })
 
+  const todayStr = toLocalISO(date)
   const reminderItems: TodayReminderItem[] = reminders
-    .filter((r) => r.active && isReminderDueOn(r.days, date))
+    // Avulso (date preenchida): só no próprio dia. Recorrente: dias da semana.
+    .filter((r) => r.active && (r.date ? r.date === todayStr : isReminderDueOn(r.days, date)))
     .map((r) => {
       const key = `reminder:${r.id}`
       return {
