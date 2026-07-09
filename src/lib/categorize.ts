@@ -12,6 +12,9 @@ export function suggestCategory(description: string, type: 'entrada' | 'saida' |
     if (/(juros|dividendo|invest)/.test(text)) return 'Investimento'
     return 'Outro'
   }
+  // Aportes: transferências para investimentos ou para a reserva de emergência.
+  if (/(invest|\betf\b|corretora|degiro|\bxtb\b|trade republic|cripto)/.test(text)) return 'Investimentos'
+  if (/emerg[êe]ncia/.test(text)) return 'Emergências'
   if (/(continente|pingo doce|auchan|lidl|mercadona|supermerc)/.test(text)) return 'Alimentação'
   if (/(uber|bolt|cp|metro|galp|bp|repsol|combust)/.test(text)) return 'Transporte'
   if (/(farm[aá]cia|hospital|cl[ií]nica|sa[úu]de)/.test(text)) return 'Saúde'

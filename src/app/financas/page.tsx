@@ -23,18 +23,19 @@ import {
   type TransactionCandidate,
 } from '@/lib/csv-parser'
 import {
-  monthlySavings, monthlyReserveChange, buildBudgetSummary, categoryTotals, sumInRange,
+  monthlySavings, monthlySavedChange, buildBudgetSummary, categoryTotals, sumInRange,
   unbudgetedSpend, buildInsights,
   pendingRecurrences, recurringMonthlyTotal,
   buildMonthSummary, monthCloseHeadline, loggingStreak, detectAnomalies, carryIn,
-  cashFlow, reserveFlow, txKind,
+  cashFlow, savedFlow, txKind,
 } from '@/lib/finance'
 import { suggestCategory } from '@/lib/categorize'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
 import { logError } from '@/lib/log'
 import { darkCardInk } from '@/lib/theme'
 import {
-  CATEGORIES_IN, CATEGORIES_OUT, CAT_COLORS, SAVINGS_CAT, CUSTOM_KEY, catEmoji,
+  CATEGORIES_IN, CATEGORIES_OUT, CAT_COLORS, SAVINGS_CAT, TRANSFER_CATS, isTransferCat,
+  CUSTOM_KEY, catEmoji,
 } from '@/lib/categories'
 import { Sheet, StepChips, sheetLabel, sheetInp } from '@/components/financas/Sheet'
 import { format, startOfMonth, endOfMonth, subMonths, subDays, addMonths, getDaysInMonth, getDate } from 'date-fns'
@@ -59,9 +60,10 @@ const LOG_REMINDER_TYPE = 'financas'
 const LOG_REMINDER_TIME = '21:00'
 const fmt = (v:number) => v.toLocaleString('pt-PT',{style:'currency',currency:'EUR'})
 
-// Movimentos ligados à reserva (transferências de/para poupança e gastos pagos
-// pela reserva) ganham cor dourada própria e legenda nas listas, para não se
-// lerem como uma receita/despesa normal da conta.
+// Movimentos ligados à reserva/poupado (transferências de/para poupança,
+// aportes a Emergências/Investimentos e gastos pagos pela reserva) ganham cor
+// dourada própria e legenda nas listas, para não se lerem como uma
+// receita/despesa normal da conta.
 type TxLike = { type:'entrada'|'saida'; category:string; from_reserve?:boolean }
 const isReserveMove = (t:TxLike) => txKind(t, SAVINGS_CAT) !== 'receita' && txKind(t, SAVINGS_CAT) !== 'despesa'
 const txAmountColor = (t:TxLike) =>
@@ -70,10 +72,14 @@ const txIconBg = (t:TxLike) =>
   isReserveMove(t) ? 'rgba(245,200,66,.10)' : t.type==='entrada' ? 'rgba(0,200,150,.10)' : 'rgba(226,75,74,.10)'
 const transferLabel = (t:TxLike) => {
   switch (txKind(t, SAVINGS_CAT)) {
-    case 'deposito':     return 'depósito na reserva'
-    case 'levantamento': return 'levantamento da reserva'
-    case 'gastoReserva': return 'pago pela reserva'
-    default:             return null
+    case 'deposito':       return 'depósito na reserva'
+    case 'levantamento':   return 'levantamento da reserva'
+    case 'gastoReserva':   return 'pago pela reserva'
+    case 'aporteReserva':  return 'aporte à reserva'
+    case 'resgateReserva': return 'resgate da reserva'
+    case 'aporteInvest':   return 'aporte a investimentos'
+    case 'resgateInvest':  return 'resgate de investimentos'
+    default:               return null
   }
 }
 
@@ -206,7 +212,11 @@ export default function FinancasPage() {
       setProfile(prof)
       setTxs(recent as Transaction[])
       setHistory(hist as Transaction[])
-      setCustomCats((prof?.fin_categories ?? []) as CustomCategory[])
+      // Categorias personalizadas criadas antes de existirem as homónimas de
+      // raiz (ex.: "Emergências"/"Investimentos") ficam de fora: a versão de
+      // raiz é que manda (emoji e semântica de aporte incluídos).
+      setCustomCats(((prof?.fin_categories ?? []) as CustomCategory[])
+        .filter(c => !CATEGORIES_OUT.includes(c.name) && !CATEGORIES_IN.includes(c.name)))
       setFixedCats((prof?.fin_fixed_cats ?? []) as string[])
       setSavingsNet(savNet)
       setRecurring(rules as RecurringRule[])
@@ -268,8 +278,9 @@ export default function FinancasPage() {
   const monthEnd   = format(endOfMonth(new Date()),'yyyy-MM-dd')
   const thisMonth  = useMemo(()=>txs.filter(t=>t.date>=monthStart&&t.date<=monthEnd),[txs,monthStart,monthEnd])
   // Entradas = RENDIMENTO real. Uma entrada "Poupança" é um depósito na
-  // reserva (transferência), não rendimento → fica fora das entradas/balanço.
-  const totalIn    = useMemo(()=>thisMonth.filter(t=>t.type==='entrada'&&t.category!==SAVINGS_CAT).reduce((a,t)=>a+t.amount,0),[thisMonth])
+  // reserva e um resgate (entrada Emergências/Investimentos) é transferência,
+  // não rendimento → ficam fora das entradas/balanço.
+  const totalIn    = useMemo(()=>thisMonth.filter(t=>txKind(t,SAVINGS_CAT)==='receita').reduce((a,t)=>a+t.amount,0),[thisMonth])
   // Gastos (da conta) = despesas normais que saíram da conta corrente. Exclui
   // transferências de/para poupança E os gastos pagos pela reserva (esses saem
   // da reserva, aparecem em "para onde foi o dinheiro", mas não da conta).
@@ -278,9 +289,10 @@ export default function FinancasPage() {
   // depósitos + levantamentos. Depositar reduz (poupar é pagar-se a si mesmo);
   // o gasto pago pela reserva não toca no balanço (já saiu da conta ao poupar).
   const balance    = useMemo(()=>thisMonth.reduce((a,t)=>a+cashFlow(t,SAVINGS_CAT),0),[thisMonth])
-  // Histórico sem as transferências de/para poupança, para os gráficos e médias
-  // não tratarem poupar como gasto nem levantar como rendimento.
-  const historyNoSavings = useMemo(()=>history.filter(t=>t.category!==SAVINGS_CAT),[history])
+  // Histórico sem transferências internas (poupança e aportes a emergências/
+  // investimentos), para os gráficos e médias de consumo não tratarem poupar
+  // como gasto nem um resgate como rendimento.
+  const historyConsumption = useMemo(()=>history.filter(t=>!isTransferCat(t.category)),[history])
 
   const dayOfMonth  = getDate(new Date())
   const daysInMonth = getDaysInMonth(new Date())
@@ -313,18 +325,18 @@ export default function FinancasPage() {
   const BUDGET_CATS = useMemo(() => OUT_CATS.filter(c => c !== SAVINGS_CAT), [OUT_CATS])
 
   // Gráfico 6 meses. `poupanca` = o que sobrou (entradas − saídas, sem
-  // transferências); `poupado` = líquido movido para a reserva (depósitos −
-  // levantamentos de "Poupança") — a mesma definição do cartão "Poupado" e da
-  // meta mensal, para todos os sítios que falam de "poupar" baterem certo.
+  // transferências); `poupado` = líquido pago a ti mesmo (reserva + aportes a
+  // investimentos) — a mesma definição do cartão "Poupado" e da meta mensal,
+  // para todos os sítios que falam de "poupar" baterem certo.
   const monthlyChart = useMemo(()=>{
     const months = Array.from({length:6},(_,i)=>subMonths(new Date(),5-i))
     const ranges = months.map(d=>({start:format(startOfMonth(d),'yyyy-MM-dd'),end:format(endOfMonth(d),'yyyy-MM-dd')}))
-    const series = monthlySavings(historyNoSavings, ranges)
-    // `poupado` = variação líquida da reserva (inclui depósitos, levantamentos e
+    const series = monthlySavings(historyConsumption, ranges)
+    // `poupado` = Σ savedFlow (depósitos, aportes, levantamentos/resgates e
     // gastos pagos pela reserva), coerente com o cartão "Poupado" e a meta.
-    const saved  = monthlyReserveChange(history, ranges, SAVINGS_CAT)
+    const saved  = monthlySavedChange(history, ranges, SAVINGS_CAT)
     return months.map((d,i)=>({label:format(d,'MMM',{locale:pt}),...series[i],poupado:saved[i]}))
-  },[history,historyNoSavings])
+  },[history,historyConsumption])
 
   // ── Médias dos últimos 3 meses completos (exclui o mês atual) ──
   const prev3Range = useMemo(() => ({
@@ -332,35 +344,37 @@ export default function FinancasPage() {
     end:   format(endOfMonth(subMonths(new Date(),1)),'yyyy-MM-dd'),
   }), [])
   const avgExpenses3m = useMemo(() => {
-    const out = historyNoSavings.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
+    const out = historyConsumption.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
       .reduce((a,t)=>a+t.amount,0)
     return out/3
-  }, [historyNoSavings, prev3Range])
+  }, [historyConsumption, prev3Range])
   const avgIncome3m = useMemo(() => {
-    const inc = historyNoSavings.filter(t => t.type==='entrada' && t.date>=prev3Range.start && t.date<=prev3Range.end)
+    const inc = historyConsumption.filter(t => t.type==='entrada' && t.date>=prev3Range.start && t.date<=prev3Range.end)
       .reduce((a,t)=>a+t.amount,0)
     return inc/3
-  }, [historyNoSavings, prev3Range])
+  }, [historyConsumption, prev3Range])
   const catAvg3m = useMemo(() => {
     const map: Record<string,number> = {}
-    historyNoSavings.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
+    historyConsumption.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
       .forEach(t => { map[t.category]=(map[t.category]??0)+t.amount })
     Object.keys(map).forEach(k => { map[k]=map[k]/3 })
     return map
-  }, [historyNoSavings, prev3Range])
-  // Gasto por categoria nos últimos 4 meses (3 anteriores + atual) para sparkline
+  }, [historyConsumption, prev3Range])
+  // Gasto por categoria nos últimos 4 meses (3 anteriores + atual) para
+  // sparkline. Só exclui "Poupança": os aportes contam na sua categoria, para
+  // as sparklines de Emergências/Investimentos mostrarem os aportes reais.
   const catMonthly = useMemo(() => {
     const map: Record<string,number[]> = {}
     for (let i=3;i>=0;i--) {
       const d=subMonths(new Date(),i)
       const s=format(startOfMonth(d),'yyyy-MM-dd'), e=format(endOfMonth(d),'yyyy-MM-dd')
-      const inMonth = historyNoSavings.filter(t=>t.type==='saida'&&t.date>=s&&t.date<=e)
+      const inMonth = history.filter(t=>t.type==='saida'&&t.category!==SAVINGS_CAT&&t.date>=s&&t.date<=e)
       const perCat: Record<string,number> = {}
       inMonth.forEach(t=>{ perCat[t.category]=(perCat[t.category]??0)+t.amount })
       BUDGET_CATS.forEach(c=>{ (map[c] ??= []).push(Math.round(perCat[c]??0)) })
     }
     return map
-  }, [historyNoSavings, BUDGET_CATS])
+  }, [history, BUDGET_CATS])
 
   // ── Movimentos: mês selecionado vs. pesquisa em todo o histórico ──
   // Pesquisa com ≥2 caracteres → resultados globais (server-side); caso
@@ -434,20 +448,21 @@ export default function FinancasPage() {
   // Dois mapas de gasto por categoria: `spentByCat` inclui os gastos pagos pela
   // reserva (para "para onde foi o dinheiro" e insights — é consumo real);
   // `spentByCatBudget` exclui-os (o gauge de orçamento é o gasto mensal da
-  // conta, não o consumo excecional da reserva).
+  // conta, não o consumo excecional da reserva) mas conta os aportes a
+  // Emergências/Investimentos — são envelopes planeados do orçamento.
   const spentByCat = useMemo(
     () => categoryTotals(thisMonth, monthStart, monthEnd, { includeReserve: true, savingsCat: SAVINGS_CAT }),
     [thisMonth, monthStart, monthEnd],
   )
   const spentByCatBudget = useMemo(
-    () => categoryTotals(thisMonth, monthStart, monthEnd, { includeReserve: false, savingsCat: SAVINGS_CAT }),
+    () => categoryTotals(thisMonth, monthStart, monthEnd, { includeReserve: false, includeContributions: true, savingsCat: SAVINGS_CAT }),
     [thisMonth, monthStart, monthEnd],
   )
-  // Poupado do mês = variação líquida da reserva (Σ reserveFlow): depósitos
-  // somam, levantamentos e gastos pagos pela reserva subtraem. Pode ficar
-  // negativa se levantou/gastou da reserva mais do que depositou.
+  // Poupado do mês = tudo o que pagaste a ti mesmo (Σ savedFlow): depósitos e
+  // aportes (reserva + investimentos) somam, levantamentos/resgates e gastos
+  // pagos pela reserva subtraem. Pode ficar negativo.
   const savedThisMonth = useMemo(
-    () => thisMonth.reduce((a,t)=>a+reserveFlow(t,SAVINGS_CAT),0),
+    () => thisMonth.reduce((a,t)=>a+savedFlow(t,SAVINGS_CAT),0),
     [thisMonth],
   )
   // Gasto por categoria SEM Poupança — para insights e "para onde foi o dinheiro"
@@ -477,8 +492,8 @@ export default function FinancasPage() {
   // Saídas do mês anterior até ao mesmo dia — comparação justa com o mês parcial.
   const prevSpendToDate = useMemo(() => {
     const prev = subMonths(new Date(), 1)
-    return sumInRange(historyNoSavings, 'saida', format(startOfMonth(prev),'yyyy-MM-dd'), format(prev,'yyyy-MM-dd'))
-  }, [historyNoSavings])
+    return sumInRange(historyConsumption, 'saida', format(startOfMonth(prev),'yyyy-MM-dd'), format(prev,'yyyy-MM-dd'))
+  }, [historyConsumption])
   const spendDeltaPct = prevSpendToDate > 0 && totalOut > 0
     ? Math.round((totalOut / prevSpendToDate - 1) * 100)
     : null
@@ -517,8 +532,9 @@ export default function FinancasPage() {
   }, fmt), [spendByCatOnly, catAvg3m, budgets, fixedCats, monthlyChart, savedThisMonth, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring])
   const topInsight = insights[0] ?? null
   // Gasto do mês que o gauge do orçamento não vê (categorias sem orçamento).
-  // Usa o mapa do orçamento (sem gastos da reserva) para bater com o gauge.
-  const outsideBudget = unbudgetedSpend(spentByCatBudget, budgets, [SAVINGS_CAT])
+  // Usa o mapa do orçamento (sem gastos da reserva) para bater com o gauge;
+  // transferências (poupança/aportes) nunca são "gasto fora do orçamento".
+  const outsideBudget = unbudgetedSpend(spentByCatBudget, budgets, TRANSFER_CATS)
 
   // ── Visão geral: top categorias do mês + série de 6 meses ──
   const catBreakdown = useMemo(() => {
@@ -605,8 +621,8 @@ export default function FinancasPage() {
     if (!openTx || !userId) return
     const amount = parseFloat(etAmount.replace(',','.'))
     if (!Number.isFinite(amount) || amount<=0 || !etCat || !etDate) return
-    // "Pago pela reserva" só se aplica a saídas de categoria ≠ Poupança.
-    const fromReserve = etType==='saida' && etCat!==SAVINGS_CAT && etFromReserve
+    // "Pago pela reserva" só se aplica a saídas que não sejam transferências.
+    const fromReserve = etType==='saida' && !isTransferCat(etCat) && etFromReserve
     setTxEditSaving(true)
     const { error } = await updateTransaction(openTx.id, {
       type: etType, category: etCat, description: etDesc.trim()||null, amount, date: etDate,
@@ -657,8 +673,8 @@ export default function FinancasPage() {
     if (!userId||!fAmount||!finalCat) return
     const amount = parseFloat(fAmount.replace(',','.'))
     if (!Number.isFinite(amount) || amount<=0) { showToast('Valor inválido.', 'error'); return }
-    // "Pago pela reserva" só se aplica a saídas de categoria ≠ Poupança.
-    const fromReserve = txType==='saida' && finalCat!==SAVINGS_CAT && fFromReserve
+    // "Pago pela reserva" só se aplica a saídas que não sejam transferências.
+    const fromReserve = txType==='saida' && !isTransferCat(finalCat) && fFromReserve
     setSaving(true)
     const {error} = await saveTransaction({user_id:userId,type:txType,category:finalCat,description:fDesc||null,amount,date:fDate,from_reserve:fromReserve})
     if (error) { showToast('Erro ao guardar.', 'error'); setSaving(false); return }
@@ -1729,7 +1745,7 @@ export default function FinancasPage() {
       {showForm&&(() => {
         const finalCat = fCat===CUSTOM_KEY ? fCustomCat.trim() : fCat
         const canSaveNew = !!fAmount && !!finalCat
-        const canFromReserve = txType==='saida' && !!finalCat && finalCat!==SAVINGS_CAT
+        const canFromReserve = txType==='saida' && !!finalCat && !isTransferCat(finalCat)
         return (
         <Sheet icon="💸" title="Nova transação" onClose={()=>setShowForm(false)}
           footer={
@@ -1813,7 +1829,7 @@ export default function FinancasPage() {
             )
           })()}
 
-          {/* Pagar com a reserva (só saídas de categoria ≠ Poupança) */}
+          {/* Pagar com a reserva (só saídas que não sejam transferências) */}
           {canFromReserve && (
             <button
               onClick={()=>setFFromReserve(v=>!v)}
@@ -1925,8 +1941,8 @@ export default function FinancasPage() {
           <label style={sheetLabel}>Data</label>
           <input type="date" value={etDate} onChange={e=>setEtDate(e.target.value)} style={sheetInp}/>
 
-          {/* Pagar com a reserva (só saídas de categoria ≠ Poupança) */}
-          {etType==='saida' && etCat && etCat!==SAVINGS_CAT && (
+          {/* Pagar com a reserva (só saídas que não sejam transferências) */}
+          {etType==='saida' && etCat && !isTransferCat(etCat) && (
             <button
               onClick={()=>setEtFromReserve(v=>!v)}
               role="switch"

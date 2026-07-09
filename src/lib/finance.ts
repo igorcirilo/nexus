@@ -4,6 +4,8 @@
 // testadas sem BD nem React. A página continua a orquestrar fetch + estado; aqui
 // vivem só os cálculos (somatórios, série mensal e resumo de orçamento).
 
+import { EMERGENCY_CAT, INVEST_CAT } from '@/lib/categories'
+
 export interface FinTx {
   date: string // 'yyyy-MM-dd'
   type: 'entrada' | 'saida'
@@ -24,14 +26,24 @@ export interface DateRange {
  * Tipo efetivo de um movimento no modelo "paga-te primeiro". A categoria de
  * poupança é uma transferência conta↔reserva; uma saída normal é despesa; uma
  * saída marcada `from_reserve` é dinheiro que se gasta a partir da reserva.
+ *
+ * As categorias de aporte ("Emergências", "Investimentos") também são
+ * transferências, mas lidas do ponto de vista da CONTA (o inverso da convenção
+ * legada de "Poupança"): saída = aporte (o dinheiro sai da conta para o pote),
+ * entrada = resgate (volta do pote à conta). "Emergências" mexe na reserva;
+ * "Investimentos" só conta no "poupado" do mês.
  */
-export type TxKind = 'receita' | 'despesa' | 'deposito' | 'levantamento' | 'gastoReserva'
+export type TxKind =
+  | 'receita' | 'despesa' | 'deposito' | 'levantamento' | 'gastoReserva'
+  | 'aporteReserva' | 'resgateReserva' | 'aporteInvest' | 'resgateInvest'
 
 export function txKind(
   t: Pick<FinTx, 'type' | 'category' | 'from_reserve'>,
   savingsCat = 'Poupança',
 ): TxKind {
   if (t.category === savingsCat) return t.type === 'entrada' ? 'deposito' : 'levantamento'
+  if (t.category === EMERGENCY_CAT) return t.type === 'saida' ? 'aporteReserva' : 'resgateReserva'
+  if (t.category === INVEST_CAT) return t.type === 'saida' ? 'aporteInvest' : 'resgateInvest'
   if (t.type === 'entrada') return 'receita'
   return t.from_reserve ? 'gastoReserva' : 'despesa'
 }
@@ -44,24 +56,44 @@ export function txKind(
  */
 export function cashFlow(t: FinTx, savingsCat = 'Poupança'): number {
   switch (txKind(t, savingsCat)) {
-    case 'receita':      return t.amount
-    case 'despesa':      return -t.amount
-    case 'deposito':     return -t.amount
-    case 'levantamento': return t.amount
-    case 'gastoReserva': return 0
+    case 'receita':        return t.amount
+    case 'despesa':        return -t.amount
+    case 'deposito':       return -t.amount
+    case 'levantamento':   return t.amount
+    case 'gastoReserva':   return 0
+    case 'aporteReserva':  return -t.amount
+    case 'aporteInvest':   return -t.amount
+    case 'resgateReserva': return t.amount
+    case 'resgateInvest':  return t.amount
   }
 }
 
 /**
- * Fluxo sobre a RESERVA: depósito soma, levantamento subtrai, gasto da reserva
- * subtrai (consome a reserva); receita/despesa não a tocam. Pura → testável.
+ * Fluxo sobre a RESERVA: depósito/aporte de emergência somam, levantamento,
+ * resgate e gasto da reserva subtraem; receita/despesa/investimentos não a
+ * tocam. Pura → testável.
  */
 export function reserveFlow(t: FinTx, savingsCat = 'Poupança'): number {
   switch (txKind(t, savingsCat)) {
-    case 'deposito':     return t.amount
-    case 'levantamento': return -t.amount
-    case 'gastoReserva': return -t.amount
-    default:             return 0
+    case 'deposito':       return t.amount
+    case 'aporteReserva':  return t.amount
+    case 'levantamento':   return -t.amount
+    case 'resgateReserva': return -t.amount
+    case 'gastoReserva':   return -t.amount
+    default:               return 0
+  }
+}
+
+/**
+ * Fluxo sobre o "POUPADO" do mês (cartão 💰 Poupança, série do gráfico,
+ * insights): tudo o que pagaste a ti mesmo — reserva (fluxo-reserva) mais
+ * aportes/resgates de investimento. Pura → testável.
+ */
+export function savedFlow(t: FinTx, savingsCat = 'Poupança'): number {
+  switch (txKind(t, savingsCat)) {
+    case 'aporteInvest':  return t.amount
+    case 'resgateInvest': return -t.amount
+    default:              return reserveFlow(t, savingsCat)
   }
 }
 
@@ -93,9 +125,9 @@ export function monthlySavings(
   })
 }
 
-/** Variação líquida da reserva por intervalo (Σ `reserveFlow`), arredondada.
- *  Para a série "poupado" do gráfico de 6 meses. */
-export function monthlyReserveChange(
+/** Variação líquida do "poupado" por intervalo (Σ `savedFlow`: reserva +
+ *  investimentos), arredondada. Para a série "poupado" do gráfico de 6 meses. */
+export function monthlySavedChange(
   txs: FinTx[],
   ranges: DateRange[],
   savingsCat = 'Poupança',
@@ -104,7 +136,7 @@ export function monthlyReserveChange(
     Math.round(
       txs
         .filter((t) => t.date >= start && t.date <= end)
-        .reduce((a, t) => a + reserveFlow(t, savingsCat), 0),
+        .reduce((a, t) => a + savedFlow(t, savingsCat), 0),
     ),
   )
 }
@@ -116,18 +148,27 @@ export function monthlyReserveChange(
  * fora. O gauge de orçamento passa `includeReserve:false` (o gasto da reserva é
  * consumo excecional, não gasto mensal planeado); "para onde foi o dinheiro" e
  * as anomalias usam o default `true`.
+ *
+ * `includeContributions` conta também os aportes (Emergências/Investimentos)
+ * na sua categoria — é o que enche os envelopes do orçamento. Fica fora dos
+ * mapas de consumo (default `false`): um aporte não é gasto.
  */
 export function categoryTotals(
   txs: FinTx[],
   start: string,
   end: string,
-  { includeReserve = true, savingsCat = 'Poupança' }: { includeReserve?: boolean; savingsCat?: string } = {},
+  { includeReserve = true, includeContributions = false, savingsCat = 'Poupança' }:
+    { includeReserve?: boolean; includeContributions?: boolean; savingsCat?: string } = {},
 ): Record<string, number> {
   const map: Record<string, number> = {}
   for (const t of txs) {
     if (t.date < start || t.date > end) continue
     const kind = txKind(t, savingsCat)
-    if (kind === 'despesa' || (includeReserve && kind === 'gastoReserva')) {
+    if (
+      kind === 'despesa' ||
+      (includeReserve && kind === 'gastoReserva') ||
+      (includeContributions && (kind === 'aporteReserva' || kind === 'aporteInvest'))
+    ) {
       map[t.category] = (map[t.category] ?? 0) + t.amount
     }
   }
@@ -253,8 +294,9 @@ export interface MonthSummary {
   /** Gasto real: despesas normais + gastos pagos pela reserva (ambos são
    *  consumo). Exclui transferências (depósito/levantamento). */
   spending: number
-  /** Variação líquida da reserva no mês: depósitos − levantamentos − gastos
-   *  pagos pela reserva. Pode ficar negativa. */
+  /** Variação líquida do "poupado" no mês: depósitos e aportes (reserva +
+   *  investimentos) − levantamentos/resgates − gastos pagos pela reserva.
+   *  Pode ficar negativa. */
   saved: number
   /** Balanço da conta corrente no mês (paga-te primeiro): Σ `cashFlow` —
    *  receitas − despesas − depósitos + levantamentos. O gasto da reserva não
@@ -278,7 +320,7 @@ export function buildMonthSummary(
   for (const t of txs) {
     if (t.date < start || t.date > end) continue
     balance += cashFlow(t, savingsCat)
-    saved += reserveFlow(t, savingsCat)
+    saved += savedFlow(t, savingsCat)
     const kind = txKind(t, savingsCat)
     if (kind === 'receita') income += t.amount
     else if (kind === 'despesa' || kind === 'gastoReserva') {
@@ -391,8 +433,9 @@ export interface Anomaly {
 /**
  * Cobranças incomuns: gastos do período cujo valor é muito acima do típico da
  * sua categoria (média por-transação no histórico). Só considera saídas (não
- * poupança), categorias com amostra suficiente e valores acima de um piso
- * absoluto, para não alarmar sobre ruído. Ordena por rácio desc. Pura.
+ * transferências: poupança e aportes são planeados), categorias com amostra
+ * suficiente e valores acima de um piso absoluto, para não alarmar sobre
+ * ruído. Ordena por rácio desc. Pura.
  */
 export function detectAnomalies(
   monthTxs: AnomalyTx[],
@@ -400,16 +443,17 @@ export function detectAnomalies(
   opts: { savingsCat?: string; floor?: number; factor?: number; minSamples?: number } = {},
 ): Anomaly[] {
   const { savingsCat = 'Poupança', floor = 30, factor = 2.5, minSamples = 3 } = opts
+  const transferCats = new Set([savingsCat, EMERGENCY_CAT, INVEST_CAT])
   const sums: Record<string, number> = {}
   const counts: Record<string, number> = {}
   for (const t of historyTxs) {
-    if (t.type === 'entrada' || t.category === savingsCat) continue
+    if (t.type === 'entrada' || transferCats.has(t.category)) continue
     sums[t.category] = (sums[t.category] ?? 0) + t.amount
     counts[t.category] = (counts[t.category] ?? 0) + 1
   }
   const anomalies: Anomaly[] = []
   for (const t of monthTxs) {
-    if (t.type === 'entrada' || t.category === savingsCat) continue
+    if (t.type === 'entrada' || transferCats.has(t.category)) continue
     const n = counts[t.category] ?? 0
     if (n < minSamples || t.amount < floor) continue
     const mean = sums[t.category] / n

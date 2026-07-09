@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   sumInRange,
   monthlySavings,
-  monthlyReserveChange,
+  monthlySavedChange,
   categoryTotals,
   buildBudgetSummary,
   unbudgetedSpend,
@@ -15,6 +15,7 @@ import {
   carryIn,
   cashFlow,
   reserveFlow,
+  savedFlow,
   txKind,
   detectAnomalies,
   type AnomalyTx,
@@ -84,36 +85,57 @@ describe('categoryTotals', () => {
     // gauge de orçamento (false): fica de fora
     expect(categoryTotals(withReserve, '2026-01-01', '2026-01-31', { includeReserve: false })).toEqual({ Alimentação: 200 })
   })
+  it('conta aportes na sua categoria só com includeContributions', () => {
+    const withContribs: FinTx[] = [
+      { date: '2026-01-10', type: 'saida', amount: 200, category: 'Alimentação' },
+      { date: '2026-01-15', type: 'saida', amount: 140, category: 'Emergências' },
+      { date: '2026-01-15', type: 'saida', amount: 210, category: 'Investimentos' },
+      { date: '2026-01-20', type: 'entrada', amount: 50, category: 'Investimentos' }, // resgate: nunca conta
+    ]
+    // consumo (default): aportes ficam de fora — não são gasto
+    expect(categoryTotals(withContribs, '2026-01-01', '2026-01-31')).toEqual({ Alimentação: 200 })
+    // envelopes do orçamento: aportes enchem a sua categoria
+    expect(categoryTotals(withContribs, '2026-01-01', '2026-01-31', { includeContributions: true }))
+      .toEqual({ Alimentação: 200, Emergências: 140, Investimentos: 210 })
+  })
 })
 
-describe('txKind / cashFlow / reserveFlow', () => {
-  const cases: { t: FinTx; kind: string; cash: number; reserve: number }[] = [
-    { t: { date: 'd', type: 'entrada', amount: 100, category: 'Salário' },  kind: 'receita',      cash: 100,  reserve: 0 },
-    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Alimentação' }, kind: 'despesa',    cash: -100, reserve: 0 },
-    { t: { date: 'd', type: 'entrada', amount: 100, category: 'Poupança' },  kind: 'deposito',     cash: -100, reserve: 100 },
-    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Poupança' },  kind: 'levantamento', cash: 100,  reserve: -100 },
-    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Saúde', from_reserve: true }, kind: 'gastoReserva', cash: 0, reserve: -100 },
+describe('txKind / cashFlow / reserveFlow / savedFlow', () => {
+  const cases: { t: FinTx; kind: string; cash: number; reserve: number; saved: number }[] = [
+    { t: { date: 'd', type: 'entrada', amount: 100, category: 'Salário' },  kind: 'receita',      cash: 100,  reserve: 0, saved: 0 },
+    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Alimentação' }, kind: 'despesa',    cash: -100, reserve: 0, saved: 0 },
+    { t: { date: 'd', type: 'entrada', amount: 100, category: 'Poupança' },  kind: 'deposito',     cash: -100, reserve: 100, saved: 100 },
+    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Poupança' },  kind: 'levantamento', cash: 100,  reserve: -100, saved: -100 },
+    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Saúde', from_reserve: true }, kind: 'gastoReserva', cash: 0, reserve: -100, saved: -100 },
+    // Aportes (convenção da conta): saída = guardar/investir, entrada = resgatar.
+    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Emergências' }, kind: 'aporteReserva',  cash: -100, reserve: 100,  saved: 100 },
+    { t: { date: 'd', type: 'entrada', amount: 100, category: 'Emergências' }, kind: 'resgateReserva', cash: 100,  reserve: -100, saved: -100 },
+    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Investimentos' }, kind: 'aporteInvest',  cash: -100, reserve: 0, saved: 100 },
+    { t: { date: 'd', type: 'entrada', amount: 100, category: 'Investimentos' }, kind: 'resgateInvest', cash: 100,  reserve: 0, saved: -100 },
   ]
-  it('classifica e dá os sinais certos sobre conta e reserva', () => {
+  it('classifica e dá os sinais certos sobre conta, reserva e poupado', () => {
     for (const c of cases) {
       expect(txKind(c.t)).toBe(c.kind)
       expect(cashFlow(c.t)).toBe(c.cash)
       expect(reserveFlow(c.t)).toBe(c.reserve)
+      expect(savedFlow(c.t)).toBe(c.saved)
     }
   })
 })
 
-describe('monthlyReserveChange', () => {
-  it('soma o fluxo-reserva por intervalo (depósito +, levantamento/gasto −)', () => {
+describe('monthlySavedChange', () => {
+  it('soma o fluxo-poupado por intervalo (depósito/aporte +, levantamento/gasto −)', () => {
     const m: FinTx[] = [
       { date: '2026-01-05', type: 'entrada', amount: 300, category: 'Poupança' },
       { date: '2026-01-20', type: 'saida',   amount: 100, category: 'Poupança' },
+      { date: '2026-01-25', type: 'saida',   amount: 150, category: 'Investimentos' },
       { date: '2026-02-10', type: 'saida',   amount: 400, category: 'Saúde', from_reserve: true },
+      { date: '2026-02-15', type: 'saida',   amount: 140, category: 'Emergências' },
     ]
-    expect(monthlyReserveChange(m, [
+    expect(monthlySavedChange(m, [
       { start: '2026-01-01', end: '2026-01-31' },
       { start: '2026-02-01', end: '2026-02-28' },
-    ])).toEqual([200, -400])
+    ])).toEqual([350, -260])
   })
 })
 
@@ -335,6 +357,19 @@ describe('buildMonthSummary', () => {
     expect(s.income).toBe(0)
     expect(s.spending).toBe(0)
   })
+  it('aportes a Emergências/Investimentos: não são gasto, contam no poupado e saem do balanço', () => {
+    const s = buildMonthSummary([
+      { date: '2026-06-02', type: 'entrada', amount: 1000, category: 'Salário' },
+      { date: '2026-06-05', type: 'saida',   amount: 300,  category: 'Alimentação' },
+      { date: '2026-06-10', type: 'saida',   amount: 140,  category: 'Emergências' },
+      { date: '2026-06-10', type: 'saida',   amount: 210,  category: 'Investimentos' },
+    ], '2026-06-01', '2026-06-30')
+    expect(s.income).toBe(1000)
+    expect(s.spending).toBe(300)          // aportes não são consumo
+    expect(s.saved).toBe(350)             // 140 reserva + 210 investimentos
+    expect(s.balance).toBe(350)           // 1000 − 300 − 140 − 210
+    expect(s.topCat).toEqual({ cat: 'Alimentação', amount: 300 })
+  })
 })
 
 describe('monthCloseHeadline', () => {
@@ -399,10 +434,12 @@ describe('detectAnomalies', () => {
     expect(detectAnomalies([{ category: 'Alimentação', amount: 55, type: 'saida' }], history)).toHaveLength(0)
     expect(detectAnomalies([{ category: 'Contas', amount: 20, type: 'saida' }], history)).toHaveLength(0) // < floor 30
   })
-  it('ignora categorias sem amostra suficiente, entradas e poupança', () => {
+  it('ignora categorias sem amostra suficiente, entradas e transferências', () => {
     expect(detectAnomalies([{ category: 'Roupa', amount: 500, type: 'saida' }], history)).toHaveLength(0)
     expect(detectAnomalies([{ category: 'Contas', amount: 300, type: 'entrada' }], history)).toHaveLength(0)
     expect(detectAnomalies([{ category: 'Poupança', amount: 300, type: 'saida' }], history)).toHaveLength(0)
+    expect(detectAnomalies([{ category: 'Emergências', amount: 300, type: 'saida' }], history)).toHaveLength(0)
+    expect(detectAnomalies([{ category: 'Investimentos', amount: 300, type: 'saida' }], history)).toHaveLength(0)
   })
   it('ordena por rácio desc', () => {
     const a = detectAnomalies([

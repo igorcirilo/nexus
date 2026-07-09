@@ -274,3 +274,48 @@ Aplicar `supabase/financas_reserva_v1.sql` no SQL editor do Supabase:
 
 Sem a migração aplicada, a app degrada graciosamente: mostra o valor legado
 estático e o ajuste manual continua a gravá-lo como antes.
+
+---
+
+## 10. Categorias de aporte (Emergências / Investimentos)
+
+> Extensão posterior ao documento original. Motivação: o utilizador orçamentava
+> "Emergências" e "Investimentos" como categorias personalizadas de saída, mas
+> esses movimentos eram tratados como consumo — não mexiam no cartão 🛡️ Reserva
+> nem no cartão 💰 Poupança. O orçamento e as metas viviam desligados.
+
+`Emergências` e `Investimentos` passaram a categorias de saída **de raiz**
+(`CATEGORIES_OUT`) com semântica de **transferência interna**, tal como
+`Poupança` — mas lidas do ponto de vista da CONTA (a convenção intuitiva de
+quem regista):
+
+| Movimento | Tipo efetivo (`txKind`) | Conta (`cashFlow`) | Reserva (`reserveFlow`) | Poupado (`savedFlow`) |
+|---|---|---|---|---|
+| saída `Emergências` | `aporteReserva` | − | + | + |
+| entrada `Emergências` | `resgateReserva` | + | − | − |
+| saída `Investimentos` | `aporteInvest` | − | 0 | + |
+| entrada `Investimentos` | `resgateInvest` | + | 0 | − |
+
+Regras derivadas:
+
+1. **Cartão 🛡️ Reserva**: `getSavingsNet` inclui os movimentos de
+   `Emergências` — um aporte de emergência é um depósito na reserva com a
+   convenção invertida. Investimentos não entram (não são fundo de emergência).
+2. **Cartão 💰 Poupança (meta mensal)**, série "poupado" do gráfico e insights
+   de poupança usam `savedFlow` = fluxo-reserva + aportes/resgates de
+   investimento: tudo o que pagaste a ti mesmo no mês.
+3. **Orçamento**: os aportes enchem o envelope da sua categoria
+   (`categoryTotals` com `includeContributions:true` no mapa do gauge). Nos
+   mapas de consumo ("para onde foi o dinheiro", anomalias, médias 3m,
+   comparação com o mês anterior) ficam de fora — aporte não é gasto.
+4. **Rendimento**: um resgate é transferência, não receita — fica fora de
+   "Entradas" e do rendimento do mês.
+5. **"Pagar com a reserva"** não se aplica a nenhuma categoria de transferência
+   (`isTransferCat`).
+6. Nas listas, os aportes/resgates ganham a cor dourada e legenda própria
+   ("aporte à reserva", "aporte a investimentos", …), como as restantes
+   transferências.
+
+Categorias personalizadas antigas com o mesmo nome deixam de ser consideradas
+personalizadas (a versão de raiz manda); orçamentos e movimentos existentes
+nessas categorias continuam válidos e passam a ter a semântica de aporte.
