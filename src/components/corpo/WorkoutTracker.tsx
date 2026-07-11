@@ -11,12 +11,15 @@ import { useToast } from '@/components/Toast'
 import { getTrainingPlans, saveTrainingPlan } from '@/lib/supabase'
 import {
   getTrainingEntries,
+  getTrainingEntriesForRange,
   getPrevTrainingEntry,
   upsertTrainingEntry,
   deleteTrainingPlan,
 } from '@/lib/body'
 import { parseTrainingImport, type ParsedTrainingPlan, type TrainingExercisePlan } from '@/lib/body-plan'
-import type { TrainingPlan, FileImportResult } from '@/types'
+import type { TrainingPlan, FileImportResult, TrainingEntry } from '@/types'
+import { format, subDays } from 'date-fns'
+import { parseLocalDate } from '@/lib/date'
 
 // ── Internal Types ─────────────────────────────────────────────────────────────
 
@@ -69,6 +72,25 @@ function sessionKey(today: string): string {
   return `nexus-corpo-${today}`
 }
 
+// O título do plano vem do nome do ficheiro importado (ex.: "plano_treino_abc").
+// Para exibição, troca separadores por espaços e capitaliza — sem alterar o
+// valor guardado.
+function prettyPlanName(title: string): string {
+  return title
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+// Sugere a próxima sessão pela rotação: a seguir à última registada. Sem
+// histórico, começa na primeira secção.
+function nextRotationIdx(prevSectionIdx: number | null, sectionCount: number): number {
+  if (sectionCount <= 0) return 0
+  if (prevSectionIdx === null) return 0
+  return (prevSectionIdx + 1) % sectionCount
+}
+
 // A seleção do treino do dia vive em localStorage (não sessionStorage):
 // num PWA o app é fechado/reaberto no meio do treino e a escolha não pode
 // se perder. A chave é diária; entradas antigas são limpas no BodyHub.
@@ -118,6 +140,14 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   const [extras, setExtras] = useState<TrainingExercisePlan[]>([])
   const [addingExtra, setAddingExtra] = useState(false)
   const [newExtraName, setNewExtraName] = useState('')
+  // Estado "ao abrir": sessão sugerida pela rotação + treinos concluídos nos
+  // últimos 7 dias. Só é usado quando ainda não há sessão escolhida no dia.
+  const [entryHint, setEntryHint] = useState<{ suggestIdx: number; weekCount: number } | null>(null)
+  // Cronômetro de descanso: inicia ao concluir um exercício. Guarda o instante
+  // de fim; um tick de 500ms atualiza a contagem exibida.
+  const [restEndsAt, setRestEndsAt] = useState<number | null>(null)
+  const [nowTs, setNowTs] = useState(() => Date.now())
+  const REST_SECONDS = 90
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   // Mantém os extras correntes acessíveis dentro de persistEntry sem os
@@ -179,6 +209,33 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
       cancelled = true
     }
   }, [planId, userId, today])
+
+  // ── Entry state: rotation suggestion + weekly count ──────────────────────────
+  // Corre quando ainda não há sessão escolhida hoje. O plano em foco é o
+  // primeiro da lista (o mais recente); o utilizador pode trocar pelo seletor.
+  const focusPlanId = plans[0]?.id ?? null
+  useEffect(() => {
+    if (planId || !focusPlanId) { setEntryHint(null); return }
+    let cancelled = false
+    async function loadHint() {
+      if (!focusPlanId) return
+      const weekAgo = format(subDays(parseLocalDate(today), 6), 'yyyy-MM-dd')
+      const [prev, range] = await Promise.all([
+        getPrevTrainingEntry(userId, focusPlanId, today),
+        getTrainingEntriesForRange(userId, weekAgo, today),
+      ])
+      if (cancelled) return
+      const focus = plans.find(p => p.id === focusPlanId) ?? null
+      const sectionCount = getParsed(focus)?.sections.length ?? 0
+      const prevNotes = parseNotes((prev as { notes: string | null } | null)?.notes ?? null)
+      const prevIdx = (prev as { notes: string | null } | null) ? prevNotes.sectionIdx : null
+      const weekDates = new Set((range as TrainingEntry[]).filter(e => e.completed).map(e => e.date))
+      setEntryHint({ suggestIdx: nextRotationIdx(prevIdx, sectionCount), weekCount: weekDates.size })
+    }
+    loadHint()
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [planId, focusPlanId, userId, today])
 
   // ── Section selection ────────────────────────────────────────────────────────
 
@@ -248,9 +305,39 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
 
   function toggleDone(id: string) {
     const current = getSave(id)
-    const updated = { ...saves, [id]: { ...current, done: !current.done } }
+    const willBeDone = !current.done
+    const updated = { ...saves, [id]: { ...current, done: willBeDone } }
     setSaves(updated)
     scheduleSave(updated)
+    // Ao concluir um exercício, arranca o descanso; ao desmarcar, limpa-o.
+    setRestEndsAt(willBeDone ? Date.now() + REST_SECONDS * 1000 : null)
+  }
+
+  // Tick do cronômetro de descanso (só corre enquanto activo).
+  useEffect(() => {
+    if (restEndsAt === null) return
+    const id = setInterval(() => setNowTs(Date.now()), 500)
+    return () => clearInterval(id)
+  }, [restEndsAt])
+
+  const restRemaining = restEndsAt ? Math.max(0, Math.round((restEndsAt - nowTs) / 1000)) : 0
+  useEffect(() => {
+    if (restEndsAt !== null && restRemaining === 0) setRestEndsAt(null)
+  }, [restEndsAt, restRemaining])
+
+  // Sugestão de progressão de carga: se na última sessão todas as séries foram
+  // à mesma carga (numérica, com reps), propõe +2,5 kg. Deriva só do que foi
+  // realmente registado — não inventa.
+  function progressionHint(id: string): string | null {
+    const prev = prevSaves[id]
+    if (!prev || prev.sets.length === 0) return null
+    const first = prev.sets[0]
+    const w = parseFloat((first.weight || '').replace(',', '.'))
+    if (!Number.isFinite(w) || w <= 0) return null
+    const allSame = prev.sets.every(s => s.weight === first.weight && (s.reps?.trim() ?? '') !== '')
+    if (!allSame) return null
+    const next = w + 2.5
+    return `+2,5 kg → ${String(next).replace('.', ',')} kg`
   }
 
   function updateSet(
@@ -375,6 +462,12 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   const parsedPlan = getParsed(currentPlan)
   const currentSection = parsedPlan?.sections[sectionIdx] ?? null
   const exercises = currentSection?.exercises ?? []
+
+  // Plano em foco no estado "ao abrir" (sem sessão escolhida): o primeiro da
+  // lista. As suas secções alimentam a sugestão e a lista de sessões.
+  const focusPlan = plans[0] ?? null
+  const focusSections = getParsed(focusPlan)?.sections ?? []
+  const suggestIdx = Math.min(entryHint?.suggestIdx ?? 0, Math.max(0, focusSections.length - 1))
   // Conta plano + extras em ambos os lados (barra e persistência) — P2.3.
   const doneCount =
     exercises.filter(e => saves[e.id]?.done).length +
@@ -386,21 +479,100 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      {/* ── No plan selected ──────────────────────────────────────────────── */}
-      {!planId && (
+      {/* ── Sem plano nenhum: importar ────────────────────────────────────── */}
+      {!planId && plans.length === 0 && (
         <EmptyState
           icon="dumbbell"
-          title={plans.length === 0 ? 'Adicione um plano de treino' : 'Escolha o treino de hoje'}
-          body={
-            plans.length === 0
-              ? 'Adicione um plano de treino para acompanhar sua evolução semana a semana.'
-              : 'Selecione uma sessão do seu plano para registrar séries, cargas e progresso.'
-          }
-          action={{
-            label: plans.length === 0 ? 'Importar plano' : 'Escolher treino',
-            onClick: () => (plans.length > 0 ? setShowSelector(true) : setShowImport(true)),
-          }}
+          title="Adicione um plano de treino"
+          body="Adicione um plano de treino para acompanhar sua evolução semana a semana."
+          action={{ label: 'Importar plano', onClick: () => setShowImport(true) }}
         />
+      )}
+
+      {/* ── Há plano mas nenhuma sessão escolhida hoje: "ao abrir" ─────────── */}
+      {!planId && plans.length > 0 && focusPlan && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {/* Cabeçalho do plano */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+            <div>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, color: 'var(--text3)', margin: '0 0 2px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Plano de treino
+              </p>
+              <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 20, fontWeight: 800, color: 'var(--text1)', margin: 0, lineHeight: 1.2 }}>
+                {prettyPlanName(focusPlan.title)}
+              </p>
+            </div>
+            <button
+              onClick={() => setShowSelector(true)}
+              style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text2)', cursor: 'pointer', flexShrink: 0, marginTop: 2 }}
+            >
+              Trocar plano
+            </button>
+          </div>
+
+          {/* Card da sessão sugerida (rotação) */}
+          {focusSections[suggestIdx] && (
+            <div style={{ background: 'var(--bg1)', border: '1px solid rgba(232,168,56,.30)', borderRadius: 16, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold)', background: 'rgba(232,168,56,.13)', borderRadius: 100, padding: '4px 10px' }}>
+                  Sugerido para hoje
+                </span>
+                {entryHint && entryHint.weekCount > 0 && (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--teal)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    🔥 {entryHint.weekCount} {entryHint.weekCount === 1 ? 'treino' : 'treinos'} · 7d
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 19 }}>💪</div>
+                <div style={{ minWidth: 0 }}>
+                  <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--text1)', margin: 0, lineHeight: 1.25 }}>
+                    {focusSections[suggestIdx].title}
+                  </p>
+                  <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text2)', margin: '2px 0 0' }}>
+                    {focusSections[suggestIdx].exercises.length} exercícios
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => selectSection(focusPlan.id, suggestIdx, focusSections[suggestIdx].title)}
+                style={{ width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
+              >
+                Começar {focusSections[suggestIdx].title}
+              </button>
+            </div>
+          )}
+
+          {/* Outras sessões do plano */}
+          {focusSections.length > 1 && (
+            <div>
+              <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, color: 'var(--text3)', margin: '4px 2px 8px', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                Outras sessões
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {focusSections.map((s, i) =>
+                  i === suggestIdx ? null : (
+                    <button
+                      key={i}
+                      onClick={() => selectSection(focusPlan.id, i, s.title)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left', background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px', cursor: 'pointer' }}
+                    >
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, fontWeight: 600, color: 'var(--text1)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {s.title}
+                        </p>
+                        <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, color: 'var(--text3)', margin: '2px 0 0' }}>
+                          {s.exercises.length} exercícios
+                        </p>
+                      </div>
+                      <span style={{ color: 'var(--text3)', fontSize: 18, flexShrink: 0 }}>›</span>
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Plan selected ─────────────────────────────────────────────────── */}
@@ -514,6 +686,28 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                   }}
                 />
               </div>
+            </div>
+          )}
+
+          {/* Cronômetro de descanso */}
+          {restEndsAt !== null && restRemaining > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(30,203,180,.10)', border: '1px solid rgba(30,203,180,.3)', borderRadius: 100, padding: '9px 12px' }}>
+              <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 15, color: 'var(--teal)' }}>
+                ⏱ Descanso · {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
+              </span>
+              <button
+                onClick={() => setRestEndsAt(prev => (prev ?? Date.now()) + 30000)}
+                style={{ background: 'rgba(30,203,180,.14)', border: 'none', borderRadius: 8, padding: '4px 10px', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600, color: 'var(--teal)', cursor: 'pointer' }}
+              >
+                +30s
+              </button>
+              <button
+                onClick={() => setRestEndsAt(null)}
+                aria-label="Encerrar descanso"
+                style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '2px 4px' }}
+              >
+                ✕
+              </button>
             </div>
           )}
 
@@ -655,6 +849,14 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                         >
                           Valores da última sessão — edite ou toque em Salvar para registrar hoje.
                         </p>
+                      )}
+                      {!save.done && progressionHint(ex.id) && (
+                        <div style={{ display: 'inline-flex', alignSelf: 'flex-start', alignItems: 'center', gap: 6, background: 'rgba(127,119,221,.14)', borderRadius: 100, padding: '4px 10px' }}>
+                          <span style={{ fontSize: 12 }}>🧭</span>
+                          <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, fontWeight: 600, color: 'var(--accent)' }}>
+                            {progressionHint(ex.id)}
+                          </span>
+                        </div>
                       )}
                       {save.sets.map((s, si) => (
                         <div
