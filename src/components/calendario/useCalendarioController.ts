@@ -36,7 +36,8 @@ import {
 
 export function useCalendarioController(initialUserId?: string) {
   const [userId, setUserId] = useState<string | null>(initialUserId ?? null)
-  const [viewMode, setViewMode] = useState<ViewMode>('month')
+  // Abre na semana (imersão no check semanal); o toggle expande para o mês.
+  const [viewMode, setViewMode] = useState<ViewMode>('week')
   const [current, setCurrent] = useState(new Date())
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date(), { weekStartsOn: 1 }))
   const [dayMap, setDayMap] = useState<Record<string, DayStatus>>({})

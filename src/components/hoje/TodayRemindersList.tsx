@@ -161,6 +161,14 @@ export default function TodayRemindersList({ items, onToggle, onCreate, onDelete
               <span style={{ color: item.color, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {item.itemType === 'event' ? 'Agenda' : 'Lembrete'}
               </span>
+              {item.carriedFromDate && (
+                <>
+                  <span style={{ color: 'var(--text3)', flexShrink: 0 }}>·</span>
+                  <span style={{ color: 'var(--gold)', fontWeight: 600, flexShrink: 0 }}>
+                    desde {new Date(`${item.carriedFromDate}T12:00:00`).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -15,13 +15,15 @@ export interface TodayReminderItem {
   allDay: boolean
   color: string
   done: boolean
+  /** Avulso de um dia anterior que carregou até hoje por falta de check (yyyy-MM-dd). */
+  carriedFromDate: string | null
 }
 
 export interface TodayReminderInput {
   /** Eventos da agenda JÁ filtrados para a data de hoje. */
   events: { id: string; title: string; time: string | null; all_day: boolean; color: string }[]
   /** date preenchida = lembrete avulso desse dia; null = recorrente (days). */
-  reminders: { id: string; title: string; time: string | null; days: unknown; active: boolean; date?: string | null }[]
+  reminders: { id: string; title: string; time: string | null; days: unknown; active: boolean; date?: string | null; completed_at?: string | null }[]
   date: Date
   /** Mapa `${itemType}:${id}` → completed. */
   checks: Record<string, boolean>
@@ -84,13 +86,22 @@ export function buildTodayReminderItems(input: TodayReminderInput): TodayReminde
       allDay: e.all_day,
       color: e.color,
       done: checks[key] ?? false,
+      carriedFromDate: null,
     }
   })
 
   const todayStr = toLocalISO(date)
   const reminderItems: TodayReminderItem[] = reminders
-    // Avulso (date preenchida): só no próprio dia. Recorrente: dias da semana.
-    .filter((r) => r.active && (r.date ? r.date === todayStr : isReminderDueOn(r.days, date)))
+    // Avulso (date preenchida): aparece do seu dia em diante ("carrega") até
+    // haver check definitivo (completed_at). Se concluído hoje mesmo, ainda é
+    // devolvido — o check do dia (checks[key]) mantém-no visível como feito;
+    // concluído num dia anterior, some. Recorrente: dias da semana, como antes.
+    .filter((r) => {
+      if (!r.active) return false
+      if (!r.date) return isReminderDueOn(r.days, date)
+      const key = `reminder:${r.id}`
+      return r.date <= todayStr && (!r.completed_at || (checks[key] ?? false))
+    })
     .map((r) => {
       const key = `reminder:${r.id}`
       return {
@@ -102,6 +113,7 @@ export function buildTodayReminderItems(input: TodayReminderInput): TodayReminde
         allDay: false,
         color: REMINDER_ACCENT,
         done: checks[key] ?? false,
+        carriedFromDate: r.date && r.date < todayStr ? r.date : null,
       }
     })
 

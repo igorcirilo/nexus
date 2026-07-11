@@ -15,15 +15,18 @@ const TYPES = [
 
 type Reminder = {
   id: string
-  user_id: string
+  // getReminders não devolve user_id/description; ficam opcionais para o cast.
+  user_id?: string
   title: string
-  description: string | null
+  description?: string | null
   time: string | null
   days: number[]
   active: boolean
   type: string
   /** Preenchida = lembrete avulso só desse dia (quick-add); null = recorrente. */
   date?: string | null
+  /** Conclusão definitiva de um avulso (carry-over na página Hoje). */
+  completed_at?: string | null
 }
 
 type FormState = {

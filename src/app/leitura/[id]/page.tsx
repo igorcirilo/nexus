@@ -86,8 +86,11 @@ export default function LeituraReaderPage() {
   const [prefs, setPrefs]                 = useState<ReadingPreference | null>(null)
   const [toast, setToast]                 = useState('')
 
-  const sessionStartRef  = useRef<{ time: number; page: number } | null>(null)
+  const sessionStartRef  = useRef<{ time: number; furthest: number } | null>(null)
   const currentPageRef   = useRef(1)
+  // Marca-d'água: página mais avançada já alcançada no livro. pages_read de
+  // uma sessão é o avanço DESTA marca — reler páginas atrás dela rende 0.
+  const furthestPageRef  = useRef(1)
   const pageCountRef     = useRef(1)
   const touchStartX      = useRef<number | null>(null)
   const headerTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -127,6 +130,7 @@ export default function LeituraReaderPage() {
     const requestedPage = pageParam ? parseInt(pageParam, 10) : NaN
     const savedPage     = progress?.current_page ?? 1
     const maxPage       = nextBook?.raw_content?.pageCount ?? 1
+    furthestPageRef.current = Math.max(progress?.furthest_page ?? 1, savedPage)
 
     if (!isNaN(requestedPage) && requestedPage > 0) {
       setCurrentPage(clamp(requestedPage, 1, maxPage))
@@ -237,12 +241,15 @@ export default function LeituraReaderPage() {
     if (!userId || !bookId || !book || !hydrated.current) return
     const pct = Math.round((currentPage / Math.max(pageCount, 1)) * 100)
     const t = setTimeout(() => {
-      saveBookProgress({ user_id: userId, book_id: bookId, current_page: currentPage, progress_pct: pct })
+      saveBookProgress({ user_id: userId, book_id: bookId, current_page: currentPage, progress_pct: pct, furthest_page: furthestPageRef.current })
     }, 600)
     return () => clearTimeout(t)
   }, [userId, bookId, book, currentPage, pageCount])
 
-  useEffect(() => { currentPageRef.current = currentPage }, [currentPage])
+  useEffect(() => {
+    currentPageRef.current = currentPage
+    furthestPageRef.current = Math.max(furthestPageRef.current, currentPage)
+  }, [currentPage])
   useEffect(() => { pageCountRef.current = pageCount }, [pageCount])
 
   // ── Session tracking ──────────────────────────────────────────────────────
@@ -251,7 +258,7 @@ export default function LeituraReaderPage() {
     if (!userId || !bookId) return
 
     function startSession() {
-      sessionStartRef.current = { time: Date.now(), page: currentPageRef.current }
+      sessionStartRef.current = { time: Date.now(), furthest: furthestPageRef.current }
     }
 
     // Grava a sessão em curso e limpa o relógio. Chamado no cleanup, mas
@@ -264,7 +271,8 @@ export default function LeituraReaderPage() {
       if (!start) return
       const durationMinutes = Math.min(Math.round((Date.now() - start.time) / 60000), 240)
       if (durationMinutes < 1) return
-      const pagesRead = Math.max(0, currentPageRef.current - start.page)
+      // Só o avanço da marca-d'água conta: reler páginas já alcançadas rende 0.
+      const pagesRead = Math.max(0, furthestPageRef.current - start.furthest)
       void saveReadingSession({
         user_id: userId!, book_id: bookId!,
         date: todayISO(),
@@ -280,6 +288,7 @@ export default function LeituraReaderPage() {
       void saveBookProgress({
         user_id: userId!, book_id: bookId!,
         current_page: currentPageRef.current, progress_pct: pct,
+        furthest_page: furthestPageRef.current,
       })
     }
 

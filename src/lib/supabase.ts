@@ -185,7 +185,7 @@ export async function updateFullProfile(userId: string, updates: Record<string, 
 export async function getReminders(userId: string) {
   const { data } = await supabase
     .from('reminders')
-    .select('id, title, time, days, active, type, date')
+    .select('id, title, time, days, active, type, date, completed_at')
     .eq('user_id', userId)
     .order('time')
   return data ?? []
@@ -205,6 +205,15 @@ export async function deleteReminder(id: string) {
 
 export async function toggleReminder(id: string, active: boolean) {
   return supabase.from('reminders').update({ active }).eq('id', id)
+}
+
+/**
+ * Conclusão definitiva de um lembrete avulso (date preenchida): enquanto
+ * completed_at for null, o avulso carrega dia após dia na página Hoje.
+ * Passar null desfaz o check e volta a carregá-lo.
+ */
+export async function setReminderCompletedAt(id: string, completedAt: string | null) {
+  return supabase.from('reminders').update({ completed_at: completedAt }).eq('id', id)
 }
 
 // ── Calendário: dias concluídos ────────────────────────────
@@ -231,7 +240,18 @@ export async function saveGoal90(payload: Record<string, unknown>) {
     const { id, ...rest } = payload
     return supabase.from('goals_90').update(rest).eq('id', id)
   }
-  return supabase.from('goals_90').insert(payload)
+  return supabase.from('goals_90').insert(payload).select().single()
+}
+
+/** Insere vários marcos de uma vez (usado pelos marcos sugeridos na criação). */
+export async function addGoalMilestones(
+  goalId: string,
+  userId: string,
+  milestones: { title: string; due_date: string | null }[],
+) {
+  if (milestones.length === 0) return { data: [], error: null }
+  const rows = milestones.map((m) => ({ goal_id: goalId, user_id: userId, title: m.title, due_date: m.due_date }))
+  return supabase.from('goal_milestones').insert(rows).select()
 }
 
 export async function deleteGoal90(id: string) {
@@ -783,7 +803,7 @@ export async function getBookProgress(bookId: string, userId: string) {
   return data ?? null
 }
 
-export async function saveBookProgress(payload: { user_id: string; book_id: string; current_page: number; progress_pct: number }) {
+export async function saveBookProgress(payload: { user_id: string; book_id: string; current_page: number; progress_pct: number; furthest_page?: number }) {
   const { data, error } = await supabase
     .from('book_progress')
     .upsert(payload, { onConflict: 'user_id,book_id' })

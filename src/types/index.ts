@@ -352,6 +352,8 @@ export interface BookProgress {
   user_id: string
   book_id: string
   current_page: number
+  /** Página mais avançada já alcançada — só o avanço além dela gera pages_read. */
+  furthest_page: number | null
   progress_pct: number
   updated_at: string
 }
