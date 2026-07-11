@@ -251,6 +251,21 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
     }
   }
 
+  // Volta ao estado "ao abrir" (visão geral das sessões). Só limpa o ponteiro
+  // da sessão do dia no localStorage — o registo de hoje (séries/cargas) fica
+  // guardado na BD e é recarregado ao voltar a entrar na sessão.
+  function deselectSession() {
+    setPlanId(null)
+    setExpandedId(null)
+    setRestEndsAt(null)
+    setShowSelector(false)
+    try {
+      localStorage.removeItem(sessionKey(today))
+    } catch {
+      // ignore
+    }
+  }
+
   // ── Auto-save (debounced) ────────────────────────────────────────────────────
 
   const persistEntry = useCallback(
@@ -534,6 +549,16 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                   </p>
                 </div>
               </div>
+              {entryHint && (
+                <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: 'var(--bg2)', borderRadius: 10, padding: '9px 11px', marginBottom: 12 }}>
+                  <span style={{ fontSize: 14, flexShrink: 0 }}>🧭</span>
+                  <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text1)', lineHeight: 1.45 }}>
+                    {entryHint.weekCount === 0
+                      ? 'Primeira sessão da semana — bora abrir bem.'
+                      : `Boa constância: ${entryHint.weekCount} ${entryHint.weekCount === 1 ? 'treino' : 'treinos'} em 7 dias. Segue a rotação.`}
+                  </span>
+                </div>
+              )}
               <button
                 onClick={() => selectSection(focusPlan.id, suggestIdx, focusSections[suggestIdx].title)}
                 style={{ width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
@@ -591,31 +616,58 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
               gap: 12,
             }}
           >
-            <div>
-              <p
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+              <button
+                onClick={deselectSession}
+                aria-label="Voltar às sessões"
                 style={{
-                  fontFamily: 'DM Sans, sans-serif',
-                  fontSize: 11,
-                  color: 'var(--text3)',
-                  margin: '0 0 2px',
-                  textTransform: 'uppercase',
-                  letterSpacing: '0.06em',
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  background: 'var(--bg2)',
+                  border: '1px solid var(--border)',
+                  color: 'var(--text2)',
+                  cursor: 'pointer',
+                  flexShrink: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 18,
+                  lineHeight: 1,
+                  padding: 0,
                 }}
               >
-                {currentPlan.title}
-              </p>
-              <p
-                style={{
-                  fontFamily: 'Syne, sans-serif',
-                  fontSize: 17,
-                  fontWeight: 700,
-                  color: 'var(--text1)',
-                  margin: 0,
-                  lineHeight: 1.3,
-                }}
-              >
-                {sectionTitle}
-              </p>
+                ‹
+              </button>
+              <div style={{ minWidth: 0 }}>
+                <p
+                  style={{
+                    fontFamily: 'DM Sans, sans-serif',
+                    fontSize: 11,
+                    color: 'var(--text3)',
+                    margin: '0 0 2px',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.06em',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {prettyPlanName(currentPlan.title)}
+                </p>
+                <p
+                  style={{
+                    fontFamily: 'Syne, sans-serif',
+                    fontSize: 17,
+                    fontWeight: 700,
+                    color: 'var(--text1)',
+                    margin: 0,
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {sectionTitle}
+                </p>
+              </div>
             </div>
             <button
               onClick={() => setShowSelector(true)}
