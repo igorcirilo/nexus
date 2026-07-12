@@ -98,6 +98,9 @@ export function nextRotationIdx(prevSectionIdx: number | null, sectionCount: num
 // Quando presente, alimenta a fita semanal e a sugestão do dia; quando não,
 // tudo degrada para a rotação simples.
 
+const WEEK_LABELS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM']
+const WEEK_FULL_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
+
 const SECTION_WEEKDAYS: { dow: number; re: RegExp }[] = [
   { dow: 1, re: /\bsegunda\b/i },
   { dow: 2, re: /\bter[cç]a\b/i },
@@ -266,8 +269,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
     isRestDay: boolean
     doneDates: string[]
   } | null>(null)
-  // Edição da agenda semanal: toggle geral + qual dia tem o seletor aberto.
-  const [editingWeek, setEditingWeek] = useState(false)
+  // Folha do dia: qual dia da semana está aberto (ver + começar + trocar).
   const [pickerDow, setPickerDow] = useState<number | null>(null)
   const [scheduleSaving, setScheduleSaving] = useState(false)
   // Cronômetro de descanso: inicia ao concluir uma série/exercício. Guarda o
@@ -421,28 +423,33 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
 
   // ── Agenda semanal: atribuir/limpar a sessão de um dia ───────────────────────
 
-  async function persistSchedule(plan: TrainingPlan, next: ScheduleOverride) {
+  async function persistSchedule(plan: TrainingPlan, next: ScheduleOverride, successMsg: string) {
     setScheduleSaving(true)
     const rawContent = { ...(plan.raw_content ?? {}), schedule: next }
     const { data } = await updateTrainingPlanRawContent(plan.id, userId, rawContent)
-    if (data) setPlans(prev => prev.map(p => (p.id === plan.id ? (data as TrainingPlan) : p)))
+    if (data) {
+      setPlans(prev => prev.map(p => (p.id === plan.id ? (data as TrainingPlan) : p)))
+      toast.success(successMsg)
+    }
     setScheduleSaving(false)
     setPickerDow(null)
   }
 
   /** Atribui `sectionIdx` ao dia `dow`; `null` marca descanso explícito. */
-  function assignDay(plan: TrainingPlan, dow: number, sectionIdx: number | null) {
+  function assignDay(plan: TrainingPlan, dow: number, sectionIdx: number | null, sectionName?: string) {
     const current = getScheduleOverride(plan)
-    persistSchedule(plan, { ...current, [dow]: sectionIdx })
+    const dayName = WEEK_FULL_LABELS[dow]
+    const msg = sectionIdx === null ? `${dayName} agora é descanso` : `${dayName} agora é ${sectionName ?? 'outro treino'}`
+    persistSchedule(plan, { ...current, [dow]: sectionIdx }, msg)
   }
 
-  /** Remove o override do dia, voltando à sugestão automática. */
+  /** Remove o override do dia, voltando à sugestão do plano. */
   function clearDayOverride(plan: TrainingPlan, dow: number) {
     const current = getScheduleOverride(plan)
     if (!(dow in current)) { setPickerDow(null); return }
     const next = { ...current }
     delete next[dow]
-    persistSchedule(plan, next)
+    persistSchedule(plan, next, `${WEEK_FULL_LABELS[dow]} voltou à sugestão do plano`)
   }
 
   // ── Auto-save (debounced) ────────────────────────────────────────────────────
@@ -684,17 +691,12 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   const focusSections = getParsed(focusPlan)?.sections ?? []
   const suggestIdx = Math.min(entryHint?.suggestIdx ?? 0, Math.max(0, focusSections.length - 1))
 
-  // Fita semanal SEG–DOM: mostrada quando os títulos trazem o dia da semana,
-  // quando há overrides configurados, ou enquanto o utilizador está a editar
-  // a agenda (permite montá-la do zero mesmo sem dia nos títulos).
+  // Fita semanal SEG–DOM: sempre visível quando o plano tem sessões — dias sem
+  // treino mostram "·" e o toque abre a folha do dia para atribuir um.
   const scheduleOverride = getScheduleOverride(focusPlan)
-  const autoHasWeekday = focusSections.some(s => sectionWeekday(s.title) !== null)
-  const hasWeekdaySchedule = autoHasWeekday || Object.keys(scheduleOverride).length > 0 || editingWeek
   const todayDow = parseLocalDate(today).getDay()
   const weekMonday = startOfWeek(parseLocalDate(today), { weekStartsOn: 1 })
-  const WEEK_LABELS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM']
-  const WEEK_FULL_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
-  const weekStrip = hasWeekdaySchedule
+  const weekStrip = focusSections.length > 0
     ? WEEK_LABELS.map((label, i) => {
         const dow = (i + 1) % 7 // SEG=1 … SÁB=6, DOM=0
         const assignment = resolveDayAssignment(dow, focusSections, scheduleOverride)
@@ -748,73 +750,75 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
       {/* ── Há plano mas nenhuma sessão escolhida hoje: "ao abrir" ─────────── */}
       {!planId && plans.length > 0 && focusPlan && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          {/* Cabeçalho compacto: chip do plano + cadência */}
+          {/* Cabeçalho: chip do plano + botão de trocar plano */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--gold)', background: 'rgba(232,168,56,.13)', borderRadius: 100, padding: '6px 13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {prettyPlanName(focusPlan.title)}
             </span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
-              {focusSections.length > 0 && (
-                <button
-                  onClick={() => { setEditingWeek(v => !v); setPickerDow(null) }}
-                  style={{ background: 'none', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: editingWeek ? 700 : 400, color: editingWeek ? 'var(--accent)' : 'var(--text3)', cursor: 'pointer', padding: '4px 2px' }}
-                >
-                  {editingWeek ? 'concluído' : 'editar dias'}
-                </button>
-              )}
-              <button
-                onClick={() => setShowSelector(true)}
-                style={{ background: 'none', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text3)', cursor: 'pointer', padding: '4px 2px' }}
-              >
-                {weekTarget > 0 ? `${weekTarget}× / semana · ` : ''}trocar
-              </button>
-            </div>
+            <button
+              onClick={() => setShowSelector(true)}
+              style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 9, padding: '6px 12px', fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, color: 'var(--text2)', cursor: 'pointer', flexShrink: 0 }}
+            >
+              Trocar plano
+            </button>
           </div>
 
-          {/* Fita semanal SEG–DOM: sugestão automática, editável por dia */}
+          {/* Fita semanal SEG–DOM: toque abre a folha do dia (ver + trocar) */}
           {weekStrip && (
-            <div style={{ display: 'flex', gap: 5 }}>
-              {weekStrip.map(day => {
-                const isRest = day.assignment.kind === 'rest'
-                return (
-                <button
-                  key={day.label}
-                  onClick={() => {
-                    if (editingWeek) { setPickerDow(day.dow); return }
-                    if (day.assignment.kind === 'section') selectSection(focusPlan.id, day.assignment.idx, focusSections[day.assignment.idx].title)
-                  }}
-                  aria-label={
-                    editingWeek
-                      ? `Editar treino de ${WEEK_FULL_LABELS[day.dow]}`
-                      : day.assignment.kind === 'section' ? `${day.label}: treino ${day.letter}` : `${day.label}: descanso`
-                  }
-                  style={{
-                    flex: 1,
-                    borderRadius: 11,
-                    padding: '8px 0 7px',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    background: day.isToday && !editingWeek ? 'rgba(232,168,56,.14)' : 'var(--bg1)',
-                    border: editingWeek
-                      ? `1px dashed ${day.assignment.overridden ? 'rgba(127,119,221,.6)' : 'rgba(var(--ink-rgb),.18)'}`
-                      : `1px solid ${day.isToday ? 'rgba(232,168,56,.5)' : day.done ? 'rgba(30,203,180,.4)' : 'var(--border)'}`,
-                  }}
-                >
-                  <div style={{ fontSize: 9, color: 'var(--text3)', letterSpacing: '0.03em', fontFamily: 'DM Sans, sans-serif' }}>
-                    {day.label}
-                  </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: day.letter ? 800 : 600, fontSize: 14, marginTop: 3, color: day.done ? 'var(--teal)' : day.isToday ? 'var(--gold)' : isRest ? 'var(--text3)' : day.letter ? 'var(--text1)' : 'var(--text3)' }}>
-                    {day.done ? '✓' : isRest ? '–' : (day.letter ?? '·')}
-                  </div>
-                </button>
-                )
-              })}
+            <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 16, padding: '12px 12px 13px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 9 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+                  Sua semana
+                </span>
+                <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 10.5, color: 'var(--text3)' }}>
+                  {weekTarget > 0 ? `${weekTarget}× / semana · ` : ''}toca num dia p/ ver ou trocar
+                </span>
+              </div>
+              <div style={{ display: 'flex', gap: 5 }}>
+                {weekStrip.map(day => {
+                  const isRest = day.assignment.kind === 'rest'
+                  const overriddenSection = day.assignment.kind === 'section' && day.assignment.overridden
+                  return (
+                    <button
+                      key={day.label}
+                      onClick={() => setPickerDow(day.dow)}
+                      aria-label={`Ver ou trocar o treino de ${WEEK_FULL_LABELS[day.dow]}`}
+                      style={{
+                        position: 'relative',
+                        flex: 1,
+                        borderRadius: 11,
+                        padding: '10px 0 9px',
+                        minHeight: 46,
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        background: day.isToday ? 'rgba(232,168,56,.14)' : 'var(--bg2)',
+                        border: `1px solid ${day.isToday ? 'rgba(232,168,56,.55)' : day.done ? 'rgba(30,203,180,.4)' : 'var(--border)'}`,
+                      }}
+                    >
+                      {day.isToday && (
+                        <span style={{ position: 'absolute', top: -7, left: '50%', transform: 'translateX(-50%)', fontSize: 7, fontWeight: 800, letterSpacing: '0.06em', color: 'var(--on-bright)', background: 'var(--gold)', borderRadius: 100, padding: '1px 5px' }}>
+                          HOJE
+                        </span>
+                      )}
+                      {day.done && (
+                        <span aria-hidden style={{ position: 'absolute', top: -5, right: -3, width: 14, height: 14, borderRadius: '50%', background: 'var(--teal)', color: 'var(--on-bright)', fontSize: 8.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg1)' }}>
+                          ✓
+                        </span>
+                      )}
+                      <div style={{ fontSize: 8.5, color: 'var(--text3)', letterSpacing: '0.03em', fontFamily: 'DM Sans, sans-serif' }}>
+                        {day.label}
+                      </div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: day.letter ? 800 : 600, fontSize: 14, marginTop: 3, color: day.done ? 'var(--teal)' : day.isToday ? 'var(--gold)' : isRest ? 'var(--text3)' : day.letter ? 'var(--text1)' : 'var(--text3)' }}>
+                        {isRest ? '–' : (day.letter ?? '·')}
+                      </div>
+                      {overriddenSection && (
+                        <span aria-hidden style={{ position: 'absolute', bottom: 3, left: '50%', transform: 'translateX(-50%)', width: 4, height: 4, borderRadius: '50%', background: 'var(--accent)' }} />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
-          )}
-          {editingWeek && (
-            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, color: 'var(--text3)', margin: '-4px 2px 0' }}>
-              Toca num dia para escolher o treino dele. Roxo = trocado por ti.
-            </p>
           )}
 
           {/* Card da sessão sugerida */}
@@ -822,7 +826,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
             <div style={{ background: 'var(--bg1)', border: '1px solid rgba(232,168,56,.30)', borderRadius: 16, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold)', background: 'rgba(232,168,56,.13)', borderRadius: 100, padding: '4px 10px' }}>
-                  Sugerido p/ hoje
+                  {entryHint?.suggestIsToday ? `Hoje · ${WEEK_FULL_LABELS[todayDow]}` : 'Sugerido p/ hoje'}
                 </span>
                 {weekDone > 0 && (
                   <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--teal)', background: 'rgba(30,203,180,.13)', borderRadius: 100, padding: '4px 10px' }}>
@@ -862,7 +866,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                 onClick={() => selectSection(focusPlan.id, suggestIdx, focusSections[suggestIdx].title)}
                 style={{ width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
               >
-                Começar {cleanSectionTitle(focusSections[suggestIdx].title)}
+                {entryHint?.suggestIsToday ? 'Começar treino de hoje' : 'Começar esta sessão'}
               </button>
             </div>
           )}
@@ -902,56 +906,132 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
         </div>
       )}
 
-      {/* ── Bottom sheet: escolher/limpar o treino de um dia da semana ─────── */}
+      {/* ── Folha do dia: ver + começar + trocar num lugar só ──────────────── */}
       {pickerDow !== null && focusPlan && (
         <div
           style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
           onClick={e => e.target === e.currentTarget && setPickerDow(null)}
         >
-          <div style={{ width: '100%', maxWidth: 448, margin: '0 auto', background: 'var(--bg1)', borderRadius: '20px 20px 0 0', borderTop: '1px solid var(--border)', padding: '20px 20px calc(20px + env(safe-area-inset-bottom))', maxHeight: 'min(80dvh, 640px)', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-              <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 16, color: 'var(--text1)', margin: 0 }}>
-                Treino de {WEEK_FULL_LABELS[pickerDow]}
-              </p>
-              <button onClick={() => setPickerDow(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--bg3)', border: 'none', cursor: 'pointer', color: 'var(--text2)' }}>
-                ✕
-              </button>
-            </div>
+          <div style={{ width: '100%', maxWidth: 448, margin: '0 auto', background: 'var(--bg1)', borderRadius: '20px 20px 0 0', borderTop: '1px solid var(--border)', padding: '14px 18px calc(20px + env(safe-area-inset-bottom))', maxHeight: 'min(82dvh, 660px)', overflowY: 'auto' }}>
+            <div aria-hidden style={{ width: 38, height: 4, borderRadius: 2, background: 'var(--bg3)', margin: '0 auto 13px' }} />
             {(() => {
               const currentAssignment = resolveDayAssignment(pickerDow, focusSections, scheduleOverride)
+              const autoIdx = focusSections.findIndex(s => sectionWeekday(s.title) === pickerDow)
+              const autoName = autoIdx >= 0 ? cleanSectionTitle(focusSections[autoIdx].title) : 'dia livre'
+              const currentIdx = currentAssignment.kind === 'section' ? currentAssignment.idx : -1
+              const currentSectionForDay = currentIdx >= 0 ? focusSections[currentIdx] : null
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, opacity: scheduleSaving ? 0.6 : 1, pointerEvents: scheduleSaving ? 'none' : 'auto' }}>
-                  {focusSections.map((s, i) => {
-                    const isSelected = currentAssignment.kind === 'section' && currentAssignment.idx === i
-                    return (
+                <div style={{ opacity: scheduleSaving ? 0.6 : 1, pointerEvents: scheduleSaving ? 'none' : 'auto' }}>
+                  {/* Cabeçalho */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 12 }}>
+                    <div>
+                      <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 16, color: 'var(--text1)', margin: 0 }}>
+                        {WEEK_FULL_LABELS[pickerDow]}
+                      </p>
+                      {currentAssignment.overridden && (
+                        <span style={{ display: 'inline-block', marginTop: 4, fontSize: 9, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--accent)', background: 'rgba(127,119,221,.14)', borderRadius: 100, padding: '3px 9px' }}>
+                          trocado por você
+                        </span>
+                      )}
+                    </div>
+                    <button onClick={() => setPickerDow(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--bg3)', border: 'none', cursor: 'pointer', color: 'var(--text2)', flexShrink: 0 }}>
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* Sessão atual do dia + começar */}
+                  {currentSectionForDay && (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(232,168,56,.10)', border: '1px solid rgba(232,168,56,.5)', borderRadius: 12, padding: '11px 13px', marginBottom: 10 }}>
+                        <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 12.5, color: 'var(--gold)', flexShrink: 0 }}>
+                          {sectionLetter(cleanSectionTitle(currentSectionForDay.title)) ?? String(currentIdx + 1)}
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ display: 'block', fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, fontWeight: 600, color: 'var(--text1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {cleanSectionTitle(currentSectionForDay.title)}
+                          </span>
+                          <span style={{ display: 'block', fontFamily: 'DM Sans, sans-serif', fontSize: 10.5, color: 'var(--text3)', marginTop: 1 }}>
+                            {currentSectionForDay.exercises.length} exercícios
+                            {estimateMinutes(currentSectionForDay.exercises) ? ` · ~${estimateMinutes(currentSectionForDay.exercises)} min` : ''}
+                          </span>
+                        </span>
+                        <span style={{ color: 'var(--gold)', fontWeight: 800, flexShrink: 0 }}>✓</span>
+                      </div>
                       <button
-                        key={i}
-                        onClick={() => assignDay(focusPlan, pickerDow, i)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', background: isSelected ? 'rgba(232,168,56,.12)' : 'var(--bg2)', border: `1px solid ${isSelected ? 'rgba(232,168,56,.5)' : 'var(--border)'}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer' }}
+                        onClick={() => { setPickerDow(null); selectSection(focusPlan.id, currentIdx, currentSectionForDay.title) }}
+                        style={{ width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 12, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13.5, cursor: 'pointer', letterSpacing: '0.02em', marginBottom: 14 }}
                       >
-                        <span style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 12, color: 'var(--gold)', flexShrink: 0 }}>
-                          {sectionLetter(cleanSectionTitle(s.title)) ?? String(i + 1)}
-                        </span>
-                        <span style={{ flex: 1, minWidth: 0, fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, fontWeight: 600, color: 'var(--text1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {cleanSectionTitle(s.title)}
-                        </span>
-                        {isSelected && <span style={{ color: 'var(--gold)', flexShrink: 0 }}>✓</span>}
+                        Começar {cleanSectionTitle(currentSectionForDay.title)}
                       </button>
-                    )
-                  })}
-                  <button
-                    onClick={() => assignDay(focusPlan, pickerDow, null)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', background: currentAssignment.kind === 'rest' ? 'rgba(127,119,221,.12)' : 'var(--bg2)', border: `1px solid ${currentAssignment.kind === 'rest' ? 'rgba(127,119,221,.5)' : 'var(--border)'}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer' }}
-                  >
-                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, fontWeight: 600, color: 'var(--text2)', flex: 1 }}>💤 Descanso</span>
-                    {currentAssignment.kind === 'rest' && <span style={{ color: 'var(--accent)' }}>✓</span>}
-                  </button>
+                    </>
+                  )}
+                  {currentAssignment.kind === 'rest' && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(127,119,221,.10)', border: '1px solid rgba(127,119,221,.5)', borderRadius: 12, padding: '11px 13px', marginBottom: 14 }}>
+                      <span style={{ fontSize: 15, width: 28, textAlign: 'center', flexShrink: 0 }}>💤</span>
+                      <span style={{ flex: 1, fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, fontWeight: 600, color: 'var(--text2)' }}>Descanso</span>
+                      <span style={{ color: 'var(--accent)', fontWeight: 800, flexShrink: 0 }}>✓</span>
+                    </div>
+                  )}
+                  {currentAssignment.kind === 'unset' && (
+                    <div style={{ background: 'var(--bg2)', border: '1px dashed var(--border)', borderRadius: 12, padding: '11px 13px', marginBottom: 14, fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, color: 'var(--text3)' }}>
+                      Nenhum treino marcado para este dia.
+                    </div>
+                  )}
+
+                  {/* Trocar o treino deste dia */}
+                  <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text3)', margin: '0 0 8px' }}>
+                    Trocar o treino deste dia
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+                    {focusSections.map((s, i) => {
+                      if (i === currentIdx) return null
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => {
+                            // Escolher a própria sugestão do plano = limpar o override
+                            // (mantém o dia sincronizado com o plano, não congela cópia).
+                            if (i === autoIdx) clearDayOverride(focusPlan, pickerDow)
+                            else assignDay(focusPlan, pickerDow, i, cleanSectionTitle(s.title))
+                          }}
+                          style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '11px 13px', cursor: 'pointer' }}
+                        >
+                          <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 12.5, color: 'var(--gold)', flexShrink: 0 }}>
+                            {sectionLetter(cleanSectionTitle(s.title)) ?? String(i + 1)}
+                          </span>
+                          <span style={{ flex: 1, minWidth: 0 }}>
+                            <span style={{ display: 'block', fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 600, color: 'var(--text1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {cleanSectionTitle(s.title)}
+                            </span>
+                            <span style={{ display: 'block', fontFamily: 'DM Sans, sans-serif', fontSize: 10.5, color: 'var(--text3)', marginTop: 1 }}>
+                              {s.exercises.length} exercícios
+                            </span>
+                          </span>
+                          {i === autoIdx && (
+                            <span style={{ fontSize: 8.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--text2)', background: 'var(--bg3)', borderRadius: 100, padding: '3px 8px', flexShrink: 0 }}>
+                              sugestão do plano
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                    {currentAssignment.kind !== 'rest' && (
+                      <button
+                        onClick={() => assignDay(focusPlan, pickerDow, null)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '11px 13px', cursor: 'pointer' }}
+                      >
+                        <span style={{ fontSize: 15, width: 28, textAlign: 'center', flexShrink: 0 }}>💤</span>
+                        <span style={{ flex: 1, fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>Descanso</span>
+                      </button>
+                    )}
+                  </div>
+
                   {currentAssignment.overridden && (
                     <button
                       onClick={() => clearDayOverride(focusPlan, pickerDow)}
-                      style={{ marginTop: 4, background: 'none', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, color: 'var(--text3)', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textAlign: 'left', padding: '4px 2px' }}
+                      style={{ marginTop: 11, background: 'none', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text3)', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textAlign: 'left', padding: '2px' }}
                     >
-                      Voltar à sugestão automática
+                      ↩︎ Voltar à sugestão do plano ({autoName})
                     </button>
                   )}
                 </div>
