@@ -680,6 +680,24 @@ export async function saveTrainingPlan(payload: Record<string, unknown>) {
   return { data, error }
 }
 
+/**
+ * Substitui o raw_content do plano de treino inteiro — usado para persistir
+ * a agenda semanal (schedule) mantendo o parsedPlan intacto. O chamador deve
+ * enviar o objeto já mesclado (raw_content antigo + campo alterado).
+ */
+export async function updateTrainingPlanRawContent(id: string, userId: string, rawContent: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('training_plans')
+    .update({ raw_content: rawContent })
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select()
+    .single()
+
+  if (error) reportError('updateTrainingPlanRawContent error', error.message)
+  return { data, error }
+}
+
 export async function getDietPlans(userId: string, client: SupabaseClient = supabase) {
   const { data, error } = await client
     .from('diet_plans')

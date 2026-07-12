@@ -7,6 +7,8 @@ import {
   estimateMinutes,
   prettyPlanName,
   nextRotationIdx,
+  getScheduleOverride,
+  resolveDayAssignment,
 } from '@/components/corpo/WorkoutTracker'
 
 describe('sectionWeekday', () => {
@@ -87,5 +89,49 @@ describe('nextRotationIdx', () => {
     expect(nextRotationIdx(null, 3)).toBe(0)
     expect(nextRotationIdx(0, 3)).toBe(1)
     expect(nextRotationIdx(2, 3)).toBe(0)
+  })
+})
+
+describe('getScheduleOverride', () => {
+  it('lê overrides válidos (sessão e descanso)', () => {
+    const plan = { raw_content: { schedule: { '1': 2, '3': null } } }
+    expect(getScheduleOverride(plan)).toEqual({ 1: 2, 3: null })
+  })
+
+  it('sem schedule ou plano nulo → objeto vazio', () => {
+    expect(getScheduleOverride({ raw_content: {} })).toEqual({})
+    expect(getScheduleOverride({ raw_content: null })).toEqual({})
+    expect(getScheduleOverride(null)).toEqual({})
+  })
+
+  it('ignora chaves/valores inválidos sem quebrar as válidas', () => {
+    const plan = { raw_content: { schedule: { '1': 0, '9': 2, foo: 1, '2': 1.5, '4': 'x' } } }
+    expect(getScheduleOverride(plan)).toEqual({ 1: 0 })
+  })
+})
+
+describe('resolveDayAssignment', () => {
+  const sections = [{ title: 'Segunda - A Peito' }, { title: 'Terça - B Costas' }, { title: 'C Pernas' }]
+
+  it('sem override, casa pelo dia no título', () => {
+    expect(resolveDayAssignment(1, sections, {})).toEqual({ kind: 'section', idx: 0, overridden: false })
+    expect(resolveDayAssignment(2, sections, {})).toEqual({ kind: 'section', idx: 1, overridden: false })
+  })
+
+  it('sem título nem override → unset (cai na rotação)', () => {
+    expect(resolveDayAssignment(5, sections, {})).toEqual({ kind: 'unset', overridden: false })
+  })
+
+  it('override de sessão vence o título automático', () => {
+    // Segunda estava mapeada para A (idx 0); o utilizador trocou para C (idx 2).
+    expect(resolveDayAssignment(1, sections, { 1: 2 })).toEqual({ kind: 'section', idx: 2, overridden: true })
+  })
+
+  it('override de descanso explícito', () => {
+    expect(resolveDayAssignment(1, sections, { 1: null })).toEqual({ kind: 'rest', overridden: true })
+  })
+
+  it('override apontando para secção que já não existe → unset', () => {
+    expect(resolveDayAssignment(1, sections, { 1: 9 })).toEqual({ kind: 'unset', overridden: false })
   })
 })

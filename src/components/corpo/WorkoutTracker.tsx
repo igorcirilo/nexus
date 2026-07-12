@@ -8,7 +8,7 @@ import EmptyState from '@/components/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Icon from '@/components/ui/Icon'
 import { useToast } from '@/components/Toast'
-import { getTrainingPlans, saveTrainingPlan } from '@/lib/supabase'
+import { getTrainingPlans, saveTrainingPlan, updateTrainingPlanRawContent } from '@/lib/supabase'
 import {
   getTrainingEntries,
   getTrainingEntriesForRange,
@@ -127,6 +127,54 @@ export function sectionLetter(cleanedTitle: string): string | null {
   return m ? m[1].toUpperCase() : null
 }
 
+// ── Agenda semanal configurável (override dia → sessão) ─────────────────────────
+// Por padrão, cada dia é atribuído automaticamente à sessão cujo título casa
+// (sectionWeekday). O utilizador pode substituir essa atribuição por dia da
+// semana; a substituição vive em training_plans.raw_content.schedule
+// (chave = dow 0–6 como string, valor = sectionIdx ou null p/ descanso
+// explícito) e sobrevive a reimportações do mesmo plano só enquanto o plano
+// não for apagado/recriado.
+
+export type ScheduleOverride = Record<number, number | null>
+
+/** Lê e valida o override guardado no plano; entradas inválidas são ignoradas. */
+export function getScheduleOverride(plan: { raw_content: Record<string, unknown> | null } | null): ScheduleOverride {
+  const raw = plan?.raw_content?.schedule
+  if (!raw || typeof raw !== 'object') return {}
+  const out: ScheduleOverride = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    const dow = Number(k)
+    if (!Number.isInteger(dow) || dow < 0 || dow > 6) continue
+    if (v === null || Number.isInteger(v)) out[dow] = v as number | null
+  }
+  return out
+}
+
+export type DayAssignment =
+  | { kind: 'section'; idx: number; overridden: boolean }
+  | { kind: 'rest'; overridden: true }
+  | { kind: 'unset'; overridden: false }
+
+/**
+ * Resolve o que treinar num dia da semana: override explícito do utilizador
+ * primeiro (sessão ou descanso), senão a sessão cujo título casa com o dia,
+ * senão "unset" (a rotação simples assume a partir daqui).
+ */
+export function resolveDayAssignment(
+  dow: number,
+  sections: { title: string }[],
+  override: ScheduleOverride,
+): DayAssignment {
+  if (dow in override) {
+    const v = override[dow]
+    if (v === null) return { kind: 'rest', overridden: true }
+    if (v >= 0 && v < sections.length) return { kind: 'section', idx: v, overridden: true }
+    return { kind: 'unset', overridden: false } // override aponta p/ secção que já não existe
+  }
+  const byTitle = sections.findIndex(s => sectionWeekday(s.title) === dow)
+  return byTitle >= 0 ? { kind: 'section', idx: byTitle, overridden: false } : { kind: 'unset', overridden: false }
+}
+
 // ── Detalhe do exercício ("4 | 8 a 12 | a definir | 90s") ──────────────────────
 
 export function parseExerciseDetail(detail?: string): { sets: number | null; restSec: number | null } {
@@ -215,8 +263,13 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   const [entryHint, setEntryHint] = useState<{
     suggestIdx: number
     suggestIsToday: boolean
+    isRestDay: boolean
     doneDates: string[]
   } | null>(null)
+  // Edição da agenda semanal: toggle geral + qual dia tem o seletor aberto.
+  const [editingWeek, setEditingWeek] = useState(false)
+  const [pickerDow, setPickerDow] = useState<number | null>(null)
+  const [scheduleSaving, setScheduleSaving] = useState(false)
   // Cronômetro de descanso: inicia ao concluir uma série/exercício. Guarda o
   // instante de fim; um tick de 500ms atualiza a contagem exibida.
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null)
@@ -305,21 +358,36 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
       if (cancelled) return
       const focus = plans.find(p => p.id === focusPlanId) ?? null
       const sections = getParsed(focus)?.sections ?? []
-      // Preferência: a sessão cujo título casa com o dia da semana de hoje.
+      // Preferência: override do utilizador para hoje; senão o título que casa
+      // com o dia da semana; senão a rotação simples.
       const todayDow = todayDate.getDay()
-      const byWeekday = sections.findIndex(s => sectionWeekday(s.title) === todayDow)
+      const override = getScheduleOverride(focus)
+      const assignment = resolveDayAssignment(todayDow, sections, override)
       const prevRow = prev as { notes: string | null } | null
       const prevIdx = prevRow ? parseNotes(prevRow.notes).sectionIdx : null
-      const suggestIdx = byWeekday >= 0 ? byWeekday : nextRotationIdx(prevIdx, sections.length)
+      let suggestIdx: number
+      let suggestIsToday: boolean
+      let isRestDay = false
+      if (assignment.kind === 'section') {
+        suggestIdx = assignment.idx
+        suggestIsToday = true
+      } else if (assignment.kind === 'rest') {
+        suggestIdx = nextRotationIdx(prevIdx, sections.length)
+        suggestIsToday = false
+        isRestDay = true
+      } else {
+        suggestIdx = nextRotationIdx(prevIdx, sections.length)
+        suggestIsToday = false
+      }
       const doneDates = Array.from(
         new Set((range as TrainingEntry[]).filter(e => e.completed).map(e => e.date)),
       )
-      setEntryHint({ suggestIdx, suggestIsToday: byWeekday >= 0, doneDates })
+      setEntryHint({ suggestIdx, suggestIsToday, isRestDay, doneDates })
     }
     loadHint()
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planId, focusPlanId, userId, today])
+  }, [planId, focusPlanId, userId, today, plans])
 
   // ── Section selection ────────────────────────────────────────────────────────
 
@@ -349,6 +417,32 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
     } catch {
       // ignore
     }
+  }
+
+  // ── Agenda semanal: atribuir/limpar a sessão de um dia ───────────────────────
+
+  async function persistSchedule(plan: TrainingPlan, next: ScheduleOverride) {
+    setScheduleSaving(true)
+    const rawContent = { ...(plan.raw_content ?? {}), schedule: next }
+    const { data } = await updateTrainingPlanRawContent(plan.id, userId, rawContent)
+    if (data) setPlans(prev => prev.map(p => (p.id === plan.id ? (data as TrainingPlan) : p)))
+    setScheduleSaving(false)
+    setPickerDow(null)
+  }
+
+  /** Atribui `sectionIdx` ao dia `dow`; `null` marca descanso explícito. */
+  function assignDay(plan: TrainingPlan, dow: number, sectionIdx: number | null) {
+    const current = getScheduleOverride(plan)
+    persistSchedule(plan, { ...current, [dow]: sectionIdx })
+  }
+
+  /** Remove o override do dia, voltando à sugestão automática. */
+  function clearDayOverride(plan: TrainingPlan, dow: number) {
+    const current = getScheduleOverride(plan)
+    if (!(dow in current)) { setPickerDow(null); return }
+    const next = { ...current }
+    delete next[dow]
+    persistSchedule(plan, next)
   }
 
   // ── Auto-save (debounced) ────────────────────────────────────────────────────
@@ -590,29 +684,34 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   const focusSections = getParsed(focusPlan)?.sections ?? []
   const suggestIdx = Math.min(entryHint?.suggestIdx ?? 0, Math.max(0, focusSections.length - 1))
 
-  // Fita semanal SEG–DOM: só quando os títulos das secções trazem o dia da
-  // semana (ex.: "Terça - B Costas"). Cada célula liga o dia à sua sessão.
-  const hasWeekdaySchedule = focusSections.some(s => sectionWeekday(s.title) !== null)
+  // Fita semanal SEG–DOM: mostrada quando os títulos trazem o dia da semana,
+  // quando há overrides configurados, ou enquanto o utilizador está a editar
+  // a agenda (permite montá-la do zero mesmo sem dia nos títulos).
+  const scheduleOverride = getScheduleOverride(focusPlan)
+  const autoHasWeekday = focusSections.some(s => sectionWeekday(s.title) !== null)
+  const hasWeekdaySchedule = autoHasWeekday || Object.keys(scheduleOverride).length > 0 || editingWeek
   const todayDow = parseLocalDate(today).getDay()
   const weekMonday = startOfWeek(parseLocalDate(today), { weekStartsOn: 1 })
   const WEEK_LABELS = ['SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SÁB', 'DOM']
+  const WEEK_FULL_LABELS = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado']
   const weekStrip = hasWeekdaySchedule
     ? WEEK_LABELS.map((label, i) => {
         const dow = (i + 1) % 7 // SEG=1 … SÁB=6, DOM=0
-        const sectionIdxForDay = focusSections.findIndex(s => sectionWeekday(s.title) === dow)
-        const section = sectionIdxForDay >= 0 ? focusSections[sectionIdxForDay] : null
+        const assignment = resolveDayAssignment(dow, focusSections, scheduleOverride)
+        const section = assignment.kind === 'section' ? focusSections[assignment.idx] : null
         const dateStr = format(addDays(weekMonday, i), 'yyyy-MM-dd')
         return {
           label,
-          sectionIdx: sectionIdxForDay,
+          dow,
+          assignment,
           letter: section ? (sectionLetter(cleanSectionTitle(section.title)) ?? '•') : null,
           isToday: dow === todayDow,
           done: entryHint?.doneDates.includes(dateStr) ?? false,
         }
       })
     : null
-  const weekTarget = hasWeekdaySchedule
-    ? focusSections.filter(s => sectionWeekday(s.title) !== null).length
+  const weekTarget = weekStrip
+    ? weekStrip.filter(d => d.assignment.kind === 'section').length
     : focusSections.length
   const weekDone = entryHint?.doneDates.length ?? 0
   const suggestedMinutes = focusSections[suggestIdx]
@@ -654,44 +753,68 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--gold)', background: 'rgba(232,168,56,.13)', borderRadius: 100, padding: '6px 13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {prettyPlanName(focusPlan.title)}
             </span>
-            <button
-              onClick={() => setShowSelector(true)}
-              style={{ background: 'none', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text3)', cursor: 'pointer', flexShrink: 0, padding: '4px 2px' }}
-            >
-              {weekTarget > 0 ? `${weekTarget}× / semana · ` : ''}trocar
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+              {focusSections.length > 0 && (
+                <button
+                  onClick={() => { setEditingWeek(v => !v); setPickerDow(null) }}
+                  style={{ background: 'none', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: editingWeek ? 700 : 400, color: editingWeek ? 'var(--accent)' : 'var(--text3)', cursor: 'pointer', padding: '4px 2px' }}
+                >
+                  {editingWeek ? 'concluído' : 'editar dias'}
+                </button>
+              )}
+              <button
+                onClick={() => setShowSelector(true)}
+                style={{ background: 'none', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text3)', cursor: 'pointer', padding: '4px 2px' }}
+              >
+                {weekTarget > 0 ? `${weekTarget}× / semana · ` : ''}trocar
+              </button>
+            </div>
           </div>
 
-          {/* Fita semanal SEG–DOM (títulos com dia da semana) */}
+          {/* Fita semanal SEG–DOM: sugestão automática, editável por dia */}
           {weekStrip && (
             <div style={{ display: 'flex', gap: 5 }}>
-              {weekStrip.map(day => (
+              {weekStrip.map(day => {
+                const isRest = day.assignment.kind === 'rest'
+                return (
                 <button
                   key={day.label}
                   onClick={() => {
-                    if (day.sectionIdx >= 0) selectSection(focusPlan.id, day.sectionIdx, focusSections[day.sectionIdx].title)
+                    if (editingWeek) { setPickerDow(day.dow); return }
+                    if (day.assignment.kind === 'section') selectSection(focusPlan.id, day.assignment.idx, focusSections[day.assignment.idx].title)
                   }}
-                  disabled={day.sectionIdx < 0}
-                  aria-label={day.letter ? `${day.label}: treino ${day.letter}` : `${day.label}: descanso`}
+                  aria-label={
+                    editingWeek
+                      ? `Editar treino de ${WEEK_FULL_LABELS[day.dow]}`
+                      : day.assignment.kind === 'section' ? `${day.label}: treino ${day.letter}` : `${day.label}: descanso`
+                  }
                   style={{
                     flex: 1,
                     borderRadius: 11,
                     padding: '8px 0 7px',
                     textAlign: 'center',
-                    cursor: day.sectionIdx >= 0 ? 'pointer' : 'default',
-                    background: day.isToday ? 'rgba(232,168,56,.14)' : 'var(--bg1)',
-                    border: `1px solid ${day.isToday ? 'rgba(232,168,56,.5)' : day.done ? 'rgba(30,203,180,.4)' : 'var(--border)'}`,
+                    cursor: 'pointer',
+                    background: day.isToday && !editingWeek ? 'rgba(232,168,56,.14)' : 'var(--bg1)',
+                    border: editingWeek
+                      ? `1px dashed ${day.assignment.overridden ? 'rgba(127,119,221,.6)' : 'rgba(var(--ink-rgb),.18)'}`
+                      : `1px solid ${day.isToday ? 'rgba(232,168,56,.5)' : day.done ? 'rgba(30,203,180,.4)' : 'var(--border)'}`,
                   }}
                 >
                   <div style={{ fontSize: 9, color: 'var(--text3)', letterSpacing: '0.03em', fontFamily: 'DM Sans, sans-serif' }}>
                     {day.label}
                   </div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: day.letter ? 800 : 600, fontSize: 14, marginTop: 3, color: day.done ? 'var(--teal)' : day.isToday ? 'var(--gold)' : day.letter ? 'var(--text1)' : 'var(--text3)' }}>
-                    {day.done ? '✓' : (day.letter ?? '·')}
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: day.letter ? 800 : 600, fontSize: 14, marginTop: 3, color: day.done ? 'var(--teal)' : day.isToday ? 'var(--gold)' : isRest ? 'var(--text3)' : day.letter ? 'var(--text1)' : 'var(--text3)' }}>
+                    {day.done ? '✓' : isRest ? '–' : (day.letter ?? '·')}
                   </div>
                 </button>
-              ))}
+                )
+              })}
             </div>
+          )}
+          {editingWeek && (
+            <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11.5, color: 'var(--text3)', margin: '-4px 2px 0' }}>
+              Toca num dia para escolher o treino dele. Roxo = trocado por ti.
+            </p>
           )}
 
           {/* Card da sessão sugerida */}
@@ -723,13 +846,15 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                 <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: 'var(--bg2)', borderRadius: 10, padding: '9px 11px', marginBottom: 12 }}>
                   <span style={{ fontSize: 14, flexShrink: 0 }}>🧭</span>
                   <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text1)', lineHeight: 1.45 }}>
-                    {entryHint.suggestIsToday
-                      ? weekDone === 0
-                        ? 'É o treino marcado para hoje — bora abrir bem a semana.'
-                        : `É o treino de hoje. Já são ${weekDone} na semana — segue o ritmo.`
-                      : weekDone === 0
-                        ? 'Primeira sessão da semana — a rotação sugere esta.'
-                        : `Boa constância: ${weekDone} esta semana. A rotação sugere esta.`}
+                    {entryHint.isRestDay
+                      ? 'Marcaste hoje como descanso — mas se mudares de ideia, aqui vai uma sugestão.'
+                      : entryHint.suggestIsToday
+                        ? weekDone === 0
+                          ? 'É o treino marcado para hoje — bora abrir bem a semana.'
+                          : `É o treino de hoje. Já são ${weekDone} na semana — segue o ritmo.`
+                        : weekDone === 0
+                          ? 'Primeira sessão da semana — a rotação sugere esta.'
+                          : `Boa constância: ${weekDone} esta semana. A rotação sugere esta.`}
                   </span>
                 </div>
               )}
@@ -774,6 +899,65 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* ── Bottom sheet: escolher/limpar o treino de um dia da semana ─────── */}
+      {pickerDow !== null && focusPlan && (
+        <div
+          style={{ position: 'fixed', inset: 0, zIndex: 9999, background: 'rgba(0,0,0,.65)', display: 'flex', alignItems: 'flex-end' }}
+          onClick={e => e.target === e.currentTarget && setPickerDow(null)}
+        >
+          <div style={{ width: '100%', maxWidth: 448, margin: '0 auto', background: 'var(--bg1)', borderRadius: '20px 20px 0 0', borderTop: '1px solid var(--border)', padding: '20px 20px calc(20px + env(safe-area-inset-bottom))', maxHeight: 'min(80dvh, 640px)', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+              <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 16, color: 'var(--text1)', margin: 0 }}>
+                Treino de {WEEK_FULL_LABELS[pickerDow]}
+              </p>
+              <button onClick={() => setPickerDow(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--bg3)', border: 'none', cursor: 'pointer', color: 'var(--text2)' }}>
+                ✕
+              </button>
+            </div>
+            {(() => {
+              const currentAssignment = resolveDayAssignment(pickerDow, focusSections, scheduleOverride)
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, opacity: scheduleSaving ? 0.6 : 1, pointerEvents: scheduleSaving ? 'none' : 'auto' }}>
+                  {focusSections.map((s, i) => {
+                    const isSelected = currentAssignment.kind === 'section' && currentAssignment.idx === i
+                    return (
+                      <button
+                        key={i}
+                        onClick={() => assignDay(focusPlan, pickerDow, i)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', background: isSelected ? 'rgba(232,168,56,.12)' : 'var(--bg2)', border: `1px solid ${isSelected ? 'rgba(232,168,56,.5)' : 'var(--border)'}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer' }}
+                      >
+                        <span style={{ width: 26, height: 26, borderRadius: 8, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 12, color: 'var(--gold)', flexShrink: 0 }}>
+                          {sectionLetter(cleanSectionTitle(s.title)) ?? String(i + 1)}
+                        </span>
+                        <span style={{ flex: 1, minWidth: 0, fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, fontWeight: 600, color: 'var(--text1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {cleanSectionTitle(s.title)}
+                        </span>
+                        {isSelected && <span style={{ color: 'var(--gold)', flexShrink: 0 }}>✓</span>}
+                      </button>
+                    )
+                  })}
+                  <button
+                    onClick={() => assignDay(focusPlan, pickerDow, null)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', background: currentAssignment.kind === 'rest' ? 'rgba(127,119,221,.12)' : 'var(--bg2)', border: `1px solid ${currentAssignment.kind === 'rest' ? 'rgba(127,119,221,.5)' : 'var(--border)'}`, borderRadius: 12, padding: '12px 14px', cursor: 'pointer' }}
+                  >
+                    <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, fontWeight: 600, color: 'var(--text2)', flex: 1 }}>💤 Descanso</span>
+                    {currentAssignment.kind === 'rest' && <span style={{ color: 'var(--accent)' }}>✓</span>}
+                  </button>
+                  {currentAssignment.overridden && (
+                    <button
+                      onClick={() => clearDayOverride(focusPlan, pickerDow)}
+                      style={{ marginTop: 4, background: 'none', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: 12.5, color: 'var(--text3)', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textAlign: 'left', padding: '4px 2px' }}
+                    >
+                      Voltar à sugestão automática
+                    </button>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
         </div>
       )}
 
