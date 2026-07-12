@@ -20,7 +20,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
       <div style={{ ...card, display: 'grid', gap: 8 }}>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15 }}>
+        <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 15 }}>
           Pre-visualizacao
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, fontSize: 12 }}>
@@ -37,7 +37,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
 
       {result.warnings.length > 0 && (
         <div style={{ ...card, border: '0.5px solid rgba(232,168,56,.35)' }}>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, marginBottom: 8, color: 'var(--gold)' }}>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, marginBottom: 8, color: 'var(--gold)' }}>
             Atencao
           </div>
           <div style={{ display: 'grid', gap: 6 }}>
@@ -54,7 +54,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
         <>
           <div style={card}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 10, alignItems: 'center' }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14 }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14 }}>
                 Leitura base do PDF
               </div>
               <div style={{ fontSize: 12, color: result.hasUsefulText ? 'var(--teal)' : 'var(--gold)' }}>
@@ -104,7 +104,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
           {result.sheets.map((sheet) => (
             <div key={sheet.name} style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 10, alignItems: 'center' }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14 }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14 }}>
                   {sheet.name}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>

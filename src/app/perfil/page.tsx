@@ -286,7 +286,7 @@ export default function PerfilPage() {
               <div style={{ padding: '18px 24px 14px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 20 }}>{sectionMeta[editSection].icon}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>{sectionMeta[editSection].title}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 18 }}>{sectionMeta[editSection].title}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{sectionMeta[editSection].sub}</div>
                 </div>
                 <button onClick={() => setEditSection(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--bg3)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text2)' }}>✕</button>
@@ -295,8 +295,8 @@ export default function PerfilPage() {
                 {renderSectionFields()}
               </div>
               <div style={{ padding: '12px 24px calc(20px + env(safe-area-inset-bottom))', background: 'var(--bg1)', borderTop: '0.5px solid var(--border)', display: 'flex', gap: 10 }}>
-                <button onClick={() => setEditSection(null)} style={{ flex: 1, padding: '14px 0', borderRadius: 14, border: '0.5px solid var(--border)', background: 'var(--bg3)', color: 'var(--text2)', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
-                <button onClick={saveSection} disabled={saving} style={{ flex: 1, padding: '14px 0', borderRadius: 14, border: 'none', background: 'var(--gold)', color: 'var(--on-bright)', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+                <button onClick={() => setEditSection(null)} style={{ flex: 1, padding: '14px 0', borderRadius: 14, border: '0.5px solid var(--border)', background: 'var(--bg3)', color: 'var(--text2)', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={saveSection} disabled={saving} style={{ flex: 1, padding: '14px 0', borderRadius: 14, border: 'none', background: 'var(--gold)', color: 'var(--on-bright)', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
                   {saving ? 'A guardar…' : 'Guardar'}
                 </button>
               </div>
@@ -361,7 +361,7 @@ export default function PerfilPage() {
       </div>
       <div style={{ padding: '0 20px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 2 }}>Perfil</h1>
+          <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 2 }}>Perfil</h1>
           <p style={{ fontSize: 12, color: 'var(--text3)' }}>{form.username || 'Utilizador'}</p>
         </div>
         <button
@@ -374,7 +374,7 @@ export default function PerfilPage() {
             border: 'none',
             borderRadius: 12,
             padding: '10px 20px',
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontWeight: 700,
             fontSize: 13,
             cursor: 'pointer',
@@ -387,7 +387,7 @@ export default function PerfilPage() {
       {profile && (
         <>
           <div style={{ padding: '0 20px', marginBottom: 18 }}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, marginBottom: 10 }}>Estatísticas rápidas</div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, marginBottom: 10 }}>Estatísticas rápidas</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
               {[
                 { label: 'Ritmo', value: ritmo, color: 'var(--gold)' },
@@ -396,7 +396,7 @@ export default function PerfilPage() {
                 { label: 'Máximo', value: profile.streak_best, color: 'var(--text2)' },
               ].map((item) => (
                 <div key={item.label} style={{ background: 'var(--bg2)', border: '0.5px solid var(--border)', borderRadius: 12, padding: '12px 10px' }}>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: item.color, marginBottom: 4 }}>{item.value}</div>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: item.color, marginBottom: 4 }}>{item.value}</div>
                   <div style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.2 }}>{item.label}</div>
                 </div>
               ))}
@@ -404,7 +404,7 @@ export default function PerfilPage() {
           </div>
 
           <div style={{ padding: '0 20px', marginBottom: 20 }}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, marginBottom: 10 }}>As tuas conquistas</div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, marginBottom: 10 }}>As tuas conquistas</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
               {LOCKED_BADGES.map((badge) => {
                 const unlocked = earnedKeys.has(badge.key)
@@ -458,7 +458,7 @@ export default function PerfilPage() {
             borderRadius: 16,
             padding: '15px',
             marginTop: 24,
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontWeight: 700,
             fontSize: 15,
             cursor: 'pointer',
@@ -480,7 +480,7 @@ export default function PerfilPage() {
             borderRadius: 14,
             background: 'transparent',
             color: '#E24B4A',
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontWeight: 700,
             fontSize: 14,
             cursor: 'pointer',
@@ -520,7 +520,7 @@ export default function PerfilPage() {
           style={{
             width: '100%', border: '0.5px solid var(--border)', borderRadius: 12,
             padding: '11px 16px', background: 'transparent', color: 'var(--text1)',
-            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13,
+            fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13,
             cursor: dangerBusy ? 'not-allowed' : 'pointer', opacity: dangerBusy === 'export' ? 0.6 : 1,
           }}
         >
@@ -564,7 +564,7 @@ export default function PerfilPage() {
           style={{
             width: '100%', border: '0.5px solid rgba(226,75,74,.4)', borderRadius: 12,
             padding: '11px 16px', background: 'transparent', color: '#E24B4A',
-            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13,
+            fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13,
             cursor: dangerBusy ? 'not-allowed' : 'pointer', opacity: dangerBusy === 'reset' ? 0.6 : 1,
           }}
         >
@@ -596,7 +596,7 @@ export default function PerfilPage() {
           style={{
             width: '100%', border: 'none', borderRadius: 12,
             padding: '12px 16px', background: '#E24B4A', color: '#fff',
-            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13,
+            fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13,
             cursor: dangerBusy ? 'not-allowed' : 'pointer', opacity: dangerBusy === 'delete' ? 0.6 : 1,
           }}
         >

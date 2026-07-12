@@ -155,7 +155,7 @@ export default function ProgramaPage() {
   if (noProgram) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '0 20px', background: 'var(--bg0)', textAlign: 'center' }}>
-        <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--text1)' }}>Nenhum programa ativo</p>
+        <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--text1)' }}>Nenhum programa ativo</p>
         <p style={{ fontSize: 13, color: 'var(--text3)' }}>Faça seu diagnóstico para gerar seu plano.</p>
         <button className="btn-primary" onClick={() => router.push('/onboarding-v2')}>
           Fazer diagnóstico
@@ -173,7 +173,7 @@ export default function ProgramaPage() {
           </button>
 
           <div style={{ flex: 1, minWidth: 260 }}>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 34, lineHeight: 1, color: 'var(--text1)', marginBottom: 8 }}>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 34, lineHeight: 1, color: 'var(--text1)', marginBottom: 8 }}>
               Seu Programa
             </div>
             <div style={{ fontSize: 13, color: 'var(--text3)' }}>
@@ -186,21 +186,21 @@ export default function ProgramaPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 16 }}>
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14 }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Progresso total</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--teal)' }}>{progressPct}%</div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--teal)' }}>{progressPct}%</div>
             </div>
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14 }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Dias concluídos</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--gold)' }}>{completedDays}</div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--gold)' }}>{completedDays}</div>
             </div>
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14 }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Tasks concluídas</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--accent)' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--accent)' }}>
                 {completedTasks}/{totalTasks}
               </div>
             </div>
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14 }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Fase atual</div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--text1)' }}>{currentWeek?.theme ?? '-'}</div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--text1)' }}>{currentWeek?.theme ?? '-'}</div>
             </div>
           </div>
 
@@ -222,7 +222,7 @@ export default function ProgramaPage() {
               </button>
 
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--text1)' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--text1)' }}>
                   Semana {selectedWeek}
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text3)' }}>
@@ -265,7 +265,7 @@ export default function ProgramaPage() {
                     <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.6px', color: status === 'today' ? 'var(--accent)' : 'var(--text3)', marginBottom: 8 }}>
                       {status === 'today' ? 'Hoje' : DAY_LABELS[index]}
                     </div>
-                    <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--text1)', marginBottom: 10 }}>
+                    <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--text1)', marginBottom: 10 }}>
                       {day.day_number}
                     </div>
                     <div style={{ width: '100%', height: 4, background: 'var(--bg3)', borderRadius: 999, overflow: 'hidden', marginBottom: 8 }}>
@@ -304,7 +304,7 @@ export default function ProgramaPage() {
               <div style={{ fontSize: 11, color: 'var(--accent)', textTransform: 'uppercase', letterSpacing: '.8px', marginBottom: 6 }}>
                 Planejamento do dia
               </div>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--text1)', marginBottom: 4 }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--text1)', marginBottom: 4 }}>
                 {selectedDay
                   ? `${DAY_LABELS[(currentWeek?.days.findIndex(day => day.id === selectedDay.id) ?? 0)]} | Dia ${selectedDay.day_number}`
                   : 'Selecione um dia'}

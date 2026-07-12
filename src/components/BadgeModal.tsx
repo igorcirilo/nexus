@@ -53,7 +53,7 @@ export default function BadgeModal({ badges, onClose }: Props) {
           {BADGE_ICONS[badge.key] ?? '🎖️'}
         </div>
         <div style={{
-          fontFamily: 'Syne, sans-serif', fontWeight: 800,
+          fontFamily: 'Inter, sans-serif', fontWeight: 800,
           fontSize: 10, letterSpacing: 2.5,
           color: 'var(--gold)', marginBottom: 10,
           textTransform: 'uppercase',
@@ -61,7 +61,7 @@ export default function BadgeModal({ badges, onClose }: Props) {
           Conquista desbloqueada
         </div>
         <div style={{
-          fontFamily: 'Syne, sans-serif', fontWeight: 700,
+          fontFamily: 'Inter, sans-serif', fontWeight: 700,
           fontSize: 22, color: 'var(--text1)', marginBottom: 12,
         }}>
           {badge.name}
@@ -75,7 +75,7 @@ export default function BadgeModal({ badges, onClose }: Props) {
             background: 'var(--gold)', color: 'var(--on-bright)',
             border: 'none', borderRadius: 12,
             padding: '13px 36px',
-            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14,
+            fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14,
             cursor: 'pointer',
           }}
         >

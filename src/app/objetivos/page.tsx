@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import { format, addDays } from 'date-fns'
 import Nav from '@/components/Nav'
 import ObjetivosHub from '@/components/objetivos/ObjetivosHub'
-import { supabase, requireUser, getGoals90, saveGoal90, deleteGoal90, getMilestonesForGoals, toggleMilestone } from '@/lib/supabase'
+import { supabase, requireUser, getGoals90, saveGoal90, deleteGoal90, getMilestonesForGoals, toggleMilestone, addGoalMilestones } from '@/lib/supabase'
+import { suggestMilestones } from '@/lib/goal-milestones'
 import { AREA_META } from '@/types'
 import type { Goal90, HabitArea } from '@/types'
 
@@ -74,18 +75,29 @@ export default function ObjetivosPage() {
     setShowForm(true)
   }
 
+  // Marcos sugeridos ("ciência do hábito") entram junto com cada objetivo novo;
+  // o utilizador renomeia/apaga no detalhe. Edição de objetivo não regenera.
+  async function seedMilestones(goalId: string, startDate: string, endDate: string) {
+    if (!userId) return
+    await addGoalMilestones(goalId, userId, suggestMilestones(startDate, endDate))
+  }
+
   // Adiciona um objetivo-modelo direto da lista de sugestões (janela padrão de 90 dias).
   async function addSuggestion(title: string, area: HabitArea) {
     if (!userId) return
-    await saveGoal90({
+    const startDate = format(new Date(), 'yyyy-MM-dd')
+    const endDate = format(addDays(new Date(), 90), 'yyyy-MM-dd')
+    const { data } = await saveGoal90({
       user_id: userId,
       title,
       area,
-      start_date: format(new Date(), 'yyyy-MM-dd'),
-      end_date: format(addDays(new Date(), 90), 'yyyy-MM-dd'),
+      start_date: startDate,
+      end_date: endDate,
       progress: 0,
       status: 'active',
     })
+    const created = data as Goal90 | null
+    if (created?.id) await seedMilestones(created.id, startDate, endDate)
     await loadGoals(userId)
     showToast('Objetivo adicionado!')
   }
@@ -106,7 +118,11 @@ export default function ObjetivosPage() {
       progress: fProgress, status: 'active',
       ...(editGoal ? { id: editGoal.id } : {}),
     }
-    await saveGoal90(payload)
+    const { data } = await saveGoal90(payload)
+    if (!editGoal) {
+      const created = data as Goal90 | null
+      if (created?.id) await seedMilestones(created.id, fStart, fEnd)
+    }
     await loadGoals(userId)
     setShowForm(false)
     showToast(editGoal ? 'Objectivo actualizado!' : 'Objectivo criado!')
@@ -314,6 +330,11 @@ export default function ObjetivosPage() {
                         textDecorationColor: 'rgba(var(--ink-rgb),0.2)',
                         overflowWrap: 'anywhere',
                       }}>{m.title}</span>
+                      {m.due_date && (
+                        <span style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--text3)' }}>
+                          até {new Date(m.due_date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>

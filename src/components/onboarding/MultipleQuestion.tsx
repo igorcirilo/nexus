@@ -36,7 +36,7 @@ export function MultipleQuestion({ question, value, onChange }: Props) {
     <div>
       <p
         style={{
-          fontFamily: 'Syne, sans-serif',
+          fontFamily: 'Inter, sans-serif',
           fontWeight: 700,
           fontSize: 20,
           color: 'var(--text1)',

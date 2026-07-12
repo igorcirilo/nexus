@@ -9,10 +9,11 @@ import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import Icon, { type IconName } from '@/components/ui/Icon'
 import { useToast } from '@/components/Toast'
 import { getDietPlans, saveDietPlan } from '@/lib/supabase'
-import { getDietMeals, upsertDietMeal, deleteDietPlan, DIET_PLAN_STORAGE_KEY } from '@/lib/body'
+import { getDietMeals, getDietMealsForRange, upsertDietMeal, deleteDietPlan, DIET_PLAN_STORAGE_KEY } from '@/lib/body'
 import { parseDietImport, normalizeDisplayText, type ParsedDietPlan } from '@/lib/body-plan'
 import type { DietPlan, DietMeal, DietMealKey, FileImportResult } from '@/types'
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts'
+import { format, subDays } from 'date-fns'
+import { parseLocalDate } from '@/lib/date'
 
 const MEALS = [
   { key: 'pequeno_almoco', label: 'Café da manhã', icon: 'coffee' },
@@ -227,6 +228,16 @@ function getParsed(plan: DietPlan | null): ParsedDietPlan | null {
   return raw?.parsedPlan ?? null
 }
 
+// Nome do plano vem do ficheiro (ex.: "dieta_2700kcal_macros"). Para exibir,
+// troca separadores por espaços e capitaliza; mantém números colados a kcal.
+function prettyDietName(title: string): string {
+  return normalizeDisplayText(title)
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b([a-zà-ú])/gi, (c) => c.toUpperCase())
+}
+
 interface Props {
   userId: string
   today: string
@@ -243,6 +254,9 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
   const [showImport, setShowImport] = useState(false)
   const [importReview, setImportReview] = useState<{ result: FileImportResult; parsed: ParsedDietPlan } | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  // Aderência dos últimos 7 dias: um dia conta como "no plano" se teve ao menos
+  // uma refeição concluída. Deriva do histórico real de diet_meals.
+  const [adherence, setAdherence] = useState<{ days: { date: string; done: boolean }[]; streak: number } | null>(null)
   const noteTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
 
   // Restaura a dieta selecionada (compartilhada com o Resumo via localStorage).
@@ -281,6 +295,29 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
 
     loadMeals()
   }, [today, userId])
+
+  // Carrega a aderência da semana (histórico de refeições concluídas).
+  useEffect(() => {
+    let cancelled = false
+    async function loadAdherence() {
+      const start = format(subDays(parseLocalDate(today), 6), 'yyyy-MM-dd')
+      const rows = (await getDietMealsForRange(userId, start, today)) as DietMeal[]
+      if (cancelled) return
+      const doneDates = new Set(rows.filter((r) => r.completed).map((r) => r.date))
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const d = format(subDays(parseLocalDate(today), 6 - i), 'yyyy-MM-dd')
+        return { date: d, done: doneDates.has(d) }
+      })
+      let streak = 0
+      for (let i = days.length - 1; i >= 0; i--) {
+        if (days[i].done) streak++
+        else break
+      }
+      setAdherence({ days, streak })
+    }
+    loadAdherence()
+    return () => { cancelled = true }
+  }, [today, userId, meals])
 
   const selectedPlan = plans.find((p) => p.id === selectedId) ?? null
   const parsed = getParsed(selectedPlan)
@@ -469,14 +506,14 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
     }
   }
 
-  const macroChartData = [
-    { name: 'Carboidratos', key: 'carboidratos', value: Math.round(macroSelecionados.carboidratos), color: 'var(--gold)' },
-    { name: 'Proteínas', key: 'proteinas', value: Math.round(macroSelecionados.proteinas), color: 'var(--teal)' },
-    { name: 'Gorduras', key: 'gorduras', value: Math.round(macroSelecionados.gorduras), color: 'var(--accent)' },
-  ]
-  const totalMacrosSelecionados = macroChartData.reduce((acc, m) => acc + m.value, 0)
-  const macroPieData = macroChartData.filter((m) => m.value > 0)
   const hasMacroData = macroPlano.carboidratos + macroPlano.proteinas + macroPlano.gorduras > 0
+  // Anéis consumido/meta: proteína, carboidrato, gordura (com as cores do app).
+  const ringData = [
+    { lb: 'Prot', sel: macroSelecionados.proteinas, plan: macroPlano.proteinas, color: 'var(--teal)' },
+    { lb: 'Carb', sel: macroSelecionados.carboidratos, plan: macroPlano.carboidratos, color: 'var(--gold)' },
+    { lb: 'Gord', sel: macroSelecionados.gorduras, plan: macroPlano.gorduras, color: 'var(--accent)' },
+  ]
+  const macroRingMask = 'radial-gradient(circle 21px at center, transparent 98%, #000 100%)'
 
   // Renderiza as refeições a partir do plano importado (não da lista fixa):
   // refeições fora do molde padrão também aparecem, com ícone/rótulo genérico.
@@ -528,20 +565,22 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 10 }}>
               <div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: 'var(--text1)', marginBottom: 4 }}>
-                  {normalizeDisplayText(selectedPlan?.title ?? 'Plano alimentar')}
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 18, fontWeight: 700, color: 'var(--text1)', marginBottom: 4 }}>
+                  {prettyDietName(selectedPlan?.title ?? 'Plano alimentar')}
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--text3)' }}>{normalizeDisplayText(parsed.summary)}</div>
+                <div style={{ fontSize: 12, color: 'var(--text3)' }}>
+                  {mealProgress.totalMeals} {mealProgress.totalMeals === 1 ? 'refeição' : 'refeições'} · {mealProgress.totalItems} itens
+                </div>
               </div>
               <div style={{ display: 'flex', gap: 18 }}>
                 <div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--teal)' }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--teal)' }}>
                     {mealProgress.doneMeals}/{mealProgress.totalMeals}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)' }}>refeições</div>
                 </div>
                 <div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--gold)' }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--gold)' }}>
                     {mealProgress.doneItems}/{mealProgress.totalItems}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)' }}>itens</div>
@@ -563,12 +602,12 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
 
           {hasMacroData && (
             <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 8, flexWrap: 'wrap' }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--text1)' }}>
-                  Macronutrientes selecionados
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--text1)' }}>
+                  Meta do dia
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--gold)' }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--gold)' }}>
                     {Math.round(kcalSelecionadas)}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--text3)' }}>
@@ -577,50 +616,61 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                 </div>
               </div>
 
-              {totalMacrosSelecionados > 0 ? (
-                <>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={macroPieData}
-                        dataKey="value"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={80}
-                        paddingAngle={2}
-                        stroke="var(--bg1)"
-                        strokeWidth={2}
-                      >
-                        {macroPieData.map((m) => (
-                          <Cell key={m.key} fill={m.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 8, fontFamily: 'DM Sans, sans-serif', fontSize: 13, color: 'var(--text1)' }}
-                        formatter={(value: number, name: string) => [`${value} g`, name]}
+              {/* Anéis consumido/meta — preenchem à medida que marcas os itens. */}
+              <div style={{ display: 'flex', justifyContent: 'space-around', gap: 6 }}>
+                {ringData.map((r) => {
+                  const pct = r.plan > 0 ? Math.min(1, r.sel / r.plan) : 0
+                  return (
+                    <div key={r.lb} style={{ width: 66, textAlign: 'center' }}>
+                      <div
+                        style={{
+                          width: 66,
+                          height: 66,
+                          borderRadius: '50%',
+                          margin: '0 auto 6px',
+                          background: `conic-gradient(${r.color} 0 ${pct * 100}%, var(--bg3) ${pct * 100}% 100%)`,
+                          WebkitMaskImage: macroRingMask,
+                          maskImage: macroRingMask,
+                        }}
+                        role="img"
+                        aria-label={`${r.lb}: ${Math.round(r.sel)} de ${Math.round(r.plan)} gramas`}
                       />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
-                    {macroChartData.map((m) => {
-                      const pct = totalMacrosSelecionados > 0 ? Math.round((m.value / totalMacrosSelecionados) * 100) : 0
-                      return (
-                        <span key={m.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--text2)' }}>
-                          <span style={{ width: 9, height: 9, borderRadius: 2, background: m.color }} />
-                          {m.name}: <strong style={{ color: 'var(--text1)' }}>{m.value} g</strong>
-                          <span style={{ color: 'var(--text3)' }}>({pct}%)</span>
-                        </span>
-                      )
-                    })}
-                  </div>
-                </>
-              ) : (
-                <div style={{ padding: '24px 8px', textAlign: 'center', fontSize: 13, color: 'var(--text3)' }}>
-                  Marque os itens das refeições para ver os macros somados.
-                </div>
-              )}
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 13, color: r.color }}>
+                        {Math.round(r.sel)}
+                        <span style={{ color: 'var(--text3)', fontWeight: 600, fontSize: 10 }}>/{Math.round(r.plan)}</span>
+                      </div>
+                      <div style={{ fontSize: 9.5, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '0.04em', marginTop: 1 }}>
+                        {r.lb}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Aderência da semana */}
+          {adherence && (
+            <div style={{ background: 'var(--bg1)', border: '1px solid rgba(30,203,180,.28)', borderRadius: 16, padding: '14px 16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text3)' }}>
+                  No plano · esta semana
+                </span>
+                {adherence.streak > 0 && (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    🔥 {adherence.streak} {adherence.streak === 1 ? 'dia' : 'dias'}
+                  </span>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: 5 }}>
+                {adherence.days.map((d) => (
+                  <div
+                    key={d.date}
+                    title={d.date}
+                    style={{ flex: 1, aspectRatio: '1 / 1', borderRadius: 5, background: d.done ? 'var(--teal)' : 'var(--bg3)' }}
+                  />
+                ))}
+              </div>
             </div>
           )}
 
@@ -695,7 +745,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                   </span>
                   <span
                     style={{
-                      fontFamily: 'Syne, sans-serif',
+                      fontFamily: 'Inter, sans-serif',
                       fontSize: 15,
                       fontWeight: 700,
                       color: done ? 'var(--teal)' : 'var(--text1)',
@@ -801,27 +851,33 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                             </span>
                           </span>
 
-                          <span
-                            style={{
-                              display: 'flex',
-                              flexWrap: 'wrap',
-                              gap: 10,
-                              fontSize: 11,
-                              lineHeight: 1.45,
-                              textDecoration: checked ? 'line-through' : 'none',
-                              opacity: checked ? 0.7 : 0.95,
-                            }}
-                          >
-                            <span style={{ color: 'var(--text3)', opacity: parsedItem.macros.proteinas ? 1 : 0.6 }}>
-                              proteínas: {parsedItem.macros.proteinas ?? '--'}
-                            </span>
-                            <span style={{ color: 'var(--text3)', opacity: parsedItem.macros.carboidratos ? 1 : 0.6 }}>
-                              carboidratos: {parsedItem.macros.carboidratos ?? '--'}
-                            </span>
-                            <span style={{ color: 'var(--text3)', opacity: parsedItem.macros.gorduras ? 1 : 0.6 }}>
-                              gorduras: {parsedItem.macros.gorduras ?? '--'}
-                            </span>
-                          </span>
+                          {(() => {
+                            const pv = parseGramsValue(parsedItem.macros.proteinas)
+                            const cv = parseGramsValue(parsedItem.macros.carboidratos)
+                            const gv = parseGramsValue(parsedItem.macros.gorduras)
+                            const tot = pv + cv + gv
+                            if (tot <= 0) return null
+                            const bars = [
+                              { lb: 'P', v: pv, color: 'var(--teal)' },
+                              { lb: 'C', v: cv, color: 'var(--gold)' },
+                              { lb: 'G', v: gv, color: 'var(--accent)' },
+                            ]
+                            return (
+                              <span style={{ display: 'flex', gap: 10, opacity: checked ? 0.6 : 1 }}>
+                                {bars.map((b) => (
+                                  <span key={b.lb} style={{ flex: 1, minWidth: 0 }}>
+                                    <span style={{ display: 'flex', justifyContent: 'space-between', fontSize: 9.5, color: 'var(--text3)', marginBottom: 3 }}>
+                                      <span>{b.lb}</span>
+                                      <span>{Math.round(b.v)}g</span>
+                                    </span>
+                                    <span style={{ display: 'block', height: 4, borderRadius: 2, background: 'var(--bg3)', overflow: 'hidden' }}>
+                                      <span style={{ display: 'block', height: '100%', width: `${(b.v / tot) * 100}%`, background: b.color, borderRadius: 2 }} />
+                                    </span>
+                                  </span>
+                                ))}
+                              </span>
+                            )
+                          })()}
 
                           {parsedItem.extras.length > 0 && (
                             <span

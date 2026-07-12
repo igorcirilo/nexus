@@ -22,6 +22,7 @@ export type HubMilestone = {
   goal_id: string
   title: string
   done: boolean
+  due_date?: string | null
 }
 
 interface Props {
@@ -355,13 +356,18 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                             {m.done ? '✓' : String(mi + 1)}
                           </div>
                           <div style={{
-                            fontSize: 12, fontWeight: 500,
+                            flex: 1, minWidth: 0, fontSize: 12, fontWeight: 500,
                             color: m.done ? 'rgba(var(--ink-rgb),0.45)' : 'rgba(var(--ink-rgb),0.8)',
                             textDecoration: m.done ? 'line-through' : 'none',
                             textDecorationColor: 'rgba(var(--ink-rgb),0.2)',
                           }}>
                             {m.title}
                           </div>
+                          {m.due_date && !m.done && (
+                            <div style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--text3)', flexShrink: 0 }}>
+                              até {new Date(m.due_date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

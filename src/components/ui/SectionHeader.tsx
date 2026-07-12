@@ -11,7 +11,7 @@ interface SectionHeaderProps {
 export default function SectionHeader({ title, action }: SectionHeaderProps) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-3)', marginBottom: 10 }}>
-      <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--text1)' }}>
+      <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--text1)' }}>
         {title}
       </h2>
       {action && (
@@ -23,7 +23,7 @@ export default function SectionHeader({ title, action }: SectionHeaderProps) {
             border: 'none',
             background: 'transparent',
             color: 'var(--accent)',
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontWeight: 700,
             fontSize: 'var(--text-sm)',
             cursor: 'pointer',

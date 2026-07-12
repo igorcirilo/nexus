@@ -161,6 +161,14 @@ export default function TodayRemindersList({ items, onToggle, onCreate, onDelete
               <span style={{ color: item.color, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {item.itemType === 'event' ? 'Agenda' : 'Lembrete'}
               </span>
+              {item.carriedFromDate && (
+                <>
+                  <span style={{ color: 'var(--text3)', flexShrink: 0 }}>·</span>
+                  <span style={{ color: 'var(--gold)', fontWeight: 600, flexShrink: 0 }}>
+                    desde {new Date(`${item.carriedFromDate}T12:00:00`).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
+                  </span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -184,7 +192,7 @@ export default function TodayRemindersList({ items, onToggle, onCreate, onDelete
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, lineHeight: 1.2, color: 'var(--text1)' }}>
+          <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 18, lineHeight: 1.2, color: 'var(--text1)' }}>
             Lembretes de hoje
           </h2>
           <span style={{ fontSize: 12.5, color: 'var(--text3)', fontFamily: 'var(--font-dm), "DM Sans", sans-serif' }}>

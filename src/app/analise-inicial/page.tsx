@@ -131,7 +131,7 @@ export default function AnaliseInicialPage() {
         <div
           style={{
             margin: '20px 0 4px',
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontWeight: 800,
             fontSize: 64,
             color: 'var(--gold)',
@@ -149,7 +149,7 @@ export default function AnaliseInicialPage() {
           <div key={area} className="card" style={{ padding: '14px 16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <span style={{ fontSize: 13, color: 'var(--text2)', fontFamily: 'DM Sans, sans-serif' }}>{AREA_LABELS[area]}</span>
-              <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)' }}>{scores[area]}</span>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)' }}>{scores[area]}</span>
             </div>
             <div style={{ background: 'var(--bg3)', height: 4, borderRadius: 100, overflow: 'hidden' }}>
               <div
@@ -167,7 +167,7 @@ export default function AnaliseInicialPage() {
       </div>
 
       {/* Seletor de nível */}
-      <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, color: 'var(--text1)', marginBottom: 4 }}>
+      <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 18, color: 'var(--text1)', marginBottom: 4 }}>
         Escolha sua intensidade
       </h2>
       <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 14 }}>
@@ -205,7 +205,7 @@ export default function AnaliseInicialPage() {
             >
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)' }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)' }}>
                     Nível {spec.level} · {spec.label}
                   </span>
                   {isSuggested && (

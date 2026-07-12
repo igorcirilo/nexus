@@ -91,6 +91,17 @@ export async function getDietMeals(userId: string, date: string) {
   return data ?? []
 }
 
+export async function getDietMealsForRange(userId: string, startDate: string, endDate: string) {
+  const { data, error } = await supabase
+    .from('diet_meals')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', startDate)
+    .lte('date', endDate)
+  if (error) { reportErr('getDietMealsForRange', error.message); return [] }
+  return data ?? []
+}
+
 export async function upsertDietMeal(payload: {
   user_id: string
   diet_plan_id: string

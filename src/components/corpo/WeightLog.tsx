@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from 'recharts'
 import { format } from 'date-fns'
 import { pt } from 'date-fns/locale'
-import EmptyState from '@/components/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
 import { useToast } from '@/components/Toast'
 import { getWeightLogs, upsertWeightLog, deleteWeightLog, type WeightLog } from '@/lib/body'
@@ -133,7 +132,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
             </div>
             {!heightEditing && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Syne, sans-serif' }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Inter, sans-serif' }}>
                   {heightCm} cm
                 </span>
                 <button onClick={() => setHeightEditing(true)} style={{ fontSize: 12, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
@@ -170,7 +169,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
             {!goalEditing && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 {goalWeight !== null && (
-                  <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Syne, sans-serif' }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Inter, sans-serif' }}>
                     {Number(goalWeight)} kg
                   </span>
                 )}
@@ -231,7 +230,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
             ref={weightInputRef}
             type="number"
             inputMode="decimal"
-            placeholder="75.4"
+            placeholder={latest ? String(Number(latest.weight_kg)) : '75.4'}
             value={weightIn}
             onChange={e => setWeightIn(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') handleSave() }}
@@ -282,7 +281,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
             <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
               Último
             </div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Syne, sans-serif' }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Inter, sans-serif' }}>
               {Number(latest.weight_kg)} kg
             </div>
           </div>
@@ -301,7 +300,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
               <div style={{
                 fontSize: 20,
                 fontWeight: 700,
-                fontFamily: 'Syne, sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 color: 'var(--text1)',
               }}>
                 {deltaLabel}
@@ -323,7 +322,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
               <div style={{
                 fontSize: 20,
                 fontWeight: 700,
-                fontFamily: 'Syne, sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 color: 'var(--text1)',
               }}>
                 {goalDeltaLabel}
@@ -455,18 +454,26 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
         </div>
       )}
 
+      {/* Prévia da tendência: ocupa o lugar do gráfico até haver 2 registos,
+          em vez de um estado vazio separado que duplicava o botão de registrar. */}
+      {logs.length < 2 && (
+        <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px' }}>
+          <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, marginBottom: 10 }}>
+            Tendência
+          </div>
+          <div style={{ position: 'relative', height: 100, borderRadius: 12, border: '1px dashed var(--border)', background: 'linear-gradient(180deg, rgba(30,203,180,.08), transparent 80%)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+            <svg viewBox="0 0 200 90" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.35 }} aria-hidden="true">
+              <polyline points="0,60 40,55 80,58 120,48 160,44 200,38" fill="none" stroke="var(--teal)" strokeWidth={2} />
+            </svg>
+            <span style={{ position: 'relative', fontSize: 11, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif', background: 'var(--bg2)', padding: '4px 10px', borderRadius: 100 }}>
+              {logs.length === 0 ? 'Seu gráfico aparece a partir do 2º registro' : 'Mais um registro e o gráfico aparece'}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* History list */}
-      {logs.length === 0 ? (
-        <EmptyState
-          icon="scale"
-          title="Registre seu peso hoje"
-          body="Registre seu peso hoje e acompanhe sua tendência ao longo do tempo."
-          action={{
-            label: 'Inserir peso',
-            onClick: () => weightInputRef.current?.focus(),
-          }}
-        />
-      ) : (
+      {logs.length > 0 && (
         <div>
           <div style={{
             fontSize: 11,

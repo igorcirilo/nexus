@@ -15,15 +15,18 @@ const TYPES = [
 
 type Reminder = {
   id: string
-  user_id: string
+  // getReminders não devolve user_id/description; ficam opcionais para o cast.
+  user_id?: string
   title: string
-  description: string | null
+  description?: string | null
   time: string | null
   days: number[]
   active: boolean
   type: string
   /** Preenchida = lembrete avulso só desse dia (quick-add); null = recorrente. */
   date?: string | null
+  /** Conclusão definitiva de um avulso (carry-over na página Hoje). */
+  completed_at?: string | null
 }
 
 type FormState = {
@@ -129,12 +132,12 @@ export default function LembretesPage() {
       {/* Header */}
       <div style={{ padding: '28px 20px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 2 }}>Lembretes</h1>
+          <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 2 }}>Lembretes</h1>
           <p style={{ fontSize: 12, color: 'var(--text3)' }}>{reminders.filter(r => r.active).length} activos</p>
         </div>
         <button onClick={() => { setForm(EMPTY); setShowForm(true) }} style={{
           background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 12,
-          padding: '10px 18px', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+          padding: '10px 18px', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer',
         }}>+ Novo</button>
       </div>
 
@@ -142,15 +145,15 @@ export default function LembretesPage() {
       {reminders.length === 0 && (
         <div style={{ margin: '0 20px', padding: 24, borderRadius: 16, background: 'var(--bg2)', border: '0.5px solid var(--border)', textAlign: 'center' }}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Sem lembretes</div>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Sem lembretes</div>
           <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6 }}>Adiciona lembretes para os check-ins ou cria os teus.</p>
           <button onClick={addDefault} style={{
             width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
-            borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginBottom: 10,
+            borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', marginBottom: 10,
           }}>Adicionar lembretes padrão</button>
           <button onClick={() => setShowForm(true)} style={{
             width: '100%', background: 'transparent', color: 'var(--accent)', border: '0.5px solid rgba(127,119,221,.28)',
-            borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 14, cursor: 'pointer',
+            borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 14, cursor: 'pointer',
           }}>Criar personalizado</button>
         </div>
       )}
@@ -176,7 +179,7 @@ export default function LembretesPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--text1)', marginBottom: 3 }}>{r.title}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, color: 'var(--gold)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
+                <span style={{ fontSize: 12, color: 'var(--gold)', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
                   {r.time ? r.time.slice(0,5) : 'Sem hora'}
                 </span>
                 {r.date ? (
@@ -244,7 +247,7 @@ export default function LembretesPage() {
             maxHeight: 'min(86dvh, 720px)', overflowY: 'auto',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-              <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>
+              <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 18 }}>
                 {form.id ? 'Editar' : 'Novo'} lembrete
               </h2>
               <button onClick={() => setShowForm(false)} style={{
@@ -291,7 +294,7 @@ export default function LembretesPage() {
 
             <button onClick={save} disabled={saving || !form.title.trim()} style={{
               width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
-              borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14,
+              borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14,
               cursor: 'pointer', opacity: form.title.trim() ? 1 : 0.5,
             }}>
               {saving ? 'A guardar…' : 'Guardar lembrete'}

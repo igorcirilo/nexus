@@ -34,6 +34,7 @@ import {
   getDayChecks,
   toggleDayItemCheck,
   saveReminder,
+  setReminderCompletedAt,
   deleteAgendaEvent,
   deleteReminder,
   supabase,
@@ -57,7 +58,7 @@ type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[
 // Forma devolvida por getReminders; days chega como text[] da BD (strings),
 // por isso fica unknown e a coerção vive em buildTodayReminderItems. date
 // preenchida = lembrete avulso desse dia (quick-add); null = recorrente.
-type ReminderRow = { id: string; title: string; time: string | null; days: unknown; active: boolean; type: string; date: string | null }
+type ReminderRow = { id: string; title: string; time: string | null; days: unknown; active: boolean; type: string; date: string | null; completed_at?: string | null }
 
 const cleanDisplayText = repairMojibake
 
@@ -275,6 +276,14 @@ export default function HojeClient({
       triggerToast('Não foi possível guardar. Tenta de novo.')
       return
     }
+    // Avulso (date preenchida): o check do dia é também a conclusão definitiva
+    // — sem completed_at ele carregaria para amanhã; desmarcar volta a carregar.
+    const row = reminders.find((r) => r.id === item.id)
+    if (item.itemType === 'reminder' && row?.date) {
+      const completedAt = done ? new Date().toISOString() : null
+      await setReminderCompletedAt(item.id, completedAt)
+      setReminders((prev) => prev.map((r) => (r.id === item.id ? { ...r, completed_at: completedAt } : r)))
+    }
     if (done) triggerToast(`${cleanDisplayText(item.title)} — feito`)
   }
 
@@ -476,7 +485,7 @@ export default function HojeClient({
             <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 2 }}>
               {greeting}, {profile?.username ?? 'Guerreiro'}
             </p>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>Hoje</h1>
+            <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>Hoje</h1>
           </div>
         </div>
 

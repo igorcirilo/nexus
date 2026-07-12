@@ -4,8 +4,8 @@ import { buildTodayReminderItems, isOverdue, isReminderDueOn, REMINDER_ACCENT } 
 // 2026-07-06 é uma segunda-feira (getDay() = 1).
 const MONDAY = new Date('2026-07-06T12:00:00')
 
-function reminder(overrides: Partial<{ id: string; title: string; time: string | null; days: unknown; active: boolean; date: string | null }> = {}) {
-  return { id: 'r1', title: 'Beber água', time: '09:00', days: [1], active: true, date: null, ...overrides }
+function reminder(overrides: Partial<{ id: string; title: string; time: string | null; days: unknown; active: boolean; date: string | null; completed_at: string | null }> = {}) {
+  return { id: 'r1', title: 'Beber água', time: '09:00', days: [1], active: true, date: null, completed_at: null, ...overrides }
 }
 
 function event(overrides: Partial<{ id: string; title: string; time: string | null; all_day: boolean; color: string }> = {}) {
@@ -53,7 +53,7 @@ describe('isOverdue', () => {
 })
 
 describe('buildTodayReminderItems', () => {
-  it('lembrete avulso (date) aparece só no próprio dia, ignorando days', () => {
+  it('lembrete avulso (date) aparece do seu dia em diante, ignorando days', () => {
     const items = buildTodayReminderItems({
       events: [],
       reminders: [
@@ -64,6 +64,54 @@ describe('buildTodayReminderItems', () => {
       checks: {},
     })
     expect(items.map((i) => i.id)).toEqual(['hoje'])
+    expect(items[0].carriedFromDate).toBeNull()
+  })
+
+  it('avulso de dia anterior sem conclusão carrega para hoje com carriedFromDate', () => {
+    const items = buildTodayReminderItems({
+      events: [],
+      reminders: [reminder({ id: 'ontem', days: [], date: '2026-07-03' })],
+      date: MONDAY,
+      checks: {},
+    })
+    expect(items.map((i) => i.id)).toEqual(['ontem'])
+    expect(items[0].carriedFromDate).toBe('2026-07-03')
+    expect(items[0].done).toBe(false)
+  })
+
+  it('avulso concluído num dia anterior não aparece mais', () => {
+    const items = buildTodayReminderItems({
+      events: [],
+      reminders: [reminder({ id: 'feito', days: [], date: '2026-07-03', completed_at: '2026-07-04T10:00:00Z' })],
+      date: MONDAY,
+      checks: {},
+    })
+    expect(items).toEqual([])
+  })
+
+  it('avulso concluído hoje continua visível como done (grupo Concluídos)', () => {
+    const items = buildTodayReminderItems({
+      events: [],
+      reminders: [reminder({ id: 'hoje', days: [], date: '2026-07-06', completed_at: '2026-07-06T12:00:00Z' })],
+      date: MONDAY,
+      checks: { 'reminder:hoje': true },
+    })
+    expect(items.map((i) => i.id)).toEqual(['hoje'])
+    expect(items[0].done).toBe(true)
+  })
+
+  it('recorrente não é afetado por completed_at nem carrega entre dias', () => {
+    const items = buildTodayReminderItems({
+      events: [],
+      reminders: [
+        reminder({ id: 'seg', days: [1], completed_at: '2026-07-01T08:00:00Z' }),
+        reminder({ id: 'ter', days: [2] }),
+      ],
+      date: MONDAY,
+      checks: {},
+    })
+    expect(items.map((i) => i.id)).toEqual(['seg'])
+    expect(items[0].carriedFromDate).toBeNull()
   })
 
   it('exclui lembretes inativos e não devidos hoje', () => {

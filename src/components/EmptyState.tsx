@@ -55,7 +55,7 @@ export default function EmptyState(props: Props) {
           border: '0.5px solid rgba(232,168,56,.2)',
         }}
       >
-        <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--text1)', marginBottom: 4 }}>
+        <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 'var(--text-md)', color: 'var(--text1)', marginBottom: 4 }}>
           Olá, {props.username}
         </div>
         <div style={{ fontSize: 'var(--text-base)', color: 'var(--text2)', lineHeight: 1.5 }}>
@@ -110,7 +110,7 @@ function GenericEmptyState({ icon, title, body, action }: GenericProps) {
       <div>
         <h3
           style={{
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontSize: 'var(--text-md)',
             fontWeight: 700,
             color: 'var(--text1)',
@@ -136,7 +136,7 @@ function GenericEmptyState({ icon, title, body, action }: GenericProps) {
             background: 'var(--gold)',
             color: 'var(--on-bright)',
             textDecoration: 'none',
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontWeight: 700,
             fontSize: 'var(--text-base)',
             touchAction: 'manipulation',
@@ -155,7 +155,7 @@ function GenericEmptyState({ icon, title, body, action }: GenericProps) {
             background: 'var(--gold)',
             color: 'var(--on-bright)',
             padding: '0 var(--space-4)',
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontWeight: 700,
             fontSize: 'var(--text-base)',
             cursor: 'pointer',

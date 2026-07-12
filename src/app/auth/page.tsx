@@ -173,10 +173,10 @@ export default function AuthPage() {
         {/* Hero: logo + título + subtítulo + pills (pills só em mobile) */}
         <div className="orbit-hero">
           <div style={{ display:'flex', alignItems:'center', gap:9, marginBottom:22 }}>
-            <span style={{ width:32, height:32, borderRadius:10, background:'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--on-bright)', fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:16 }}>N</span>
-            <span style={{ fontFamily:'Syne, sans-serif', fontWeight:700, fontSize:19, color:'var(--text1)' }}>NEXUS</span>
+            <span style={{ width:32, height:32, borderRadius:10, background:'var(--gold)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--on-bright)', fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:16 }}>N</span>
+            <span style={{ fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:19, color:'var(--text1)' }}>NEXUS</span>
           </div>
-          <h1 style={{ fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:27, lineHeight:1.14, letterSpacing:'-.6px', color:'var(--text1)', marginBottom:10 }}>
+          <h1 style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:27, lineHeight:1.14, letterSpacing:'-.6px', color:'var(--text1)', marginBottom:10 }}>
             {isNew ? 'Cria a tua conta' : 'O teu assistente pessoal de evolução'}
           </h1>
           <p style={{ color:'var(--text2)', fontSize:14, lineHeight:1.5 }}>
@@ -268,7 +268,7 @@ export default function AuthPage() {
           <button onClick={submit} disabled={loading || !canSubmit} style={{
             width:'100%', height:52, border:'none', borderRadius:14, cursor: canSubmit ? 'pointer' : 'default',
             display:'flex', alignItems:'center', justifyContent:'center', gap:8,
-            fontFamily:'Syne, sans-serif', fontWeight:700, fontSize:15, transition:'all .15s',
+            fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:15, transition:'all .15s',
             background: canSubmit ? 'var(--gold)' : 'var(--bg3)',
             color:      canSubmit ? 'var(--on-bright)' : 'var(--text3)',
             opacity: loading ? 0.7 : 1,
@@ -322,23 +322,23 @@ export default function AuthPage() {
             <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:96, height:22, background:'#000', borderRadius:'0 0 14px 14px' }} />
             <div style={{ marginTop:14 }}>
               <div style={{ fontSize:11, color:'#9BA0B0' }}>Quinta · 18 jun</div>
-              <div style={{ fontFamily:'Syne, sans-serif', fontWeight:700, fontSize:20, marginTop:2, color:'#F0EDE8' }}>Olá, Igor 👋</div>
+              <div style={{ fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:20, marginTop:2, color:'#F0EDE8' }}>Olá, Igor 👋</div>
             </div>
             {/* Próxima ação */}
             <div style={{ marginTop:14, background:'linear-gradient(135deg,rgba(232,168,56,.18),rgba(232,168,56,.05))', border:'1px solid rgba(232,168,56,.3)', borderRadius:16, padding:14 }}>
               <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'.1em', color:'#E8A838' }}>Próxima ação</div>
               <div style={{ fontWeight:700, fontSize:14, marginTop:4, color:'#F0EDE8' }}>Treino de força · 18:00</div>
-              <div style={{ marginTop:10, height:34, borderRadius:9, background:'#E8A838', color:'#0D0F14', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:12.5, fontFamily:'Syne, sans-serif' }}>Começar agora →</div>
+              <div style={{ marginTop:10, height:34, borderRadius:9, background:'#E8A838', color:'#0D0F14', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:12.5, fontFamily:'Inter, sans-serif' }}>Começar agora →</div>
             </div>
             {/* Métricas */}
             <div style={{ display:'flex', gap:9, marginTop:12 }}>
               <div style={{ flex:1, background:'#161824', border:'1px solid rgba(255,255,255,.07)', borderRadius:13, padding:11 }}>
                 <div style={{ fontSize:9, color:'#9BA0B0' }}>Ofensiva</div>
-                <div style={{ fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:19, color:'#E24B4A' }}>47🔥</div>
+                <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:19, color:'#E24B4A' }}>47🔥</div>
               </div>
               <div style={{ flex:1, background:'#161824', border:'1px solid rgba(255,255,255,.07)', borderRadius:13, padding:11 }}>
                 <div style={{ fontSize:9, color:'#9BA0B0' }}>Nível</div>
-                <div style={{ fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:19, color:'#7F77DD' }}>12</div>
+                <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:19, color:'#7F77DD' }}>12</div>
               </div>
             </div>
             {/* Hábitos */}

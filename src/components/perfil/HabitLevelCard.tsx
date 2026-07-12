@@ -39,7 +39,7 @@ export default function HabitLevelCard({ userId, currentLevel }: Props) {
 
   return (
     <div style={{ margin: '0 20px 20px', padding: '16px', background: 'var(--bg2)', borderRadius: 16, border: '0.5px solid var(--border)' }}>
-      <h3 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)', marginBottom: 2 }}>
+      <h3 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 15, color: 'var(--text1)', marginBottom: 2 }}>
         Nível de hábitos
       </h3>
       <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 12 }}>
@@ -69,7 +69,7 @@ export default function HabitLevelCard({ userId, currentLevel }: Props) {
                 minHeight: 56,
               }}
             >
-              <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 16, color: active ? 'var(--gold)' : 'var(--text1)' }}>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 16, color: active ? 'var(--gold)' : 'var(--text1)' }}>
                 {spec.level}
               </span>
               <span style={{ fontSize: 9, color: 'var(--text3)' }}>{spec.total} háb.</span>
@@ -93,7 +93,7 @@ export default function HabitLevelCard({ userId, currentLevel }: Props) {
           minHeight: 44,
           borderRadius: 12,
           border: 'none',
-          fontFamily: 'Syne, sans-serif',
+          fontFamily: 'Inter, sans-serif',
           fontWeight: 800,
           fontSize: 14,
           cursor: !dirty || saving ? 'not-allowed' : 'pointer',

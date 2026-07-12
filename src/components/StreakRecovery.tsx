@@ -33,7 +33,7 @@ export default function StreakRecovery({ prevBest, canRecover, onRecover, onDism
 
       <div style={{ fontSize: 32, marginBottom: 12 }}>🌱</div>
 
-      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--text1)', marginBottom: 8, lineHeight: 1.3 }}>
+      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--text1)', marginBottom: 8, lineHeight: 1.3 }}>
         Ontem não aconteceu.<br />Hoje é o Dia 1.
       </div>
 
@@ -55,7 +55,7 @@ export default function StreakRecovery({ prevBest, canRecover, onRecover, onDism
             style={{
               width: '100%', background: 'var(--gold)', color: 'var(--on-bright)',
               border: 'none', borderRadius: 12, padding: '12px',
-              fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13,
+              fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13,
               cursor: 'pointer', marginBottom: 8,
             }}>
             🧊 Usar freeze — recuperar streak
@@ -72,7 +72,7 @@ export default function StreakRecovery({ prevBest, canRecover, onRecover, onDism
         style={{
           width: '100%', background: 'var(--bg3)', color: 'var(--text1)',
           border: '0.5px solid var(--border)', borderRadius: 12, padding: '12px',
-          fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 13,
+          fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13,
           cursor: 'pointer',
         }}>
         Fazer o check-in da manhã →

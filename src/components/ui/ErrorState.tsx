@@ -46,7 +46,7 @@ export default function ErrorState({
           justifyContent: 'center',
           background: 'rgba(226,75,74,.12)',
           color: 'var(--nred, #E24B4A)',
-          fontFamily: 'Syne, sans-serif',
+          fontFamily: 'Inter, sans-serif',
           fontWeight: 800,
           fontSize: 28,
           lineHeight: 1,
@@ -54,7 +54,7 @@ export default function ErrorState({
       >
         !
       </span>
-      <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--text1)' }}>
+      <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--text1)' }}>
         {title}
       </h1>
       <p style={{ fontSize: 14, color: 'var(--text2)', maxWidth: 320, lineHeight: 1.5 }}>{body}</p>
@@ -70,7 +70,7 @@ export default function ErrorState({
             borderRadius: 14,
             background: 'linear-gradient(180deg, #F4C85A, var(--gold))',
             color: 'var(--on-bright)',
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontWeight: 800,
             fontSize: 15,
             cursor: 'pointer',

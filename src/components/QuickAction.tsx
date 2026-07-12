@@ -207,7 +207,7 @@ export default function QuickAction() {
         <div onClick={()=>!habitSaving&&setShowHabit(false)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxHeight:'90vh',background:'var(--bg1)',borderTopLeftRadius:24,borderTopRightRadius:24,border:'0.5px solid var(--border)',display:'flex',flexDirection:'column'}}>
             <div style={{padding:'18px 24px 14px',borderBottom:'0.5px solid var(--border)'}}>
-              <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Novo hábito</div>
+              <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:18}}>Novo hábito</div>
               <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>Criação rápida sem sair da página.</div>
             </div>
             <div style={{padding:'18px 24px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:14}}>
@@ -247,8 +247,8 @@ export default function QuickAction() {
               </div>
             </div>
             <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)',display:'flex',gap:10}}>
-              <button onClick={()=>setShowHabit(false)} style={{flex:1,padding:'14px 0',borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancelar</button>
-              <button onClick={handleSaveHabit} disabled={habitSaving||!habitName.trim()} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'var(--teal)',color:'#0D0F14',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',opacity:habitSaving||!habitName.trim()?0.6:1}}>
+              <button onClick={()=>setShowHabit(false)} style={{flex:1,padding:'14px 0',borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancelar</button>
+              <button onClick={handleSaveHabit} disabled={habitSaving||!habitName.trim()} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'var(--teal)',color:'#0D0F14',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',opacity:habitSaving||!habitName.trim()?0.6:1}}>
                 {habitSaving?'A guardar…':'Guardar hábito'}
               </button>
             </div>
@@ -261,7 +261,7 @@ export default function QuickAction() {
         <div onClick={()=>!remSaving&&setShowReminder(false)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxHeight:'90vh',background:'var(--bg1)',borderTopLeftRadius:24,borderTopRightRadius:24,border:'0.5px solid var(--border)',display:'flex',flexDirection:'column'}}>
             <div style={{padding:'18px 24px 14px',borderBottom:'0.5px solid var(--border)'}}>
-              <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Novo lembrete</div>
+              <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:18}}>Novo lembrete</div>
               <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>Só para o dia escolhido. Se for hoje, aparece na página Hoje.</div>
             </div>
             <div style={{padding:'18px 24px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:14}}>
@@ -285,8 +285,8 @@ export default function QuickAction() {
               </div>
             </div>
             <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)',display:'flex',gap:10}}>
-              <button onClick={()=>setShowReminder(false)} style={{flex:1,padding:'14px 0',borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancelar</button>
-              <button onClick={handleSaveReminder} disabled={remSaving||!remTitle.trim()||!remDate} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'#F5C842',color:'#1A1200',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',opacity:remSaving||!remTitle.trim()||!remDate?0.6:1}}>
+              <button onClick={()=>setShowReminder(false)} style={{flex:1,padding:'14px 0',borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancelar</button>
+              <button onClick={handleSaveReminder} disabled={remSaving||!remTitle.trim()||!remDate} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'#F5C842',color:'#1A1200',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',opacity:remSaving||!remTitle.trim()||!remDate?0.6:1}}>
                 {remSaving?'A guardar…':'Guardar lembrete'}
               </button>
             </div>
@@ -299,7 +299,7 @@ export default function QuickAction() {
         <div onClick={()=>!txSaving&&setShowTransaction(false)} style={{position:'fixed',inset:0,zIndex:9999,background:'rgba(0,0,0,.65)',display:'flex',alignItems:'flex-end'}}>
           <div onClick={e=>e.stopPropagation()} style={{width:'100%',maxHeight:'90vh',background:'var(--bg1)',borderTopLeftRadius:24,borderTopRightRadius:24,border:'0.5px solid var(--border)',display:'flex',flexDirection:'column'}}>
             <div style={{padding:'18px 24px 14px',borderBottom:'0.5px solid var(--border)'}}>
-              <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18}}>Nova transação</div>
+              <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:18}}>Nova transação</div>
               <div style={{fontSize:12,color:'var(--text3)',marginTop:4}}>Registo rápido financeiro.</div>
             </div>
             <div style={{padding:'18px 24px',overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:14}}>
@@ -307,7 +307,7 @@ export default function QuickAction() {
               {/* Tipo */}
               <div style={{display:'flex',gap:8}}>
                 {(['saida','entrada'] as const).map(t=>(
-                  <button key={t} onClick={()=>setTxType(t)} style={{flex:1,padding:'11px 0',borderRadius:12,border:'none',cursor:'pointer',background:txType===t?(t==='saida'?'#E24B4A':'var(--teal)'):'var(--bg3)',color:txType===t?'#fff':'var(--text2)',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,transition:'all .15s'}}>
+                  <button key={t} onClick={()=>setTxType(t)} style={{flex:1,padding:'11px 0',borderRadius:12,border:'none',cursor:'pointer',background:txType===t?(t==='saida'?'#E24B4A':'var(--teal)'):'var(--bg3)',color:txType===t?'#fff':'var(--text2)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,transition:'all .15s'}}>
                     {t==='saida'?'↑ Saída':'↓ Entrada'}
                   </button>
                 ))}
@@ -391,8 +391,8 @@ export default function QuickAction() {
               )}
             </div>
             <div style={{padding:'12px 24px 48px',background:'var(--bg1)',borderTop:'0.5px solid var(--border)',display:'flex',gap:10}}>
-              <button onClick={()=>setShowTransaction(false)} style={{flex:1,padding:'14px 0',borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancelar</button>
-              <button onClick={handleSaveTransaction} disabled={txSaving||!canSaveTx} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'var(--gold)',color:'#0D0F14',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',opacity:txSaving||!canSaveTx?0.6:1}}>
+              <button onClick={()=>setShowTransaction(false)} style={{flex:1,padding:'14px 0',borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text2)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>Cancelar</button>
+              <button onClick={handleSaveTransaction} disabled={txSaving||!canSaveTx} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'var(--gold)',color:'#0D0F14',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer',opacity:txSaving||!canSaveTx?0.6:1}}>
                 {txSaving?'A guardar…':'Guardar transação'}
               </button>
             </div>
@@ -417,20 +417,20 @@ export default function QuickAction() {
                 />
               </svg>
               <div style={{position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center'}}>
-                <div style={{fontFamily:'Syne, sans-serif',fontWeight:800,fontSize:38,color:'var(--text1)',lineHeight:1,letterSpacing:'-1px'}}>{timeLabel}</div>
+                <div style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:38,color:'var(--text1)',lineHeight:1,letterSpacing:'-1px'}}>{timeLabel}</div>
                 <div style={{fontSize:11,color:'var(--text3)',marginTop:4}}>
                   {running?'em foco':secondsLeft===0?'sessão concluída':secondsLeft===25*60?'pronto':'pausado'}
                 </div>
               </div>
             </div>
             <div style={{display:'flex',gap:10}}>
-              <button onClick={()=>{ if(secondsLeft===0){setSecondsLeft(25*60);setPomodoroSaved(false)} setRunning(v=>!v) }} style={{flex:1,padding:'13px 0',borderRadius:14,border:'none',background:running?'var(--bg3)':'var(--accent)',color:running?'var(--text2)':'white',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
+              <button onClick={()=>{ if(secondsLeft===0){setSecondsLeft(25*60);setPomodoroSaved(false)} setRunning(v=>!v) }} style={{flex:1,padding:'13px 0',borderRadius:14,border:'none',background:running?'var(--bg3)':'var(--accent)',color:running?'var(--text2)':'white',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
                 {running?'Pausar':secondsLeft===0?'Nova sessão':'Iniciar'}
               </button>
-              <button onClick={()=>{ setRunning(false); setSecondsLeft(25*60); setPomodoroSaved(false) }} style={{width:48,borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text3)',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:18,cursor:'pointer'}}>↺</button>
+              <button onClick={()=>{ setRunning(false); setSecondsLeft(25*60); setPomodoroSaved(false) }} style={{width:48,borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text3)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:18,cursor:'pointer'}}>↺</button>
             </div>
             {secondsLeft===0&&(
-              <button onClick={savePomodoroIfNeeded} disabled={pomodoroSaved} style={{marginTop:12,width:'100%',padding:'12px 0',borderRadius:12,border:'none',background:pomodoroSaved?'var(--bg3)':'var(--teal)',color:pomodoroSaved?'var(--text2)':'#0D0F14',fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
+              <button onClick={savePomodoroIfNeeded} disabled={pomodoroSaved} style={{marginTop:12,width:'100%',padding:'12px 0',borderRadius:12,border:'none',background:pomodoroSaved?'var(--bg3)':'var(--teal)',color:pomodoroSaved?'var(--text2)':'#0D0F14',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
                 {pomodoroSaved?'Sessão guardada':'Guardar sessão'}
               </button>
             )}
@@ -449,7 +449,7 @@ export default function QuickAction() {
             {actions.map(a=>(
               <button key={a.label} onClick={a.onClick} style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg1)',border:`0.5px solid ${a.color}44`,borderRadius:14,padding:'10px 14px',cursor:'pointer',boxShadow:'0 4px 20px rgba(0,0,0,.35)',whiteSpace:'nowrap',minWidth:160}}>
                 <div style={{width:32,height:32,borderRadius:9,background:a.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,flexShrink:0}}>{a.icon}</div>
-                <span style={{fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:13,color:a.color}}>＋ {a.label}</span>
+                <span style={{fontFamily:'Inter, sans-serif',fontWeight:600,fontSize:13,color:a.color}}>＋ {a.label}</span>
               </button>
             ))}
           </div>
