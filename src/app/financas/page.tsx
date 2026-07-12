@@ -946,7 +946,7 @@ export default function FinancasPage() {
 
   if (loading) return (
     <div style={{display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh'}}>
-      <div style={{fontFamily:'Syne, sans-serif',color:'var(--text3)'}}>a carregar…</div>
+      <div style={{fontFamily:'Inter, sans-serif',color:'var(--text3)'}}>a carregar…</div>
     </div>
   )
 
@@ -957,7 +957,7 @@ export default function FinancasPage() {
       {csvPreview && (
         <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,.75)',zIndex:9000,display:'flex',alignItems:'flex-end'}}>
           <div style={{background:'var(--bg1)',borderRadius:'20px 20px 0 0',padding:'24px 20px',width:'100%',maxHeight:'80vh',display:'flex',flexDirection:'column',gap:12}}>
-            <div style={{fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:16,color:'var(--text1)'}}>
+            <div style={{fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:16,color:'var(--text1)'}}>
               Pré-visualização — {csvPreview.length} transações
             </div>
             <div style={{overflowY:'auto',flex:1,display:'flex',flexDirection:'column',gap:6}}>
@@ -977,8 +977,8 @@ export default function FinancasPage() {
               )}
             </div>
             <div style={{display:'flex',gap:10}}>
-              <button onClick={()=>setCsvPreview(null)} style={{flex:1,background:'var(--bg3)',color:'var(--text2)',border:'none',borderRadius:12,padding:13,fontFamily:'Syne, sans-serif',fontWeight:600,fontSize:13,cursor:'pointer'}}>Cancelar</button>
-              <button onClick={confirmCsvImport} disabled={csvImporting} style={{flex:2,background:'var(--gold)',color:'var(--on-bright)',border:'none',borderRadius:12,padding:13,fontFamily:'Syne, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',opacity:csvImporting?.6:1}}>
+              <button onClick={()=>setCsvPreview(null)} style={{flex:1,background:'var(--bg3)',color:'var(--text2)',border:'none',borderRadius:12,padding:13,fontFamily:'Inter, sans-serif',fontWeight:600,fontSize:13,cursor:'pointer'}}>Cancelar</button>
+              <button onClick={confirmCsvImport} disabled={csvImporting} style={{flex:2,background:'var(--gold)',color:'var(--on-bright)',border:'none',borderRadius:12,padding:13,fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer',opacity:csvImporting?.6:1}}>
                 {csvImporting?'A importar...':`Importar ${csvPreview.length} transações`}
               </button>
             </div>
@@ -997,7 +997,7 @@ export default function FinancasPage() {
           >
             <div style={{ padding: '20px 20px 14px', borderBottom: '0.5px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div>
-                <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--text1)', margin: 0 }}>Movimentos encontrados</p>
+                <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--text1)', margin: 0 }}>Movimentos encontrados</p>
                 <p style={{ fontSize: 12, color: 'var(--text3)', margin: '3px 0 0' }}>
                   {pdfPreview.candidates.filter(c => c.selected).length} de {pdfPreview.candidates.length} selecionados
                 </p>
@@ -1027,7 +1027,7 @@ export default function FinancasPage() {
                       {c.date ?? '—'} · {c.category}
                     </p>
                   </div>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, flexShrink: 0, color: c.type === 'entrada' ? 'var(--teal)' : '#E24B4A' }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 700, flexShrink: 0, color: c.type === 'entrada' ? 'var(--teal)' : '#E24B4A' }}>
                     {c.type === 'entrada' ? '+' : '−'}{c.amount?.toFixed(2)} €
                   </span>
                 </div>
@@ -1038,7 +1038,7 @@ export default function FinancasPage() {
               <button
                 disabled={csvImporting}
                 onClick={confirmPdfImport}
-                style={{ width: '100%', padding: 14, background: 'var(--teal)', color: 'var(--on-accent)', border: 'none', borderRadius: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
+                style={{ width: '100%', padding: 14, background: 'var(--teal)', color: 'var(--on-accent)', border: 'none', borderRadius: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
               >
                 {csvImporting ? 'A importar…' : `Importar ${pdfPreview.candidates.filter(c => c.selected).length} transações`}
               </button>

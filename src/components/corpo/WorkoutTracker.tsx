@@ -686,7 +686,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                   <div style={{ fontSize: 9, color: 'var(--text3)', letterSpacing: '0.03em', fontFamily: 'DM Sans, sans-serif' }}>
                     {day.label}
                   </div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: day.letter ? 800 : 600, fontSize: 14, marginTop: 3, color: day.done ? 'var(--teal)' : day.isToday ? 'var(--gold)' : day.letter ? 'var(--text1)' : 'var(--text3)' }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: day.letter ? 800 : 600, fontSize: 14, marginTop: 3, color: day.done ? 'var(--teal)' : day.isToday ? 'var(--gold)' : day.letter ? 'var(--text1)' : 'var(--text3)' }}>
                     {day.done ? '✓' : (day.letter ?? '·')}
                   </div>
                 </button>
@@ -710,7 +710,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
                 <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 19 }}>💪</div>
                 <div style={{ minWidth: 0 }}>
-                  <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--text1)', margin: 0, lineHeight: 1.25 }}>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--text1)', margin: 0, lineHeight: 1.25 }}>
                     {cleanSectionTitle(focusSections[suggestIdx].title)}
                   </p>
                   <p style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text2)', margin: '2px 0 0' }}>
@@ -735,7 +735,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
               )}
               <button
                 onClick={() => selectSection(focusPlan.id, suggestIdx, focusSections[suggestIdx].title)}
-                style={{ width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
+                style={{ width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
               >
                 Começar {cleanSectionTitle(focusSections[suggestIdx].title)}
               </button>
@@ -834,7 +834,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                 </p>
                 <p
                   style={{
-                    fontFamily: 'Syne, sans-serif',
+                    fontFamily: 'Inter, sans-serif',
                     fontSize: 17,
                     fontWeight: 700,
                     color: 'var(--text1)',
@@ -885,7 +885,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                 >
                   {saving ? 'Salvando…' : `${doneCount}/${totalCount} exercícios`}
                 </span>
-                <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>
+                <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 12, fontWeight: 700, color: 'var(--text2)' }}>
                   {focusExIdx + 1} / {totalCount}
                 </span>
               </div>
@@ -920,7 +920,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
             return (
               <div style={{ background: 'var(--bg1)', border: '1px solid rgba(232,168,56,.30)', borderRadius: 16, padding: 16 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, marginBottom: 4 }}>
-                  <p style={{ fontFamily: 'Syne, sans-serif', fontSize: 17, fontWeight: 800, color: 'var(--text1)', margin: 0, lineHeight: 1.25, minWidth: 0, overflowWrap: 'anywhere' }}>
+                  <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 17, fontWeight: 800, color: 'var(--text1)', margin: 0, lineHeight: 1.25, minWidth: 0, overflowWrap: 'anywhere' }}>
                     {currentEx.name}
                   </p>
                   {hint && (
@@ -949,7 +949,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                           placeholder="0"
                           aria-label={`Carga da série ${si + 1}`}
                           onChange={e => updateSet(currentEx.id, si, 'weight', e.target.value)}
-                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', textAlign: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: s.done ? 'var(--teal)' : 'var(--text1)', padding: 0 }}
+                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', textAlign: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 15, color: s.done ? 'var(--teal)' : 'var(--text1)', padding: 0 }}
                         />
                         <span style={{ display: 'block', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text3)' }}>KG</span>
                       </label>
@@ -961,7 +961,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                           placeholder="0"
                           aria-label={`Repetições da série ${si + 1}`}
                           onChange={e => updateSet(currentEx.id, si, 'reps', e.target.value)}
-                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', textAlign: 'center', fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 15, color: s.done ? 'var(--teal)' : 'var(--text1)', padding: 0 }}
+                          style={{ width: '100%', background: 'transparent', border: 'none', outline: 'none', textAlign: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 15, color: s.done ? 'var(--teal)' : 'var(--text1)', padding: 0 }}
                         />
                         <span style={{ display: 'block', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text3)' }}>REPS</span>
                       </label>
@@ -1012,7 +1012,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
           {/* Cronômetro de descanso */}
           {restEndsAt !== null && restRemaining > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(30,203,180,.10)', border: '1px solid rgba(30,203,180,.3)', borderRadius: 100, padding: '9px 12px' }}>
-              <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 15, color: 'var(--teal)' }}>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 15, color: 'var(--teal)' }}>
                 ⏱ Descanso · {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
               </span>
               <button
@@ -1036,14 +1036,14 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
             doneCount >= totalCount ? (
               <button
                 onClick={() => { toast.success('Treino concluído! 💪'); deselectSession() }}
-                style={{ width: '100%', background: 'var(--teal)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
+                style={{ width: '100%', background: 'var(--teal)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
               >
                 Concluir treino ✓
               </button>
             ) : (
               <button
                 onClick={() => { if (nextIncompleteIdx >= 0) setExIdx(nextIncompleteIdx) }}
-                style={{ width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
+                style={{ width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
               >
                 Próximo exercício →
               </button>

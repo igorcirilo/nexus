@@ -192,7 +192,7 @@ export default function TodayRemindersList({ items, onToggle, onCreate, onDelete
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, lineHeight: 1.2, color: 'var(--text1)' }}>
+          <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 18, lineHeight: 1.2, color: 'var(--text1)' }}>
             Lembretes de hoje
           </h2>
           <span style={{ fontSize: 12.5, color: 'var(--text3)', fontFamily: 'var(--font-dm), "DM Sans", sans-serif' }}>

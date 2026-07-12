@@ -306,7 +306,7 @@ export default function FileImportModal({
       <div style={modal} onClick={(event) => event.stopPropagation()}>
         <div style={{ padding: '16px 16px 12px', borderBottom: '0.5px solid var(--border)', display: 'flex', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18 }}>{title}</div>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 18 }}>{title}</div>
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>
               Upload com leitura base, preview e validacao inicial.
             </div>
@@ -326,7 +326,7 @@ export default function FileImportModal({
             background: 'var(--bg1)',
             cursor: 'pointer',
           }}>
-            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14 }}>Escolher ficheiro</span>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14 }}>Escolher ficheiro</span>
             <span style={{ fontSize: 12, color: 'var(--text3)' }}>
               Aceita {kind === 'pdf' ? 'PDF' : kind === 'spreadsheet' ? 'XLSX, XLS e CSV' : 'PDF, XLSX, XLS e CSV'}.
             </span>
@@ -338,7 +338,7 @@ export default function FileImportModal({
 
           {guide && (
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14, display: 'grid', gap: 10 }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13 }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13 }}>
                 Para o melhor aproveitamento
               </div>
               <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
@@ -393,7 +393,7 @@ export default function FileImportModal({
                   >
                     <span style={{ fontSize: 16, lineHeight: 1, color: 'var(--teal)' }}>↓</span>
                     <span style={{ display: 'grid', gap: 2 }}>
-                      <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 12 }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 12 }}>
                         Baixar {template.name} (XLSX)
                       </span>
                       <span style={{ fontSize: 11, color: 'var(--text3)', lineHeight: 1.4 }}>
@@ -442,7 +442,7 @@ export default function FileImportModal({
 
           {isUnusablePdf && (
             <div style={{ background: 'rgba(226,75,74,.08)', border: '0.5px solid rgba(226,75,74,.35)', borderRadius: 14, padding: 14, display: 'grid', gap: 10 }}>
-              <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, color: '#FFB4B1' }}>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, color: '#FFB4B1' }}>
                 Este PDF não tem texto extraível
               </div>
               <div style={{ fontSize: 12, color: 'var(--text2)', lineHeight: 1.5 }}>
@@ -471,7 +471,7 @@ export default function FileImportModal({
               border: '0.5px solid var(--border)',
               borderRadius: 12,
               padding: '10px 14px',
-              fontFamily: 'Syne, sans-serif',
+              fontFamily: 'Inter, sans-serif',
               fontWeight: 600,
               cursor: 'pointer',
             }}
@@ -488,7 +488,7 @@ export default function FileImportModal({
                 border: '0.5px solid var(--border)',
                 borderRadius: 12,
                 padding: '10px 14px',
-                fontFamily: 'Syne, sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 fontWeight: 600,
                 cursor: 'pointer',
               }}
@@ -507,7 +507,7 @@ export default function FileImportModal({
                     border: 'none',
                     borderRadius: 12,
                     padding: '10px 16px',
-                    fontFamily: 'Syne, sans-serif',
+                    fontFamily: 'Inter, sans-serif',
                     fontWeight: 700,
                     cursor: blocked ? 'not-allowed' : 'pointer',
                   }}

@@ -61,7 +61,7 @@ export default function TodayTaskList({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 2 }}>
-          <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 18, lineHeight: 1.2, color: 'var(--text1)' }}>
+          <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 18, lineHeight: 1.2, color: 'var(--text1)' }}>
             Próxima ação
           </h2>
           <a
@@ -210,7 +210,7 @@ export default function TodayTaskList({
                 borderRadius: 14,
                 background: 'linear-gradient(180deg, #F4C85A, var(--gold))',
                 color: 'var(--on-bright)',
-                fontFamily: 'Syne, sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 fontWeight: 800,
                 fontSize: 14,
                 cursor: 'pointer',

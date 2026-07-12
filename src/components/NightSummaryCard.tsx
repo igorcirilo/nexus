@@ -38,7 +38,7 @@ export default function NightSummaryCard({
           <div style={{ fontSize: 11, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '.6px', fontWeight: 700, marginBottom: 6 }}>
             Resumo do dia
           </div>
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 28, color: 'var(--gold)', lineHeight: 1 }}>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 28, color: 'var(--gold)', lineHeight: 1 }}>
             {ritmo}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>ritmo atual</div>
@@ -53,7 +53,7 @@ export default function NightSummaryCard({
             textAlign: 'center',
           }}
         >
-          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--text1)' }}>{streak}</div>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--text1)' }}>{streak}</div>
           <div style={{ fontSize: 11, color: 'var(--text3)' }}>streak</div>
         </div>
       </div>
@@ -93,7 +93,7 @@ export default function NightSummaryCard({
           border: 'none',
           borderRadius: 12,
           padding: '12px 14px',
-          fontFamily: 'Syne, sans-serif',
+          fontFamily: 'Inter, sans-serif',
           fontWeight: 700,
           fontSize: 14,
           cursor: 'pointer',

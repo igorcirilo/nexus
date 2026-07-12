@@ -7,7 +7,7 @@ export function ProgressBar({ current, total }: Props) {
     <div style={{ width: '100%', padding: '0 20px', marginBottom: 16 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>Pergunta {current} de {total}</span>
-        <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Syne, sans-serif', fontWeight: 600 }}>
+        <span style={{ fontSize: 12, color: 'var(--text3)', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
           {pct}%
         </span>
       </div>

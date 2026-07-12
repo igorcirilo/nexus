@@ -26,7 +26,7 @@ export function RankingQuestion({ question, value, onChange }: Props) {
     <div>
       <p
         style={{
-          fontFamily: 'Syne, sans-serif',
+          fontFamily: 'Inter, sans-serif',
           fontWeight: 700,
           fontSize: 20,
           color: 'var(--text1)',
@@ -77,7 +77,7 @@ export function RankingQuestion({ question, value, onChange }: Props) {
                   color: selected ? 'var(--bg0)' : 'var(--text3)',
                   fontSize: 12,
                   fontWeight: 700,
-                  fontFamily: 'Syne, sans-serif',
+                  fontFamily: 'Inter, sans-serif',
                 }}
               >
                 {rank ?? '·'}

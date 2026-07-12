@@ -95,7 +95,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
           <div>
             <p
               style={{
-                fontFamily: 'Syne, sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 fontSize: 18,
                 fontWeight: 700,
                 color: 'var(--text1)',
@@ -175,7 +175,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                   border: 'none',
                   borderRadius: 10,
                   padding: '12px 24px',
-                  fontFamily: 'Syne, sans-serif',
+                  fontFamily: 'Inter, sans-serif',
                   fontSize: 15,
                   fontWeight: 700,
                   cursor: 'pointer',
@@ -222,7 +222,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                         <div>
                           <p
                             style={{
-                              fontFamily: 'Syne, sans-serif',
+                              fontFamily: 'Inter, sans-serif',
                               fontSize: 15,
                               fontWeight: 700,
                               color: 'var(--text1)',

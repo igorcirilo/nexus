@@ -51,7 +51,7 @@ export default function CorpoClient({ userId, initialProfile, initialTrainingPla
   return (
     <main style={{ paddingBottom: 100, minHeight: '100vh' }}>
       <div style={{ padding: '28px 20px 0' }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 16 }}>
+        <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 16 }}>
           Corpo
         </h1>
 
@@ -67,7 +67,7 @@ export default function CorpoClient({ userId, initialProfile, initialTrainingPla
               background: tab === t.key ? 'var(--bg1)' : 'transparent',
               color: tab === t.key ? 'var(--gold)' : 'var(--text3)',
               transition: 'all .15s', fontSize: 9,
-              fontFamily: 'Syne, sans-serif', fontWeight: tab === t.key ? 600 : 400,
+              fontFamily: 'Inter, sans-serif', fontWeight: tab === t.key ? 600 : 400,
               touchAction: 'manipulation',
             }}>
               <Icon name={t.icon} size={17} color="currentColor" />

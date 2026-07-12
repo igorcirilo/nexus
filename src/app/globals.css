@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;700;800&family=DM+Sans:wght@300;400;500&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+/* ⚠️ TIPOGRAFIA — REGRA PERMANENTE:
+   A fonte "Syne" foi BANIDA do Nexus (decisão de design de 2026-07-12).
+   NUNCA a reintroduza — nem no import abaixo, nem em fontFamily inline,
+   nem no tailwind.config. Papéis atuais:
+   - Display/títulos/números de destaque: Inter (pesos 700–900)
+   - Corpo/texto corrido: DM Sans */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -154,7 +160,7 @@ body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; 
 .btn-primary {
   width: 100%; background: var(--gold); color: var(--on-bright);
   border: none; border-radius: 16px; padding: 15px;
-  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px;
+  font-family: 'Inter', sans-serif; font-weight: 700; font-size: 15px;
   cursor: pointer; transition: all .15s; letter-spacing: .3px; display: block;
 }
 .btn-primary:hover  { filter: brightness(1.08); transform: translateY(-1px); }
@@ -164,7 +170,7 @@ body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; 
   width: 100%; background: rgba(127,119,221,.08);
   border: 0.5px solid rgba(127,119,221,.28); color: var(--accent);
   border-radius: 12px; padding: 12px;
-  font-family: 'Syne', sans-serif; font-weight: 600; font-size: 13px;
+  font-family: 'Inter', sans-serif; font-weight: 600; font-size: 13px;
   cursor: pointer; transition: all .2s;
 }
 .btn-ghost:hover { background: rgba(127,119,221,.16); }
@@ -178,7 +184,7 @@ body { font-family: 'DM Sans', sans-serif; -webkit-font-smoothing: antialiased; 
 .chip-accent { background: rgba(127,119,221,.12); color: var(--accent); }
 
 .section-title {
-  font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 600;
+  font-family: 'Inter', sans-serif; font-size: 12px; font-weight: 600;
   color: var(--text3); text-transform: uppercase; letter-spacing: 1px;
   padding: 18px 20px 10px;
 }

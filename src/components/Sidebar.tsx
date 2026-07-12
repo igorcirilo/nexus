@@ -24,7 +24,7 @@ export default function Sidebar() {
       flexDirection: 'column', padding: '28px 16px 24px',
       position: 'sticky', top: 0, height: '100vh', overflowY: 'auto',
     }}>
-      <div style={{ fontFamily:'Syne, sans-serif', fontWeight:800, fontSize:22, color:'var(--gold)', letterSpacing:'-0.5px', marginBottom:32, paddingLeft:4 }}>
+      <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:22, color:'var(--gold)', letterSpacing:'-0.5px', marginBottom:32, paddingLeft:4 }}>
         NEXUS
       </div>
       <nav style={{ display:'flex', flexDirection:'column', gap:3 }}>

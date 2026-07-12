@@ -132,7 +132,7 @@ export default function OnboardingV2Page() {
           style={{
             fontSize: 11,
             color: 'var(--accent)',
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontWeight: 600,
             textTransform: 'uppercase',
             letterSpacing: 1,

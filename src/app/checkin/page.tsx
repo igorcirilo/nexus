@@ -47,7 +47,7 @@ function EnergySlider({ value, onChange }: { value: number; onChange: (v: number
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>Esgotado</span>
-        <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 28, color }}>{value}<span style={{ fontSize: 14, color: 'var(--text3)', fontWeight: 400 }}>/10</span></span>
+        <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 28, color }}>{value}<span style={{ fontSize: 14, color: 'var(--text3)', fontWeight: 400 }}>/10</span></span>
         <span style={{ fontSize: 12, color: 'var(--text3)' }}>Imparável</span>
       </div>
       <input
@@ -66,7 +66,7 @@ function EnergySlider({ value, onChange }: { value: number; onChange: (v: number
 function Question({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 24 }}>
-      <p style={{ fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 16, marginBottom: 12, lineHeight: 1.4, color: 'var(--text1)' }}>{label}</p>
+      <p style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, marginBottom: 12, lineHeight: 1.4, color: 'var(--text1)' }}>{label}</p>
       {children}
     </div>
   )
@@ -208,7 +208,7 @@ export default function CheckinPage() {
 
       {/* Phase tabs */}
       <div style={{ padding: '24px 20px 0' }}>
-        <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 16 }}>Check-in</h1>
+        <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, marginBottom: 16 }}>Check-in</h1>
         <div style={{ display: 'flex', gap: 8 }}>
           {(['manha', 'tarde', 'noite'] as Phase[]).map(p => {
             const done = donePhases.has(p)
@@ -227,7 +227,7 @@ export default function CheckinPage() {
               >
                 <span style={{ fontSize: 18 }}>{PHASE_EMOJI[p]}</span>
                 <span style={{
-                  fontSize: 11, fontFamily: 'Syne, sans-serif', fontWeight: 600,
+                  fontSize: 11, fontFamily: 'Inter, sans-serif', fontWeight: 600,
                   color: active ? 'var(--gold)' : done ? 'var(--teal)' : 'var(--text3)',
                 }}>
                   {LABELS[p]}{done ? ' ✓' : ''}
@@ -244,7 +244,7 @@ export default function CheckinPage() {
         {isDone && (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
             <div style={{ fontSize: 52, marginBottom: 12 }}>{PHASE_EMOJI[activePhase]}</div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, marginBottom: 6 }}>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, marginBottom: 6 }}>
               {LABELS[activePhase]} concluída!
             </div>
             <div style={{ fontSize: 14, color: 'var(--text2)', marginBottom: 28 }}>
@@ -267,7 +267,7 @@ export default function CheckinPage() {
                 style={{
                   width: '100%', background: 'var(--gold)', color: 'var(--on-bright)',
                   border: 'none', borderRadius: 14, padding: 14,
-                  fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                  fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                 }}
               >
                 {activePhase === 'manha' ? 'Ir para Tarde →' : 'Ir para Noite →'}
@@ -275,7 +275,7 @@ export default function CheckinPage() {
             )}
             {activePhase === 'noite' && donePhases.size === 3 && (
               <div style={{ background: 'rgba(232,168,56,.08)', border: '0.5px solid rgba(232,168,56,.22)', borderRadius: 14, padding: 16, marginTop: 8 }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--gold)', marginBottom: 4 }}>🔥 Dia completo!</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--gold)', marginBottom: 4 }}>🔥 Dia completo!</div>
                 <div style={{ fontSize: 13, color: 'var(--text2)' }}>Todos os check-ins feitos. Streak actualizado.</div>
               </div>
             )}
@@ -299,7 +299,7 @@ export default function CheckinPage() {
                   style={{
                     width: '100%', marginTop: 24, background: sleep ? 'var(--gold)' : 'var(--bg3)',
                     color: sleep ? 'var(--bg0)' : 'var(--text3)', border: 'none', borderRadius: 14,
-                    padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14,
+                    padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14,
                     cursor: sleep ? 'pointer' : 'not-allowed', transition: 'all .2s',
                   }}
                 >
@@ -314,7 +314,7 @@ export default function CheckinPage() {
                   onClick={() => setStep(2)}
                   style={{
                     width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
-                    borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                    borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
                   Próxima →
@@ -346,7 +346,7 @@ export default function CheckinPage() {
                   style={{
                     width: '100%', background: mission.trim() ? 'var(--gold)' : 'var(--bg3)',
                     color: mission.trim() ? 'var(--bg0)' : 'var(--text3)', border: 'none', borderRadius: 14,
-                    padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14,
+                    padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14,
                     cursor: mission.trim() ? 'pointer' : 'not-allowed', transition: 'all .2s',
                   }}
                 >
@@ -362,7 +362,7 @@ export default function CheckinPage() {
                   onClick={() => finish('manha')}
                   style={{
                     width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
-                    borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                    borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
                   {submitting ? 'A guardar…' : 'Concluir Manhã ✓'}
@@ -395,7 +395,7 @@ export default function CheckinPage() {
                   style={{
                     width: '100%', marginTop: 24, background: progressOpt ? 'var(--gold)' : 'var(--bg3)',
                     color: progressOpt ? 'var(--bg0)' : 'var(--text3)', border: 'none', borderRadius: 14,
-                    padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14,
+                    padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14,
                     cursor: progressOpt ? 'pointer' : 'not-allowed',
                   }}
                 >
@@ -416,7 +416,7 @@ export default function CheckinPage() {
                   style={{
                     width: '100%', marginTop: 24, background: focusOpt ? 'var(--gold)' : 'var(--bg3)',
                     color: focusOpt ? 'var(--bg0)' : 'var(--text3)', border: 'none', borderRadius: 14,
-                    padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14,
+                    padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14,
                     cursor: focusOpt ? 'pointer' : 'not-allowed',
                   }}
                 >
@@ -432,7 +432,7 @@ export default function CheckinPage() {
                   onClick={() => finish('tarde')}
                   style={{
                     width: '100%', marginTop: 14, background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
-                    borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                    borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
                   {submitting ? 'A guardar…' : 'Concluir Tarde ✓'}
@@ -477,7 +477,7 @@ export default function CheckinPage() {
                   style={{
                     width: '100%', marginTop: 20, background: missionDone ? 'var(--gold)' : 'var(--bg3)',
                     color: missionDone ? 'var(--bg0)' : 'var(--text3)', border: 'none', borderRadius: 14,
-                    padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14,
+                    padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14,
                     cursor: missionDone ? 'pointer' : 'not-allowed',
                   }}
                 >
@@ -492,7 +492,7 @@ export default function CheckinPage() {
                   onClick={() => setStep(2)}
                   style={{
                     width: '100%', marginTop: 14, background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
-                    borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
+                    borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
                   Próxima →
@@ -510,7 +510,7 @@ export default function CheckinPage() {
                   onClick={() => nightTasks.length > 0 ? setStep(3) : finish('noite')}
                   style={{
                     width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none',
-                    borderRadius: 14, padding: 14, fontFamily: 'Syne, sans-serif', fontWeight: 700,
+                    borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700,
                     fontSize: 14, cursor: 'pointer',
                   }}
                 >
@@ -528,7 +528,7 @@ export default function CheckinPage() {
                     <p style={{ fontSize: 11, color: 'var(--text3)', textTransform: 'uppercase', letterSpacing: '1.2px', marginBottom: 6 }}>
                       Check-in noturno
                     </p>
-                    <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 26, color: 'var(--text1)', lineHeight: 1.1 }}>
+                    <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 26, color: 'var(--text1)', lineHeight: 1.1 }}>
                       Tasks do dia
                     </h2>
                   </div>
@@ -537,17 +537,17 @@ export default function CheckinPage() {
                     padding: '18px 16px', background: 'var(--bg2)',
                     border: '0.5px solid var(--border)', borderRadius: 16, marginBottom: 16 }}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 32, fontWeight: 800, color: 'var(--teal)', lineHeight: 1 }}>{doneTasks.length}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 800, color: 'var(--teal)', lineHeight: 1 }}>{doneTasks.length}</div>
                       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.8px', marginTop: 5, color: 'var(--text3)' }}>Feitas</div>
                     </div>
                     <div style={{ width: '0.5px', height: 36, background: 'var(--border)' }} />
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 32, fontWeight: 800, color: 'var(--gold)', lineHeight: 1 }}>{skipped.length}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 800, color: 'var(--gold)', lineHeight: 1 }}>{skipped.length}</div>
                       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.8px', marginTop: 5, color: 'var(--text3)' }}>Puladas</div>
                     </div>
                     <div style={{ width: '0.5px', height: 36, background: 'var(--border)' }} />
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 32, fontWeight: 800, color: 'var(--bg3)', lineHeight: 1 }}>{pending.length}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 800, color: 'var(--bg3)', lineHeight: 1 }}>{pending.length}</div>
                       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.8px', marginTop: 5, color: 'var(--text3)' }}>Pendentes</div>
                     </div>
                   </div>
@@ -582,7 +582,7 @@ export default function CheckinPage() {
                       padding: 14, background: 'rgba(30,203,180,.06)',
                       border: '0.5px solid rgba(30,203,180,.18)', borderRadius: 14, marginBottom: 12 }}>
                       <span style={{ fontSize: 18 }}>✓</span>
-                      <span style={{ fontFamily: 'Syne, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--teal)' }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--teal)' }}>
                         {doneTasks.length} {doneTasks.length === 1 ? 'task concluída' : 'tasks concluídas'} hoje
                       </span>
                     </div>
@@ -593,7 +593,7 @@ export default function CheckinPage() {
                     onClick={() => finish('noite')}
                     style={{
                       width: '100%', padding: 17, background: 'var(--accent)', color: 'var(--on-accent)', border: 'none',
-                      borderRadius: 16, fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, cursor: 'pointer',
+                      borderRadius: 16, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, cursor: 'pointer',
                     }}
                   >
                     {submitting ? 'A guardar…' : 'Fechar o Dia 🌙'}

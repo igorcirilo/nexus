@@ -132,7 +132,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
             </div>
             {!heightEditing && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Syne, sans-serif' }}>
+                <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Inter, sans-serif' }}>
                   {heightCm} cm
                 </span>
                 <button onClick={() => setHeightEditing(true)} style={{ fontSize: 12, color: 'var(--text3)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted' }}>
@@ -169,7 +169,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
             {!goalEditing && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 {goalWeight !== null && (
-                  <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Syne, sans-serif' }}>
+                  <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Inter, sans-serif' }}>
                     {Number(goalWeight)} kg
                   </span>
                 )}
@@ -281,7 +281,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
             <div style={{ fontSize: 11, color: 'var(--text3)', fontFamily: 'DM Sans, sans-serif', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
               Último
             </div>
-            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Syne, sans-serif' }}>
+            <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text1)', fontFamily: 'Inter, sans-serif' }}>
               {Number(latest.weight_kg)} kg
             </div>
           </div>
@@ -300,7 +300,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
               <div style={{
                 fontSize: 20,
                 fontWeight: 700,
-                fontFamily: 'Syne, sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 color: 'var(--text1)',
               }}>
                 {deltaLabel}
@@ -322,7 +322,7 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
               <div style={{
                 fontSize: 20,
                 fontWeight: 700,
-                fontFamily: 'Syne, sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 color: 'var(--text1)',
               }}>
                 {goalDeltaLabel}

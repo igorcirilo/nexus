@@ -73,7 +73,7 @@ export default function ConfirmDialog({
         >
           <p
             style={{
-              fontFamily: 'Syne, sans-serif',
+              fontFamily: 'Inter, sans-serif',
               fontSize: 16,
               fontWeight: 700,
               color: 'var(--text1)',

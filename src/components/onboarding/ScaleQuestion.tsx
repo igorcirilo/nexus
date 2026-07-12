@@ -20,7 +20,7 @@ export function ScaleQuestion({ question, value, onChange }: Props) {
     <div>
       <p
         style={{
-          fontFamily: 'Syne, sans-serif',
+          fontFamily: 'Inter, sans-serif',
           fontWeight: 700,
           fontSize: 20,
           color: 'var(--text1)',
@@ -45,7 +45,7 @@ export function ScaleQuestion({ question, value, onChange }: Props) {
                 border: selected ? '0.5px solid var(--accent)' : '0.5px solid var(--border)',
                 borderRadius: 12,
                 color: selected ? 'var(--accent)' : 'var(--text2)',
-                fontFamily: 'Syne, sans-serif',
+                fontFamily: 'Inter, sans-serif',
                 fontWeight: 700,
                 fontSize: 18,
                 cursor: 'pointer',

@@ -151,7 +151,7 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
           <div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--text1)' }}>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--text1)' }}>
               Rever {mode === 'training' ? 'Treino' : 'Dieta'}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>
@@ -174,7 +174,7 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
               <div style={{
                 padding: '10px 14px',
                 borderBottom: '0.5px solid var(--border)',
-                fontFamily: 'Syne, sans-serif', fontWeight: 700,
+                fontFamily: 'Inter, sans-serif', fontWeight: 700,
                 fontSize: 13, color: 'var(--gold)',
               }}>
                 {section.title}
@@ -265,14 +265,14 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
           <button onClick={onCancel} style={{
             flex: 1, background: 'var(--bg3)', color: 'var(--text2)',
             border: 'none', borderRadius: 12, padding: 13,
-            fontFamily: 'Syne, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer',
+            fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13, cursor: 'pointer',
           }}>
             Cancelar
           </button>
           <button onClick={() => onConfirm(editedPlan)} style={{
             flex: 2, background: 'var(--gold)', color: 'var(--on-bright)',
             border: 'none', borderRadius: 12, padding: 13,
-            fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer',
+            fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer',
           }}>
             Confirmar e Guardar
           </button>

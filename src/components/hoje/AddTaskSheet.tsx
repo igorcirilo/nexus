@@ -110,7 +110,7 @@ export default function AddTaskSheet({ open, saving = false, onClose, onCreate }
             alignItems: 'center',
             justifyContent: 'center',
             gap: 8,
-            fontFamily: 'Syne, sans-serif',
+            fontFamily: 'Inter, sans-serif',
             fontWeight: 700,
             fontSize: 14,
             cursor: !title.trim() || saving ? 'not-allowed' : 'pointer',

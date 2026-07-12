@@ -101,7 +101,7 @@ export default function BodyHeroSection({ userId, today, trainingPlans }: BodyHe
             Resumo corporal
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-            <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 30, color: 'var(--text1)', lineHeight: 1 }}>
+            <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 30, color: 'var(--text1)', lineHeight: 1 }}>
               {latestWeight ? Number(latestWeight.weight_kg).toFixed(1) : '--'}
             </span>
             <span style={{ color: 'var(--text3)', fontSize: 'var(--text-base)' }}>kg</span>
@@ -124,7 +124,7 @@ export default function BodyHeroSection({ userId, today, trainingPlans }: BodyHe
         >
           <Icon name={trendIcon} size={17} />
           <div>
-            <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 'var(--text-base)', fontWeight: 700, lineHeight: 1 }}>
+            <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 'var(--text-base)', fontWeight: 700, lineHeight: 1 }}>
               {delta === null ? '--' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)}`}
             </div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text3)', marginTop: 2 }}>vs. anterior</div>
@@ -150,7 +150,7 @@ export default function BodyHeroSection({ userId, today, trainingPlans }: BodyHe
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: 'var(--space-3)', marginBottom: 7 }}>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--text2)' }}>Consistência semanal</span>
-          <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 'var(--text-sm)', color: weeklyDone >= workoutGoal ? 'var(--teal)' : 'var(--gold)' }}>
+          <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 'var(--text-sm)', color: weeklyDone >= workoutGoal ? 'var(--teal)' : 'var(--gold)' }}>
             {weeklyPct}%
           </span>
         </div>
@@ -213,7 +213,7 @@ function HeroMetric({
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--text3)', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {label}
         </div>
-        <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 'var(--text-md)', fontWeight: 700, color: muted ? 'var(--text3)' : 'var(--text1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 'var(--text-md)', fontWeight: 700, color: muted ? 'var(--text3)' : 'var(--text1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {value}
         </div>
       </div>

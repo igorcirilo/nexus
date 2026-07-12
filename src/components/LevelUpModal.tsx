@@ -102,7 +102,7 @@ export default function LevelUpModal({ level, title, onClose }: LevelUpModalProp
             NÍVEL
           </div>
           <div style={{
-            fontFamily: 'Syne, sans-serif', fontWeight: 700,
+            fontFamily: 'Inter, sans-serif', fontWeight: 700,
             fontSize: 56, color: 'var(--gold)', lineHeight: 1,
             animation: visible ? 'lvlNumPop .4s .2s cubic-bezier(.34,1.56,.64,1) both' : 'none',
           }}>
@@ -119,7 +119,7 @@ export default function LevelUpModal({ level, title, onClose }: LevelUpModalProp
             SUBISTE DE NÍVEL
           </div>
           <div style={{
-            fontFamily: 'Syne, sans-serif', fontWeight: 700,
+            fontFamily: 'Inter, sans-serif', fontWeight: 700,
             fontSize: 26, color: 'var(--text1)', lineHeight: 1.2, marginBottom: 8,
           }}>
             {title}
@@ -137,7 +137,7 @@ export default function LevelUpModal({ level, title, onClose }: LevelUpModalProp
             background: 'linear-gradient(135deg, var(--gold), var(--teal))',
             border: 'none', borderRadius: 14,
             padding: '14px 40px',
-            fontFamily: 'Syne, sans-serif', fontWeight: 700,
+            fontFamily: 'Inter, sans-serif', fontWeight: 700,
             fontSize: 15, color: '#0D0F14',
             cursor: 'pointer',
             boxShadow: '0 4px 20px rgba(232,168,56,.3)',

@@ -23,8 +23,10 @@ const config: Config = {
         border: 'rgba(255,255,255,0.07)',
       },
       fontFamily: {
-        syne: ['Syne', 'sans-serif'],
-        dm:   ['DM Sans', 'sans-serif'],
+        // A fonte Syne foi REMOVIDA do app (decisão de design) — não a
+        // reintroduza aqui nem em estilos inline. Display/títulos usam Inter.
+        display: ['Inter', 'sans-serif'],
+        dm:      ['DM Sans', 'sans-serif'],
       },
       borderRadius: {
         '2xl': '16px',

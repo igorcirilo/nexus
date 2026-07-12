@@ -485,7 +485,7 @@ export default function HojeClient({
             <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 2 }}>
               {greeting}, {profile?.username ?? 'Guerreiro'}
             </p>
-            <h1 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>Hoje</h1>
+            <h1 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 26, lineHeight: 1 }}>Hoje</h1>
           </div>
         </div>
 

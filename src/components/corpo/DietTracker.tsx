@@ -565,7 +565,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap', marginBottom: 10 }}>
               <div>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 18, fontWeight: 700, color: 'var(--text1)', marginBottom: 4 }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 18, fontWeight: 700, color: 'var(--text1)', marginBottom: 4 }}>
                   {prettyDietName(selectedPlan?.title ?? 'Plano alimentar')}
                 </div>
                 <div style={{ fontSize: 12, color: 'var(--text3)' }}>
@@ -574,13 +574,13 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
               </div>
               <div style={{ display: 'flex', gap: 18 }}>
                 <div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--teal)' }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--teal)' }}>
                     {mealProgress.doneMeals}/{mealProgress.totalMeals}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)' }}>refeições</div>
                 </div>
                 <div>
-                  <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--gold)' }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--gold)' }}>
                     {mealProgress.doneItems}/{mealProgress.totalItems}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)' }}>itens</div>
@@ -603,11 +603,11 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
           {hasMacroData && (
             <div style={{ background: 'var(--bg1)', border: '1px solid var(--border)', borderRadius: 16, padding: '16px 18px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-                <div style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--text1)' }}>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 14, fontWeight: 700, color: 'var(--text1)' }}>
                   Meta do dia
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--gold)' }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--gold)' }}>
                     {Math.round(kcalSelecionadas)}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--text3)' }}>
@@ -635,7 +635,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                         role="img"
                         aria-label={`${r.lb}: ${Math.round(r.sel)} de ${Math.round(r.plan)} gramas`}
                       />
-                      <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 800, fontSize: 13, color: r.color }}>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 13, color: r.color }}>
                         {Math.round(r.sel)}
                         <span style={{ color: 'var(--text3)', fontWeight: 600, fontSize: 10 }}>/{Math.round(r.plan)}</span>
                       </div>
@@ -745,7 +745,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                   </span>
                   <span
                     style={{
-                      fontFamily: 'Syne, sans-serif',
+                      fontFamily: 'Inter, sans-serif',
                       fontSize: 15,
                       fontWeight: 700,
                       color: done ? 'var(--teal)' : 'var(--text1)',

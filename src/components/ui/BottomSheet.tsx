@@ -47,7 +47,7 @@ export default function BottomSheet({ open, onClose, title, children }: BottomSh
         <div aria-hidden="true" style={{ width: 34, height: 4, borderRadius: 4, background: 'var(--border)', margin: '0 auto 14px' }} />
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: title ? 16 : 8 }}>
           {title ? (
-            <h2 style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--text1)' }}>
+            <h2 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--text1)' }}>
               {title}
             </h2>
           ) : <span />}
