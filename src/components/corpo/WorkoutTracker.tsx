@@ -276,7 +276,9 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
   // instante de fim; um tick de 500ms atualiza a contagem exibida.
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null)
   const [nowTs, setNowTs] = useState(() => Date.now())
-  const REST_SECONDS = 90
+  // Padrão de 1 min quando o plano não especifica o descanso do exercício
+  // (o valor do plano, ex. "… | 90s", continua a ter precedência).
+  const REST_SECONDS = 60
   // Player focado: índice do exercício em foco (plano + extras).
   const [exIdx, setExIdx] = useState(0)
 
