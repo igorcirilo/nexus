@@ -5,27 +5,35 @@
 
 ## Críticos
 
-### 1. Schema de BD incompleto no repositório
-- **Evidência:** o código referencia **28 tabelas** via `.from(...)` + as RPCs
-  `add_xp` e `update_streak`, mas `supabase/*.sql` versiona apenas ~13 tabelas
-  (leitura + programa). `GIT_CLEANUP.md` menciona um `supabase/schema_completo.sql`
-  que **não está presente**. **[C]**
-- **Faltam:** `profiles, habits, habit_logs, checkins, transactions,
-  focus_sessions, user_badges, weekly_league_snapshots, training_plans,
-  training_entries, diet_plans, diet_meals, body_measurements, agenda_events,
-  goal_milestones, reminders` + funções `add_xp`/`update_streak`.
-- **Impacto:** impossível recriar o ambiente do zero; risco de drift código↔BD.
-- **Recomendação:** recuperar/recriar o schema completo + RPCs e versionar como
-  migrations Supabase (`supabase/migrations`).
+### 1. Schema de BD incompleto no repositório — ✅ RESOLVIDO (2026-07-18)
+- **Estado atual:** `supabase/schema_completo.sql` foi regenerado por
+  introspecção do projeto de produção e cobre as **38 tabelas** reais,
+  constraints, índices, as 96 RLS policies, funções e triggers. Uma cópia
+  idêntica vive em `supabase/migrations/20260718000000_baseline_schema.sql`
+  como baseline no formato da CLI/MCP. Processo de manutenção documentado em
+  `supabase/README.md`. **[C]**
+- **Correções ao diagnóstico original:** o ficheiro `schema_completo.sql` já
+  existia no repo (dump de 2026-07-11), mas estava desatualizado — faltavam
+  5 tabelas (`reading_sessions`, `push_subscriptions`, `quit_habits`,
+  `quit_relapses`, `recurring_rules`) e colunas recentes
+  (`book_progress.furthest_page`, `reminders.completed_at`). A RPC `add_xp`
+  **não existe** no banco e o código não a chama (só `update_streak`).
+- **Risco remanescente (processo):** manter `supabase/migrations/` em sync —
+  toda mudança de schema deve ir via `apply_migration` + ficheiro no repo no
+  mesmo commit (ver `supabase/README.md`); o padrão "colar no SQL Editor"
+  está descontinuado.
 
 ## Altos
 
-### 2. RLS não auditável a partir do repo
-- **Evidência:** as políticas das tabelas centrais não estão versionadas. **[C/?]**
-- **Impacto:** não é possível garantir o isolamento por utilizador; segurança
-  depende inteiramente de RLS que não vivem no código.
-- **Recomendação:** versionar e revisar todas as policies; confirmar que nenhuma
-  tabela exposta à chave anon fica sem policy.
+### 2. RLS não auditável a partir do repo — ✅ versionada / ⚠ revisão pendente
+- **Estado atual:** as 96 policies estão versionadas no dump/baseline
+  (2026-07-18). Todas as 38 tabelas têm RLS ativo. **[C]**
+- **Pontos a rever (agora auditáveis):** `weekly_league_snapshots` tem
+  `select ... using (true)` para authenticated (by design da liga, mas expõe
+  username/level/points de todos); `reminders` e `transactions` têm policies
+  redundantes (ALL + granulares); `badges` e `task_templates` têm RLS ativo
+  sem policy nenhuma (leitura pelo app é negada — confirmar se é intencional).
+- **Recomendação:** revisar esses quatro casos; qualquer ajuste via migration.
 
 ### 3. `src/lib/supabase.ts` monolítico (~1090 linhas)
 - **Evidência:** um único módulo concentra o acesso a dados de todos os domínios. **[C]**
@@ -74,8 +82,10 @@
 
 ## Perguntas em aberto
 
-1. Onde está o schema completo da BD + RPCs? Existe num Supabase remoto? **[?]**
-2. As RLS das tabelas centrais existem e estão corretas? **[?]**
+1. ~~Onde está o schema completo da BD + RPCs?~~ Respondida: extraído do
+   projeto de produção e versionado em 2026-07-18 (ver item 1).
+2. ~~As RLS das tabelas centrais existem e estão corretas?~~ Existem e estão
+   versionadas; revisão dos 4 casos sinalizados no item 2 continua pendente.
 3. Vercel é o alvo de deploy? Há projeto/preview configurado? **[?]**
 4. O produto é single-user pessoal ou multi-utilizador/SaaS? (a liga semanal
    sugere multi-user). **[?]**
@@ -83,9 +93,10 @@
 
 ## Próximos passos recomendados (prioridade)
 
-1. Versionar schema completo + RPCs + RLS como migrations.
+1. ~~Versionar schema completo + RPCs + RLS como migrations.~~ ✅ 2026-07-18.
 2. Adicionar CI (lint/typecheck/test/build).
 3. Refatorar `supabase.ts` por domínio e consolidar o cliente único.
 4. Ampliar testes (UI/integração).
-5. Rever segurança (rotacionar chave, auditar RLS).
+5. Rever segurança (rotacionar chave, rever os 4 casos de RLS do item 2,
+   mover o CRON_SECRET do job pg_cron para o Supabase Vault).
 6. Avaliar upgrade do `next-pwa`/workbox.
