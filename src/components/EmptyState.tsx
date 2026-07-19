@@ -99,7 +99,7 @@ function GenericEmptyState({ icon, title, body, action }: GenericProps) {
           borderRadius: 'var(--radius-sm)',
           background: 'rgba(30,203,180,.1)',
           border: '0.5px solid rgba(30,203,180,.22)',
-          color: 'var(--teal)',
+          color: 'var(--teal-ink)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',

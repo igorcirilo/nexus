@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { createHabitQuick, saveReminder, saveFocusSession, saveTransaction, supabase } from '@/lib/supabase'
+import { AREA_INK } from '@/types'
 import type { HabitArea } from '@/types'
 import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY, isTransferCat } from '@/lib/categories'
 
@@ -199,7 +200,7 @@ export default function QuickAction() {
   return (
     <>
       {toast && (
-        <div style={{position:'fixed',bottom:88,left:'50%',transform:'translateX(-50%)',zIndex:9999,background:'var(--bg2)',border:'0.5px solid rgba(30,203,180,.38)',borderRadius:12,padding:'10px 18px',fontSize:13,color:'var(--teal)',whiteSpace:'nowrap',boxShadow:'0 8px 30px rgba(0,0,0,.35)'}}>
+        <div style={{position:'fixed',bottom:88,left:'50%',transform:'translateX(-50%)',zIndex:9999,background:'var(--bg2)',border:'0.5px solid rgba(30,203,180,.38)',borderRadius:12,padding:'10px 18px',fontSize:13,color:'var(--teal-ink)',whiteSpace:'nowrap',boxShadow:'0 8px 30px rgba(0,0,0,.35)'}}>
           ✓ {toast}
         </div>
       )}
@@ -235,7 +236,7 @@ export default function QuickAction() {
                         transition:'all .15s',
                       }}>
                         <span style={{fontSize:14}}>{a.icon}</span>
-                        <span style={{fontSize:12,fontFamily:'DM Sans, sans-serif',color:active?a.color:'var(--text2)',fontWeight:active?600:400}}>{a.label}</span>
+                        <span style={{fontSize:12,fontFamily:'DM Sans, sans-serif',color:active?(AREA_INK[a.key]??a.color):'var(--text2)',fontWeight:active?600:400}}>{a.label}</span>
                       </button>
                     )
                   })}

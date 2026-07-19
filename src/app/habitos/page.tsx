@@ -14,7 +14,7 @@ import {
 } from '@/lib/habit-schedule'
 import { XP_BY_DIFFICULTY, normalizeForSearch } from '@/lib/habit-library'
 import type { LibraryHabit } from '@/lib/habit-library'
-import { AREA_META } from '@/types'
+import { AREA_META, AREA_INK } from '@/types'
 import type { Habit, HabitArea } from '@/types'
 
 type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[] }
@@ -320,7 +320,7 @@ export default function HabitosPage() {
             padding: '10px 18px',
             fontSize: 13,
             fontFamily: FONT,
-            color: '#00C896',
+            color: 'var(--green-ink)',
             zIndex: 10000,
             whiteSpace: 'nowrap',
           }}
@@ -393,7 +393,7 @@ export default function HabitosPage() {
                 <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontSize: 13.5, fontWeight: 600, color: 'var(--text1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {h.name}
                 </span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#F5C842', flexShrink: 0 }}>reativar</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--gold-ink)', flexShrink: 0 }}>reativar</span>
               </button>
             ))}
           </div>
@@ -495,7 +495,7 @@ export default function HabitosPage() {
                       fontWeight: 600,
                       textAlign: 'left',
                       background: form.area === key ? `${meta.color}18` : 'rgba(var(--ink-rgb),0.03)',
-                      color: form.area === key ? meta.color : 'var(--text2)',
+                      color: form.area === key ? (AREA_INK[key as HabitArea] ?? meta.color) : 'var(--text2)',
                       border: form.area === key ? `1px solid ${meta.color}77` : '1px solid rgba(var(--ink-rgb),0.10)',
                     }}
                   >
@@ -526,7 +526,7 @@ export default function HabitosPage() {
                         fontFamily: FONT,
                         fontWeight: 600,
                         background: active ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
-                        color: active ? '#F5C842' : 'rgba(var(--ink-rgb),0.55)',
+                        color: active ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.55)',
                         border: active ? '1px solid rgba(245,200,66,0.45)' : '1px solid rgba(var(--ink-rgb),0.10)',
                       }}
                     >
@@ -559,7 +559,7 @@ export default function HabitosPage() {
                         flex: 1, padding: '9px 6px', borderRadius: 12, cursor: 'pointer',
                         fontSize: 11.5, fontWeight: 600, fontFamily: FONT,
                         background: a ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
-                        color: a ? '#F5C842' : 'rgba(var(--ink-rgb),0.55)',
+                        color: a ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.55)',
                         border: a ? '1px solid rgba(245,200,66,0.45)' : '1px solid rgba(var(--ink-rgb),0.10)',
                       }}
                     >
@@ -618,7 +618,7 @@ export default function HabitosPage() {
                       fontFamily: FONT,
                       background: form.difficulty === item.key ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
                       border: form.difficulty === item.key ? '1px solid rgba(245,200,66,0.45)' : '1px solid rgba(var(--ink-rgb),0.10)',
-                      color: form.difficulty === item.key ? '#F5C842' : 'rgba(var(--ink-rgb),0.55)',
+                      color: form.difficulty === item.key ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.55)',
                     }}
                   >
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{item.label}</div>

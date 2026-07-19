@@ -324,7 +324,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                                 </div>
                                 <span
                                   style={{
-                                    color: 'var(--teal)',
+                                    color: 'var(--teal-ink)',
                                     fontSize: 18,
                                     fontWeight: 700,
                                     flexShrink: 0,
@@ -367,7 +367,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                     fontSize: 20,
                     fontWeight: 700,
                     lineHeight: 1,
-                    color: 'var(--teal)',
+                    color: 'var(--teal-ink)',
                   }}
                 >
                   +

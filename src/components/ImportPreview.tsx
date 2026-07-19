@@ -37,7 +37,7 @@ export default function ImportPreview({ result }: { result: FileImportResult }) 
 
       {result.warnings.length > 0 && (
         <div style={{ ...card, border: '0.5px solid rgba(232,168,56,.35)' }}>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, marginBottom: 8, color: 'var(--gold)' }}>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, marginBottom: 8, color: 'var(--gold-ink)' }}>
             Atencao
           </div>
           <div style={{ display: 'grid', gap: 6 }}>

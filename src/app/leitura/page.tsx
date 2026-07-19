@@ -320,7 +320,7 @@ export default function LeituraPage() {
         <div style={{
           position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)',
           zIndex: 200, background: 'var(--surface-card)', border: '1px solid rgba(0,200,150,0.25)',
-          borderRadius: 12, padding: '10px 16px', fontSize: 13, color: '#00C896',
+          borderRadius: 12, padding: '10px 16px', fontSize: 13, color: 'var(--green-ink)',
           fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
         }}>
           ✓ {toast}
@@ -386,7 +386,7 @@ export default function LeituraPage() {
                   <div style={{ fontSize:13, color:'var(--text3)', marginBottom:10 }}>Ainda não tens ebooks na biblioteca.</div>
                   <button
                     onClick={() => { setShowBiblioteca(false); setShowImport(true) }}
-                    style={{ background:'none', border:'1px solid rgba(245,200,66,0.3)', borderRadius:10, padding:'9px 16px', color:'#F5C842', fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:13, cursor:'pointer' }}
+                    style={{ background:'none', border:'1px solid rgba(245,200,66,0.3)', borderRadius:10, padding:'9px 16px', color:'var(--gold-ink)', fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:13, cursor:'pointer' }}
                   >
                     Importar primeiro ebook
                   </button>

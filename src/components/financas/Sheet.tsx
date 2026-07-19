@@ -57,7 +57,7 @@ export function StepChips({ steps, onStep }: { steps: number[]; onStep: (delta: 
           flex: 1, textAlign: 'center', padding: '10px 0', borderRadius: 12, cursor: 'pointer',
           border: `1px solid ${s > 0 ? 'rgba(245,200,66,0.45)' : 'rgba(var(--ink-rgb),0.10)'}`,
           background: s > 0 ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
-          color: s > 0 ? '#F5C842' : 'rgba(var(--ink-rgb),0.6)',
+          color: s > 0 ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.6)',
           fontSize: 12.5, fontWeight: 700, fontFamily: 'Inter, sans-serif',
         }}>{s > 0 ? '+' : '−'}€{Math.abs(s)}</button>
       ))}

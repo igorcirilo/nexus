@@ -34,7 +34,7 @@ export default function FeedbackToast() {
                transform: 'translateX(-50%)',
                background: 'var(--bg2)',
                border: '0.5px solid rgba(30,203,180,.38)',
-               color: 'var(--teal)',
+               color: 'var(--teal-ink)',
                animation: 'fadeUp .3s ease both',
              }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none"

@@ -175,7 +175,7 @@ export default function PlanReviewModal({ mode, plan, onConfirm, onCancel }: Pro
                 padding: '10px 14px',
                 borderBottom: '0.5px solid var(--border)',
                 fontFamily: 'Inter, sans-serif', fontWeight: 700,
-                fontSize: 13, color: 'var(--gold)',
+                fontSize: 13, color: 'var(--gold-ink)',
               }}>
                 {section.title}
               </div>

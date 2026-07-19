@@ -55,7 +55,7 @@ export default function BadgeModal({ badges, onClose }: Props) {
         <div style={{
           fontFamily: 'Inter, sans-serif', fontWeight: 800,
           fontSize: 10, letterSpacing: 2.5,
-          color: 'var(--gold)', marginBottom: 10,
+          color: 'var(--gold-ink)', marginBottom: 10,
           textTransform: 'uppercase',
         }}>
           Conquista desbloqueada

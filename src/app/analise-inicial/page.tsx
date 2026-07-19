@@ -134,7 +134,7 @@ export default function AnaliseInicialPage() {
             fontFamily: 'Inter, sans-serif',
             fontWeight: 800,
             fontSize: 64,
-            color: 'var(--gold)',
+            color: 'var(--gold-ink)',
             lineHeight: 1,
           }}
         >

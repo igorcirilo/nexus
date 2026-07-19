@@ -70,7 +70,7 @@ export default function TodayTaskList({
               minHeight: 44,
               display: 'inline-flex',
               alignItems: 'center',
-              color: 'var(--teal)',
+              color: 'var(--teal-ink)',
               textDecoration: 'none',
               fontFamily: 'var(--font-dm), "DM Sans", sans-serif',
               fontSize: 14,
@@ -85,6 +85,7 @@ export default function TodayTaskList({
 
         {tasks.map(({ task, title, description, areaLabel }) => {
           const color = areaColor(task.area)
+          const ink = areaInk(task.area)
           return (
             <article
               key={task.id}
@@ -123,7 +124,7 @@ export default function TodayTaskList({
                       height: 34,
                       borderRadius: '50%',
                       border: task.status === 'completed' ? 'none' : '2px solid var(--text3)',
-                      color: 'var(--teal)',
+                      color: 'var(--teal-ink)',
                       background: task.status === 'completed' ? 'rgba(30,203,180,.12)' : 'transparent',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -153,7 +154,7 @@ export default function TodayTaskList({
                       {title}
                     </h3>
                     <div style={{ display: 'flex', gap: 7, fontSize: 13, minWidth: 0, alignItems: 'center' }}>
-                      <span style={{ color, fontWeight: 600, flexShrink: 0 }}>{areaLabel}</span>
+                      <span style={{ color: ink, fontWeight: 600, flexShrink: 0 }}>{areaLabel}</span>
                       {description && <span style={{ color: 'var(--text3)', flexShrink: 0 }}>·</span>}
                       {description && <span style={{ color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{description}</span>}
                     </div>
@@ -231,6 +232,14 @@ function areaColor(area: string) {
   if (area === 'produtividade') return 'var(--accent)'
   if (area === 'emocoes') return 'var(--gold)'
   return 'var(--teal)'
+}
+
+// Tinta de texto do rótulo de área — legível nos dois temas.
+function areaInk(area: string) {
+  if (area === 'corpo') return 'var(--teal-ink)'
+  if (area === 'produtividade') return 'var(--accent)'
+  if (area === 'emocoes') return 'var(--gold-ink)'
+  return 'var(--teal-ink)'
 }
 
 // Controlo compacto: ícone de 34px com área de toque de 44px (padding invisível)

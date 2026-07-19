@@ -394,10 +394,10 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6, flexWrap: 'wrap' }}>
                   {workout.planTitle && (
-                    <span style={tagStyle('#9D5CF5', 'rgba(157,92,245,0.12)')}>{truncate(workout.planTitle, 22)}</span>
+                    <span style={tagStyle('var(--purple-ink)', 'rgba(157,92,245,0.12)')}>{truncate(workout.planTitle, 22)}</span>
                   )}
                   {workout.total > 0 && workout.done === workout.total && (
-                    <span style={tagStyle('#00C896', 'rgba(0,200,150,0.12)')}>✓ Concluído</span>
+                    <span style={tagStyle('var(--green-ink)', 'rgba(0,200,150,0.12)')}>✓ Concluído</span>
                   )}
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{workout.sectionTitle}</div>
@@ -415,7 +415,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  color: '#00C896',
+                  color: 'var(--green-ink)',
                   fontSize: workout.done === workout.total && workout.total > 0 ? 16 : 12,
                   fontWeight: 800,
                   flexShrink: 0,
@@ -443,7 +443,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                     {ex.detail && <div style={{ fontSize: 12, color: 'var(--text3)' }}>{ex.detail}</div>}
-                    {ex.done && <div style={{ color: '#00C896', fontSize: 14, fontWeight: 700 }}>✓</div>}
+                    {ex.done && <div style={{ color: 'var(--green-ink)', fontSize: 14, fontWeight: 700 }}>✓</div>}
                   </div>
                 </div>
               ))}
@@ -470,7 +470,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#9D5CF5',
+                color: 'var(--purple-ink)',
                 flexShrink: 0,
               }}
             >

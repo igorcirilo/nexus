@@ -186,11 +186,11 @@ export default function ProgramaPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 16 }}>
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14 }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Progresso total</div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--teal)' }}>{progressPct}%</div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--teal-ink)' }}>{progressPct}%</div>
             </div>
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14 }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Dias concluídos</div>
-              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--gold)' }}>{completedDays}</div>
+              <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 22, color: 'var(--gold-ink)' }}>{completedDays}</div>
             </div>
             <div style={{ background: 'var(--bg1)', border: '0.5px solid var(--border)', borderRadius: 14, padding: 14 }}>
               <div style={{ fontSize: 11, color: 'var(--text3)', marginBottom: 4 }}>Tasks concluídas</div>

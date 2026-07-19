@@ -139,7 +139,7 @@ export default function LeituraHub({
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{
               display: 'inline-block', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-              textTransform: 'uppercase', background: 'rgba(245,200,66,0.12)', color: '#F5C842',
+              textTransform: 'uppercase', background: 'rgba(245,200,66,0.12)', color: 'var(--gold-ink)',
               borderRadius: 6, padding: '3px 8px', marginBottom: 8,
             }}>
               Lendo agora
@@ -156,7 +156,7 @@ export default function LeituraHub({
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text1)' }}>
                 {pageCount > 0 ? `Pág. ${curPage} / ${pageCount}` : `Pág. ${curPage}`}
               </span>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#F5C842' }}>{pct}%</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--gold-ink)' }}>{pct}%</span>
             </div>
             <div style={{ height: 6, background: 'var(--surface-3)', borderRadius: 6, overflow: 'hidden' }}>
               <div style={{ height: '100%', width: `${pct}%`,
@@ -179,7 +179,7 @@ export default function LeituraHub({
           }}
         >
           <div style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 8 }}>Nenhum livro em leitura</div>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#F5C842' }}>Importar ebook PDF</div>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-ink)' }}>Importar ebook PDF</div>
         </div>
       )}
 
@@ -193,8 +193,8 @@ export default function LeituraHub({
           <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Esta semana</div>
           <div style={{
             fontSize: 13, fontWeight: 700,
-            color: weeklyStats.daysWithReading >= 5 ? '#00C896'
-                 : weeklyStats.daysWithReading >= 3 ? '#F5C842'
+            color: weeklyStats.daysWithReading >= 5 ? 'var(--green-ink)'
+                 : weeklyStats.daysWithReading >= 3 ? 'var(--gold-ink)'
                  : 'rgba(var(--ink-rgb),0.4)',
           }}>
             {weeklyStats.daysWithReading}/7 dias
@@ -207,7 +207,7 @@ export default function LeituraHub({
             const label   = DAY_LABELS[i]
             let circleStyle: React.CSSProperties
             if (isDone) {
-              circleStyle = { width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, background:'rgba(245,200,66,0.2)', color:'#F5C842', border:'1.5px solid rgba(245,200,66,0.4)' }
+              circleStyle = { width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, background:'rgba(245,200,66,0.2)', color:'var(--gold-ink)', border:'1.5px solid rgba(245,200,66,0.4)' }
             } else if (isToday) {
               circleStyle = { width:36, height:36, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, background:'#F5C842', color:'#0A0800', border:'none' }
             } else {
@@ -216,10 +216,10 @@ export default function LeituraHub({
             return (
               <div key={d.date} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', gap:5 }}>
                 <div style={circleStyle}>{label.charAt(0)}</div>
-                <div style={{ fontSize:9, fontWeight:600, color: isToday ? '#F5C842' : 'rgba(var(--ink-rgb),0.3)', letterSpacing:'0.04em' }}>
+                <div style={{ fontSize:9, fontWeight:600, color: isToday ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.3)', letterSpacing:'0.04em' }}>
                   {label}
                 </div>
-                <div style={{ fontSize:9, color: isToday && !isDone ? '#F5C842' : 'rgba(var(--ink-rgb),0.25)' }}>
+                <div style={{ fontSize:9, color: isToday && !isDone ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.25)' }}>
                   {isDone ? `${d.minutes}m` : isToday ? 'hoje' : '—'}
                 </div>
               </div>
@@ -233,8 +233,8 @@ export default function LeituraHub({
       <div style={{ display: 'flex', gap: 10 }}>
         {[
           { label: 'min esta semana',   value: weeklyStats.totalMinutes  || '—', color: 'var(--ink)'    },
-          { label: 'min / dia (média)', value: weeklyStats.avgMinPerDay  || '—', color: '#F5C842' },
-          { label: 'livros concluídos', value: stats.completed,                  color: '#00C896' },
+          { label: 'min / dia (média)', value: weeklyStats.avgMinPerDay  || '—', color: 'var(--gold-ink)' },
+          { label: 'livros concluídos', value: stats.completed,                  color: 'var(--green-ink)' },
         ].map(s => (
           <div key={s.label} style={{
             flex:1, background:'var(--surface-2)', border:'1px solid rgba(var(--ink-rgb),0.07)',

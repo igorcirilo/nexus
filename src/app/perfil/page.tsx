@@ -308,7 +308,7 @@ export default function PerfilPage() {
           <div style={{
             position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)',
             background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.38)', borderRadius: 12,
-            padding: '10px 18px', fontSize: 13, color: 'var(--teal)', zIndex: 10000, whiteSpace: 'nowrap',
+            padding: '10px 18px', fontSize: 13, color: 'var(--teal-ink)', zIndex: 10000, whiteSpace: 'nowrap',
           }}>
             Perfil guardado!
           </div>
@@ -334,7 +334,7 @@ export default function PerfilPage() {
             borderRadius: 12,
             padding: '10px 18px',
             fontSize: 13,
-            color: 'var(--teal)',
+            color: 'var(--teal-ink)',
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -390,8 +390,8 @@ export default function PerfilPage() {
             <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, marginBottom: 10 }}>Estatísticas rápidas</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
               {[
-                { label: 'Ritmo', value: ritmo, color: 'var(--gold)' },
-                { label: 'Nível', value: profile.level, color: 'var(--teal)' },
+                { label: 'Ritmo', value: ritmo, color: 'var(--gold-ink)' },
+                { label: 'Nível', value: profile.level, color: 'var(--teal-ink)' },
                 { label: 'Streak', value: profile.streak_current, color: 'var(--accent)' },
                 { label: 'Máximo', value: profile.streak_best, color: 'var(--text2)' },
               ].map((item) => (

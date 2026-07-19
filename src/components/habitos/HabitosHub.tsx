@@ -221,7 +221,7 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
         <div style={{ fontSize: 11, color: 'var(--text3)', display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
           <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{habit.time_window || areaLabel}</span>
           {habit.freq && habit.freq !== 'Todos os dias' && (
-            <span style={{ flexShrink: 0, fontWeight: 700, color: 'var(--teal)', background: 'rgba(30,203,180,0.10)', borderRadius: 6, padding: '2px 6px' }}>
+            <span style={{ flexShrink: 0, fontWeight: 700, color: 'var(--teal-ink)', background: 'rgba(30,203,180,0.10)', borderRadius: 6, padding: '2px 6px' }}>
               {habit.freq}
             </span>
           )}
@@ -251,7 +251,7 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
           width: 30, height: 30, borderRadius: 10,
           background: menuOpen ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.04)',
           border: `1px solid ${menuOpen ? 'rgba(245,200,66,0.4)' : 'rgba(var(--ink-rgb),0.06)'}`,
-          color: menuOpen ? '#F5C842' : 'rgba(var(--ink-rgb),0.35)',
+          color: menuOpen ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.35)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
@@ -314,7 +314,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
         padding: '7px 14px',
         borderRadius: 20,
         border: `1px solid ${active ? 'rgba(245,200,66,0.3)' : 'rgba(var(--ink-rgb),0.1)'}`,
-        color: active ? '#F5C842' : 'rgba(var(--ink-rgb),0.5)',
+        color: active ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.5)',
         background: active ? 'rgba(245,200,66,0.12)' : 'transparent',
         whiteSpace: 'nowrap',
         cursor: 'pointer',
@@ -334,7 +334,7 @@ const plusBtn: CSSProperties = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  color: '#F5C842',
+  color: 'var(--gold-ink)',
   cursor: 'pointer',
 }
 

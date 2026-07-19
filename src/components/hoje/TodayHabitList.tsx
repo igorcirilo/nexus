@@ -8,6 +8,7 @@ export interface TodayHabitView {
   id: string
   name: string
   areaLabel: string
+  areaInk: string
   color: string
   timeWindow: string | null
   done: boolean
@@ -68,7 +69,7 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
               minHeight: 44,
               display: 'inline-flex',
               alignItems: 'center',
-              color: 'var(--teal)',
+              color: 'var(--teal-ink)',
               textDecoration: 'none',
               fontFamily: 'var(--font-dm), "DM Sans", sans-serif',
               fontSize: 14,
@@ -123,7 +124,7 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
                     height: 34,
                     borderRadius: '50%',
                     border: h.done ? 'none' : '2px solid var(--text3)',
-                    color: 'var(--teal)',
+                    color: 'var(--teal-ink)',
                     background: h.done ? 'rgba(30,203,180,.12)' : 'transparent',
                     display: 'inline-flex',
                     alignItems: 'center',
@@ -156,7 +157,7 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
                     {h.name}
                   </h3>
                   <div style={{ display: 'flex', gap: 7, fontSize: 13, minWidth: 0, alignItems: 'center' }}>
-                    <span style={{ color: h.color, fontWeight: 600, flexShrink: 0 }}>{h.areaLabel}</span>
+                    <span style={{ color: h.areaInk, fontWeight: 600, flexShrink: 0 }}>{h.areaLabel}</span>
                     {h.timeWindow && <span style={{ color: 'var(--text3)', flexShrink: 0 }}>·</span>}
                     {h.timeWindow && (
                       <span style={{ color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.timeWindow}</span>

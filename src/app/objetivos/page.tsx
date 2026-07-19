@@ -172,7 +172,7 @@ export default function ObjetivosPage() {
   const openGoal = openGoalId ? goals.find(g => g.id === openGoalId) ?? null : null
 
   const toastEl = toast && (
-    <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-pop)', border: '1px solid rgba(0,200,150,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, fontFamily: FONT, color: '#00C896', display: 'flex', alignItems: 'center', gap: 8, zIndex: 10000, whiteSpace: 'nowrap' }}>
+    <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-pop)', border: '1px solid rgba(0,200,150,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, fontFamily: FONT, color: 'var(--green-ink)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 10000, whiteSpace: 'nowrap' }}>
       ✓ {toast}
     </div>
   )
@@ -349,7 +349,7 @@ export default function ObjetivosPage() {
                     padding: '10px 14px', borderRadius: 13,
                     background: newMs.trim() ? 'rgba(245,200,66,0.12)' : 'rgba(var(--ink-rgb),0.04)',
                     border: `1px solid ${newMs.trim() ? 'rgba(245,200,66,0.4)' : 'rgba(var(--ink-rgb),0.08)'}`,
-                    color: newMs.trim() ? '#F5C842' : 'rgba(var(--ink-rgb),0.3)',
+                    color: newMs.trim() ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.3)',
                     fontFamily: FONT, fontWeight: 700, fontSize: 13, cursor: newMs.trim() ? 'pointer' : 'default',
                   }}>+ Adicionar</button>
                 </div>
