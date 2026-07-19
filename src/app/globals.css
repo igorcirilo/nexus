@@ -100,8 +100,8 @@
 /* ── Cards "hero" no tema claro ─────────────────────────
    No escuro estes cards são gradientes vibrantes forçados via estilo inline
    (darkCardInk). No claro, isto os converte para pastel — a tinta interna
-   (var(--ink)/--text*/rgba(var(--ink-rgb),…)) inverte junto para escuro.
-   Usa !important só para vencer os custom properties inline do darkCardInk. */
+   (var(--ink), var(--text1..3), rgba(var(--ink-rgb),α)) inverte junto para
+   escuro. Usa !important só para vencer os custom properties inline. */
 :root[data-theme="light"] .hero-gold,
 :root[data-theme="light"] .hero-teal {
   --ink: #0F172A !important; --ink-rgb: 15,23,42 !important;
