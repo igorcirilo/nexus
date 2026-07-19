@@ -26,7 +26,15 @@
       "mcp__5002f499-cb0b-4806-b22d-44711e740b14__execute_sql",
       "mcp__5002f499-cb0b-4806-b22d-44711e740b14__apply_migration",
       "mcp__Supabase__list_projects",
-      "mcp__Supabase__apply_migration"
+      "mcp__Supabase__apply_migration",
+      "Bash(git -C /home/user/nexus log --oneline -30)",
+      "Bash(git -C /home/user/nexus branch -a)",
+      "Bash(git -C /home/user/nexus status)",
+      "Bash(npx vitest *)",
+      "Bash(git -C /home/user/nexus log main..claude/app-suggestions-rfhp6t --oneline)",
+      "Bash(git -C /home/user/nexus diff main --stat)",
+      "Bash(git -C /home/user/nexus log origin/main -3 --oneline)",
+      "Bash(awk '{print $NF}')"
     ]
   }
 }
