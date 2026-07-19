@@ -279,6 +279,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
 
       {/* Body Hero */}
       <div
+        className="hero-teal"
         onClick={() => onNavigate('peso')}
         style={{
           ...darkCardInk,

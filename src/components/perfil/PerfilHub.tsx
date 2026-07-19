@@ -266,7 +266,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
 
         {/* ── Streak banner ── */}
         {profile.streak_current > 0 && (
-          <div style={{
+          <div className="hero-gold" style={{
             ...darkCardInk,
             background: 'linear-gradient(135deg, #1A1000 0%, #201600 100%)',
             border: '1px solid rgba(245,200,66,0.2)',
@@ -283,10 +283,10 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
               </svg>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(245,200,66,0.6)', marginBottom: 2 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold-ink)', marginBottom: 2 }}>
                 Sequência activa
               </div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#F5C842', lineHeight: 1 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--gold-ink)', lineHeight: 1 }}>
                 {profile.streak_current} dias
               </div>
             </div>

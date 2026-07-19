@@ -1113,26 +1113,27 @@ export default function FinancasPage() {
         type="button"
         onClick={()=>{ if(moreOpen){setMoreOpen(false);return} setShowMovimentos(true) }}
         aria-label="Ver movimentos"
+        className="hero-teal"
         style={{display:'block',width:'calc(100% - 40px)',textAlign:'left',cursor:'pointer',fontFamily:'Inter, sans-serif',margin:'14px 20px 0',...darkCardInk,background:'linear-gradient(135deg, #131022 0%, #0E1A26 100%)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:22,padding:18}}
       >
         <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
-          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,212,200,0.85)'}}>💎 Balanço do mês</div>
-          <span style={{fontSize:11,fontWeight:700,color:'rgba(0,212,200,0.85)'}}>Movimentos ›</span>
+          <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--teal-ink)'}}>💎 Balanço do mês</div>
+          <span style={{fontSize:11,fontWeight:700,color:'var(--teal-ink)'}}>Movimentos ›</span>
         </div>
-        <div style={{fontSize:32,fontWeight:900,letterSpacing:'-1px',color:balance>=0?'#00D4C8':'#E24B4A'}}>{fmt(balance)}</div>
-        <div style={{fontSize:10,color:'rgba(255,255,255,0.55)',fontWeight:600,marginTop:2}}>o que sobrou na conta depois de gastar e poupar · {format(new Date(),'MMMM',{locale:pt})}</div>
+        <div style={{fontSize:32,fontWeight:900,letterSpacing:'-1px',color:balance>=0?'var(--teal-ink)':'#E24B4A'}}>{fmt(balance)}</div>
+        <div style={{fontSize:10,color:'rgba(var(--ink-rgb),0.55)',fontWeight:600,marginTop:2}}>o que sobrou na conta depois de gastar e poupar · {format(new Date(),'MMMM',{locale:pt})}</div>
         {hasCarry&&(
           <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,background:'rgba(0,212,200,0.07)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:11,padding:'9px 12px'}}>
             <span style={{fontSize:14}} aria-hidden>🔁</span>
-            <div style={{fontSize:11.5,fontWeight:600,color:'rgba(255,255,255,0.85)',lineHeight:1.4}}>
-              Começaste {format(new Date(),'MMMM',{locale:pt})} com <b style={{color:carryInVal>=0?'#00D4C8':'#E24B4A'}}>{fmt(carryInVal)}</b> · disponível <b style={{color:available>=0?'#00D4C8':'#E24B4A'}}>{fmt(available)}</b>
+            <div style={{fontSize:11.5,fontWeight:600,color:'rgba(var(--ink-rgb),0.85)',lineHeight:1.4}}>
+              Começaste {format(new Date(),'MMMM',{locale:pt})} com <b style={{color:carryInVal>=0?'var(--teal-ink)':'#E24B4A'}}>{fmt(carryInVal)}</b> · disponível <b style={{color:available>=0?'var(--teal-ink)':'#E24B4A'}}>{fmt(available)}</b>
             </div>
           </div>
         )}
         <div style={{display:'flex',gap:8,marginTop:12}}>
           <div style={{flex:1,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:12,padding:'9px 10px'}}>
             <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>Entradas</div>
-            <div style={{fontSize:14,fontWeight:800,color:'#00C896',marginTop:2}}>+{fmt(totalIn)}</div>
+            <div style={{fontSize:14,fontWeight:800,color:'var(--teal-ink)',marginTop:2}}>+{fmt(totalIn)}</div>
           </div>
           <div style={{flex:1,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:12,padding:'9px 10px'}}>
             <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>Gastos</div>
@@ -1146,8 +1147,8 @@ export default function FinancasPage() {
           {savedThisMonth!==0&&(
             <div style={{flex:1,background:'var(--surface-2)',border:`1px solid ${savedThisMonth>0?'rgba(0,200,150,0.18)':'rgba(245,200,66,0.25)'}`,borderRadius:12,padding:'9px 10px'}}>
               <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>🏦 Poupado</div>
-              <div style={{fontSize:14,fontWeight:800,color:savedThisMonth>0?'#00C896':'#F5C842',marginTop:2}}>{fmt(savedThisMonth)}</div>
-              <div style={{fontSize:9,fontWeight:600,marginTop:3,color:'rgba(255,255,255,0.4)'}}>{savedThisMonth>0?'movido para a reserva':'saiu da reserva'}</div>
+              <div style={{fontSize:14,fontWeight:800,color:savedThisMonth>0?'var(--teal-ink)':'var(--gold-ink)',marginTop:2}}>{fmt(savedThisMonth)}</div>
+              <div style={{fontSize:9,fontWeight:600,marginTop:3,color:'rgba(var(--ink-rgb),0.4)'}}>{savedThisMonth>0?'movido para a reserva':'saiu da reserva'}</div>
             </div>
           )}
         </div>
@@ -1581,7 +1582,7 @@ export default function FinancasPage() {
           {budgetedCats.length>0 ? (
             <>
               {/* Gauge global do mês */}
-              <div style={{
+              <div className="hero-teal" style={{
                 ...darkCardInk,
                 background:'linear-gradient(135deg, #0E1A14 0%, #0D1F1A 60%, #0E1626 100%)',
                 border:'1px solid rgba(0,200,150,0.22)',borderRadius:22,padding:18,
@@ -1599,7 +1600,7 @@ export default function FinancasPage() {
                   </div>
                 </div>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'rgba(0,200,150,0.85)',display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
+                  <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--teal-ink)',display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
                     📋 Orçamento de {format(new Date(),'MMMM',{locale:pt})}
                   </div>
                   <div style={{fontSize:21,fontWeight:900,letterSpacing:'-0.5px',color: 'var(--ink)'}}>

@@ -54,7 +54,7 @@
 
 /* "gold-ink" = dourado legível como TEXTO/ícone. No escuro o gold puro
    contrasta bem; em superfícies claras é lavado — escurece para slate-gold. */
-:root, :root[data-theme="dark"] { --gold-ink: var(--gold); }
+:root, :root[data-theme="dark"] { --gold-ink: var(--gold); --teal-ink: var(--teal); }
 
 /* ── Tema claro — direção "Aconchego" ──────────────────── */
 :root[data-theme="light"] {
@@ -68,6 +68,7 @@
   --ink-rgb: 15,23,42; /* slate-900 — bordas / ícones / overlays */
   --ink: #0F172A;
   --gold-ink: #B87A16; /* dourado escurecido — legível em fundo claro */
+  --teal-ink: #0E8E7C; /* teal escurecido — legível em fundo claro */
   --card-rgb: 255,255,255;
   --border: rgba(15,23,42,0.10);
   --surface-page: #F4F2EF;  /* página quente suave */
@@ -95,6 +96,28 @@
 
 /* Chip dourado legível no claro */
 :root[data-theme="light"] .chip-gold { color: var(--gold-ink); }
+
+/* ── Cards "hero" no tema claro ─────────────────────────
+   No escuro estes cards são gradientes vibrantes forçados via estilo inline
+   (darkCardInk). No claro, isto os converte para pastel — a tinta interna
+   (var(--ink)/--text*/rgba(var(--ink-rgb),…)) inverte junto para escuro.
+   Usa !important só para vencer os custom properties inline do darkCardInk. */
+:root[data-theme="light"] .hero-gold,
+:root[data-theme="light"] .hero-teal {
+  --ink: #0F172A !important; --ink-rgb: 15,23,42 !important;
+  --text1: #0F172A !important; --text2: #64748B !important; --text3: #94A3B8 !important;
+  --surface-2: #FFFFFF !important; --surface-3: #ECE8E1 !important;
+}
+:root[data-theme="light"] .hero-gold {
+  background: linear-gradient(140deg, #FFFDF8 0%, #FFF4DF 100%) !important;
+  border-color: rgba(232,168,56,0.32) !important;
+  box-shadow: 0 1px 2px rgba(46,38,20,0.05), 0 10px 26px rgba(232,168,56,0.14) !important;
+}
+:root[data-theme="light"] .hero-teal {
+  background: linear-gradient(140deg, #FFFFFF 0%, #E9FBF7 100%) !important;
+  border-color: rgba(30,203,180,0.30) !important;
+  box-shadow: 0 1px 2px rgba(15,40,35,0.05), 0 10px 26px rgba(30,203,180,0.13) !important;
+}
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 ::-webkit-scrollbar { display: none; }

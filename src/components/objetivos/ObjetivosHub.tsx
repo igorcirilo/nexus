@@ -118,6 +118,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
       {/* ── Focus banner ── */}
       {focusGoal ? (
         <div
+          className="hero-gold"
           onClick={() => onOpenGoal(focusGoal.id)}
           style={{
             ...darkCardInk,
@@ -139,7 +140,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
             </svg>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(245,200,66,0.6)', marginBottom: 3 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold-ink)', marginBottom: 3 }}>
               Foco principal agora
             </div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
