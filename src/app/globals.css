@@ -54,7 +54,20 @@
 
 /* "gold-ink" = dourado legível como TEXTO/ícone. No escuro o gold puro
    contrasta bem; em superfícies claras é lavado — escurece para slate-gold. */
-:root, :root[data-theme="dark"] { --gold-ink: var(--gold); --teal-ink: var(--teal); }
+:root, :root[data-theme="dark"] {
+  --gold-ink: var(--gold);
+  --teal-ink: var(--teal);
+  --accent-ink: #D7D4FF;
+  --green-ink:  #00C896;
+  --purple-ink: #9D5CF5;
+  --blue-ink:   #85B7EB;
+  --red-ink:    #E24B4A;
+  --surface-inset: rgba(13,15,20,.2);          /* linhas de listas / sub-cards */
+  --shadow-card: 0 14px 40px rgba(0,0,0,.14);  /* containers das listas */
+  --fab-glow-rest: 0 6px 22px rgba(232,168,56,0.5);
+  --fab-glow-min:  0 6px 22px rgba(232,168,56,0.45);
+  --fab-glow-max:  0 8px 30px rgba(232,168,56,0.8);
+}
 
 /* ── Tema claro — direção "Aconchego" ──────────────────── */
 :root[data-theme="light"] {
@@ -69,6 +82,16 @@
   --ink: #0F172A;
   --gold-ink: #B87A16; /* dourado escurecido — legível em fundo claro */
   --teal-ink: #0E8E7C; /* teal escurecido — legível em fundo claro */
+  --accent-ink: #584FBE; /* ~4.9:1 no card lavanda do assistente */
+  --green-ink:  #0B7D5C;
+  --purple-ink: #7A45D6;
+  --blue-ink:   #2F6BA8;
+  --red-ink:    #C0392B;
+  --surface-inset: rgba(15,23,42,0.045);
+  --shadow-card: 0 1px 2px rgba(46,38,20,.05), 0 8px 22px rgba(46,38,20,.07);
+  --fab-glow-rest: 0 6px 22px rgba(184,122,22,0.28);
+  --fab-glow-min:  0 6px 22px rgba(184,122,22,0.24);
+  --fab-glow-max:  0 8px 30px rgba(184,122,22,0.4);
   --card-rgb: 255,255,255;
   --border: rgba(15,23,42,0.10);
   --surface-page: #F4F2EF;  /* página quente suave */

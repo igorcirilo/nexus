@@ -92,7 +92,7 @@ export default function Nav() {
 
       <style jsx>{`
         .nav-fab {
-          box-shadow: 0 6px 22px rgba(232, 168, 56, 0.5);
+          box-shadow: var(--fab-glow-rest);
           animation: navFabPulse 2.6s ease-in-out infinite;
           transition: transform 0.15s ease;
         }
@@ -100,8 +100,8 @@ export default function Nav() {
           transform: scale(0.94);
         }
         @keyframes navFabPulse {
-          0%, 100% { box-shadow: 0 6px 22px rgba(232, 168, 56, 0.45); }
-          50% { box-shadow: 0 8px 30px rgba(232, 168, 56, 0.8); }
+          0%, 100% { box-shadow: var(--fab-glow-min); }
+          50% { box-shadow: var(--fab-glow-max); }
         }
         @media (prefers-reduced-motion: reduce) {
           .nav-fab { animation: none; }

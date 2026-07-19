@@ -55,7 +55,7 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
           borderRadius: 20,
           background: 'linear-gradient(135deg, rgba(var(--card-rgb),.98), rgba(var(--card-rgb),.98))',
           border: '0.5px solid var(--border)',
-          boxShadow: '0 14px 40px rgba(0,0,0,.14)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 2 }}>
@@ -105,7 +105,7 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
                   textAlign: 'left',
                   padding: '12px 10px',
                   borderRadius: 15,
-                  background: 'rgba(13,15,20,.2)',
+                  background: 'var(--surface-inset)',
                   border: `0.5px solid ${h.done ? 'rgba(30,203,180,.3)' : 'var(--border)'}`,
                   borderLeft: `3px solid ${h.color}`,
                   opacity: h.done ? 0.62 : isBusy && !isSaving ? 0.5 : 1,
@@ -169,7 +169,7 @@ export default function TodayHabitList({ habits, doneCount, totalCount, onToggle
         })}
 
         {habits.length === 0 && (
-          <div style={{ padding: 18, borderRadius: 16, background: 'rgba(13,15,20,.2)', border: '0.5px solid var(--border)', color: 'var(--text3)', fontSize: 13, textAlign: 'center' }}>
+          <div style={{ padding: 18, borderRadius: 16, background: 'var(--surface-inset)', border: '0.5px solid var(--border)', color: 'var(--text3)', fontSize: 13, textAlign: 'center' }}>
             Nenhum hábito para hoje.
             <button
               type="button"

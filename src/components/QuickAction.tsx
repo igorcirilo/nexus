@@ -184,11 +184,13 @@ export default function QuickAction() {
     setPomodoroSaved(true); setToast('Sessão de foco guardada.')
   }
 
+  // color = tinta do texto (variantes -ink, legíveis nos dois temas);
+  // borderCol = raw p/ a borda tingida (var() não pode ser concatenado com alpha).
   const actions = [
-    { label:'Lembrete',  icon:'🔔', color:'#F5C842',      bg:'rgba(245,200,66,.12)', onClick:()=>{ setShowReminder(true);     setOpen(false) } },
-    { label:'Hábito',    icon:'✅', color:'var(--teal)', bg:'rgba(30,203,180,.12)',  onClick:()=>{ setShowHabit(true);        setOpen(false) } },
-    { label:'Transação', icon:'💰', color:'var(--gold)', bg:'rgba(232,168,56,.12)', onClick:()=>{ setShowTransaction(true);  setOpen(false) } },
-    { label:'Pomodoro',  icon:'⏱',  color:'var(--accent)',bg:'rgba(127,119,221,.12)',onClick:()=>{ setShowPomodoro(true);    setOpen(false) } },
+    { label:'Lembrete',  icon:'🔔', color:'var(--gold-ink)', borderCol:'rgba(245,200,66,.27)', bg:'rgba(245,200,66,.12)', onClick:()=>{ setShowReminder(true);     setOpen(false) } },
+    { label:'Hábito',    icon:'✅', color:'var(--teal-ink)', borderCol:'rgba(30,203,180,.27)', bg:'rgba(30,203,180,.12)',  onClick:()=>{ setShowHabit(true);        setOpen(false) } },
+    { label:'Transação', icon:'💰', color:'var(--gold-ink)', borderCol:'rgba(232,168,56,.27)', bg:'rgba(232,168,56,.12)', onClick:()=>{ setShowTransaction(true);  setOpen(false) } },
+    { label:'Pomodoro',  icon:'⏱',  color:'var(--accent)',   borderCol:'rgba(127,119,221,.27)',bg:'rgba(127,119,221,.12)',onClick:()=>{ setShowPomodoro(true);    setOpen(false) } },
   ]
 
   const currentCats = txType === 'entrada' ? CATEGORIES_IN : CATEGORIES_OUT
@@ -447,7 +449,7 @@ export default function QuickAction() {
           <div onClick={()=>setOpen(false)} style={{position:'fixed',inset:0,zIndex:95,background:'transparent'}} />
           <div data-quickaction style={{position:'fixed',bottom:84,left:'50%',transform:'translateX(-50%)',zIndex:96,display:'flex',flexDirection:'column',alignItems:'center',gap:8,animation:'qaMenuIn .18s ease'}}>
             {actions.map(a=>(
-              <button key={a.label} onClick={a.onClick} style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg1)',border:`0.5px solid ${a.color}44`,borderRadius:14,padding:'10px 14px',cursor:'pointer',boxShadow:'0 4px 20px rgba(0,0,0,.35)',whiteSpace:'nowrap',minWidth:160}}>
+              <button key={a.label} onClick={a.onClick} style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg1)',border:`0.5px solid ${a.borderCol}`,borderRadius:14,padding:'10px 14px',cursor:'pointer',boxShadow:'0 4px 20px rgba(0,0,0,.35)',whiteSpace:'nowrap',minWidth:160}}>
                 <div style={{width:32,height:32,borderRadius:9,background:a.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,flexShrink:0}}>{a.icon}</div>
                 <span style={{fontFamily:'Inter, sans-serif',fontWeight:600,fontSize:13,color:a.color}}>＋ {a.label}</span>
               </button>
