@@ -153,7 +153,7 @@ export default function HabitLibrarySheet({ existingKeys, existingNames, busyKey
                         cursor: added ? 'default' : 'pointer',
                         border: added ? '1px solid rgba(0,200,150,0.25)' : '1px solid rgba(245,200,66,0.4)',
                         background: added ? 'rgba(0,200,150,0.10)' : 'rgba(245,200,66,0.14)',
-                        color: added ? '#00C896' : '#F5C842',
+                        color: added ? 'var(--green-ink)' : 'var(--gold-ink)',
                         opacity: busy ? 0.6 : 1,
                       }}
                     >
@@ -182,7 +182,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
     padding: '7px 14px',
     borderRadius: 20,
     border: `1px solid ${active ? 'rgba(245,200,66,0.3)' : 'rgba(var(--ink-rgb),0.1)'}`,
-    color: active ? '#F5C842' : 'rgba(var(--ink-rgb),0.5)',
+    color: active ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.5)',
     background: active ? 'rgba(245,200,66,0.12)' : 'transparent',
     whiteSpace: 'nowrap',
     cursor: 'pointer',

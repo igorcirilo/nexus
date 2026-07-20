@@ -35,10 +35,10 @@ export default function NightSummaryCard({
     >
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 12 }}>
         <div>
-          <div style={{ fontSize: 11, color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '.6px', fontWeight: 700, marginBottom: 6 }}>
+          <div style={{ fontSize: 11, color: 'var(--gold-ink)', textTransform: 'uppercase', letterSpacing: '.6px', fontWeight: 700, marginBottom: 6 }}>
             Resumo do dia
           </div>
-          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 28, color: 'var(--gold)', lineHeight: 1 }}>
+          <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 28, color: 'var(--gold-ink)', lineHeight: 1 }}>
             {ritmo}
           </div>
           <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 4 }}>ritmo atual</div>

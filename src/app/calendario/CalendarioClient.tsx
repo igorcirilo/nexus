@@ -137,7 +137,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
   return (
     <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: 'var(--surface-page)', fontFamily: FONT }}>
       {c.toast && (
-        <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-pop)', border: '1px solid rgba(0,200,150,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: '#00C896', zIndex: 10000, whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-pop)', border: '1px solid rgba(0,200,150,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: 'var(--green-ink)', zIndex: 10000, whiteSpace: 'nowrap' }}>
           ✓ {c.toast}
         </div>
       )}
@@ -153,7 +153,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
         <button
           onClick={() => { c.setEvDate(c.today); setCreateOpen('evento') }}
           aria-label="Novo evento ou alerta"
-          style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(245,200,66,0.14)', border: '1px solid rgba(245,200,66,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#F5C842', cursor: 'pointer' }}
+          style={{ width: 38, height: 38, borderRadius: 12, background: 'rgba(245,200,66,0.14)', border: '1px solid rgba(245,200,66,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold-ink)', cursor: 'pointer' }}
         >
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
         </button>
@@ -169,7 +169,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
             <button key={m} onClick={() => c.setViewMode(m)} style={{
               padding: '6px 12px', borderRadius: 8, fontSize: 11, fontWeight: 600, border: 'none', cursor: 'pointer',
               background: c.viewMode === m ? 'rgba(var(--ink-rgb),0.08)' : 'transparent',
-              color: c.viewMode === m ? '#F5C842' : 'rgba(var(--ink-rgb),0.3)', fontFamily: FONT,
+              color: c.viewMode === m ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.3)', fontFamily: FONT,
             }}>{m === 'month' ? 'Mês' : 'Semana'}</button>
           ))}
         </div>
@@ -207,7 +207,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                   display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
                   fontSize: 13, fontWeight: status?.complete ? 800 : 600, fontFamily: FONT,
                   background: hubHeat(status), border: 'none', cursor: 'pointer', padding: 0,
-                  color: status?.complete ? '#04140E' : isTd ? '#F5C842' : inMonth ? 'rgba(var(--ink-rgb),0.6)' : 'rgba(var(--ink-rgb),0.18)',
+                  color: status?.complete ? '#04140E' : isTd ? 'var(--gold-ink)' : inMonth ? 'rgba(var(--ink-rgb),0.6)' : 'rgba(var(--ink-rgb),0.18)',
                   boxShadow: isSel ? 'inset 0 0 0 1.5px rgba(157,92,245,0.85)' : isTd ? 'inset 0 0 0 1.5px #F5C842' : 'none',
                 }}
               >
@@ -247,7 +247,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                   fontSize: 11.5, fontWeight: 700, fontFamily: FONT, cursor: done ? 'default' : 'pointer',
                   background: done ? 'rgba(0,200,150,0.08)' : 'rgba(var(--ink-rgb),0.03)',
                   border: done ? '1px solid rgba(0,200,150,0.25)' : '1px dashed rgba(var(--ink-rgb),0.14)',
-                  color: done ? '#00C896' : 'rgba(var(--ink-rgb),0.4)',
+                  color: done ? 'var(--green-ink)' : 'rgba(var(--ink-rgb),0.4)',
                 }}
               >
                 <span style={{ fontSize: 15 }}>{PHASE_EMOJI[phase]}</span>
@@ -262,7 +262,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           <span style={{ ...secLabel, margin: 0 }}>
             Hoje · {format(new Date(), 'EEE, d MMM', { locale: pt })}
           </span>
-          <button onClick={() => setAlertsOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, color: '#F5C842', fontFamily: FONT, padding: 0 }}>
+          <button onClick={() => setAlertsOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, color: 'var(--gold-ink)', fontFamily: FONT, padding: 0 }}>
             Gerir alertas ›
           </button>
         </div>
@@ -281,7 +281,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                     {e.all_day ? 'Todo o dia' : e.time ? `${e.time.slice(0, 5)}${e.end_time ? ` – ${e.end_time.slice(0, 5)}` : ''}` : 'Sem hora'}
                   </div>
                 </div>
-                <span style={{ ...timelineTag, background: 'rgba(157,92,245,0.12)', color: '#9D5CF5' }}>evento</span>
+                <span style={{ ...timelineTag, background: 'rgba(157,92,245,0.12)', color: 'var(--purple-ink)' }}>evento</span>
               </div>
             ))}
             {todayReminders.map(r => (
@@ -293,7 +293,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                     {r.time ? r.time.slice(0, 5) : 'Sem hora'} · {r.date ? 'só este dia' : r.days.length === 7 ? 'todos os dias' : r.days.map(d => DAYS_SHORT[d].toLowerCase()).join(', ')}
                   </div>
                 </div>
-                <span style={{ ...timelineTag, background: 'rgba(245,200,66,0.12)', color: '#F5C842' }}>alerta</span>
+                <span style={{ ...timelineTag, background: 'rgba(245,200,66,0.12)', color: 'var(--gold-ink)' }}>alerta</span>
               </div>
             ))}
           </>
@@ -302,7 +302,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
         {/* ── Mentor: padrões semanais ── */}
         {c.insights.length > 0 && (
           <div style={{ marginTop: 14, background: 'rgba(0,200,150,0.05)', border: '1px solid rgba(0,200,150,0.15)', borderRadius: 14, padding: '12px 14px', fontSize: 12, lineHeight: 1.6, color: 'var(--text1)' }}>
-            <b style={{ color: '#00C896' }}>Mentor:</b> {c.insights.slice(0, 2).join(' ')}
+            <b style={{ color: 'var(--green-ink)' }}>Mentor:</b> {c.insights.slice(0, 2).join(' ')}
           </div>
         )}
 
@@ -411,13 +411,13 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                         fontSize: 11.5, fontWeight: 700, fontFamily: FONT, cursor: ci || !canEditSel ? 'default' : 'pointer',
                         background: ci ? 'rgba(0,200,150,0.08)' : active ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
                         border: ci ? '1px solid rgba(0,200,150,0.25)' : active ? '1px solid rgba(245,200,66,0.45)' : '1px dashed rgba(var(--ink-rgb),0.14)',
-                        color: ci ? '#00C896' : active ? '#F5C842' : 'rgba(var(--ink-rgb),0.4)',
+                        color: ci ? 'var(--green-ink)' : active ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.4)',
                         opacity: canEditSel || ci ? 1 : 0.5,
                       }}
                     >
                       <span style={{ fontSize: 14 }}>{PHASE_EMOJI[phase]}</span>
                       {PHASE_LABELS[phase]}
-                      {ci && <span style={{ marginLeft: 'auto', fontSize: 9.5, color: '#00C896' }}>✓</span>}
+                      {ci && <span style={{ marginLeft: 'auto', fontSize: 9.5, color: 'var(--green-ink)' }}>✓</span>}
                     </button>
                   )
                 })}
@@ -437,7 +437,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                   <button
                     onClick={c.doQuickCheckin}
                     disabled={c.quickSaving}
-                    style={{ marginTop: 10, width: '100%', border: '1px solid rgba(0,200,150,0.4)', borderRadius: 12, padding: 12, fontFamily: FONT, fontWeight: 800, fontSize: 13, cursor: 'pointer', background: 'rgba(0,200,150,0.15)', color: '#00C896' }}
+                    style={{ marginTop: 10, width: '100%', border: '1px solid rgba(0,200,150,0.4)', borderRadius: 12, padding: 12, fontFamily: FONT, fontWeight: 800, fontSize: 13, cursor: 'pointer', background: 'rgba(0,200,150,0.15)', color: 'var(--green-ink)' }}
                   >
                     {c.quickSaving ? 'A guardar…' : `Guardar check-in da ${PHASE_LABELS[c.quickPhase].toLowerCase()}`}
                   </button>
@@ -535,13 +535,13 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           }
         >
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            {([['evento', '📅 Evento', '#9D5CF5'], ['alerta', '🔔 Alerta', '#F5C842']] as const).map(([k, l, col]) => (
+            {([['evento', '📅 Evento', '#9D5CF5', 'var(--purple-ink)'], ['alerta', '🔔 Alerta', '#F5C842', 'var(--gold-ink)']] as const).map(([k, l, col, ink]) => (
               <button key={k} onClick={() => setCreateOpen(k)} style={{
                 flex: 1, padding: '11px 0', borderRadius: 13, cursor: 'pointer', textAlign: 'center',
                 fontFamily: FONT, fontWeight: 700, fontSize: 13,
                 background: createOpen === k ? `${col}1A` : 'rgba(var(--ink-rgb),0.03)',
                 border: `1px solid ${createOpen === k ? `${col}80` : 'rgba(var(--ink-rgb),0.10)'}`,
-                color: createOpen === k ? col : 'rgba(var(--ink-rgb),0.5)',
+                color: createOpen === k ? ink : 'rgba(var(--ink-rgb),0.5)',
               }}>{l}</button>
             ))}
           </div>
@@ -571,7 +571,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                   <button
                     onClick={() => c.setEvAllDay(!c.evAllDay)}
                     aria-pressed={c.evAllDay}
-                    style={{ ...sheetInp, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: c.evAllDay ? '#F5C842' : 'rgba(var(--ink-rgb),0.5)' }}
+                    style={{ ...sheetInp, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: c.evAllDay ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.5)' }}
                   >
                     {c.evAllDay ? 'Sim' : 'Não'}
                     <span style={{ width: 40, height: 22, borderRadius: 11, position: 'relative', background: c.evAllDay ? '#F5C842' : 'rgba(var(--ink-rgb),0.1)', display: 'inline-block' }}>
@@ -601,7 +601,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                     flex: 1, padding: '10px 4px', borderRadius: 13, cursor: 'pointer', fontSize: 11.5, fontWeight: 600, fontFamily: FONT,
                     background: c.evRecurrence === k ? 'rgba(245,200,66,0.10)' : 'rgba(var(--ink-rgb),0.03)',
                     border: `1px solid ${c.evRecurrence === k ? 'rgba(245,200,66,0.45)' : 'rgba(var(--ink-rgb),0.10)'}`,
-                    color: c.evRecurrence === k ? '#F5C842' : 'rgba(var(--ink-rgb),0.55)',
+                    color: c.evRecurrence === k ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.55)',
                   }}>{l}</button>
                 ))}
               </div>
@@ -633,7 +633,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                         flex: 1, height: 38, borderRadius: 11, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: FONT,
                         background: on ? 'rgba(245,200,66,0.12)' : 'rgba(var(--ink-rgb),0.03)',
                         border: `1px solid ${on ? 'rgba(245,200,66,0.5)' : 'rgba(var(--ink-rgb),0.10)'}`,
-                        color: on ? '#F5C842' : 'rgba(var(--ink-rgb),0.4)',
+                        color: on ? 'var(--gold-ink)' : 'rgba(var(--ink-rgb),0.4)',
                       }}
                     >{d}</button>
                   )

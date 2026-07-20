@@ -456,6 +456,19 @@ export const AREA_META: Record<HabitArea, { label: string; icon: string; color: 
   relacionamentos: { label: 'Relacionamentos', icon: '🤝', color: '#85B7EB' },
 }
 
+/** Cor de área como TEXTO, legível nos dois temas (variantes -ink).
+    AREA_META.color continua raw: é concatenado com alpha (`${color}22`)
+    em fundos/bordas — var() quebraria a concatenação. */
+export const AREA_INK: Record<HabitArea, string> = {
+  corpo: 'var(--teal-ink)',
+  produtividade: 'var(--accent)',
+  idiomas: 'var(--red-ink)',
+  carreira: 'var(--gold-ink)',
+  financas: '#1D9E75',
+  emocoes: '#D4537E',
+  relacionamentos: 'var(--blue-ink)',
+}
+
 export const TITLES: Record<string, string> = {
   Recruta: 'Estás a começar. Cada ação conta.',
   Consistente: 'A consistência está a ganhar forma.',

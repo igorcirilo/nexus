@@ -11,10 +11,17 @@ import type { Pendencia, PendenciaSeverity } from '@/lib/pendencias'
 
 const FONT = 'Inter, sans-serif'
 
+// Raw hex, obrigatório: usado em concat de alpha (`${color}14`) p/ fundo/borda.
 const SEV_COLOR: Record<PendenciaSeverity, string> = {
   risk: '#E24B4A',
   warn: '#E8A838',
   info: '#85B7EB',
+}
+// Tinta de texto do CTA — variantes -ink, legíveis no tema atual.
+const SEV_TEXT: Record<PendenciaSeverity, string> = {
+  risk: 'var(--red-ink)',
+  warn: 'var(--gold-ink)',
+  info: 'var(--blue-ink)',
 }
 const SEV_ICON: Record<PendenciaSeverity, string> = { risk: '🔴', warn: '⚠️', info: 'ℹ️' }
 
@@ -42,7 +49,7 @@ export default function ProactiveAssistant({ message, focusPhrase, planCount, pe
 
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 11 }}>
           <span style={orb}>✦</span>
-          <b style={{ fontSize: 12.5, fontWeight: 800, color: '#D7D4FF', letterSpacing: '0.04em' }}>O TEU ASSISTENTE</b>
+          <b style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--accent-ink)', letterSpacing: '0.04em' }}>O TEU ASSISTENTE</b>
           {planCount > 0 && (
             <span style={tag}>Plano de hoje · {planCount} {planCount === 1 ? 'item' : 'itens'}</span>
           )}
@@ -53,8 +60,8 @@ export default function ProactiveAssistant({ message, focusPhrase, planCount, pe
         {/* Missão do dia (movida do antigo card "Missão"). */}
         <div style={missionBox}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8E93B5', fontWeight: 800 }}>Missão do dia</span>
-            {hasMission && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 800, color: '#1ECBB4' }}>{missionPct}%</span>}
+            <span style={{ fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', fontWeight: 800 }}>Missão do dia</span>
+            {hasMission && <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 800, color: 'var(--teal-ink)' }}>{missionPct}%</span>}
           </div>
           {hasMission ? (
             <>
@@ -67,7 +74,7 @@ export default function ProactiveAssistant({ message, focusPhrase, planCount, pe
               />
             </>
           ) : (
-            <a href="/checkin" style={{ display: 'inline-block', marginTop: 6, fontSize: 13, color: '#F5C842', fontWeight: 700, textDecoration: 'none' }}>
+            <a href="/checkin" style={{ display: 'inline-block', marginTop: 6, fontSize: 13, color: 'var(--gold-ink)', fontWeight: 700, textDecoration: 'none' }}>
               Definir missão no check-in ›
             </a>
           )}
@@ -77,7 +84,7 @@ export default function ProactiveAssistant({ message, focusPhrase, planCount, pe
           <button onClick={onFocusClick} style={focusBox}>
             <span style={play}>▶</span>
             <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
-              <span style={{ display: 'block', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8E93B5', fontWeight: 800 }}>Foco agora</span>
+              <span style={{ display: 'block', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', fontWeight: 800 }}>Foco agora</span>
               <span style={{ display: 'block', fontSize: 13.5, color: 'var(--ink)', fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{focusPhrase}</span>
             </span>
             <span style={{ fontSize: 18, color: 'var(--text2)', flexShrink: 0 }}>›</span>
@@ -92,7 +99,7 @@ export default function ProactiveAssistant({ message, focusPhrase, planCount, pe
                 <>
                   <span style={{ fontSize: 13, flexShrink: 0 }}>{SEV_ICON[p.severity]}</span>
                   <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--text1)', lineHeight: 1.35 }}>{p.message}</span>
-                  {p.ctaHref && <span style={{ fontSize: 11, fontWeight: 800, color, flexShrink: 0 }}>{p.ctaLabel ?? 'Abrir'} ›</span>}
+                  {p.ctaHref && <span style={{ fontSize: 11, fontWeight: 800, color: SEV_TEXT[p.severity], flexShrink: 0 }}>{p.ctaLabel ?? 'Abrir'} ›</span>}
                 </>
               )
               const style: CSSProperties = {
@@ -139,16 +146,16 @@ const msgStyle: CSSProperties = {
   position: 'relative', marginTop: 13, fontSize: 15, lineHeight: 1.45, color: 'var(--ink)', fontWeight: 600,
 }
 const missionBox: CSSProperties = {
-  position: 'relative', marginTop: 14, background: 'rgba(0,0,0,0.18)',
+  position: 'relative', marginTop: 14, background: 'var(--surface-inset)',
   border: '1px solid rgba(var(--ink-rgb),0.10)', borderRadius: 14, padding: '12px 13px',
 }
 const focusBox: CSSProperties = {
   position: 'relative', marginTop: 14, width: '100%', display: 'flex', alignItems: 'center', gap: 11,
-  background: 'rgba(0,0,0,0.22)', border: '1px solid rgba(var(--ink-rgb),0.10)',
+  background: 'var(--surface-inset)', border: '1px solid rgba(var(--ink-rgb),0.10)',
   borderRadius: 14, padding: '12px 13px', cursor: 'pointer', fontFamily: FONT,
 }
 const play: CSSProperties = {
   width: 30, height: 30, borderRadius: 9, flexShrink: 0,
-  background: 'rgba(30,203,180,0.18)', color: '#1ECBB4',
+  background: 'rgba(30,203,180,0.18)', color: 'var(--teal-ink)',
   display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13,
 }

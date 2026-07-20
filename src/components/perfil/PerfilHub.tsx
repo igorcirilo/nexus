@@ -133,7 +133,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
             height: 34, borderRadius: 11, padding: '0 13px',
             background: 'rgba(245,200,66,0.14)', border: '1px solid rgba(245,200,66,0.4)',
             display: 'flex', alignItems: 'center', gap: 7,
-            color: '#F5C842', cursor: 'pointer',
+            color: 'var(--gold-ink)', cursor: 'pointer',
             fontFamily: FONT, fontSize: 12.5, fontWeight: 700,
           }}
           aria-label="Editar perfil"
@@ -194,7 +194,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
               style={{
                 position: 'absolute', bottom: -2, right: -2,
                 width: 30, height: 30, borderRadius: '50%',
-                background: '#F5C842', border: '3px solid #0B0B1A',
+                background: '#F5C842', border: '3px solid var(--surface-page)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: photoUploading ? 'wait' : 'pointer', fontSize: 13, padding: 0,
               }}
@@ -220,7 +220,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
           )}
           <div style={{
             fontSize: 11, fontWeight: 700, letterSpacing: '0.06em',
-            background: 'rgba(245,200,66,0.12)', color: '#F5C842',
+            background: 'rgba(245,200,66,0.12)', color: 'var(--gold-ink)',
             borderRadius: 7, padding: '3px 10px',
           }}>
             NÍVEL {profile.level}
@@ -244,10 +244,10 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: 360 }}>
           {[
-            { label: 'Ritmo',     value: ritmo,                    icon: '⚡', color: '#F5C842' },
-            { label: 'Sequência', value: profile.streak_current,   icon: '🔥', color: '#FF6B6B' },
-            { label: 'Recorde',   value: profile.streak_best,      icon: '🏆', color: '#00D4C8' },
-            { label: 'Badges',    value: earnedBadges.length,      icon: '🎖️', color: '#9D5CF5' },
+            { label: 'Ritmo',     value: ritmo,                    icon: '⚡', color: 'var(--gold-ink)' },
+            { label: 'Sequência', value: profile.streak_current,   icon: '🔥', color: 'var(--red-ink)' },
+            { label: 'Recorde',   value: profile.streak_best,      icon: '🏆', color: 'var(--teal-ink)' },
+            { label: 'Badges',    value: earnedBadges.length,      icon: '🎖️', color: 'var(--purple-ink)' },
           ].map(s => (
             <div key={s.label} style={{
               flex: 1, background: 'var(--surface-2)',
@@ -266,7 +266,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
 
         {/* ── Streak banner ── */}
         {profile.streak_current > 0 && (
-          <div style={{
+          <div className="hero-gold" style={{
             ...darkCardInk,
             background: 'linear-gradient(135deg, #1A1000 0%, #201600 100%)',
             border: '1px solid rgba(245,200,66,0.2)',
@@ -278,15 +278,15 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
               background: 'rgba(245,200,66,0.12)', border: '1px solid rgba(245,200,66,0.2)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="#F5C842">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--gold-ink)">
                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
               </svg>
             </div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(245,200,66,0.6)', marginBottom: 2 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--gold-ink)', marginBottom: 2 }}>
                 Sequência activa
               </div>
-              <div style={{ fontSize: 22, fontWeight: 900, color: '#F5C842', lineHeight: 1 }}>
+              <div style={{ fontSize: 22, fontWeight: 900, color: 'var(--gold-ink)', lineHeight: 1 }}>
                 {profile.streak_current} dias
               </div>
             </div>
@@ -309,10 +309,10 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                 border: '1px solid rgba(0,200,150,0.18)',
                 borderRadius: 16, padding: '14px 16px',
               }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(0,200,150,0.7)', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--green-ink)', marginBottom: 6 }}>
                   Treinos
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: '#00C896', lineHeight: 1 }}>
+                <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--green-ink)', lineHeight: 1 }}>
                   {journeyData.trainingCount30d}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>sessões</div>
@@ -322,10 +322,10 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                 border: '1px solid rgba(157,92,245,0.18)',
                 borderRadius: 16, padding: '14px 16px',
               }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'rgba(157,92,245,0.7)', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--purple-ink)', marginBottom: 6 }}>
                   Páginas lidas
                 </div>
-                <div style={{ fontSize: 28, fontWeight: 900, color: '#9D5CF5', lineHeight: 1 }}>
+                <div style={{ fontSize: 28, fontWeight: 900, color: 'var(--purple-ink)', lineHeight: 1 }}>
                   {journeyData.readingPages30d}
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 4 }}>páginas</div>
@@ -338,7 +338,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <SectionLabel>Conquistas</SectionLabel>
           {onOpenAchievements && (
-            <button onClick={onOpenAchievements} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--gold)', fontFamily: 'inherit', marginTop: 10 }}>
+            <button onClick={onOpenAchievements} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--gold-ink)', fontFamily: 'inherit', marginTop: 10 }}>
               Conquistas &amp; Metas ›
             </button>
           )}

@@ -57,7 +57,7 @@ export default function TodayTaskList({
           borderRadius: 20,
           background: 'linear-gradient(135deg, rgba(var(--card-rgb),.98), rgba(var(--card-rgb),.98))',
           border: '0.5px solid var(--border)',
-          boxShadow: '0 14px 40px rgba(0,0,0,.14)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 2 }}>
@@ -70,7 +70,7 @@ export default function TodayTaskList({
               minHeight: 44,
               display: 'inline-flex',
               alignItems: 'center',
-              color: 'var(--teal)',
+              color: 'var(--teal-ink)',
               textDecoration: 'none',
               fontFamily: 'var(--font-dm), "DM Sans", sans-serif',
               fontSize: 14,
@@ -85,6 +85,7 @@ export default function TodayTaskList({
 
         {tasks.map(({ task, title, description, areaLabel }) => {
           const color = areaColor(task.area)
+          const ink = areaInk(task.area)
           return (
             <article
               key={task.id}
@@ -95,7 +96,7 @@ export default function TodayTaskList({
                 gap: 10,
                 padding: '12px 10px',
                 borderRadius: 15,
-                background: 'rgba(13,15,20,.2)',
+                background: 'var(--surface-inset)',
                 border: `0.5px solid ${task.status === 'completed' ? 'rgba(30,203,180,.3)' : 'var(--border)'}`,
                 borderLeft: `3px solid ${color}`,
                 opacity: task.status === 'pending' ? 1 : 0.62,
@@ -123,7 +124,7 @@ export default function TodayTaskList({
                       height: 34,
                       borderRadius: '50%',
                       border: task.status === 'completed' ? 'none' : '2px solid var(--text3)',
-                      color: 'var(--teal)',
+                      color: 'var(--teal-ink)',
                       background: task.status === 'completed' ? 'rgba(30,203,180,.12)' : 'transparent',
                       display: 'inline-flex',
                       alignItems: 'center',
@@ -153,7 +154,7 @@ export default function TodayTaskList({
                       {title}
                     </h3>
                     <div style={{ display: 'flex', gap: 7, fontSize: 13, minWidth: 0, alignItems: 'center' }}>
-                      <span style={{ color, fontWeight: 600, flexShrink: 0 }}>{areaLabel}</span>
+                      <span style={{ color: ink, fontWeight: 600, flexShrink: 0 }}>{areaLabel}</span>
                       {description && <span style={{ color: 'var(--text3)', flexShrink: 0 }}>·</span>}
                       {description && <span style={{ color: 'var(--text3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{description}</span>}
                     </div>
@@ -197,7 +198,7 @@ export default function TodayTaskList({
         })}
 
         {tasks.length === 0 && (
-          <div style={{ padding: 18, borderRadius: 16, background: 'rgba(13,15,20,.2)', border: '0.5px solid var(--border)', color: 'var(--text3)', fontSize: 13, textAlign: 'center' }}>
+          <div style={{ padding: 18, borderRadius: 16, background: 'var(--surface-inset)', border: '0.5px solid var(--border)', color: 'var(--text3)', fontSize: 13, textAlign: 'center' }}>
             Nenhuma tarefa para hoje.
             <button
               type="button"
@@ -231,6 +232,14 @@ function areaColor(area: string) {
   if (area === 'produtividade') return 'var(--accent)'
   if (area === 'emocoes') return 'var(--gold)'
   return 'var(--teal)'
+}
+
+// Tinta de texto do rótulo de área — legível nos dois temas.
+function areaInk(area: string) {
+  if (area === 'corpo') return 'var(--teal-ink)'
+  if (area === 'produtividade') return 'var(--accent)'
+  if (area === 'emocoes') return 'var(--gold-ink)'
+  return 'var(--teal-ink)'
 }
 
 // Controlo compacto: ícone de 34px com área de toque de 44px (padding invisível)

@@ -275,7 +275,7 @@ export default function CheckinPage() {
             )}
             {activePhase === 'noite' && donePhases.size === 3 && (
               <div style={{ background: 'rgba(232,168,56,.08)', border: '0.5px solid rgba(232,168,56,.22)', borderRadius: 14, padding: 16, marginTop: 8 }}>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--gold)', marginBottom: 4 }}>🔥 Dia completo!</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--gold-ink)', marginBottom: 4 }}>🔥 Dia completo!</div>
                 <div style={{ fontSize: 13, color: 'var(--text2)' }}>Todos os check-ins feitos. Streak actualizado.</div>
               </div>
             )}
@@ -537,12 +537,12 @@ export default function CheckinPage() {
                     padding: '18px 16px', background: 'var(--bg2)',
                     border: '0.5px solid var(--border)', borderRadius: 16, marginBottom: 16 }}>
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 800, color: 'var(--teal)', lineHeight: 1 }}>{doneTasks.length}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 800, color: 'var(--teal-ink)', lineHeight: 1 }}>{doneTasks.length}</div>
                       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.8px', marginTop: 5, color: 'var(--text3)' }}>Feitas</div>
                     </div>
                     <div style={{ width: '0.5px', height: 36, background: 'var(--border)' }} />
                     <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 800, color: 'var(--gold)', lineHeight: 1 }}>{skipped.length}</div>
+                      <div style={{ fontFamily: 'Inter, sans-serif', fontSize: 32, fontWeight: 800, color: 'var(--gold-ink)', lineHeight: 1 }}>{skipped.length}</div>
                       <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '.8px', marginTop: 5, color: 'var(--text3)' }}>Puladas</div>
                     </div>
                     <div style={{ width: '0.5px', height: 36, background: 'var(--border)' }} />
@@ -563,7 +563,7 @@ export default function CheckinPage() {
                           opacity: task.status === 'pending' ? 0.35 : task.status === 'skipped' ? 0.5 : 1,
                         }}
                       >
-                        {task.status === 'completed' && <span style={{ color: 'var(--teal)', fontSize: 16, flexShrink: 0, width: 22, textAlign: 'center' }}>✓</span>}
+                        {task.status === 'completed' && <span style={{ color: 'var(--teal-ink)', fontSize: 16, flexShrink: 0, width: 22, textAlign: 'center' }}>✓</span>}
                         {task.status === 'skipped' && <span style={{ fontSize: 10, fontWeight: 600, color: '#666', background: 'var(--bg3)', padding: '3px 7px', borderRadius: 5, whiteSpace: 'nowrap', flexShrink: 0 }}>pulado</span>}
                         {task.status === 'pending' && <span style={{ color: 'var(--text3)', fontSize: 16, flexShrink: 0, width: 22, textAlign: 'center' }}>○</span>}
                         <span style={{
@@ -582,7 +582,7 @@ export default function CheckinPage() {
                       padding: 14, background: 'rgba(30,203,180,.06)',
                       border: '0.5px solid rgba(30,203,180,.18)', borderRadius: 14, marginBottom: 12 }}>
                       <span style={{ fontSize: 18 }}>✓</span>
-                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--teal)' }}>
+                      <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--teal-ink)' }}>
                         {doneTasks.length} {doneTasks.length === 1 ? 'task concluída' : 'tasks concluídas'} hoje
                       </span>
                     </div>

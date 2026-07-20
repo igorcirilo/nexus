@@ -40,7 +40,7 @@ export default function NextActionCard({ action }: NextActionCardProps) {
             height: 42,
             borderRadius: 'var(--radius-md)',
             background: 'rgba(232,168,56,.12)',
-            color: 'var(--gold)',
+            color: 'var(--gold-ink)',
             border: '0.5px solid rgba(232,168,56,.28)',
             display: 'flex',
             alignItems: 'center',
@@ -51,7 +51,7 @@ export default function NextActionCard({ action }: NextActionCardProps) {
           <Icon name="zap" size={22} />
         </div>
         <div style={{ minWidth: 0 }}>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--gold)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 5 }}>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--gold-ink)', textTransform: 'uppercase', letterSpacing: '.08em', fontWeight: 800, marginBottom: 5 }}>
             Próxima ação
           </div>
           <p style={{ fontFamily: 'var(--font-dm), "DM Sans", sans-serif', fontWeight: 500, fontSize: 17, lineHeight: 1.38, letterSpacing: 0, color: 'var(--text1)' }}>

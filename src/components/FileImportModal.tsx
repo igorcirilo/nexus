@@ -349,7 +349,7 @@ export default function FileImportModal({
                   <thead>
                     <tr>
                       {guide.columns.map((col) => (
-                        <th key={col} style={{ textAlign: 'left', padding: '6px 10px', color: 'var(--teal)', borderBottom: '0.5px solid var(--border)', fontWeight: 700 }}>
+                        <th key={col} style={{ textAlign: 'left', padding: '6px 10px', color: 'var(--teal-ink)', borderBottom: '0.5px solid var(--border)', fontWeight: 700 }}>
                           {col}
                         </th>
                       ))}
@@ -391,7 +391,7 @@ export default function FileImportModal({
                       cursor: 'pointer',
                     }}
                   >
-                    <span style={{ fontSize: 16, lineHeight: 1, color: 'var(--teal)' }}>↓</span>
+                    <span style={{ fontSize: 16, lineHeight: 1, color: 'var(--teal-ink)' }}>↓</span>
                     <span style={{ display: 'grid', gap: 2 }}>
                       <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 12 }}>
                         Baixar {template.name} (XLSX)

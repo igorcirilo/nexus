@@ -754,7 +754,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Cabeçalho: chip do plano + botão de trocar plano */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--gold)', background: 'rgba(232,168,56,.13)', borderRadius: 100, padding: '6px 13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--gold-ink)', background: 'rgba(232,168,56,.13)', borderRadius: 100, padding: '6px 13px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {prettyPlanName(focusPlan.title)}
             </span>
             <button
@@ -827,11 +827,11 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
           {focusSections[suggestIdx] && (
             <div style={{ background: 'var(--bg1)', border: '1px solid rgba(232,168,56,.30)', borderRadius: 16, padding: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold)', background: 'rgba(232,168,56,.13)', borderRadius: 100, padding: '4px 10px' }}>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--gold-ink)', background: 'rgba(232,168,56,.13)', borderRadius: 100, padding: '4px 10px' }}>
                   {entryHint?.suggestIsToday ? `Hoje · ${WEEK_FULL_LABELS[todayDow]}` : 'Sugerido p/ hoje'}
                 </span>
                 {weekDone > 0 && (
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--teal)', background: 'rgba(30,203,180,.13)', borderRadius: 100, padding: '4px 10px' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--teal-ink)', background: 'rgba(30,203,180,.13)', borderRadius: 100, padding: '4px 10px' }}>
                     🔥 {weekDone}/{weekTarget || focusSections.length} esta semana
                   </span>
                 )}
@@ -945,7 +945,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                   {currentSectionForDay && (
                     <>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(232,168,56,.10)', border: '1px solid rgba(232,168,56,.5)', borderRadius: 12, padding: '11px 13px', marginBottom: 10 }}>
-                        <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 12.5, color: 'var(--gold)', flexShrink: 0 }}>
+                        <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 12.5, color: 'var(--gold-ink)', flexShrink: 0 }}>
                           {sectionLetter(cleanSectionTitle(currentSectionForDay.title)) ?? String(currentIdx + 1)}
                         </span>
                         <span style={{ flex: 1, minWidth: 0 }}>
@@ -957,7 +957,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                             {estimateMinutes(currentSectionForDay.exercises) ? ` · ~${estimateMinutes(currentSectionForDay.exercises)} min` : ''}
                           </span>
                         </span>
-                        <span style={{ color: 'var(--gold)', fontWeight: 800, flexShrink: 0 }}>✓</span>
+                        <span style={{ color: 'var(--gold-ink)', fontWeight: 800, flexShrink: 0 }}>✓</span>
                       </div>
                       <button
                         onClick={() => { setPickerDow(null); selectSection(focusPlan.id, currentIdx, currentSectionForDay.title) }}
@@ -998,7 +998,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                           }}
                           style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '11px 13px', cursor: 'pointer' }}
                         >
-                          <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 12.5, color: 'var(--gold)', flexShrink: 0 }}>
+                          <span style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 12.5, color: 'var(--gold-ink)', flexShrink: 0 }}>
                             {sectionLetter(cleanSectionTitle(s.title)) ?? String(i + 1)}
                           </span>
                           <span style={{ flex: 1, minWidth: 0 }}>
@@ -1278,12 +1278,12 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
           {/* Cronômetro de descanso */}
           {restEndsAt !== null && restRemaining > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(30,203,180,.10)', border: '1px solid rgba(30,203,180,.3)', borderRadius: 100, padding: '9px 12px' }}>
-              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 15, color: 'var(--teal)' }}>
+              <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 15, color: 'var(--teal-ink)' }}>
                 ⏱ Descanso · {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
               </span>
               <button
                 onClick={() => setRestEndsAt(prev => (prev ?? Date.now()) + 30000)}
-                style={{ background: 'rgba(30,203,180,.14)', border: 'none', borderRadius: 8, padding: '4px 10px', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600, color: 'var(--teal)', cursor: 'pointer' }}
+                style={{ background: 'rgba(30,203,180,.14)', border: 'none', borderRadius: 8, padding: '4px 10px', fontFamily: 'DM Sans, sans-serif', fontSize: 12, fontWeight: 600, color: 'var(--teal-ink)', cursor: 'pointer' }}
               >
                 +30s
               </button>
@@ -1349,7 +1349,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                     )}
                   </button>
                   {isFocus && (
-                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--gold)', flexShrink: 0 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', color: 'var(--gold-ink)', flexShrink: 0 }}>
                       agora
                     </span>
                   )}

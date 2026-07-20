@@ -509,8 +509,8 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
   const hasMacroData = macroPlano.carboidratos + macroPlano.proteinas + macroPlano.gorduras > 0
   // Anéis consumido/meta: proteína, carboidrato, gordura (com as cores do app).
   const ringData = [
-    { lb: 'Prot', sel: macroSelecionados.proteinas, plan: macroPlano.proteinas, color: 'var(--teal)' },
-    { lb: 'Carb', sel: macroSelecionados.carboidratos, plan: macroPlano.carboidratos, color: 'var(--gold)' },
+    { lb: 'Prot', sel: macroSelecionados.proteinas, plan: macroPlano.proteinas, color: 'var(--teal-ink)' },
+    { lb: 'Carb', sel: macroSelecionados.carboidratos, plan: macroPlano.carboidratos, color: 'var(--gold-ink)' },
     { lb: 'Gord', sel: macroSelecionados.gorduras, plan: macroPlano.gorduras, color: 'var(--accent)' },
   ]
   const macroRingMask = 'radial-gradient(circle 21px at center, transparent 98%, #000 100%)'
@@ -574,13 +574,13 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
               </div>
               <div style={{ display: 'flex', gap: 18 }}>
                 <div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--teal)' }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--teal-ink)' }}>
                     {mealProgress.doneMeals}/{mealProgress.totalMeals}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)' }}>refeições</div>
                 </div>
                 <div>
-                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--gold)' }}>
+                  <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--gold-ink)' }}>
                     {mealProgress.doneItems}/{mealProgress.totalItems}
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text3)' }}>itens</div>
@@ -607,7 +607,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                   Meta do dia
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                  <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--gold)' }}>
+                  <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 24, color: 'var(--gold-ink)' }}>
                     {Math.round(kcalSelecionadas)}
                   </span>
                   <span style={{ fontSize: 12, color: 'var(--text3)' }}>
@@ -657,7 +657,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                   No plano · esta semana
                 </span>
                 {adherence.streak > 0 && (
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold-ink)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     🔥 {adherence.streak} {adherence.streak === 1 ? 'dia' : 'dias'}
                   </span>
                 )}
@@ -858,8 +858,8 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                             const tot = pv + cv + gv
                             if (tot <= 0) return null
                             const bars = [
-                              { lb: 'P', v: pv, color: 'var(--teal)' },
-                              { lb: 'C', v: cv, color: 'var(--gold)' },
+                              { lb: 'P', v: pv, color: 'var(--teal-ink)' },
+                              { lb: 'C', v: cv, color: 'var(--gold-ink)' },
                               { lb: 'G', v: gv, color: 'var(--accent)' },
                             ]
                             return (

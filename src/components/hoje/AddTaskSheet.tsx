@@ -7,11 +7,11 @@ import Icon from '@/components/ui/Icon'
 
 const AREAS: Array<{ key: HabitArea; label: string; color: string }> = [
   { key: 'produtividade', label: 'Produtividade', color: 'var(--accent)' },
-  { key: 'corpo', label: 'Corpo', color: 'var(--teal)' },
-  { key: 'emocoes', label: 'Emoções', color: 'var(--gold)' },
-  { key: 'carreira', label: 'Carreira', color: 'var(--gold)' },
+  { key: 'corpo', label: 'Corpo', color: 'var(--teal-ink)' },
+  { key: 'emocoes', label: 'Emoções', color: 'var(--gold-ink)' },
+  { key: 'carreira', label: 'Carreira', color: 'var(--gold-ink)' },
   { key: 'idiomas', label: 'Idiomas', color: 'var(--accent)' },
-  { key: 'financas', label: 'Finanças', color: 'var(--teal)' },
+  { key: 'financas', label: 'Finanças', color: 'var(--teal-ink)' },
   { key: 'relacionamentos', label: 'Relações', color: 'var(--accent)' },
 ]
 

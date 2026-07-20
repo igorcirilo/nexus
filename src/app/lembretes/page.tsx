@@ -124,7 +124,7 @@ export default function LembretesPage() {
         <div style={{
           position: 'fixed', bottom: 90, left: '50%', transform: 'translateX(-50%)',
           background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.38)',
-          borderRadius: 12, padding: '10px 16px', fontSize: 13, color: 'var(--teal)',
+          borderRadius: 12, padding: '10px 16px', fontSize: 13, color: 'var(--teal-ink)',
           display: 'flex', alignItems: 'center', gap: 8, zIndex: 200, whiteSpace: 'nowrap',
         }}>✓ {toast}</div>
       )}
@@ -179,7 +179,7 @@ export default function LembretesPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontWeight: 500, fontSize: 14, color: 'var(--text1)', marginBottom: 3 }}>{r.title}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 12, color: 'var(--gold)', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
+                <span style={{ fontSize: 12, color: 'var(--gold-ink)', fontFamily: 'Inter, sans-serif', fontWeight: 600 }}>
                   {r.time ? r.time.slice(0,5) : 'Sem hora'}
                 </span>
                 {r.date ? (

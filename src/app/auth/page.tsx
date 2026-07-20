@@ -228,7 +228,7 @@ export default function AuthPage() {
           {/* Esqueci a senha (só no login) */}
           {!isNew && (
             <div style={{ display:'flex', justifyContent:'flex-end', margin:'12px 0 18px' }}>
-              <button type="button" onClick={resetPassword} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--gold)', fontSize:13, fontWeight:600 }}>
+              <button type="button" onClick={resetPassword} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--gold-ink)', fontSize:13, fontWeight:600 }}>
                 Esqueci a senha
               </button>
             </div>
@@ -245,9 +245,9 @@ export default function AuthPage() {
               />
               <span style={{ fontSize:11.5, color:'var(--text3)', lineHeight:1.5 }}>
                 Li e aceito os{' '}
-                <Link href="/termos" target="_blank" style={{ color:'var(--gold)', textDecoration:'underline' }}>Termos de Uso</Link>{' '}
+                <Link href="/termos" target="_blank" style={{ color:'var(--gold-ink)', textDecoration:'underline' }}>Termos de Uso</Link>{' '}
                 e a{' '}
-                <Link href="/privacidade" target="_blank" style={{ color:'var(--gold)', textDecoration:'underline' }}>Política de Privacidade</Link>,
+                <Link href="/privacidade" target="_blank" style={{ color:'var(--gold-ink)', textDecoration:'underline' }}>Política de Privacidade</Link>,
                 e <b>consinto o tratamento dos meus dados de saúde</b> (peso, sono,
                 humor) para o funcionamento do app.
               </span>
@@ -299,7 +299,7 @@ export default function AuthPage() {
           {/* Alternar login / registo */}
           <p style={{ textAlign:'center', marginTop:20, fontSize:13, color:'var(--text2)' }}>
             {isNew ? 'Já tens conta? ' : 'Sem conta? '}
-            <button type="button" onClick={() => { setIsNew(v => !v); setError('') }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--gold)', fontWeight:700, fontSize:13, padding:0 }}>
+            <button type="button" onClick={() => { setIsNew(v => !v); setError('') }} style={{ background:'none', border:'none', cursor:'pointer', color:'var(--gold-ink)', fontWeight:700, fontSize:13, padding:0 }}>
               {isNew ? 'Entrar' : 'Criar conta'}
             </button>
           </p>

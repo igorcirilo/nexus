@@ -164,7 +164,7 @@ export default function TodayRemindersList({ items, onToggle, onCreate, onDelete
               {item.carriedFromDate && (
                 <>
                   <span style={{ color: 'var(--text3)', flexShrink: 0 }}>·</span>
-                  <span style={{ color: 'var(--gold)', fontWeight: 600, flexShrink: 0 }}>
+                  <span style={{ color: 'var(--gold-ink)', fontWeight: 600, flexShrink: 0 }}>
                     desde {new Date(`${item.carriedFromDate}T12:00:00`).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
                   </span>
                 </>
@@ -188,7 +188,7 @@ export default function TodayRemindersList({ items, onToggle, onCreate, onDelete
           borderRadius: 20,
           background: 'linear-gradient(135deg, rgba(var(--card-rgb),.98), rgba(var(--card-rgb),.98))',
           border: '0.5px solid var(--border)',
-          boxShadow: '0 14px 40px rgba(0,0,0,.14)',
+          boxShadow: 'var(--shadow-card)',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6 }}>

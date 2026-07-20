@@ -39,7 +39,7 @@ export default function StreakRecovery({ prevBest, canRecover, onRecover, onDism
 
       <p style={{ fontSize: 13, color: 'var(--text2)', lineHeight: 1.6, marginBottom: 16 }}>
         O teu melhor streak foi de{' '}
-        <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{prevBest} dias</span>.
+        <span style={{ color: 'var(--gold-ink)', fontWeight: 600 }}>{prevBest} dias</span>.
         {' '}Isso não desapareceu — está guardado em ti.
       </p>
 

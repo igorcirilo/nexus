@@ -87,7 +87,7 @@ export default function AchievementsGoalsModal({ badges, goals, onClose }: Props
                 <div style={{ background: 'var(--surface-2)', border: '1px dashed rgba(var(--ink-rgb),0.12)', borderRadius: 18, padding: '28px 20px', textAlign: 'center', marginTop: 16 }}>
                   <div style={{ fontSize: 30, marginBottom: 8 }}>🎯</div>
                   <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text1)' }}>Sem metas ativas</div>
-                  <a href="/objetivos" style={{ display: 'inline-block', marginTop: 12, fontSize: 13, fontWeight: 700, color: '#F5C842', textDecoration: 'none' }}>Criar objetivo ›</a>
+                  <a href="/objetivos" style={{ display: 'inline-block', marginTop: 12, fontSize: 13, fontWeight: 700, color: 'var(--gold-ink)', textDecoration: 'none' }}>Criar objetivo ›</a>
                 </div>
               ) : (
                 <>
@@ -150,7 +150,7 @@ function Tab({ label, active, onClick }: { label: string; active: boolean; onCli
       style={{
         flex: 1, textAlign: 'center', padding: 10, borderRadius: 13, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: FONT,
         background: active ? 'rgba(245,200,66,0.14)' : 'rgba(var(--ink-rgb),0.04)',
-        color: active ? '#F5C842' : 'var(--text2)',
+        color: active ? 'var(--gold-ink)' : 'var(--text2)',
         border: active ? '1px solid rgba(245,200,66,0.4)' : '1px solid transparent',
       }}
     >

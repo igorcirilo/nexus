@@ -52,32 +52,94 @@
   --radius-lg: 20px;
 }
 
-/* ── Tema claro ────────────────────────────────────────── */
+/* "gold-ink" = dourado legível como TEXTO/ícone. No escuro o gold puro
+   contrasta bem; em superfícies claras é lavado — escurece para slate-gold. */
+:root, :root[data-theme="dark"] {
+  --gold-ink: var(--gold);
+  --teal-ink: var(--teal);
+  --accent-ink: #D7D4FF;
+  --green-ink:  #00C896;
+  --purple-ink: #9D5CF5;
+  --blue-ink:   #85B7EB;
+  --red-ink:    #E24B4A;
+  --surface-inset: rgba(13,15,20,.2);          /* linhas de listas / sub-cards */
+  --shadow-card: 0 14px 40px rgba(0,0,0,.14);  /* containers das listas */
+  --fab-glow-rest: 0 6px 22px rgba(232,168,56,0.5);
+  --fab-glow-min:  0 6px 22px rgba(232,168,56,0.45);
+  --fab-glow-max:  0 8px 30px rgba(232,168,56,0.8);
+}
+
+/* ── Tema claro — direção "Aconchego" ──────────────────── */
 :root[data-theme="light"] {
-  --bg0:    #EEF1F6;
+  --bg0:    #F4F2EF;   /* página levemente quente (não cinza-frio) */
   --bg1:    #FFFFFF;
   --bg2:    #FFFFFF;
-  --bg3:    #E6EAF1;
+  --bg3:    #E9E5DE;
   --text1:  #0F172A;   /* títulos / valores — quase preto */
   --text2:  #475569;   /* secundário legível (slate-600) */
   --text3:  #64748B;   /* terciário (slate-500) */
   --ink-rgb: 15,23,42; /* slate-900 — bordas / ícones / overlays */
   --ink: #0F172A;
+  --gold-ink: #B87A16; /* dourado escurecido — legível em fundo claro */
+  --teal-ink: #0E8E7C; /* teal escurecido — legível em fundo claro */
+  --accent-ink: #584FBE; /* ~4.9:1 no card lavanda do assistente */
+  --green-ink:  #0B7D5C;
+  --purple-ink: #7A45D6;
+  --blue-ink:   #2F6BA8;
+  --red-ink:    #C0392B;
+  --surface-inset: rgba(15,23,42,0.045);
+  --shadow-card: 0 1px 2px rgba(46,38,20,.05), 0 8px 22px rgba(46,38,20,.07);
+  --fab-glow-rest: 0 6px 22px rgba(184,122,22,0.28);
+  --fab-glow-min:  0 6px 22px rgba(184,122,22,0.24);
+  --fab-glow-max:  0 8px 30px rgba(184,122,22,0.4);
   --card-rgb: 255,255,255;
   --border: rgba(15,23,42,0.10);
-  --surface-page: #EEF1F6;  /* página cinza suave */
+  --surface-page: #F4F2EF;  /* página quente suave */
   --surface-card: #FFFFFF;
   --surface-pop:  #FFFFFF;
   --surface-2: #FFFFFF;     /* cards brancos que "saltam" da página */
-  --surface-3: #E9EDF3;     /* chips / inputs / barras — cinza claro */
+  --surface-3: #ECE8E1;     /* chips / inputs / barras — bege claro */
 }
 
-/* Sombra suave para destacar cards no tema claro */
+/* Fundo quente em camadas (só no claro) — dá profundidade sem poluir */
+:root[data-theme="light"] body {
+  background-image:
+    radial-gradient(1200px 640px at 18% -12%, #F7F1E7 0%, transparent 58%),
+    radial-gradient(1100px 620px at 100% 8%, #EAF1F4 0%, transparent 55%);
+  background-attachment: fixed;
+}
+
+/* Sombra suave e quente para destacar cards no tema claro */
 :root[data-theme="light"] .card,
 :root[data-theme="light"] .card-gold,
 :root[data-theme="light"] .card-teal,
 :root[data-theme="light"] .card-accent {
-  box-shadow: 0 1px 2px rgba(15,23,42,0.04), 0 6px 16px rgba(15,23,42,0.06);
+  box-shadow: 0 1px 2px rgba(46,38,20,0.05), 0 8px 22px rgba(46,38,20,0.07);
+}
+
+/* Chip dourado legível no claro */
+:root[data-theme="light"] .chip-gold { color: var(--gold-ink); }
+
+/* ── Cards "hero" no tema claro ─────────────────────────
+   No escuro estes cards são gradientes vibrantes forçados via estilo inline
+   (darkCardInk). No claro, isto os converte para pastel — a tinta interna
+   (var(--ink), var(--text1..3), rgba(var(--ink-rgb),α)) inverte junto para
+   escuro. Usa !important só para vencer os custom properties inline. */
+:root[data-theme="light"] .hero-gold,
+:root[data-theme="light"] .hero-teal {
+  --ink: #0F172A !important; --ink-rgb: 15,23,42 !important;
+  --text1: #0F172A !important; --text2: #64748B !important; --text3: #94A3B8 !important;
+  --surface-2: #FFFFFF !important; --surface-3: #ECE8E1 !important;
+}
+:root[data-theme="light"] .hero-gold {
+  background: linear-gradient(140deg, #FFFDF8 0%, #FFF4DF 100%) !important;
+  border-color: rgba(232,168,56,0.32) !important;
+  box-shadow: 0 1px 2px rgba(46,38,20,0.05), 0 10px 26px rgba(232,168,56,0.14) !important;
+}
+:root[data-theme="light"] .hero-teal {
+  background: linear-gradient(140deg, #FFFFFF 0%, #E9FBF7 100%) !important;
+  border-color: rgba(30,203,180,0.30) !important;
+  box-shadow: 0 1px 2px rgba(15,40,35,0.05), 0 10px 26px rgba(30,203,180,0.13) !important;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }

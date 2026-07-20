@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEXUS — Modo Claro · Direções</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #E7E9EE;
+  background-image: radial-gradient(1200px 600px at 20% -10%, #F3EEE6 0%, transparent 60%),
+                    radial-gradient(1000px 600px at 100% 10%, #EAF0F4 0%, transparent 55%);
+  font-family: 'DM Sans', sans-serif;
+  color: #0F172A;
+  min-height: 100vh;
+  padding: 56px 32px 80px;
+}
+.page-hero { text-align: center; margin-bottom: 20px; }
+.page-kicker { font-family:'Inter'; font-size: 11px; font-weight: 700; letter-spacing: 0.22em; text-transform: uppercase; color: #7F77DD; margin-bottom: 12px; }
+.page-title { font-family:'Inter'; font-size: 44px; font-weight: 900; letter-spacing: -1.5px; color: #0F172A; }
+.page-title span { color: #B87A16; }
+.page-sub { font-size: 15px; color: #64748B; max-width: 560px; margin: 12px auto 0; line-height: 1.6; }
+.legend { display:flex; justify-content:center; gap:14px; flex-wrap:wrap; margin-top: 22px; }
+.legend-pill { display:inline-flex; align-items:center; gap:8px; font-family:'Inter'; font-size:12px; font-weight:600; color:#475569; background:#fff; border:1px solid rgba(15,23,42,.08); border-radius:20px; padding:7px 14px; box-shadow:0 1px 2px rgba(15,23,42,.04); }
+.legend-dot { width:8px; height:8px; border-radius:50%; }
+
+.stage { display:flex; justify-content:center; gap:56px; flex-wrap:wrap; margin-top: 44px; }
+.col { display:flex; flex-direction:column; align-items:center; gap:18px; }
+.col-tag { font-family:'Inter'; font-size:11px; font-weight:800; letter-spacing:0.14em; text-transform:uppercase; color:#94A3B8; }
+.col-name { font-family:'Inter'; font-size:20px; font-weight:800; color:#0F172A; letter-spacing:-0.4px; }
+.col-desc { font-size:13px; color:#64748B; max-width:300px; text-align:center; line-height:1.5; }
+
+/* ── Phone frame ─────────────────────────────── */
+.screen {
+  width: 402px; min-height: 848px;
+  border-radius: 46px; overflow: hidden; position: relative;
+}
+.content { padding: 0 20px 96px; height: 848px; overflow-y: auto; }
+.content::-webkit-scrollbar { display:none; }
+.status-bar { display:flex; justify-content:space-between; align-items:center; padding: 15px 26px 0; font-family:'Inter'; font-size:13px; font-weight:700; }
+.status-right { display:flex; gap:6px; align-items:center; }
+
+/* Header */
+.header { display:flex; justify-content:space-between; align-items:center; padding: 16px 0 4px; }
+.header-left { display:flex; align-items:center; gap:12px; }
+.avatar {
+  width:44px; height:44px; border-radius:50%;
+  background: linear-gradient(135deg, #F5C842, #E07B2A);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Inter'; font-size:15px; font-weight:800; color:#3A2400; flex-shrink:0;
+}
+.greeting-sub { font-size:11px; font-weight:500; }
+.greeting-name { font-family:'Inter'; font-size:17px; font-weight:700; line-height:1.2; }
+.icon-btn { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+
+.date-pill { display:inline-flex; align-items:center; gap:7px; border-radius:20px; padding:6px 14px; font-size:12px; font-weight:500; margin:6px 0 18px; }
+.date-dot { width:6px; height:6px; border-radius:50%; background:#1ECBB4; }
+
+/* Section label */
+.section-label { font-family:'Inter'; font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; margin: 20px 0 10px; }
+
+/* XP card */
+.xp-card { border-radius:22px; padding:18px 20px; margin-bottom:14px; position:relative; overflow:hidden; }
+.xp-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+.xp-label { font-family:'Inter'; font-size:10px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }
+.xp-level { font-family:'Inter'; font-size:23px; font-weight:800; line-height:1.1; margin-top:4px; }
+.xp-title { font-size:12px; font-weight:600; margin-top:3px; }
+.streak-badge { display:flex; flex-direction:column; align-items:center; border-radius:15px; padding:9px 15px; }
+.streak-fire { font-size:19px; line-height:1; }
+.streak-num { font-family:'Inter'; font-size:18px; font-weight:800; line-height:1.1; }
+.streak-label { font-size:10px; font-weight:600; margin-top:1px; }
+.xp-bar-labels { display:flex; justify-content:space-between; margin-bottom:6px; }
+.xp-bar-cur { font-family:'Inter'; font-size:12px; font-weight:700; }
+.xp-bar-max { font-family:'Inter'; font-size:12px; font-weight:500; }
+.xp-bar { height:7px; border-radius:10px; overflow:hidden; }
+.xp-fill { height:100%; width:78%; border-radius:10px; }
+
+/* Mission card */
+.mission-card { border-radius:22px; padding:20px; margin-bottom:14px; position:relative; overflow:hidden; }
+.mission-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.mission-tag { font-family:'Inter'; font-size:10px; font-weight:800; letter-spacing:0.1em; text-transform:uppercase; border-radius:7px; padding:4px 9px; }
+.mission-badge { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:14px; }
+.mission-title { font-family:'Inter'; font-size:17px; font-weight:700; line-height:1.3; margin-bottom:8px; }
+.mission-desc { font-size:13px; line-height:1.5; margin-bottom:16px; }
+.mission-btn { display:flex; align-items:center; justify-content:center; gap:8px; border-radius:14px; padding:13px 20px; font-family:'Inter'; font-size:14px; font-weight:700; }
+
+/* Metrics */
+.metrics-row { display:flex; gap:10px; }
+.metric-card { flex:1; border-radius:16px; padding:14px 12px; }
+.metric-chip { width:34px; height:34px; border-radius:11px; display:flex; align-items:center; justify-content:center; margin-bottom:9px; }
+.metric-val { font-family:'Inter'; font-size:16px; font-weight:700; line-height:1; }
+.metric-unit { font-size:10px; font-weight:500; margin-top:3px; }
+.metric-check { width:18px; height:18px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:10px; margin-top:5px; }
+
+/* Actions */
+.action-list { display:flex; flex-direction:column; gap:8px; }
+.action-item { display:flex; align-items:center; gap:12px; border-radius:14px; padding:13px 16px; }
+.action-time { font-family:'Inter'; font-size:11px; font-weight:700; min-width:38px; }
+.action-line { width:1px; height:20px; }
+.action-text { flex:1; font-size:14px; font-weight:500; }
+.action-dot { width:8px; height:8px; border-radius:50%; }
+
+/* Challenge */
+.challenge-card { border-radius:22px; padding:18px 20px; }
+.challenge-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:14px; }
+.challenge-tag { font-family:'Inter'; font-size:10px; font-weight:800; letter-spacing:0.08em; text-transform:uppercase; }
+.challenge-days { font-family:'Inter'; font-size:20px; font-weight:800; text-align:right; }
+.challenge-days-label { font-size:10px; font-weight:500; text-align:right; margin-top:1px; }
+.challenge-title { font-family:'Inter'; font-size:15px; font-weight:700; margin-bottom:12px; }
+.challenge-dots { display:flex; gap:7px; }
+.day-dot { width:30px; height:30px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-family:'Inter'; font-size:11px; font-weight:700; }
+
+/* Bottom nav */
+.bottom-nav { position:absolute; bottom:0; left:0; right:0; padding:12px 0 26px; display:flex; justify-content:space-around; align-items:center; }
+.nav-item { display:flex; flex-direction:column; align-items:center; gap:5px; min-width:56px; }
+.nav-icon { display:flex; align-items:center; justify-content:center; }
+.nav-label { font-family:'Inter'; font-size:10px; font-weight:600; }
+.nav-active-dot { width:4px; height:4px; border-radius:50%; margin-top:-2px; }
+svg { display:block; }
+
+/* ══════════════════════════════════════════════════════
+   DIREÇÃO A — "Aconchego"  (tinted, soft, warm)
+   ═════════════════════════════════════════════════════ */
+.A .screen { background:#F4F2EF; box-shadow:0 0 0 1px rgba(15,23,42,.05), 0 30px 90px rgba(46,38,20,.18); }
+.A .status-bar { color:#0F172A; }
+.A .greeting-sub { color:#94A3B8; }
+.A .greeting-name { color:#0F172A; }
+.A .icon-btn { background:#fff; border:1px solid rgba(15,23,42,.07); color:#475569; box-shadow:0 1px 2px rgba(15,23,42,.05); }
+.A .date-pill { background:#fff; border:1px solid rgba(15,23,42,.07); color:#64748B; box-shadow:0 1px 2px rgba(15,23,42,.04); }
+.A .section-label { color:#94A3B8; }
+
+.A .xp-card {
+  background: linear-gradient(140deg, #FFFFFF 0%, #F1EEFF 100%);
+  border:1px solid rgba(127,119,221,.22);
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 10px 26px rgba(127,119,221,.12);
+}
+.A .xp-card::before { content:''; position:absolute; top:-34px; right:-24px; width:130px; height:130px; background:radial-gradient(circle, rgba(127,119,221,.18) 0%, transparent 70%); border-radius:50%; }
+.A .xp-label { color:#8B84C9; }
+.A .xp-level { color:#0F172A; }
+.A .xp-title { color:#6C63C7; }
+.A .streak-badge { background:rgba(232,168,56,.14); border:1px solid rgba(232,168,56,.28); }
+.A .streak-num { color:#B87A16; }
+.A .streak-label { color:#B87A16; }
+.A .xp-bar-cur { color:#0F172A; }
+.A .xp-bar-max { color:#94A3B8; }
+.A .xp-bar { background:rgba(127,119,221,.14); }
+.A .xp-fill { background:linear-gradient(90deg, #7F77DD, #1ECBB4); }
+
+.A .mission-card {
+  background: linear-gradient(140deg, #FFFDF8 0%, #FFF4DF 100%);
+  border:1px solid rgba(232,168,56,.30);
+  box-shadow: 0 1px 2px rgba(15,23,42,.04), 0 10px 26px rgba(232,168,56,.14);
+}
+.A .mission-card::after { content:''; position:absolute; top:0; left:0; right:0; height:2px; background:linear-gradient(90deg, transparent, rgba(232,168,56,.6), transparent); }
+.A .mission-tag { color:#B87A16; background:rgba(232,168,56,.16); }
+.A .mission-badge { background:rgba(232,168,56,.16); color:#B87A16; }
+.A .mission-title { color:#0F172A; }
+.A .mission-desc { color:#64748B; }
+.A .mission-btn { background:linear-gradient(135deg, #F5C842, #E68A2A); color:#3A2400; box-shadow:0 6px 16px rgba(232,168,56,.32); }
+
+.A .metric-card { background:#fff; border:1px solid rgba(15,23,42,.06); box-shadow:0 1px 2px rgba(15,23,42,.04), 0 4px 12px rgba(15,23,42,.05); }
+.A .metric-val { color:#0F172A; }
+.A .metric-unit { color:#94A3B8; }
+.A .metric-check { background:rgba(30,203,180,.16); color:#0E8E7C; }
+
+.A .action-item { background:#fff; border:1px solid rgba(15,23,42,.06); box-shadow:0 1px 2px rgba(15,23,42,.04); }
+.A .action-time { color:#94A3B8; }
+.A .action-line { background:rgba(15,23,42,.1); }
+.A .action-text { color:#1E293B; }
+
+.A .challenge-card { background:linear-gradient(140deg, #FFFFFF 0%, #E9FBF7 100%); border:1px solid rgba(30,203,180,.28); box-shadow:0 1px 2px rgba(15,23,42,.04), 0 10px 26px rgba(30,203,180,.12); }
+.A .challenge-tag { color:#0E8E7C; }
+.A .challenge-days { color:#0E8E7C; }
+.A .challenge-days-label { color:#5EC4B6; }
+.A .challenge-title { color:#0F172A; }
+.A .day-dot.done { background:#1ECBB4; color:#fff; }
+.A .day-dot.today { background:rgba(30,203,180,.16); border:2px solid #1ECBB4; color:#0E8E7C; }
+.A .day-dot.todo { background:#EEF1F6; border:1px solid rgba(15,23,42,.08); color:#94A3B8; }
+
+.A .bottom-nav { background:rgba(255,255,255,.82); backdrop-filter:blur(20px); border-top:1px solid rgba(15,23,42,.07); }
+.A .nav-icon { color:#B0B7C3; }
+.A .nav-label { color:#B0B7C3; }
+.A .nav-item.active .nav-icon { color:#B87A16; }
+.A .nav-item.active .nav-label { color:#B87A16; font-weight:700; }
+.A .nav-active-dot { background:#B87A16; }
+
+/* ══════════════════════════════════════════════════════
+   DIREÇÃO B — "Editorial"  (crisp, white, hairline, 1 accent)
+   ═════════════════════════════════════════════════════ */
+.B .screen { background:#FBFBFC; box-shadow:0 0 0 1px rgba(15,23,42,.06), 0 30px 90px rgba(15,23,42,.14); }
+.B .status-bar { color:#0F172A; }
+.B .greeting-sub { color:#94A3B8; }
+.B .greeting-name { color:#0F172A; }
+.B .icon-btn { background:#F1F3F6; border:1px solid rgba(15,23,42,.06); color:#475569; }
+.B .date-pill { background:#F1F3F6; border:1px solid rgba(15,23,42,.06); color:#64748B; }
+.B .section-label { color:#9AA3B2; }
+
+.B .xp-card { background:#fff; border:1px solid rgba(15,23,42,.09); box-shadow:0 1px 2px rgba(15,23,42,.05); }
+.B .xp-card::before { content:''; position:absolute; left:0; top:16px; bottom:16px; width:4px; border-radius:4px; background:linear-gradient(180deg, #7F77DD, #1ECBB4); }
+.B .xp-top { padding-left:10px; }
+.B .xp-bar-wrap { padding-left:10px; }
+.B .xp-label { color:#94A3B8; }
+.B .xp-level { color:#0F172A; }
+.B .xp-title { color:#6C63C7; }
+.B .streak-badge { background:#FFF7E8; border:1px solid rgba(232,168,56,.22); }
+.B .streak-num { color:#B87A16; }
+.B .streak-label { color:#C79A4A; }
+.B .xp-bar-cur { color:#0F172A; }
+.B .xp-bar-max { color:#94A3B8; }
+.B .xp-bar { background:#EDEFF3; }
+.B .xp-fill { background:linear-gradient(90deg, #7F77DD, #1ECBB4); }
+
+.B .mission-card { background:#fff; border:1px solid rgba(15,23,42,.09); box-shadow:0 1px 2px rgba(15,23,42,.05); }
+.B .mission-tag { color:#B87A16; background:#FFF7E8; }
+.B .mission-badge { background:#FFF7E8; color:#B87A16; }
+.B .mission-title { color:#0F172A; }
+.B .mission-desc { color:#64748B; }
+.B .mission-btn { background:#111827; color:#fff; }
+
+.B .metric-card { background:#fff; border:1px solid rgba(15,23,42,.09); }
+.B .metric-val { color:#0F172A; }
+.B .metric-unit { color:#94A3B8; }
+.B .metric-check { background:rgba(30,203,180,.14); color:#0E8E7C; }
+
+.B .action-item { background:#fff; border:1px solid rgba(15,23,42,.08); }
+.B .action-time { color:#94A3B8; }
+.B .action-line { background:rgba(15,23,42,.1); }
+.B .action-text { color:#1E293B; }
+
+.B .challenge-card { background:#fff; border:1px solid rgba(15,23,42,.09); box-shadow:0 1px 2px rgba(15,23,42,.05); }
+.B .challenge-tag { color:#0E8E7C; }
+.B .challenge-days { color:#0F172A; }
+.B .challenge-days-label { color:#94A3B8; }
+.B .challenge-title { color:#0F172A; }
+.B .day-dot.done { background:#1ECBB4; color:#fff; }
+.B .day-dot.today { background:#fff; border:2px solid #1ECBB4; color:#0E8E7C; }
+.B .day-dot.todo { background:#F1F3F6; border:1px solid rgba(15,23,42,.08); color:#94A3B8; }
+
+.B .bottom-nav { background:rgba(251,251,252,.9); backdrop-filter:blur(20px); border-top:1px solid rgba(15,23,42,.08); }
+.B .nav-icon { color:#B0B7C3; }
+.B .nav-label { color:#B0B7C3; }
+.B .nav-item.active .nav-icon { color:#111827; }
+.B .nav-item.active .nav-label { color:#111827; font-weight:700; }
+.B .nav-active-dot { background:#111827; }
+
+@media (max-width: 900px) { .stage { gap:40px; } }
+</style>
+</head>
+<body>
+
+<div class="page-hero">
+  <div class="page-kicker">Nexus · Redesign do Modo Claro</div>
+  <div class="page-title">Tela <span>Hoje</span> — 2 direções</div>
+  <div class="page-sub">Mesmo conteúdo, dois tratamentos de luz. O foco é resolver os cards "hero" (Nível/Missão), que hoje ficam escuros à força e destoam no tema claro. Escolha uma direção para eu aplicar no CSS real e estender às outras telas.</div>
+  <div class="legend">
+    <span class="legend-pill"><span class="legend-dot" style="background:#B87A16"></span>Gold</span>
+    <span class="legend-pill"><span class="legend-dot" style="background:#1ECBB4"></span>Teal</span>
+    <span class="legend-pill"><span class="legend-dot" style="background:#7F77DD"></span>Roxo</span>
+    <span class="legend-pill"><span class="legend-dot" style="background:#0F172A"></span>Inter / DM Sans</span>
+  </div>
+</div>
+
+<div class="stage">
+
+  <!-- ══════════ DIREÇÃO A ══════════ -->
+  <div class="col A">
+    <div style="text-align:center">
+      <div class="col-tag">Direção A</div>
+      <div class="col-name">Aconchego</div>
+    </div>
+    <div class="col-desc">Cards hero ganham tons pastel (lavanda, creme, menta) com acentos coloridos. Página quente, sombras suaves e coloridas. Mantém a energia gamificada do escuro.</div>
+    <div class="screen">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="status-right">
+          <svg width="16" height="12" viewBox="0 0 16 12"><rect x="0" y="3" width="3" height="9" rx="1" fill="#0F172A"/><rect x="4.5" y="2" width="3" height="10" rx="1" fill="#0F172A"/><rect x="9" y="0" width="3" height="12" rx="1" fill="#0F172A"/><rect x="13.5" y="0" width="2.5" height="12" rx="1" fill="rgba(15,23,42,.3)"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(15,23,42,.35)"/><rect x="2" y="2" width="15" height="9" rx="2" fill="#0F172A"/><path d="M24 4.5V8.5C24.8 8.2 25.5 7.2 25.5 6.5C25.5 5.8 24.8 4.8 24 4.5Z" fill="rgba(15,23,42,.35)"/></svg>
+        </div>
+      </div>
+      <div class="content">
+        <div class="header">
+          <div class="header-left">
+            <div class="avatar">IG</div>
+            <div><div class="greeting-sub">Bom dia</div><div class="greeting-name">Igor Cirilo</div></div>
+          </div>
+          <div class="icon-btn">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><circle cx="19" cy="5" r="3" fill="#E8A838" stroke="none"/></svg>
+          </div>
+        </div>
+        <div class="date-pill"><div class="date-dot"></div>Segunda-feira, 7 de junho</div>
+
+        <div class="xp-card">
+          <div class="xp-top">
+            <div><div class="xp-label">Seu nível</div><div class="xp-level">Nível 12</div><div class="xp-title">Guerreiro Consistente</div></div>
+            <div class="streak-badge"><div class="streak-fire">🔥</div><div class="streak-num">47</div><div class="streak-label">dias</div></div>
+          </div>
+          <div class="xp-bar-labels"><span class="xp-bar-cur">2.340 XP</span><span class="xp-bar-max">3.000 XP</span></div>
+          <div class="xp-bar"><div class="xp-fill"></div></div>
+        </div>
+
+        <div class="mission-card">
+          <div class="mission-header"><div class="mission-tag">Missão do Dia</div><div class="mission-badge">★</div></div>
+          <div class="mission-title">Treino de força + 30min de leitura</div>
+          <div class="mission-desc">Complete ambas as metas para ganhar +150 XP bônus e manter sua sequência ativa.</div>
+          <div class="mission-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Iniciar Check-in
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+
+        <div class="section-label">Hoje</div>
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-chip" style="background:rgba(30,203,180,.14)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E8E7C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+            <div class="metric-val">Treino</div><div class="metric-unit">Concluído</div><div class="metric-check">✓</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-chip" style="background:rgba(127,119,221,.14)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C63C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>
+            <div class="metric-val">2,1 L</div><div class="metric-unit">de 3,0 L água</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-chip" style="background:rgba(232,168,56,.16)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B87A16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+            <div class="metric-val">1.840</div><div class="metric-unit">kcal consumidas</div>
+          </div>
+        </div>
+
+        <div class="section-label">Próximas ações</div>
+        <div class="action-list">
+          <div class="action-item"><div class="action-time">14h00</div><div class="action-line"></div><div class="action-text">Reunião de alinhamento</div><div class="action-dot" style="background:#1ECBB4"></div></div>
+          <div class="action-item"><div class="action-time">16h30</div><div class="action-line"></div><div class="action-text">Meditação · 10 minutos</div><div class="action-dot" style="background:#7F77DD"></div></div>
+          <div class="action-item"><div class="action-time">19h00</div><div class="action-line"></div><div class="action-text">Review de metas semanais</div><div class="action-dot" style="background:#E8A838"></div></div>
+        </div>
+
+        <div class="section-label">Desafio da semana</div>
+        <div class="challenge-card">
+          <div class="challenge-header">
+            <div><div class="challenge-tag">Desafio Ativo</div><div class="challenge-title">7 dias de treino consecutivos</div></div>
+            <div><div class="challenge-days">5/7</div><div class="challenge-days-label">dias</div></div>
+          </div>
+          <div class="challenge-dots">
+            <div class="day-dot done">S</div><div class="day-dot done">T</div><div class="day-dot done">Q</div><div class="day-dot done">Q</div><div class="day-dot done">S</div><div class="day-dot today">S</div><div class="day-dot todo">D</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="nav-label">Hoje</div><div class="nav-active-dot"></div></div>
+        <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="nav-label">Hábitos</div></div>
+        <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div class="nav-label">Corpo</div></div>
+        <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="nav-label">Agenda</div></div>
+        <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nav-label">Perfil</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ DIREÇÃO B ══════════ -->
+  <div class="col B">
+    <div style="text-align:center">
+      <div class="col-tag">Direção B</div>
+      <div class="col-name">Editorial</div>
+    </div>
+    <div class="col-desc">Fundo quase branco, cards brancos com bordas finas e sombra mínima. Um acento por card, botão primário em grafite. Sóbrio, tipo Linear/Notion — máxima legibilidade.</div>
+    <div class="screen">
+      <div class="status-bar">
+        <span>9:41</span>
+        <div class="status-right">
+          <svg width="16" height="12" viewBox="0 0 16 12"><rect x="0" y="3" width="3" height="9" rx="1" fill="#0F172A"/><rect x="4.5" y="2" width="3" height="10" rx="1" fill="#0F172A"/><rect x="9" y="0" width="3" height="12" rx="1" fill="#0F172A"/><rect x="13.5" y="0" width="2.5" height="12" rx="1" fill="rgba(15,23,42,.3)"/></svg>
+          <svg width="26" height="13" viewBox="0 0 26 13"><rect x="0.5" y="0.5" width="22" height="12" rx="3.5" stroke="rgba(15,23,42,.35)"/><rect x="2" y="2" width="15" height="9" rx="2" fill="#0F172A"/><path d="M24 4.5V8.5C24.8 8.2 25.5 7.2 25.5 6.5C25.5 5.8 24.8 4.8 24 4.5Z" fill="rgba(15,23,42,.35)"/></svg>
+        </div>
+      </div>
+      <div class="content">
+        <div class="header">
+          <div class="header-left">
+            <div class="avatar">IG</div>
+            <div><div class="greeting-sub">Bom dia</div><div class="greeting-name">Igor Cirilo</div></div>
+          </div>
+          <div class="icon-btn">
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><circle cx="19" cy="5" r="3" fill="#E8A838" stroke="none"/></svg>
+          </div>
+        </div>
+        <div class="date-pill"><div class="date-dot"></div>Segunda-feira, 7 de junho</div>
+
+        <div class="xp-card">
+          <div class="xp-top">
+            <div><div class="xp-label">Seu nível</div><div class="xp-level">Nível 12</div><div class="xp-title">Guerreiro Consistente</div></div>
+            <div class="streak-badge"><div class="streak-fire">🔥</div><div class="streak-num">47</div><div class="streak-label">dias</div></div>
+          </div>
+          <div class="xp-bar-wrap">
+            <div class="xp-bar-labels"><span class="xp-bar-cur">2.340 XP</span><span class="xp-bar-max">3.000 XP</span></div>
+            <div class="xp-bar"><div class="xp-fill"></div></div>
+          </div>
+        </div>
+
+        <div class="mission-card">
+          <div class="mission-header"><div class="mission-tag">Missão do Dia</div><div class="mission-badge">★</div></div>
+          <div class="mission-title">Treino de força + 30min de leitura</div>
+          <div class="mission-desc">Complete ambas as metas para ganhar +150 XP bônus e manter sua sequência ativa.</div>
+          <div class="mission-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            Iniciar Check-in
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        </div>
+
+        <div class="section-label">Hoje</div>
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-chip" style="background:rgba(30,203,180,.14)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0E8E7C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+            <div class="metric-val">Treino</div><div class="metric-unit">Concluído</div><div class="metric-check">✓</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-chip" style="background:rgba(127,119,221,.14)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C63C7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg></div>
+            <div class="metric-val">2,1 L</div><div class="metric-unit">de 3,0 L água</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-chip" style="background:rgba(232,168,56,.16)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#B87A16" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+            <div class="metric-val">1.840</div><div class="metric-unit">kcal consumidas</div>
+          </div>
+        </div>
+
+        <div class="section-label">Próximas ações</div>
+        <div class="action-list">
+          <div class="action-item"><div class="action-time">14h00</div><div class="action-line"></div><div class="action-text">Reunião de alinhamento</div><div class="action-dot" style="background:#1ECBB4"></div></div>
+          <div class="action-item"><div class="action-time">16h30</div><div class="action-line"></div><div class="action-text">Meditação · 10 minutos</div><div class="action-dot" style="background:#7F77DD"></div></div>
+          <div class="action-item"><div class="action-time">19h00</div><div class="action-line"></div><div class="action-text">Review de metas semanais</div><div class="action-dot" style="background:#E8A838"></div></div>
+        </div>
+
+        <div class="section-label">Desafio da semana</div>
+        <div class="challenge-card">
+          <div class="challenge-header">
+            <div><div class="challenge-tag">Desafio Ativo</div><div class="challenge-title">7 dias de treino consecutivos</div></div>
+            <div><div class="challenge-days">5/7</div><div class="challenge-days-label">dias</div></div>
+          </div>
+          <div class="challenge-dots">
+            <div class="day-dot done">S</div><div class="day-dot done">T</div><div class="day-dot done">Q</div><div class="day-dot done">Q</div><div class="day-dot done">S</div><div class="day-dot today">S</div><div class="day-dot todo">D</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item active"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></div><div class="nav-label">Hoje</div><div class="nav-active-dot"></div></div>
+        <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="nav-label">Hábitos</div></div>
+        <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg></div><div class="nav-label">Corpo</div></div>
+        <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="nav-label">Agenda</div></div>
+        <div class="nav-item"><div class="nav-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="nav-label">Perfil</div></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

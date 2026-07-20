@@ -98,12 +98,12 @@ export default function LevelUpModal({ level, title, onClose }: LevelUpModalProp
           marginBottom: 28,
           position: 'relative', zIndex: 1,
         }}>
-          <div style={{ fontSize: 11, color: 'var(--gold)', fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 2 }}>
+          <div style={{ fontSize: 11, color: 'var(--gold-ink)', fontWeight: 600, letterSpacing: 2, textTransform: 'uppercase', marginBottom: 2 }}>
             NÍVEL
           </div>
           <div style={{
             fontFamily: 'Inter, sans-serif', fontWeight: 700,
-            fontSize: 56, color: 'var(--gold)', lineHeight: 1,
+            fontSize: 56, color: 'var(--gold-ink)', lineHeight: 1,
             animation: visible ? 'lvlNumPop .4s .2s cubic-bezier(.34,1.56,.64,1) both' : 'none',
           }}>
             {level}
@@ -113,7 +113,7 @@ export default function LevelUpModal({ level, title, onClose }: LevelUpModalProp
         {/* Texto */}
         <div style={{ textAlign: 'center', padding: '0 24px' }}>
           <div style={{
-            fontSize: 11, color: 'var(--teal)', fontWeight: 600,
+            fontSize: 11, color: 'var(--teal-ink)', fontWeight: 600,
             letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8,
           }}>
             SUBISTE DE NÍVEL
