@@ -13,6 +13,10 @@ const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-a
 export function createServerSupabase() {
   const cookieStore = cookies()
   return createServerClient(supabaseUrl, supabaseAnon, {
+    global: {
+      fetch: (input: RequestInfo | URL, init?: RequestInit) =>
+        fetch(input, { ...init, signal: AbortSignal.timeout(5_000) }),
+    },
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value
