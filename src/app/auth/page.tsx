@@ -7,6 +7,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { withDeadline } from '@/lib/supabase-fetch'
 
 const TERMS_VERSION = 'beta-2026-06-28'
 
@@ -16,6 +17,13 @@ const TERMS_VERSION = 'beta-2026-06-28'
 // é preciso mais nada. Enquanto false, clicar mostra "chega em breve" em vez de
 // redirecionar para um endpoint que ainda não aceita estes providers.
 const SOCIAL_LOGIN_ENABLED = false
+
+// Prazo máximo para uma operação de auth. Cobre dois casos em que o pedido
+// nunca resolveria sozinho: um fetch pendurado (o client de browser não tinha
+// timeout) e a espera pelo lock interno do auth-js. Sem isto o botão ficava
+// preso em "A processar…" para sempre.
+const AUTH_TIMEOUT_MS = 15_000
+const NET_ERROR = 'Não foi possível contactar o servidor. Verifica a ligação e tenta de novo.'
 
 const inp: React.CSSProperties = {
   width: '100%', height: 50, padding: '0 16px', borderRadius: 13,
@@ -38,45 +46,67 @@ export default function AuthPage() {
 
   const canSubmit = !!email.trim() && !!password && (!isNew || accepted)
 
+  // Um erro de rede/timeout chega como AuthRetryableFetchError, cuja `message`
+  // é ilegível (`{}`). Traduzimos para algo accionável em vez de a mostrar crua.
+  function authErrorText(message: string): string {
+    if (message === 'Invalid login credentials') return 'Email ou password incorrectos.'
+    if (!message || message === '{}') return NET_ERROR
+    return message
+  }
+
   async function submit() {
     if (!email.trim() || !password) return
     if (isNew && !accepted) { setError('Precisas de aceitar os Termos e a Política de Privacidade.'); return }
     setLoading(true); setError('')
 
-    if (isNew) {
-      // Registo
-      const { error: e } = await supabase.auth.signUp({
-        email: email.trim(),
-        password,
-        options: {
-          data: {
-            full_name: name.trim() || email.split('@')[0],
-            // Registo do consentimento (versão + data) para prova de aceite.
-            terms_accepted_at: new Date().toISOString(),
-            terms_version: TERMS_VERSION,
-            health_data_consent: true,
+    // Em sucesso saímos por navegação: manter o botão em "A processar…" até a
+    // página trocar evita um flash de "Entrar →" durante o redirect.
+    let navigating = false
+    try {
+      if (isNew) {
+        // Registo
+        const signUp = await withDeadline(supabase.auth.signUp({
+          email: email.trim(),
+          password,
+          options: {
+            data: {
+              full_name: name.trim() || email.split('@')[0],
+              // Registo do consentimento (versão + data) para prova de aceite.
+              terms_accepted_at: new Date().toISOString(),
+              terms_version: TERMS_VERSION,
+              health_data_consent: true,
+            },
+            // Link de confirmação volta SEMPRE para o domínio atual (evita
+            // depender do "Site URL" fixo no Supabase, que pode estar obsoleto).
+            emailRedirectTo: `${window.location.origin}/hoje`,
           },
-          // Link de confirmação volta SEMPRE para o domínio atual (evita
-          // depender do "Site URL" fixo no Supabase, que pode estar obsoleto).
-          emailRedirectTo: `${window.location.origin}/hoje`,
-        },
-      })
-      if (e) { setError(e.message); setLoading(false); return }
-      // Login imediato após registo
-      const { error: le } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      if (le) { setError('Conta criada! Faz login manualmente.'); setLoading(false); return }
-    } else {
-      // Login
-      const { error: e } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
-      if (e) {
-        setError(e.message === 'Invalid login credentials'
-          ? 'Email ou password incorrectos.'
-          : e.message)
-        setLoading(false); return
-      }
-    }
+        }), AUTH_TIMEOUT_MS)
+        if (signUp === null) { setError(NET_ERROR); return }
+        if (signUp.error) { setError(authErrorText(signUp.error.message)); return }
 
-    window.location.href = '/hoje'
+        // Login imediato após registo
+        const auto = await withDeadline(
+          supabase.auth.signInWithPassword({ email: email.trim(), password }),
+          AUTH_TIMEOUT_MS,
+        )
+        if (auto === null || auto.error) { setError('Conta criada! Faz login manualmente.'); return }
+      } else {
+        // Login
+        const signIn = await withDeadline(
+          supabase.auth.signInWithPassword({ email: email.trim(), password }),
+          AUTH_TIMEOUT_MS,
+        )
+        if (signIn === null) { setError(NET_ERROR); return }
+        if (signIn.error) { setError(authErrorText(signIn.error.message)); return }
+      }
+
+      navigating = true
+      window.location.href = '/hoje'
+    } finally {
+      // Acontece o que acontecer — inclusive uma excepção lançada pelo auth-js,
+      // como o timeout de 5s a adquirir o lock — o botão volta ao estado normal.
+      if (!navigating) setLoading(false)
+    }
   }
 
   async function resetPassword() {
@@ -95,14 +125,17 @@ export default function AuthPage() {
     const nome = provider === 'google' ? 'Google' : 'Apple'
     if (!SOCIAL_LOGIN_ENABLED) { setError(`Login com ${nome} chega em breve.`); return }
     setLoading(true); setError('')
-    const { error: e } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/hoje` },
-    })
-    if (e) {
+    try {
+      const { error: e } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}/hoje` },
+      })
+      if (e) setError(`Login com ${nome} ainda não está disponível.`)
+      else return // segue para o provider; mantém o estado de carregamento
+    } catch {
       setError(`Login com ${nome} ainda não está disponível.`)
-      setLoading(false)
     }
+    setLoading(false)
   }
 
   return (

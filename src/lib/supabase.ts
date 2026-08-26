@@ -1,5 +1,6 @@
 // src/lib/supabase.ts
 import { createBrowserClient } from '@supabase/ssr'
+import { createResilientFetch } from '@/lib/supabase-fetch'
 import type { SupabaseClient, User } from '@supabase/supabase-js'
 import { format, endOfMonth } from 'date-fns'
 import type { HabitArea, ReaderMode, ReaderTheme } from '@/types'
@@ -21,7 +22,23 @@ const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-a
 // Client de browser do @supabase/ssr: persiste a sessão em COOKIES (não em
 // localStorage), para que os Server Components/middleware consigam ler a sessão.
 // Mantém a mesma API de query usada em todo o app.
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnon)
+//
+// O timeout é generoso (nenhuma operação normal do app chega perto) e existe
+// para um caso específico: sem ele, um pedido pendurado ficava assim para
+// sempre no browser. Como o auth-js serializa as operações de auth num lock,
+// um refresh pendurado em segundo plano bloqueava o login seguinte até o lock
+// expirar — o botão "A processar…" que não avançava.
+const BROWSER_TIMEOUT_MS = 15_000
+
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnon, {
+  // `cookies: {}` é OBRIGATÓRIO ao passar opções. O @supabase/ssr 0.1.0 faz
+  // `({ cookies, ...resto } = options)`: sem esta chave, `cookies` fica
+  // undefined e o adaptador rebenta em `cookies.get`, deixando a sessão sem
+  // ser gravada — o login parecia funcionar e nunca avançava. Com `{}` vazio
+  // ele usa o caminho normal do browser (document.cookie).
+  cookies: {},
+  global: { fetch: createResilientFetch(BROWSER_TIMEOUT_MS).fetch },
+})
 
 function reportError(context: string, message: string) {
   console.error(`[${context}]`, message || 'erro desconhecido')

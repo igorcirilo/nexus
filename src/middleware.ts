@@ -12,6 +12,9 @@ const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-a
 const FETCH_TIMEOUT_MS = 2_500
 const TOTAL_DEADLINE_MS = 3_000
 
+// Rotas que nunca precisam de sessao fresca.
+const PUBLIC_ROUTES = ['/auth', '/termos', '/privacidade']
+
 type CookieWrite = { name: string; value: string; options: Record<string, unknown> }
 
 /**
@@ -25,6 +28,12 @@ type CookieWrite = { name: string; value: string; options: Record<string, unknow
  */
 export async function middleware(request: NextRequest) {
   const response = NextResponse.next({ request: { headers: request.headers } })
+
+  // Na propria pagina de login nao ha sessao util para refrescar: um cookie
+  // velho so gastava o prazo da middleware a tentar renovar algo que o
+  // utilizador esta prestes a substituir. Era daqui que vinham os erros
+  // registados em /auth.
+  if (PUBLIC_ROUTES.some((r) => request.nextUrl.pathname.startsWith(r))) return response
 
   // Sem sessao, ou com token ainda longe de expirar, nao ha nada a fazer —
   // e poupamos a ida a rede na esmagadora maioria das navegacoes.
