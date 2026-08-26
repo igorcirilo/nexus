@@ -14,11 +14,11 @@ export async function middleware(request: NextRequest) {
 
   const supabase = createServerClient(supabaseUrl, supabaseAnon, {
     global: {
-      // Aborta chamadas ao Supabase Auth que fiquem penduradas. Sem isto, um
-      // Supabase lento/em baixo segura o request até ao limite da middleware
-      // e o site inteiro responde 504 MIDDLEWARE_INVOCATION_TIMEOUT.
+      // Aborta chamadas ao Supabase que fiquem penduradas. Sem isto, um Supabase
+      // lento/em baixo segura o request até ao limite da middleware (504 ou timeout
+      // de 25s do Vercel). Usa 2 segundos (curto o bastante para reagir rápido).
       fetch: (input: RequestInfo | URL, init?: RequestInit) =>
-        fetch(input, { ...init, signal: AbortSignal.timeout(5_000) }),
+        fetch(input, { ...init, signal: AbortSignal.timeout(2_000) }),
     },
     cookies: {
       get(name: string) {
@@ -43,7 +43,8 @@ export async function middleware(request: NextRequest) {
   try {
     await supabase.auth.getUser()
   } catch {
-    // Supabase indisponível/lento — não bloquear o request por causa disso.
+    // Supabase indisponível/lento — não bloquear o request. Erros de timeout ou
+    // rede são esperados e silenciosos (cliente/páginas ficam responsáveis pela auth).
   }
 
   return response
