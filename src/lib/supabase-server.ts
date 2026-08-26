@@ -6,9 +6,7 @@ import { createResilientFetch } from '@/lib/supabase-fetch'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? 'https://placeholder.supabase.co'
 const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'placeholder-anon-key'
 
-// Orcamento para o render inteiro de um Server Component (auth + leituras).
-// Mais folgado que a middleware, que so precisa de refrescar a sessao.
-const SERVER_BUDGET_MS = 8_000
+const FETCH_TIMEOUT_MS = 5_000
 
 /**
  * Client Supabase para Server Components / Route Handlers.
@@ -18,10 +16,16 @@ const SERVER_BUDGET_MS = 8_000
 export function createServerSupabase() {
   const cookieStore = cookies()
   return createServerClient(supabaseUrl, supabaseAnon, {
-    // As paginas tambem chamam auth.getUser(): sem este wrapper, um timeout
-    // desencadeava aqui a mesma tempestade de retentativas do auth-js que
-    // derrubava a middleware. Ver src/lib/supabase-fetch.ts.
-    global: { fetch: createResilientFetch(SERVER_BUDGET_MS) },
+    auth: {
+      // Aqui o refresh seria sempre inutil (nao ha onde persistir o token novo)
+      // e ativamente nocivo: corria em paralelo com o da middleware, no mesmo
+      // pedido e com o mesmo refresh token, disputando a rotacao no Supabase.
+      // Era esse refresh condenado que produzia o AuthRetryableFetchError com
+      // stack de /var/task nos logs de /hoje. A middleware ja garante que o
+      // token que chega aqui esta fresco.
+      autoRefreshToken: false,
+    },
+    global: { fetch: createResilientFetch(FETCH_TIMEOUT_MS).fetch },
     cookies: {
       get(name: string) {
         return cookieStore.get(name)?.value
