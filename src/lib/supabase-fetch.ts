@@ -2,16 +2,27 @@
 // Fetch resiliente para os clients Supabase do servidor (middleware + Server
 // Components).
 //
-// PORQUÊ: um fetch abortado chega ao @supabase/auth-js como
-// AuthRetryableFetchError (`__isAuthError: true, status: 0`) — que ele
-// considera RETENTÁVEL e repete com backoff exponencial. Com o Supabase lento,
-// isso gerava 6-7 tentativas por pedido, todas a abortar, somando mais de 25s:
-// a Vercel matava a middleware (504) e as rejeicoes orfas enchiam os logs de
-// `DOMException [TimeoutError]`.
+// PROBLEMA: um fetch abortado chega ao @supabase/auth-js como
+// AuthRetryableFetchError (status 0), que ele repete com backoff exponencial —
+// 6-7 tentativas por pedido, somando mais de 25s. A Vercel matava a middleware
+// e devolvia 504, e as rejeicoes orfas enchiam os logs de DOMException.
 //
-// COMO: em vez de rejeitar, devolvemos uma Response 503 sintetica. O auth-js
-// converte respostas nao-ok em AuthApiError (status != 0), que NAO e
-// retentavel — falha uma vez, de forma limpa e imediata.
+// SOLUCAO: em vez de rejeitar, devolvemos uma Response sintetica. Assim o
+// auth-js recebe uma resposta HTTP normal e o pedido nunca fica pendurado.
+
+/**
+ * 503 e DELIBERADO — nao trocar por 500/400 sem ler isto.
+ *
+ * O auth-js trata [502, 503, 504] como falha de rede retentavel
+ * (lib/fetch.js: NETWORK_ERROR_CODES). Qualquer outro status vira AuthApiError,
+ * que ele considera NAO-retentavel — e em GoTrueClient._callRefreshToken um
+ * erro nao-retentavel dispara `_removeSession()`, ou seja, DESLOGA o utilizador.
+ *
+ * Como aqui a falha e sempre transitoria (timeout/rede), tem de ficar na classe
+ * retentavel: um Supabase lento nunca pode expulsar ninguem da conta. A duracao
+ * do pedido e limitada por withDeadline, nao pela classificacao do erro.
+ */
+const UNREACHABLE_STATUS = 503
 
 function unreachable(): Response {
   return new Response(
@@ -19,25 +30,27 @@ function unreachable(): Response {
       error: 'supabase_unreachable',
       error_description: 'Pedido ao Supabase abortado por timeout.',
     }),
-    { status: 503, headers: { 'content-type': 'application/json' } },
+    { status: UNREACHABLE_STATUS, headers: { 'content-type': 'application/json' } },
   )
 }
 
+export type ResilientFetch = {
+  fetch: typeof fetch
+  /** true se alguma chamada falhou por timeout/rede (e nao por resposta do Supabase). */
+  failed: () => boolean
+}
+
 /**
- * Cria um fetch com orcamento de tempo PARTILHADO por todas as chamadas do
- * mesmo client. Esgotado o orcamento, as chamadas seguintes falham de imediato
- * em vez de esperar — e o pedido nunca fica pendurado.
+ * Fetch com timeout POR CHAMADA. Cada pedido tem o seu orcamento proprio — um
+ * orcamento partilhado faria as ultimas leituras de uma pagina comecarem ja sem
+ * tempo e falharem sem sequer tentar.
  */
-export function createResilientFetch(budgetMs: number): typeof fetch {
-  const deadline = Date.now() + budgetMs
+export function createResilientFetch(perCallMs: number): ResilientFetch {
+  let failed = false
 
-  return async (input, init) => {
-    const remaining = deadline - Date.now()
-    if (remaining <= 0) return unreachable()
-
-    const timeout = AbortSignal.timeout(remaining)
-    // Preserva um signal que o chamador ja tenha passado (ex.: cancelamento
-    // do proprio auth-js), em vez de o descartar.
+  const resilient: typeof fetch = async (input, init) => {
+    const timeout = AbortSignal.timeout(perCallMs)
+    // Preserva um signal que o chamador ja tenha passado, em vez de o descartar.
     const signal =
       init?.signal && typeof AbortSignal.any === 'function'
         ? AbortSignal.any([init.signal, timeout])
@@ -46,10 +59,12 @@ export function createResilientFetch(budgetMs: number): typeof fetch {
     try {
       return await fetch(input, { ...init, signal })
     } catch {
-      // Timeout ou falha de rede: nunca propagar a rejeicao.
+      failed = true
       return unreachable()
     }
   }
+
+  return { fetch: resilient, failed: () => failed }
 }
 
 /**

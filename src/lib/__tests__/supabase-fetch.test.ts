@@ -8,56 +8,69 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+function mockFetch(impl: unknown) {
+  globalThis.fetch = impl as typeof fetch
+}
+
 describe('createResilientFetch', () => {
-  it('converte uma falha de rede em Response 503 em vez de rejeitar', async () => {
-    globalThis.fetch = vi.fn().mockRejectedValue(
+  it('converte uma falha de rede em Response em vez de rejeitar', async () => {
+    mockFetch(vi.fn().mockRejectedValue(
       new DOMException('The operation was aborted due to timeout', 'TimeoutError'),
-    ) as unknown as typeof fetch
+    ))
 
-    const f = createResilientFetch(1_000)
-    const res = await f('https://exemplo.supabase.co/auth/v1/user')
+    const res = await createResilientFetch(1_000).fetch('https://exemplo.supabase.co')
 
-    expect(res.status).toBe(503)
-  })
-
-  // O CERNE DA CORRECAO: o auth-js so repete erros com `status: 0`
-  // (AuthRetryableFetchError). Um status HTTP real torna o erro nao-retentavel
-  // e corta a tempestade de retentativas que estourava os 25s da Vercel.
-  it('devolve um status HTTP diferente de 0 (nao-retentavel pelo auth-js)', async () => {
-    globalThis.fetch = vi.fn().mockRejectedValue(new Error('network down')) as unknown as typeof fetch
-
-    const res = await createResilientFetch(1_000)('https://exemplo.supabase.co')
-
-    expect(res.status).not.toBe(0)
+    expect(res.ok).toBe(false)
     await expect(res.json()).resolves.toMatchObject({ error: 'supabase_unreachable' })
   })
 
-  it('falha de imediato, sem chamar a rede, depois de esgotado o orcamento', async () => {
-    const spy = vi.fn()
-    globalThis.fetch = spy as unknown as typeof fetch
+  // INVARIANTE DE SEGURANCA — nao relaxar sem ler o comentario em supabase-fetch.ts.
+  // O auth-js so considera [502, 503, 504] retentaveis; qualquer outro status vira
+  // AuthApiError nao-retentavel, e GoTrueClient._callRefreshToken responde a isso
+  // com _removeSession() — ou seja, deslogaria o utilizador a cada timeout.
+  it('falha com um status que o auth-js considera retentavel (nunca desloga)', async () => {
+    mockFetch(vi.fn().mockRejectedValue(new Error('network down')))
 
-    const f = createResilientFetch(0) // orcamento ja esgotado
+    const res = await createResilientFetch(1_000).fetch('https://exemplo.supabase.co')
+
+    expect([502, 503, 504]).toContain(res.status)
+  })
+
+  it('marca failed() apenas quando a falha e de rede', async () => {
+    mockFetch(vi.fn().mockResolvedValue(new Response('{}', { status: 400 })))
+    const ok = createResilientFetch(1_000)
+    await ok.fetch('https://exemplo.supabase.co')
+    // 400 e resposta legitima do Supabase, nao falha de transporte.
+    expect(ok.failed()).toBe(false)
+
+    mockFetch(vi.fn().mockRejectedValue(new Error('boom')))
+    const bad = createResilientFetch(1_000)
+    await bad.fetch('https://exemplo.supabase.co')
+    expect(bad.failed()).toBe(true)
+  })
+
+  it('da a cada chamada o seu proprio orcamento de tempo', async () => {
+    // Um orcamento partilhado faria a 2a chamada nascer sem tempo; aqui as duas
+    // recebem o mesmo prazo e ambas passam.
+    mockFetch(vi.fn().mockResolvedValue(new Response('{}', { status: 200 })))
+    const f = createResilientFetch(50).fetch
+
+    await new Promise((r) => setTimeout(r, 80))
     const res = await f('https://exemplo.supabase.co')
 
-    expect(res.status).toBe(503)
-    expect(spy).not.toHaveBeenCalled()
+    expect(res.status).toBe(200)
   })
 
   it('deixa passar uma resposta bem-sucedida', async () => {
-    globalThis.fetch = vi.fn().mockResolvedValue(
-      new Response('{"ok":true}', { status: 200 }),
-    ) as unknown as typeof fetch
-
-    const res = await createResilientFetch(1_000)('https://exemplo.supabase.co')
-
+    mockFetch(vi.fn().mockResolvedValue(new Response('{"ok":true}', { status: 200 })))
+    const res = await createResilientFetch(1_000).fetch('https://exemplo.supabase.co')
     expect(res.status).toBe(200)
   })
 })
 
 describe('withDeadline', () => {
   it('resolve null quando a promessa excede o prazo', async () => {
-    const lenta = new Promise((resolve) => setTimeout(resolve, 5_000))
-    await expect(withDeadline(lenta, 20)).resolves.toBeNull()
+    await expect(withDeadline(new Promise((r) => setTimeout(r, 5_000)), 20)).resolves.toBeNull()
   })
 
   it('devolve o valor quando a promessa termina a tempo', async () => {
