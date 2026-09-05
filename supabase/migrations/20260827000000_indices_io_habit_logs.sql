@@ -30,6 +30,24 @@ CREATE INDEX IF NOT EXISTS habit_logs_user_date_idx
 CREATE INDEX IF NOT EXISTS focus_sessions_user_date_idx
   ON public.focus_sessions (user_id, date DESC);
 
+-- ── Cron de notificações (send-reminders, a cada minuto) ─────────────────────
+--
+-- A função corria três varreduras sequenciais por minuto — reminders, habits e
+-- agenda_events, sem filtro por utilizador — mais uma consulta a
+-- push_subscriptions POR UTILIZADOR (N+1). São 1440 execuções por dia, houvesse
+-- ou não algo a enviar: o consumo de IO mais constante do sistema.
+--
+-- A função passou a ler as subscrições primeiro e a filtrar as três tabelas por
+-- user_id, o que torna utilizáveis os índices que começam por essa coluna.
+-- Estes dois índices parciais cobrem o filtro `active` que sobra.
+CREATE INDEX IF NOT EXISTS reminders_user_active_idx
+  ON public.reminders (user_id) WHERE active;
+
+CREATE INDEX IF NOT EXISTS habits_user_active_idx
+  ON public.habits (user_id) WHERE active;
+
 -- Estatísticas actualizadas para o planeador passar a escolher os índices novos.
 ANALYZE public.habit_logs;
 ANALYZE public.focus_sessions;
+ANALYZE public.reminders;
+ANALYZE public.habits;
