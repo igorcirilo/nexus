@@ -24,6 +24,7 @@ import {
   saveReadingPreference,
   saveReadingSession,
 } from '@/lib/supabase'
+import { loadBookPages, type BookPage } from '@/lib/book-content'
 import type {
   Book,
   BookBookmark,
@@ -66,6 +67,9 @@ export default function LeituraReaderPage() {
 
   const [userId, setUserId]       = useState<string | null>(null)
   const [book, setBook]           = useState<Book | null>(null)
+  // Separado de `book` porque já não vem na linha da tabela: é lido do
+  // Storage em loadAll (ou do raw_content, nos livros antigos).
+  const [bookPages, setBookPages] = useState<BookPage[]>([])
   const [loading, setLoading]     = useState(true)
   const [loadError, setLoadError] = useState(false)
   const [retryKey, setRetryKey]   = useState(0)
@@ -117,6 +121,9 @@ export default function LeituraReaderPage() {
     ])
 
     setBook(nextBook as Book | null)
+    // As páginas vivem no Storage (livros novos) ou em raw_content (antigos);
+    // loadBookPages trata os dois casos.
+    setBookPages(await loadBookPages(nextBook as Book | null))
     setHighlights((nextHL ?? []) as BookHighlight[])
     setNotes((nextNotes ?? []) as BookNote[])
     setBookmarks((nextBM ?? []) as BookBookmark[])
@@ -197,7 +204,7 @@ export default function LeituraReaderPage() {
   // Estabiliza a referência: sem o useMemo, `pages`/`toc` são arrays novos a
   // cada render — o que faria o efeito do IntersectionObserver reconstruir-se
   // (e re-scrollar) a cada render, e o useMemo do capítulo recalcular sempre.
-  const pages     = useMemo(() => book?.raw_content?.pages ?? [], [book])
+  const pages     = bookPages
   const pageCount = book?.raw_content?.pageCount ?? 1
   const toc       = useMemo(() => book?.raw_content?.toc ?? [], [book])
   const currentPageData = pages.find(p => p.pageNumber === currentPage) ?? pages[0]

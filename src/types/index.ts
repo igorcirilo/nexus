@@ -335,10 +335,21 @@ export interface Book {
   author: string | null
   source_file_name: string | null
   cover_label: string | null
+  /**
+   * Caminho no bucket `book-content` com as páginas (ver src/lib/book-content.ts).
+   * NULL nos livros importados antes da mudança, que ainda têm as páginas em
+   * `raw_content.pages`.
+   */
+  content_path: string | null
   raw_content: {
     pageCount: number
-    extractedText: string
-    pages: Array<{ pageNumber: number; text: string }>
+    /**
+     * Só existe nos livros antigos. Deixou de ser gravado: era o livro inteiro
+     * duplicado (as páginas já o contêm) e nunca era lido de volta.
+     */
+    extractedText?: string
+    /** Idem — nos livros novos as páginas vivem no Storage. */
+    pages?: Array<{ pageNumber: number; text: string }>
     toc?: Array<{ label: string; page: number }>
     // true quando o sumário foi gerado por fallback (marcos a cada 10 páginas)
     // e não por deteção real de capítulos.
