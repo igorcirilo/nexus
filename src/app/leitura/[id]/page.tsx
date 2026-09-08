@@ -30,7 +30,6 @@ import {
   paintHighlights,
   withAlpha,
   normalizeHighlightColor,
-  HIGHLIGHT_COLORS,
   DEFAULT_HIGHLIGHT_COLOR,
   type HighlightMark,
 } from '@/lib/reader-highlight'
@@ -102,7 +101,6 @@ export default function LeituraReaderPage() {
   const [headerVisible, setHeaderVisible] = useState(true)
 
   const [highlightText, setHighlightText] = useState('')
-  const [highlightColor, setHighlightColor] = useState<string>(DEFAULT_HIGHLIGHT_COLOR)
   const [noteText, setNoteText]           = useState('')
   const [highlights, setHighlights]       = useState<BookHighlight[]>([])
   const [notes, setNotes]                 = useState<BookNote[]>([])
@@ -399,7 +397,7 @@ export default function LeituraReaderPage() {
 
   async function addHighlight() {
     if (!userId || !bookId || !highlightText.trim()) return
-    await saveBookHighlight({ user_id: userId, book_id: bookId, page: currentPage, color: highlightColor, excerpt: highlightText.trim() })
+    await saveBookHighlight({ user_id: userId, book_id: bookId, page: currentPage, color: DEFAULT_HIGHLIGHT_COLOR, excerpt: highlightText.trim() })
     setHighlightText('')
     setHighlights(await getBookHighlights(bookId, userId) as BookHighlight[])
     showToast('Destaque guardado')
@@ -1046,35 +1044,12 @@ export default function LeituraReaderPage() {
                       fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 14, lineHeight: 1.6, outline: 'none',
                     }}
                   />
-                  <div role="radiogroup" aria-label="Cor do marcador" style={{ display: 'flex', gap: 10, marginTop: 10 }}>
-                    {HIGHLIGHT_COLORS.map(c => {
-                      const picked = highlightColor === c.value
-                      return (
-                        <button
-                          key={c.value}
-                          role="radio"
-                          aria-checked={picked}
-                          aria-label={c.label}
-                          title={c.label}
-                          onClick={() => setHighlightColor(c.value)}
-                          style={{
-                            width: 30, height: 30, borderRadius: '50%', padding: 0, cursor: 'pointer',
-                            background: withAlpha(c.value, 0.85),
-                            // O anel fica fora do círculo para a cor não encolher ao ser escolhida.
-                            border: picked ? `2px solid ${palette.text}` : `1px solid ${palette.border}`,
-                            outline: picked ? `2px solid ${withAlpha(c.value, 0.45)}` : 'none',
-                            outlineOffset: 2,
-                          }}
-                        />
-                      )
-                    })}
-                  </div>
                   <button
                     onClick={addHighlight}
                     disabled={!highlightText.trim()}
                     style={{
-                      marginTop: 12, marginBottom: 16, width: '100%', padding: '11px', borderRadius: 12, border: 'none',
-                      background: highlightText.trim() ? highlightColor : `rgba(${overlay},0.08)`,
+                      marginTop: 8, marginBottom: 16, width: '100%', padding: '11px', borderRadius: 12, border: 'none',
+                      background: highlightText.trim() ? palette.accent : `rgba(${overlay},0.08)`,
                       color: highlightText.trim() ? '#111' : `${palette.text}50`,
                       fontWeight: 700, fontSize: 14, cursor: highlightText.trim() ? 'pointer' : 'not-allowed',
                       fontFamily: 'Inter, sans-serif',

@@ -3,7 +3,6 @@ import {
   paintHighlights,
   withAlpha,
   normalizeHighlightColor,
-  HIGHLIGHT_COLORS,
   DEFAULT_HIGHLIGHT_COLOR,
 } from '@/lib/reader-highlight'
 
@@ -96,20 +95,11 @@ describe('withAlpha', () => {
   })
 })
 
-describe('HIGHLIGHT_COLORS', () => {
-  it('são todas hex válidos e distintos', () => {
-    const values = HIGHLIGHT_COLORS.map(c => c.value)
-    for (const value of values) expect(normalizeHighlightColor(value)).toBe(value)
-    expect(new Set(values).size).toBe(values.length)
-  })
-
-  it('mantém o dourado como omissão — a cor dos destaques já guardados', () => {
-    expect(DEFAULT_HIGHLIGHT_COLOR).toBe('#E8A838')
-    expect(HIGHLIGHT_COLORS[0].value).toBe(DEFAULT_HIGHLIGHT_COLOR)
-  })
-})
-
 describe('normalizeHighlightColor', () => {
+  it('mantém o dourado como cor dos destaques', () => {
+    expect(DEFAULT_HIGHLIGHT_COLOR).toBe('#E8A838')
+  })
+
   it('aceita hex de 6 e de 3 dígitos', () => {
     expect(normalizeHighlightColor('#5BC88A')).toBe('#5BC88A')
     expect(normalizeHighlightColor('#fc0')).toBe('#fc0')
