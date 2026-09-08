@@ -25,6 +25,7 @@ import {
   saveReadingSession,
 } from '@/lib/supabase'
 import { loadBookPages, type BookPage } from '@/lib/book-content'
+import { decideSwipe, type TouchGesture } from '@/lib/reader-gesture'
 import type {
   Book,
   BookBookmark,
@@ -43,11 +44,21 @@ const themeMap: Record<ReaderTheme, { bg: string; text: string; panel: string; b
   noturno: { bg: '#10131A', text: '#E8E3D7', panel: '#171B24',  border: 'rgba(255,255,255,0.07)', accent: '#F5C842' },
 }
 
-const SWIPE_THRESHOLD = 48
-const WORDS_PER_MIN   = 250
+const WORDS_PER_MIN = 250
 
 function clamp(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, n))
+}
+
+function selectedText(): string {
+  if (typeof window === 'undefined') return ''
+  return window.getSelection()?.toString().trim() ?? ''
+}
+
+/** Gestos que começam num controlo (slider de páginas, campos, botões) não viram página. */
+function isInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false
+  return Boolean(target.closest('input, textarea, select, button, a, [role="slider"], [contenteditable="true"]'))
 }
 
 function estimateMins(pages: Array<{ text?: string }>, fromPage: number): number {
@@ -96,7 +107,7 @@ export default function LeituraReaderPage() {
   // uma sessão é o avanço DESTA marca — reler páginas atrás dela rende 0.
   const furthestPageRef  = useRef(1)
   const pageCountRef     = useRef(1)
-  const touchStartX      = useRef<number | null>(null)
+  const touchRef         = useRef<TouchGesture | null>(null)
   const headerTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const hydrated         = useRef(false)
   // Secções de página do modo scroll (chave = pageNumber). Alimenta o
@@ -409,15 +420,44 @@ export default function LeituraReaderPage() {
   // ── Swipe ─────────────────────────────────────────────────────────────────
 
   function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX
+    const t = e.touches[0]
+    touchRef.current = {
+      x: t.clientX,
+      y: t.clientY,
+      time: Date.now(),
+      selection: selectedText(),
+      // Um só dedo e fora de controlos (sliders, campos de texto, botões).
+      valid: e.touches.length === 1 && !isInteractiveTarget(e.target),
+    }
+  }
+
+  function handleTouchMove(e: React.TouchEvent) {
+    // Um segundo dedo a meio do gesto (pinça/zoom) invalida-o.
+    if (touchRef.current && e.touches.length > 1) touchRef.current.valid = false
   }
 
   function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current === null || readingMode !== 'paginado') return
-    const delta = e.changedTouches[0].clientX - touchStartX.current
-    touchStartX.current = null
-    if (delta < -SWIPE_THRESHOLD) setCurrentPage(p => clamp(p + 1, 1, pageCount))
-    if (delta >  SWIPE_THRESHOLD) setCurrentPage(p => clamp(p - 1, 1, pageCount))
+    const start = touchRef.current
+    touchRef.current = null
+    if (!start || !start.valid || readingMode !== 'paginado') return
+
+    const selection = selectedText()
+    const decision = decideSwipe(start, {
+      x: e.changedTouches[0].clientX,
+      y: e.changedTouches[0].clientY,
+      time: Date.now(),
+      selection,
+    })
+    if (!decision) return
+
+    // Seleção anterior ao gesto: o swipe vale e ela é descartada, como o
+    // browser faz num toque qualquer.
+    if (selection) window.getSelection()?.removeAllRanges()
+    setCurrentPage(p => clamp(p + (decision === 'next' ? 1 : -1), 1, pageCount))
+  }
+
+  function handleTouchCancel() {
+    touchRef.current = null
   }
 
   // ── Shared style shortcuts ────────────────────────────────────────────────
@@ -466,7 +506,9 @@ export default function LeituraReaderPage() {
       // scroll container, o que quebraria o position:sticky do header.
       style={{ minHeight: '100dvh', background: palette.bg, color: palette.text, paddingBottom: readingMode === 'paginado' ? 150 : 100, overflowX: 'clip' }}
       onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchCancel}
     >
 
       {/* ── Top progress bar ──────────────────────────────────────────────── */}
