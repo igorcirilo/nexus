@@ -8,6 +8,33 @@
  * continue a encontrar o seu lugar.
  */
 
+/**
+ * Cores de marcador oferecidas ao guardar um destaque. Escolhidas para se
+ * lerem sobre os três temas do leitor (claro, sépia e noturno) com a mesma
+ * opacidade — daí serem todas de luminosidade média, sem pastéis nem tons
+ * escuros. O dourado é o primeiro por ser a cor de acento do produto e a cor
+ * com que todos os destaques anteriores a esta escolha foram guardados.
+ */
+export const HIGHLIGHT_COLORS = [
+  { value: '#E8A838', label: 'Dourado' },
+  { value: '#5BC88A', label: 'Verde'   },
+  { value: '#4FA8E8', label: 'Azul'    },
+  { value: '#E86A9A', label: 'Rosa'    },
+  { value: '#A87BE8', label: 'Roxo'    },
+] as const
+
+export const DEFAULT_HIGHLIGHT_COLOR = HIGHLIGHT_COLORS[0].value
+
+/**
+ * Cor utilizável para pintar: devolve a do destaque se for um hex válido, e o
+ * dourado quando o registo vem vazio ou com lixo (dados antigos ou de outra
+ * origem nunca devem partir a pintura da página).
+ */
+export function normalizeHighlightColor(color: string | null | undefined): string {
+  if (!color) return DEFAULT_HIGHLIGHT_COLOR
+  return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color.trim()) ? color.trim() : DEFAULT_HIGHLIGHT_COLOR
+}
+
 /** Um destaque a pintar: o texto guardado e a cor com que foi guardado. */
 export type HighlightMark = {
   excerpt: string

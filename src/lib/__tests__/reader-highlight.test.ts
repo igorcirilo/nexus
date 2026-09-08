@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest'
-import { paintHighlights, withAlpha } from '@/lib/reader-highlight'
+import {
+  paintHighlights,
+  withAlpha,
+  normalizeHighlightColor,
+  HIGHLIGHT_COLORS,
+  DEFAULT_HIGHLIGHT_COLOR,
+} from '@/lib/reader-highlight'
 
 const GOLD = '#E8A838'
 
@@ -87,5 +93,37 @@ describe('withAlpha', () => {
 
   it('devolve o valor original quando não é hex', () => {
     expect(withAlpha('gold', 0.4)).toBe('gold')
+  })
+})
+
+describe('HIGHLIGHT_COLORS', () => {
+  it('são todas hex válidos e distintos', () => {
+    const values = HIGHLIGHT_COLORS.map(c => c.value)
+    for (const value of values) expect(normalizeHighlightColor(value)).toBe(value)
+    expect(new Set(values).size).toBe(values.length)
+  })
+
+  it('mantém o dourado como omissão — a cor dos destaques já guardados', () => {
+    expect(DEFAULT_HIGHLIGHT_COLOR).toBe('#E8A838')
+    expect(HIGHLIGHT_COLORS[0].value).toBe(DEFAULT_HIGHLIGHT_COLOR)
+  })
+})
+
+describe('normalizeHighlightColor', () => {
+  it('aceita hex de 6 e de 3 dígitos', () => {
+    expect(normalizeHighlightColor('#5BC88A')).toBe('#5BC88A')
+    expect(normalizeHighlightColor('#fc0')).toBe('#fc0')
+  })
+
+  it('recua para o dourado em registos vazios ou inválidos', () => {
+    expect(normalizeHighlightColor('')).toBe(DEFAULT_HIGHLIGHT_COLOR)
+    expect(normalizeHighlightColor(null)).toBe(DEFAULT_HIGHLIGHT_COLOR)
+    expect(normalizeHighlightColor(undefined)).toBe(DEFAULT_HIGHLIGHT_COLOR)
+    expect(normalizeHighlightColor('vermelho')).toBe(DEFAULT_HIGHLIGHT_COLOR)
+    expect(normalizeHighlightColor('#12345')).toBe(DEFAULT_HIGHLIGHT_COLOR)
+  })
+
+  it('tolera espaços à volta', () => {
+    expect(normalizeHighlightColor('  #4FA8E8 ')).toBe('#4FA8E8')
   })
 })

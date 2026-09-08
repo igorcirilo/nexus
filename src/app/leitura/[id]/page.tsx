@@ -26,7 +26,14 @@ import {
 } from '@/lib/supabase'
 import { loadBookPages, type BookPage } from '@/lib/book-content'
 import { decideSwipe, type TouchGesture } from '@/lib/reader-gesture'
-import { paintHighlights, withAlpha, type HighlightMark } from '@/lib/reader-highlight'
+import {
+  paintHighlights,
+  withAlpha,
+  normalizeHighlightColor,
+  HIGHLIGHT_COLORS,
+  DEFAULT_HIGHLIGHT_COLOR,
+  type HighlightMark,
+} from '@/lib/reader-highlight'
 import type {
   Book,
   BookBookmark,
@@ -95,6 +102,7 @@ export default function LeituraReaderPage() {
   const [headerVisible, setHeaderVisible] = useState(true)
 
   const [highlightText, setHighlightText] = useState('')
+  const [highlightColor, setHighlightColor] = useState<string>(DEFAULT_HIGHLIGHT_COLOR)
   const [noteText, setNoteText]           = useState('')
   const [highlights, setHighlights]       = useState<BookHighlight[]>([])
   const [notes, setNotes]                 = useState<BookNote[]>([])
@@ -391,7 +399,7 @@ export default function LeituraReaderPage() {
 
   async function addHighlight() {
     if (!userId || !bookId || !highlightText.trim()) return
-    await saveBookHighlight({ user_id: userId, book_id: bookId, page: currentPage, color: '#E8A838', excerpt: highlightText.trim() })
+    await saveBookHighlight({ user_id: userId, book_id: bookId, page: currentPage, color: highlightColor, excerpt: highlightText.trim() })
     setHighlightText('')
     setHighlights(await getBookHighlights(bookId, userId) as BookHighlight[])
     showToast('Destaque guardado')
@@ -469,11 +477,11 @@ export default function LeituraReaderPage() {
     const byPage = new Map<number, HighlightMark[]>()
     for (const h of highlights) {
       const marks = byPage.get(h.page) ?? []
-      marks.push({ excerpt: h.excerpt, color: h.color || palette.accent })
+      marks.push({ excerpt: h.excerpt, color: normalizeHighlightColor(h.color) })
       byPage.set(h.page, marks)
     }
     return byPage
-  }, [highlights, palette.accent])
+  }, [highlights])
 
   function renderPageText(text: string | undefined, pageNumber: number) {
     if (!text) return 'Sem texto extraível nesta página.'
@@ -1038,12 +1046,35 @@ export default function LeituraReaderPage() {
                       fontFamily: "Georgia, 'Times New Roman', serif", fontSize: 14, lineHeight: 1.6, outline: 'none',
                     }}
                   />
+                  <div role="radiogroup" aria-label="Cor do marcador" style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                    {HIGHLIGHT_COLORS.map(c => {
+                      const picked = highlightColor === c.value
+                      return (
+                        <button
+                          key={c.value}
+                          role="radio"
+                          aria-checked={picked}
+                          aria-label={c.label}
+                          title={c.label}
+                          onClick={() => setHighlightColor(c.value)}
+                          style={{
+                            width: 30, height: 30, borderRadius: '50%', padding: 0, cursor: 'pointer',
+                            background: withAlpha(c.value, 0.85),
+                            // O anel fica fora do círculo para a cor não encolher ao ser escolhida.
+                            border: picked ? `2px solid ${palette.text}` : `1px solid ${palette.border}`,
+                            outline: picked ? `2px solid ${withAlpha(c.value, 0.45)}` : 'none',
+                            outlineOffset: 2,
+                          }}
+                        />
+                      )
+                    })}
+                  </div>
                   <button
                     onClick={addHighlight}
                     disabled={!highlightText.trim()}
                     style={{
-                      marginTop: 8, marginBottom: 16, width: '100%', padding: '11px', borderRadius: 12, border: 'none',
-                      background: highlightText.trim() ? palette.accent : `rgba(${overlay},0.08)`,
+                      marginTop: 12, marginBottom: 16, width: '100%', padding: '11px', borderRadius: 12, border: 'none',
+                      background: highlightText.trim() ? highlightColor : `rgba(${overlay},0.08)`,
                       color: highlightText.trim() ? '#111' : `${palette.text}50`,
                       fontWeight: 700, fontSize: 14, cursor: highlightText.trim() ? 'pointer' : 'not-allowed',
                       fontFamily: 'Inter, sans-serif',
@@ -1056,8 +1087,10 @@ export default function LeituraReaderPage() {
                   </div>
                   {currentHighlights.length === 0
                     ? <div style={{ fontSize: 13, color: `${palette.text}50`, fontFamily: 'Inter, sans-serif' }}>Sem destaques nesta página.</div>
-                    : currentHighlights.map(h => (
-                        <div key={h.id} style={{ marginBottom: 8, background: `${palette.accent}14`, border: `1px solid ${palette.accent}35`, borderRadius: 14, padding: '10px 12px' }}>
+                    : currentHighlights.map(h => {
+                        const color = normalizeHighlightColor(h.color)
+                        return (
+                        <div key={h.id} style={{ marginBottom: 8, background: withAlpha(color, 0.1), border: `1px solid ${withAlpha(color, 0.32)}`, borderRadius: 14, padding: '10px 12px' }}>
                           <div style={{ fontFamily: "Georgia, serif", fontSize: 14, lineHeight: 1.6, color: palette.text }}>{h.excerpt}</div>
                           <button
                             onClick={() => userId && deleteBookHighlight(h.id, userId).then(async () => setHighlights(await getBookHighlights(bookId!, userId) as BookHighlight[]))}
@@ -1066,7 +1099,8 @@ export default function LeituraReaderPage() {
                             Apagar
                           </button>
                         </div>
-                      ))
+                        )
+                      })
                   }
                 </>
               )}
