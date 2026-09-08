@@ -26,6 +26,7 @@ import {
 } from '@/lib/supabase'
 import { loadBookPages, type BookPage } from '@/lib/book-content'
 import { decideSwipe, type TouchGesture } from '@/lib/reader-gesture'
+import { paintHighlights, withAlpha, type HighlightMark } from '@/lib/reader-highlight'
 import type {
   Book,
   BookBookmark,
@@ -447,6 +448,7 @@ export default function LeituraReaderPage() {
       y: e.changedTouches[0].clientY,
       time: Date.now(),
       selection,
+      viewportWidth: window.innerWidth,
     })
     if (!decision) return
 
@@ -458,6 +460,55 @@ export default function LeituraReaderPage() {
 
   function handleTouchCancel() {
     touchRef.current = null
+  }
+
+  // ── Marca-texto ───────────────────────────────────────────────────────────
+
+  /** Destaques por página, para pintar cada página sem varrer a lista toda. */
+  const highlightsByPage = useMemo(() => {
+    const byPage = new Map<number, HighlightMark[]>()
+    for (const h of highlights) {
+      const marks = byPage.get(h.page) ?? []
+      marks.push({ excerpt: h.excerpt, color: h.color || palette.accent })
+      byPage.set(h.page, marks)
+    }
+    return byPage
+  }, [highlights, palette.accent])
+
+  function renderPageText(text: string | undefined, pageNumber: number) {
+    if (!text) return 'Sem texto extraível nesta página.'
+    const marks = highlightsByPage.get(pageNumber)
+    if (!marks?.length) return text
+
+    return paintHighlights(text, marks).map((segment, i) => segment.color
+      ? (
+        <mark
+          key={i}
+          style={{
+            // Traço de marcador: uma lavagem leve sobre a parte de baixo dos
+            // glifos mais uma base firme. As alturas vão em `em` (tamanho da
+            // letra) e não em % (altura da linha), senão o traço engorda com a
+            // entrelinha e vira um bloco. `clone` repete o traço em cada linha
+            // que o excerto ocupa; `transparent` apaga o amarelo que o browser
+            // dá por omissão ao <mark>.
+            backgroundColor: 'transparent',
+            backgroundImage: [
+              `linear-gradient(${withAlpha(segment.color, 0.26)}, ${withAlpha(segment.color, 0.26)})`,
+              `linear-gradient(${withAlpha(segment.color, 0.8)}, ${withAlpha(segment.color, 0.8)})`,
+            ].join(', '),
+            backgroundSize: '100% 0.72em, 100% 2px',
+            backgroundPosition: '0 88%, 0 96%',
+            backgroundRepeat: 'no-repeat',
+            boxDecorationBreak: 'clone',
+            WebkitBoxDecorationBreak: 'clone',
+            color: 'inherit',
+          }}
+        >
+          {segment.text}
+        </mark>
+      )
+      : <span key={i}>{segment.text}</span>,
+    )
   }
 
   // ── Shared style shortcuts ────────────────────────────────────────────────
@@ -602,12 +653,12 @@ export default function LeituraReaderPage() {
                 }}>
                   Página {page.pageNumber}
                 </div>
-                <div style={{ whiteSpace: 'pre-wrap' }}>{page.text || 'Sem texto extraível nesta página.'}</div>
+                <div style={{ whiteSpace: 'pre-wrap' }}>{renderPageText(page.text, page.pageNumber)}</div>
               </section>
             ))
           : (
             <div style={{ whiteSpace: 'pre-wrap', minHeight: 320 }}>
-              {currentPageData?.text || 'Sem texto extraível nesta página.'}
+              {renderPageText(currentPageData?.text, currentPage)}
             </div>
           )
         }

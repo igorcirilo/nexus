@@ -7,8 +7,14 @@
  * seleção deixa texto selecionado no fim, o swipe não.
  */
 
-/** px mínimos percorridos no eixo X para o gesto contar como swipe. */
-export const SWIPE_THRESHOLD = 72
+/**
+ * Percurso mínimo no eixo X, em fração da largura do ecrã: o mesmo gesto tem de
+ * "custar" o mesmo num telemóvel estreito e num largo.
+ */
+export const SWIPE_THRESHOLD_RATIO = 0.18
+/** Limites do percurso mínimo (px), para ecrãs muito estreitos ou muito largos. */
+export const SWIPE_THRESHOLD_MIN = 64
+export const SWIPE_THRESHOLD_MAX = 160
 /** |dy| máximo tolerado, em fração de |dx| — acima disto é scroll diagonal. */
 export const SWIPE_MAX_OFF_AXIS = 0.6
 /** Duração máxima do gesto; acima disto é arrasto deliberado, não swipe. */
@@ -31,6 +37,14 @@ export type TouchGestureEnd = {
   y: number
   time: number
   selection: string
+  /** Largura do ecrã, que define o percurso mínimo exigido. */
+  viewportWidth: number
+}
+
+/** Percurso mínimo (px) exigido a um swipe, dada a largura do ecrã. */
+export function swipeThreshold(viewportWidth: number): number {
+  const raw = viewportWidth * SWIPE_THRESHOLD_RATIO
+  return Math.min(SWIPE_THRESHOLD_MAX, Math.max(SWIPE_THRESHOLD_MIN, raw))
 }
 
 export type SwipeDecision = 'next' | 'prev' | null
@@ -47,7 +61,7 @@ export function decideSwipe(start: TouchGesture, end: TouchGestureEnd): SwipeDec
 
   const dx = end.x - start.x
   const dy = end.y - start.y
-  if (Math.abs(dx) < SWIPE_THRESHOLD) return null
+  if (Math.abs(dx) < swipeThreshold(end.viewportWidth)) return null
   if (Math.abs(dy) > Math.abs(dx) * SWIPE_MAX_OFF_AXIS) return null
   if (end.time - start.time > SWIPE_MAX_MS) return null
   if (end.selection && end.selection !== start.selection) return null

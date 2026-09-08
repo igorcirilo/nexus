@@ -1,12 +1,20 @@
 import { describe, it, expect } from 'vitest'
-import { decideSwipe, type TouchGesture, type TouchGestureEnd } from '@/lib/reader-gesture'
+import {
+  decideSwipe,
+  swipeThreshold,
+  SWIPE_THRESHOLD_MIN,
+  SWIPE_THRESHOLD_MAX,
+  type TouchGesture,
+  type TouchGestureEnd,
+} from '@/lib/reader-gesture'
 
 function start(over: Partial<TouchGesture> = {}): TouchGesture {
   return { x: 200, y: 300, time: 1_000, selection: '', valid: true, ...over }
 }
 
 function end(over: Partial<TouchGestureEnd> = {}): TouchGestureEnd {
-  return { x: 200, y: 300, time: 1_200, selection: '', ...over }
+  // 390px = iPhone típico; limiar = 390 * 0.18 ≈ 70px.
+  return { x: 200, y: 300, time: 1_200, selection: '', viewportWidth: 390, ...over }
 }
 
 describe('decideSwipe', () => {
@@ -19,7 +27,13 @@ describe('decideSwipe', () => {
   })
 
   it('ignora arrastos curtos', () => {
-    expect(decideSwipe(start(), end({ x: 200 - 71 }))).toBeNull()
+    expect(decideSwipe(start(), end({ x: 200 - 69 }))).toBeNull()
+  })
+
+  it('exige mais percurso num ecrã largo do que num estreito', () => {
+    const dx = 100
+    expect(decideSwipe(start(), end({ x: 200 - dx, viewportWidth: 390 }))).toBe('next')
+    expect(decideSwipe(start(), end({ x: 200 - dx, viewportWidth: 820 }))).toBeNull()
   })
 
   it('ignora arrastos demasiado diagonais (scroll)', () => {
@@ -46,5 +60,20 @@ describe('decideSwipe', () => {
 
   it('ignora gestos marcados como inválidos (multitoque ou controlos)', () => {
     expect(decideSwipe(start({ valid: false }), end({ x: 80 }))).toBeNull()
+  })
+})
+
+describe('swipeThreshold', () => {
+  it('escala com a largura do ecrã', () => {
+    expect(swipeThreshold(390)).toBeCloseTo(70.2)
+    expect(swipeThreshold(430)).toBeCloseTo(77.4)
+  })
+
+  it('não desce abaixo do mínimo em ecrãs estreitos', () => {
+    expect(swipeThreshold(320)).toBe(SWIPE_THRESHOLD_MIN)
+  })
+
+  it('não sobe acima do máximo em ecrãs largos', () => {
+    expect(swipeThreshold(1440)).toBe(SWIPE_THRESHOLD_MAX)
   })
 })
