@@ -6,7 +6,8 @@ import Nav from '@/components/Nav'
 import LeituraHub from '@/components/leitura/LeituraHub'
 import FileImportModal from '@/components/FileImportModal'
 import ErrorState from '@/components/ui/ErrorState'
-import { requireUser, getBooks, getBookProgress, getBookHighlights, saveBook, updateBook, deleteBook, saveBookProgress, getReadingSessionsThisWeek } from '@/lib/supabase'
+import { requireUser, getBooks, getBookProgress, getBookHighlights, saveBook, updateBook, deleteBook, setBookContentPath, saveBookProgress, getReadingSessionsThisWeek } from '@/lib/supabase'
+import { uploadBookPages, removeBookContent } from '@/lib/book-content'
 import { darkCardInk } from '@/lib/theme'
 import { localDateKey } from '@/lib/date'
 import type { Book, BookProgress, BookHighlight, FileImportResult, PdfImportResult } from '@/types'
@@ -224,19 +225,37 @@ export default function LeituraPage() {
     if (metaSheet.mode === 'create') {
       const { result } = metaSheet
       const { toc, auto } = buildToc(result.pages)
-      const { error } = await saveBook({
+
+      // Na tabela fica só o que é pequeno e consultado (contagem e sumário).
+      // As páginas vão para o Storage — em `raw_content` eram vários MB por
+      // livro dentro do disco do Postgres. `extractedText` deixou de ser
+      // gravado: era o mesmo texto outra vez e nunca era lido de volta.
+      const { data: created, error } = await saveBook({
         user_id: userId, title, author,
         source_file_name: result.meta.fileName,
         cover_label: cover,
-        raw_content: {
-          pageCount: result.pageCount,
-          extractedText: result.extractedText,
-          pages: result.pages,
-          toc,
-          tocAuto: auto,
-        },
+        raw_content: { pageCount: result.pageCount, toc, tocAuto: auto },
       })
-      if (error) { showToast('Erro ao importar ebook.'); return }
+      if (error || !created) { showToast('Erro ao importar ebook.'); return }
+
+      const book = created as { id: string }
+      const upload = await uploadBookPages(userId, book.id, result.pages)
+      if (upload.error) {
+        // Sem conteúdo o livro é inútil e ficaria a sujar a biblioteca:
+        // desfaz a linha em vez de deixar um registo vazio.
+        await deleteBook(book.id, userId)
+        showToast('Erro ao guardar o conteúdo do ebook.')
+        return
+      }
+
+      const { error: linkError } = await setBookContentPath(book.id, userId, upload.path!)
+      if (linkError) {
+        await removeBookContent(upload.path)
+        await deleteBook(book.id, userId)
+        showToast('Erro ao guardar o conteúdo do ebook.')
+        return
+      }
+
       showToast('Ebook importado com sucesso.')
     } else {
       const { error } = await updateBook(metaSheet.book.id, userId, { title, author, cover_label: cover })

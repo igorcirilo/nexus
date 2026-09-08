@@ -810,16 +810,48 @@ export async function updateBook(
   return { error }
 }
 
+/** Liga o livro ao ficheiro de páginas no Storage (ver src/lib/book-content.ts). */
+export async function setBookContentPath(bookId: string, userId: string, contentPath: string) {
+  const { error } = await supabase
+    .from('books')
+    .update({ content_path: contentPath })
+    .eq('id', bookId)
+    .eq('user_id', userId)
+
+  if (error) reportError('setBookContentPath error', error.message)
+  return { error }
+}
+
 // Apaga o livro. As tabelas dependentes (progress, highlights, notes,
 // bookmarks) têm ON DELETE CASCADE no schema, por isso são removidas juntas.
+// O ficheiro no Storage não tem cascade: é removido aqui, senão ficava órfão
+// a ocupar espaço para sempre.
 export async function deleteBook(bookId: string, userId: string) {
+  const { data: book } = await supabase
+    .from('books')
+    .select('content_path')
+    .eq('id', bookId)
+    .eq('user_id', userId)
+    .maybeSingle()
+
   const { error } = await supabase
     .from('books')
     .delete()
     .eq('id', bookId)
     .eq('user_id', userId)
 
-  if (error) reportError('deleteBook error', error.message)
+  if (error) {
+    reportError('deleteBook error', error.message)
+    return { error }
+  }
+
+  // Só depois de a linha desaparecer — se a remoção do ficheiro falhar, fica
+  // um órfão, o que é preferível a um livro sem conteúdo.
+  // Bucket literal em vez de importar de '@/lib/book-content': esse módulo
+  // importa este, e o ciclo só não rebenta por acaso (o uso é dentro de função).
+  const path = (book as { content_path?: string | null } | null)?.content_path
+  if (path) await supabase.storage.from('book-content').remove([path])
+
   return { error }
 }
 

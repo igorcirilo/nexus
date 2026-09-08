@@ -113,11 +113,33 @@ interface Habit {
 }
 
 interface Sub {
+  user_id: string
   endpoint: string
   p256dh: string
   auth: string
   timezone: string | null
   created_at: string
+}
+
+// PostgREST envia o filtro `in` no URL, que tem limite de tamanho. Partimos em
+// lotes para o filtro por user_id continuar valido a medida que a base cresce.
+const USER_CHUNK = 100
+
+async function fetchForUsers<T>(
+  userIds: string[],
+  query: (ids: string[]) => PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>,
+): Promise<T[]> {
+  const chunks: string[][] = []
+  for (let i = 0; i < userIds.length; i += USER_CHUNK) {
+    chunks.push(userIds.slice(i, i + USER_CHUNK))
+  }
+  const results = await Promise.all(chunks.map((ids) => query(ids)))
+  const rows: T[] = []
+  for (const r of results) {
+    if (r.error) throw new Error(r.error.message)
+    rows.push(...((r.data ?? []) as T[]))
+  }
+  return rows
 }
 
 Deno.serve(async (req) => {
@@ -143,24 +165,69 @@ Deno.serve(async (req) => {
     new Date(minuteStart.getTime() + dayMs),
   ].map((d) => d.toISOString().slice(0, 10))
 
-  const [remindersRes, eventsRes, habitsRes] = await Promise.all([
-    supabase
-      .from('reminders')
-      .select('id, user_id, title, description, time, days, type, date, last_sent_at')
-      .eq('active', true),
-    supabase
-      .from('agenda_events')
-      .select('id, user_id, title, description, date, time, all_day, notified_at')
-      .is('notified_at', null)
-      .in('date', dateWindow),
-    supabase
-      .from('habits')
-      .select('id, user_id, name, time_window, days, last_notified_at')
-      .eq('active', true),
-  ])
+  // Uma unica leitura das subscricoes, em vez de uma consulta por utilizador
+  // dentro do laco (N+1 a cada minuto). Quem nao tem subscricao nunca poderia
+  // receber nada, por isso e esta lista que define o universo de trabalho.
+  const { data: allSubs, error: subsError } = await supabase
+    .from('push_subscriptions')
+    .select('user_id, endpoint, p256dh, auth, timezone, created_at')
+    .order('created_at', { ascending: false })
 
-  if (remindersRes.error) {
-    return new Response(JSON.stringify({ error: remindersRes.error.message }), {
+  if (subsError) {
+    return new Response(JSON.stringify({ error: subsError.message }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  const subsByUser = new Map<string, Sub[]>()
+  for (const s of (allSubs ?? []) as Sub[]) {
+    const arr = subsByUser.get(s.user_id) ?? []
+    arr.push(s)
+    subsByUser.set(s.user_id, arr)
+  }
+
+  const targetUserIds = [...subsByUser.keys()]
+
+  // Sem ninguem para notificar nao ha razao para tocar nas outras tabelas —
+  // o caso da esmagadora maioria das 1440 execucoes diarias.
+  if (targetUserIds.length === 0) {
+    return new Response(JSON.stringify({ ok: true, due: 0, sent: 0 }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  // As tres leituras passam a ser filtradas por user_id. Sem esse filtro eram
+  // varreduras sequenciais das tabelas inteiras: os indices existentes comecam
+  // todos por user_id, portanto ficavam inutilizados. Eram tres varreduras por
+  // minuto, para sempre, houvesse ou nao algo a enviar.
+  let reminders: Reminder[]
+  let events: AgendaEvent[]
+  let habits: Habit[]
+  try {
+    ;[reminders, events, habits] = await Promise.all([
+      fetchForUsers<Reminder>(targetUserIds, (ids) =>
+        supabase
+          .from('reminders')
+          .select('id, user_id, title, description, time, days, type, date, last_sent_at')
+          .eq('active', true)
+          .in('user_id', ids)),
+      fetchForUsers<AgendaEvent>(targetUserIds, (ids) =>
+        supabase
+          .from('agenda_events')
+          .select('id, user_id, title, description, date, time, all_day, notified_at')
+          .is('notified_at', null)
+          .in('date', dateWindow)
+          .in('user_id', ids)),
+      fetchForUsers<Habit>(targetUserIds, (ids) =>
+        supabase
+          .from('habits')
+          .select('id, user_id, name, time_window, days, last_notified_at')
+          .eq('active', true)
+          .in('user_id', ids)),
+    ])
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
     })
@@ -168,51 +235,37 @@ Deno.serve(async (req) => {
 
   // Agrupa lembretes e eventos por utilizador (cada um tem o seu fuso).
   const reminderByUser = new Map<string, Reminder[]>()
-  for (const r of (remindersRes.data ?? []) as Reminder[]) {
+  for (const r of reminders) {
     const arr = reminderByUser.get(r.user_id) ?? []
     arr.push(r)
     reminderByUser.set(r.user_id, arr)
   }
 
   const eventByUser = new Map<string, AgendaEvent[]>()
-  for (const e of (eventsRes.data ?? []) as AgendaEvent[]) {
+  for (const e of events) {
     const arr = eventByUser.get(e.user_id) ?? []
     arr.push(e)
     eventByUser.set(e.user_id, arr)
   }
 
   const habitByUser = new Map<string, Habit[]>()
-  for (const h of (habitsRes.data ?? []) as Habit[]) {
+  for (const h of habits) {
     const arr = habitByUser.get(h.user_id) ?? []
     arr.push(h)
     habitByUser.set(h.user_id, arr)
   }
 
-  const userIds = new Set<string>([
-    ...reminderByUser.keys(),
-    ...eventByUser.keys(),
-    ...habitByUser.keys(),
-  ])
-
   let due = 0
   let sent = 0
 
-  for (const userId of userIds) {
-    const { data: subs } = await supabase
-      .from('push_subscriptions')
-      .select('endpoint, p256dh, auth, timezone, created_at')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-
-    if (!subs || subs.length === 0) continue
-
+  for (const [userId, subs] of subsByUser) {
     // Fuso do dispositivo mais recente; fallback para subscrições antigas.
-    const tz = (subs as Sub[]).find((s) => s.timezone)?.timezone || FALLBACK_TZ
+    const tz = subs.find((s) => s.timezone)?.timezone || FALLBACK_TZ
     const { hhmm, dow, date } = nowParts(tz)
 
     const deliver = async (payload: string) => {
       due++
-      for (const s of subs as Sub[]) {
+      for (const s of subs) {
         try {
           await webpush.sendNotification(
             { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
