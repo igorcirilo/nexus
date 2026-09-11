@@ -1065,15 +1065,15 @@ export default function LeituraReaderPage() {
                     : currentHighlights.map(h => {
                         const color = normalizeHighlightColor(h.color)
                         return (
-                        <div key={h.id} style={{ marginBottom: 8, background: withAlpha(color, 0.1), border: `1px solid ${withAlpha(color, 0.32)}`, borderRadius: 14, padding: '10px 12px' }}>
-                          <div style={{ fontFamily: "Georgia, serif", fontSize: 14, lineHeight: 1.6, color: palette.text }}>{h.excerpt}</div>
-                          <button
-                            onClick={() => userId && deleteBookHighlight(h.id, userId).then(async () => setHighlights(await getBookHighlights(bookId!, userId) as BookHighlight[]))}
-                            style={{ marginTop: 6, background: 'none', border: 'none', color: '#E24B4A', cursor: 'pointer', fontSize: 12, padding: 0, fontFamily: 'Inter, sans-serif' }}
-                          >
-                            Apagar
-                          </button>
-                        </div>
+                          <div key={h.id} style={{ marginBottom: 8, background: withAlpha(color, 0.1), border: `1px solid ${withAlpha(color, 0.32)}`, borderRadius: 14, padding: '10px 12px' }}>
+                            <div style={{ fontFamily: "Georgia, serif", fontSize: 14, lineHeight: 1.6, color: palette.text }}>{h.excerpt}</div>
+                            <button
+                              onClick={() => userId && deleteBookHighlight(h.id, userId).then(async () => setHighlights(await getBookHighlights(bookId!, userId) as BookHighlight[]))}
+                              style={{ marginTop: 6, background: 'none', border: 'none', color: '#E24B4A', cursor: 'pointer', fontSize: 12, padding: 0, fontFamily: 'Inter, sans-serif' }}
+                            >
+                              Apagar
+                            </button>
+                          </div>
                         )
                       })
                   }
