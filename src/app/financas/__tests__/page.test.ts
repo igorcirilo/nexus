@@ -59,6 +59,11 @@ const JUNE_TXS = [
   { id: 'j1', user_id: 'u1', date: '2026-06-20', type: 'saida',   category: 'Roupa',   description: 'Casaco', amount: 120, created_at: '' },
   { id: 'j2', user_id: 'u1', date: '2026-06-05', type: 'entrada', category: 'Salário', description: null,     amount: 1000, created_at: '' },
 ]
+// Maio — fora dos 2 meses que getTransactions traz, logo só chega por
+// getTransactionsForMonth.
+const MAY_TXS = [
+  { id: 'm1', user_id: 'u1', date: '2026-05-20', type: 'saida', category: 'Roupa', description: 'Casaco', amount: 120, created_at: '' },
+]
 // Resultado da pesquisa global (qualquer mês).
 const SEARCH_TXS = [
   { id: 's1', user_id: 'u1', date: '2026-03-14', type: 'saida', category: 'Alimentação', description: 'Continente Braga', amount: 42, created_at: '' },
@@ -85,11 +90,14 @@ vi.mock('@/lib/supabase', () => ({
   saveRecurringRule: vi.fn(async () => ({ data: null, error: null })),
   updateRecurringRule: vi.fn(async () => ({ data: null, error: null })),
   deleteRecurringRule: vi.fn(async () => ({ error: null })),
-  getTransactionsForMonth: vi.fn(async () => JUNE_TXS),
+  getTransactionsForMonth: vi.fn(async () => MAY_TXS),
   searchTransactions: vi.fn(async () => SEARCH_TXS),
   getReminders: vi.fn(async () => []),
   saveReminder: vi.fn(async () => ({ data: null, error: null })),
   deleteReminder: vi.fn(async () => ({ data: null, error: null })),
+  deleteAllTransactions: vi.fn(async () => ({ error: null })),
+  deleteAllRecurringRules: vi.fn(async () => ({ error: null })),
+  resetFinanceSettings: vi.fn(async () => ({ error: null })),
 }))
 
 vi.mock('@/components/Nav', () => ({ default: () => null }))
@@ -195,24 +203,96 @@ describe('FinancasPage', () => {
     expect(screen.getByText('Repetir todos os meses')).toBeDefined()
   })
 
-  it('navega para o mês anterior e carrega os seus movimentos sob demanda', async () => {
+  it('o mês anterior vem dos movimentos já carregados, sem ir à BD', async () => {
     const { getTransactionsForMonth } = await import('@/lib/supabase')
     await renderPage()
-    // abre o sheet de movimentos pelo hero
     fireEvent.click(screen.getByLabelText('Ver movimentos'))
     expect(await screen.findByText(/Julho 2026/)).toBeDefined()
-    fireEvent.click(screen.getByLabelText('Mês anterior'))
+    fireEvent.click(screen.getByLabelText('Mês anterior nos movimentos'))
     expect(await screen.findByText(/Junho 2026/)).toBeDefined()
+    // getTransactions(2) já traz junho — pedi-lo outra vez era uma ida a mais.
+    expect(getTransactionsForMonth).not.toHaveBeenCalled()
+  })
+
+  it('carrega sob demanda um mês fora dos dois mais recentes', async () => {
+    const { getTransactionsForMonth } = await import('@/lib/supabase')
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Mês anterior'))
+    fireEvent.click(screen.getByLabelText('Mês anterior'))
+    expect(await screen.findByText(/maio 2026/i)).toBeDefined()
     await waitFor(() => expect(getTransactionsForMonth).toHaveBeenCalled())
-    // movimento de junho aparece
+    fireEvent.click(screen.getByLabelText('Ver movimentos'))
     expect(await screen.findByText('Roupa')).toBeDefined()
+  })
+
+  it('repõe movimentos e recorrentes sem tocar na configuração', async () => {
+    const { deleteAllTransactions, deleteAllRecurringRules, resetFinanceSettings } = await import('@/lib/supabase')
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Mais opções'))
+    fireEvent.click(screen.getByText('⟲ Repor finanças'))
+    fireEvent.click(await screen.findByText('Apagar movimentos e recorrentes'))
+    fireEvent.click(await screen.findByText('Apagar'))
+    await waitFor(() => expect(deleteAllTransactions).toHaveBeenCalledWith('u1'))
+    expect(deleteAllRecurringRules).toHaveBeenCalledWith('u1')
+    // Orçamentos, categorias e metas ficam de pé neste alcance.
+    expect(resetFinanceSettings).not.toHaveBeenCalled()
+  })
+
+  it('exige escrever APAGAR antes de apagar tudo', async () => {
+    const { deleteAllTransactions, resetFinanceSettings } = await import('@/lib/supabase')
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Mais opções'))
+    fireEvent.click(screen.getByText('⟲ Repor finanças'))
+    fireEvent.click(await screen.findByText('Apagar tudo'))
+
+    const confirmar = await screen.findByText('Apagar') as HTMLButtonElement
+    expect(confirmar.disabled).toBe(true)
+    fireEvent.click(confirmar)
+    expect(deleteAllTransactions).not.toHaveBeenCalled()
+
+    fireEvent.change(screen.getByLabelText('Escreve APAGAR para confirmar'), { target: { value: 'apagar' } })
+    await waitFor(() => expect((screen.getByText('Apagar') as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(screen.getByText('Apagar'))
+    await waitFor(() => expect(resetFinanceSettings).toHaveBeenCalledWith('u1'))
+    expect(deleteAllTransactions).toHaveBeenCalledWith('u1')
+  })
+
+  it('não apaga mais nada quando um passo da reposição falha', async () => {
+    const mod = await import('@/lib/supabase')
+    ;(mod.deleteAllTransactions as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ error: { message: 'boom' } })
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Mais opções'))
+    fireEvent.click(screen.getByText('⟲ Repor finanças'))
+    fireEvent.click(await screen.findByText('Apagar movimentos e recorrentes'))
+    fireEvent.click(await screen.findByText('Apagar'))
+    await waitFor(() => expect(mod.deleteAllTransactions).toHaveBeenCalled())
+    expect(mod.deleteAllRecurringRules).not.toHaveBeenCalled()
   })
 
   it('não deixa avançar para além do mês corrente', async () => {
     await renderPage()
     fireEvent.click(screen.getByLabelText('Ver movimentos'))
-    const next = await screen.findByLabelText('Mês seguinte') as HTMLButtonElement
+    const next = await screen.findByLabelText('Mês seguinte nos movimentos') as HTMLButtonElement
     expect(next.disabled).toBe(true)
+  })
+
+  it('o painel inteiro segue o mês escolhido no cabeçalho', async () => {
+    await renderPage()
+    // Julho: balanço 1000 − 390 − 150 = 460.
+    expect(screen.getByText('460,00 €')).toBeDefined()
+    fireEvent.click(screen.getByLabelText('Mês anterior'))
+    // Junho (t4): só uma saída de 200 → balanço −200, e os rótulos mudam.
+    expect(await screen.findByText(/gastar e poupar · junho/)).toBeDefined()
+    await waitFor(() => expect(screen.getByText('-200,00 €')).toBeDefined())
+    expect(screen.queryByText('460,00 €')).toBeNull()
+  })
+
+  it('volta ao mês corrente pelo atalho', async () => {
+    await renderPage()
+    fireEvent.click(screen.getByLabelText('Mês anterior'))
+    expect(await screen.findByText(/gastar e poupar · junho/)).toBeDefined()
+    fireEvent.click(screen.getByText('↩ mês atual'))
+    expect(await screen.findByText(/gastar e poupar · julho/)).toBeDefined()
   })
 
   it('pesquisa em todo o histórico com ≥2 caracteres', async () => {

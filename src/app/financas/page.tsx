@@ -16,6 +16,7 @@ import {
   updateCustomCategories, updateFixedCats, renameTransactionCategory,
   getRecurringRules, saveRecurringRule, updateRecurringRule, deleteRecurringRule,
   getReminders, saveReminder, deleteReminder,
+  deleteAllTransactions, deleteAllRecurringRules, resetFinanceSettings,
 } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import {
@@ -29,6 +30,7 @@ import {
   buildMonthSummary, monthCloseHeadline, loggingStreak, detectAnomalies, carryIn,
   cashFlow, savedFlow, txKind,
 } from '@/lib/finance'
+import { monthProgress, monthsBack, historyMonthsFor, isFutureMonth } from '@/lib/finance-month'
 import { suggestCategory } from '@/lib/categorize'
 import { extractPdfText, parseStatementPdf } from '@/lib/pdf'
 import { logError } from '@/lib/log'
@@ -38,7 +40,7 @@ import {
   CUSTOM_KEY, catEmoji,
 } from '@/lib/categories'
 import { Sheet, StepChips, sheetLabel, sheetInp } from '@/components/financas/Sheet'
-import { format, startOfMonth, endOfMonth, subMonths, subDays, addMonths, getDaysInMonth, getDate } from 'date-fns'
+import { format, startOfMonth, endOfMonth, subMonths, subDays, addMonths, getDaysInMonth } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import type { Profile, Transaction, RecurringRule, FinancialImportPreview, FinancialImportCandidate, CustomCategory } from '@/types'
 
@@ -156,7 +158,13 @@ export default function FinancasPage() {
   const [txFilter,   setTxFilter]  = useState<'all'|'entrada'|'saida'>('all')
   const [txCat,      setTxCat]     = useState<string|null>(null)
   // Navegação por mês (sob demanda) + pesquisa em todo o histórico
-  const [monthCursor,  setMonthCursor]  = useState<Date>(() => startOfMonth(new Date()))
+  const [viewMonth,  setViewMonth]  = useState<Date>(() => startOfMonth(new Date()))
+  // Quantos meses de histórico estão carregados. Cresce ao recuar no tempo
+  // para o gráfico, as médias e o saldo arrastado não lerem uma janela curta.
+  const [historyMonths, setHistoryMonths] = useState(6)
+  const [resetSheet, setResetSheet] = useState<null | 'menu' | 'movimentos' | 'tudo'>(null)
+  const [resetBusy,  setResetBusy]  = useState(false)
+  const [resetTyped, setResetTyped] = useState('')
   const [monthCache,   setMonthCache]   = useState<Record<string, Transaction[]>>({})
   const [monthLoading, setMonthLoading] = useState(false)
   const [searchResults,setSearchResults]= useState<Transaction[]|null>(null)
@@ -256,10 +264,10 @@ export default function FinancasPage() {
   // ficam consistentes (o `history` não traz `id`, por isso não dá para
   // filtrar local). A reserva NÃO é escrita aqui — deriva de savingsNet, por
   // isso adicionar/editar/apagar/importar refletem-se nela automaticamente.
-  async function reloadTx(uid: string) {
+  async function reloadTx(uid: string, months = historyMonths) {
     const [r, h, s] = await Promise.all([
       getTransactions(uid, 2),
-      getTransactionsByMonth(uid, 6),
+      getTransactionsByMonth(uid, months),
       getSavingsNet(uid),
     ])
     setTxs(r as Transaction[])
@@ -273,10 +281,20 @@ export default function FinancasPage() {
     setRecurring(await getRecurringRules(uid) as RecurringRule[])
   }
 
-  // Métricas do mês atual
-  const monthStart = format(startOfMonth(new Date()),'yyyy-MM-dd')
-  const monthEnd   = format(endOfMonth(new Date()),'yyyy-MM-dd')
-  const thisMonth  = useMemo(()=>txs.filter(t=>t.date>=monthStart&&t.date<=monthEnd),[txs,monthStart,monthEnd])
+  // ── Mês em vista ────────────────────────────────────────────────────────
+  // Todo o painel (balanço, gastos, orçamento, gráficos) fala do mês apontado
+  // por `viewMonth`, não do corrente. `txs` traz os 2 meses mais recentes; para
+  // meses mais antigos entram os que `monthCache` foi buscar sob demanda.
+  const monthStart = format(startOfMonth(viewMonth),'yyyy-MM-dd')
+  const monthEnd   = format(endOfMonth(viewMonth),'yyyy-MM-dd')
+  const monthsBackFromNow = monthsBack(viewMonth, new Date())
+  const viewInRecentTxs   = monthsBackFromNow <= 1
+  const thisMonth  = useMemo(
+    () => viewInRecentTxs
+      ? txs.filter(t=>t.date>=monthStart&&t.date<=monthEnd)
+      : (monthCache[format(viewMonth,'yyyy-MM')] ?? []),
+    [viewInRecentTxs, txs, monthStart, monthEnd, monthCache, viewMonth],
+  )
   // Entradas = RENDIMENTO real. Uma entrada "Poupança" é um depósito na
   // reserva e um resgate (entrada Emergências/Investimentos) é transferência,
   // não rendimento → ficam fora das entradas/balanço.
@@ -294,9 +312,13 @@ export default function FinancasPage() {
   // como gasto nem um resgate como rendimento.
   const historyConsumption = useMemo(()=>history.filter(t=>!isTransferCat(t.category)),[history])
 
-  const dayOfMonth  = getDate(new Date())
-  const daysInMonth = getDaysInMonth(new Date())
-  const daysLeft    = daysInMonth - dayOfMonth
+  // Num mês passado o mês inteiro já decorreu: `elapsedDays` é o mês todo e não
+  // sobram dias. Sem isto, o ritmo do orçamento e o "ao dia N" liam um mês
+  // fechado como se ainda estivesse a meio.
+  const progress    = useMemo(() => monthProgress(viewMonth, new Date()), [viewMonth])
+  const dayOfMonth  = progress.elapsedDays
+  const daysInMonth = progress.daysInMonth
+  const daysLeft    = progress.daysLeft
 
   // Categorias de saída personalizadas: qualquer categoria que apareça nos
   // movimentos mas não esteja na lista base (ex.: criada via "Personalizar").
@@ -329,20 +351,20 @@ export default function FinancasPage() {
   // investimentos) — a mesma definição do cartão "Poupado" e da meta mensal,
   // para todos os sítios que falam de "poupar" baterem certo.
   const monthlyChart = useMemo(()=>{
-    const months = Array.from({length:6},(_,i)=>subMonths(new Date(),5-i))
+    const months = Array.from({length:6},(_,i)=>subMonths(viewMonth,5-i))
     const ranges = months.map(d=>({start:format(startOfMonth(d),'yyyy-MM-dd'),end:format(endOfMonth(d),'yyyy-MM-dd')}))
     const series = monthlySavings(historyConsumption, ranges)
     // `poupado` = Σ savedFlow (depósitos, aportes, levantamentos/resgates e
     // gastos pagos pela reserva), coerente com o cartão "Poupado" e a meta.
     const saved  = monthlySavedChange(history, ranges, SAVINGS_CAT)
     return months.map((d,i)=>({label:format(d,'MMM',{locale:pt}),...series[i],poupado:saved[i]}))
-  },[history,historyConsumption])
+  },[history,historyConsumption,viewMonth])
 
   // ── Médias dos últimos 3 meses completos (exclui o mês atual) ──
   const prev3Range = useMemo(() => ({
-    start: format(startOfMonth(subMonths(new Date(),3)),'yyyy-MM-dd'),
-    end:   format(endOfMonth(subMonths(new Date(),1)),'yyyy-MM-dd'),
-  }), [])
+    start: format(startOfMonth(subMonths(viewMonth,3)),'yyyy-MM-dd'),
+    end:   format(endOfMonth(subMonths(viewMonth,1)),'yyyy-MM-dd'),
+  }), [viewMonth])
   const avgExpenses3m = useMemo(() => {
     const out = historyConsumption.filter(t => t.type==='saida' && t.date>=prev3Range.start && t.date<=prev3Range.end)
       .reduce((a,t)=>a+t.amount,0)
@@ -366,7 +388,7 @@ export default function FinancasPage() {
   const catMonthly = useMemo(() => {
     const map: Record<string,number[]> = {}
     for (let i=3;i>=0;i--) {
-      const d=subMonths(new Date(),i)
+      const d=subMonths(viewMonth,i)
       const s=format(startOfMonth(d),'yyyy-MM-dd'), e=format(endOfMonth(d),'yyyy-MM-dd')
       const inMonth = history.filter(t=>t.type==='saida'&&t.category!==SAVINGS_CAT&&t.date>=s&&t.date<=e)
       const perCat: Record<string,number> = {}
@@ -374,21 +396,17 @@ export default function FinancasPage() {
       BUDGET_CATS.forEach(c=>{ (map[c] ??= []).push(Math.round(perCat[c]??0)) })
     }
     return map
-  }, [history, BUDGET_CATS])
+  }, [history, BUDGET_CATS, viewMonth])
 
   // ── Movimentos: mês selecionado vs. pesquisa em todo o histórico ──
   // Pesquisa com ≥2 caracteres → resultados globais (server-side); caso
   // contrário → transações do mês do cursor (carregadas sob demanda). O mês
   // corrente é servido de imediato por `txs` para não piscar ao abrir.
   const searchMode  = txQuery.trim().length >= 2
-  const cursorKey   = format(monthCursor, 'yyyy-MM')
-  const nowMonthKey = format(startOfMonth(new Date()), 'yyyy-MM')
-  const isCurrentMonthCursor = cursorKey === nowMonthKey
-  const sheetSourceTxs = useMemo(() => {
-    if (searchMode) return searchResults ?? []
-    if (isCurrentMonthCursor && !monthCache[cursorKey]) return thisMonth
-    return monthCache[cursorKey] ?? []
-  }, [searchMode, searchResults, isCurrentMonthCursor, monthCache, cursorKey, thisMonth])
+  const sheetSourceTxs = useMemo(
+    () => searchMode ? (searchResults ?? []) : thisMonth,
+    [searchMode, searchResults, thisMonth],
+  )
   const filteredTxs = useMemo(() => sheetSourceTxs.filter(t =>
     (txFilter==='all' || t.type===txFilter) &&
     (!txCat || t.category===txCat)
@@ -411,24 +429,30 @@ export default function FinancasPage() {
   const filteredTotal = filteredTxs.reduce((a,t)=>a+(t.type==='entrada'?t.amount:-t.amount),0)
   const sheetBusy = searchMode ? searchLoading : monthLoading
 
-  // Carrega o mês do cursor sob demanda (exceto o corrente, servido por txs).
+  // Recuar no tempo alarga a janela de histórico. Sem isto, o gráfico de 6
+  // meses e as médias dos 3 meses anteriores ao mês em vista liam uma janela
+  // ancorada em hoje e devolviam zeros para os meses que ficaram de fora.
   useEffect(() => {
-    if (!showMovimentos || !userId || searchMode) return
-    const key = format(monthCursor, 'yyyy-MM')
-    if (monthCache[key] || key === nowMonthKey) return
+    if (!userId) return
+    const needed = historyMonthsFor(viewMonth, new Date())
+    if (needed <= historyMonths) return
+    setHistoryMonths(needed)
+    getTransactionsByMonth(userId, needed).then(h => setHistory(h as Transaction[]))
+  }, [userId, viewMonth, historyMonths])
+
+  // Carrega o mês em vista sob demanda (os 2 mais recentes vêm em txs).
+  useEffect(() => {
+    if (!userId || viewInRecentTxs) return
+    const key = format(viewMonth, 'yyyy-MM')
+    if (monthCache[key]) return
     setMonthLoading(true)
-    const s = format(startOfMonth(monthCursor), 'yyyy-MM-dd')
-    const e = format(endOfMonth(monthCursor), 'yyyy-MM-dd')
+    const s = format(startOfMonth(viewMonth), 'yyyy-MM-dd')
+    const e = format(endOfMonth(viewMonth), 'yyyy-MM-dd')
     getTransactionsForMonth(userId, s, e).then(rows => {
       setMonthCache(c => ({ ...c, [key]: rows as Transaction[] }))
       setMonthLoading(false)
     })
-  }, [showMovimentos, userId, monthCursor, searchMode, monthCache, nowMonthKey])
-
-  // Ao abrir o sheet, começa sempre no mês corrente.
-  useEffect(() => {
-    if (showMovimentos) setMonthCursor(startOfMonth(new Date()))
-  }, [showMovimentos])
+  }, [userId, viewMonth, viewInRecentTxs, monthCache])
 
   // Pesquisa global (debounced) quando a query tem ≥2 caracteres.
   useEffect(() => {
@@ -492,9 +516,11 @@ export default function FinancasPage() {
   // ── Comparação com o mês anterior e insights ──
   // Saídas do mês anterior até ao mesmo dia — comparação justa com o mês parcial.
   const prevSpendToDate = useMemo(() => {
-    const prev = subMonths(new Date(), 1)
-    return sumInRange(historyConsumption, 'saida', format(startOfMonth(prev),'yyyy-MM-dd'), format(prev,'yyyy-MM-dd'))
-  }, [historyConsumption])
+    const prev = subMonths(viewMonth, 1)
+    // Até ao mesmo dia do mês anterior — num mês já fechado, o mês inteiro.
+    const until = new Date(prev.getFullYear(), prev.getMonth(), Math.min(dayOfMonth, getDaysInMonth(prev)))
+    return sumInRange(historyConsumption, 'saida', format(startOfMonth(prev),'yyyy-MM-dd'), format(until,'yyyy-MM-dd'))
+  }, [historyConsumption, viewMonth, dayOfMonth])
   const spendDeltaPct = prevSpendToDate > 0 && totalOut > 0
     ? Math.round((totalOut / prevSpendToDate - 1) * 100)
     : null
@@ -548,16 +574,21 @@ export default function FinancasPage() {
   const hasHistory = monthlyChart.some(m => m.entradas > 0 || m.saidas > 0)
 
   // ── Recorrentes: pendentes do mês + totais ──
-  const monthKey = format(new Date(),'yyyy-MM')
+  const monthKey = format(viewMonth,'yyyy-MM')
+  // "Pendente" é uma conta que ainda está para ser lançada este mês. Num mês
+  // passado não há nada a lançar — a lista fica vazia em vez de convidar a
+  // registar hoje uma despesa com data de um mês fechado.
   const pendingRules = useMemo(
-    () => pendingRecurrences(
-      recurring,
-      thisMonth.map(t => t.recurring_id),
-      dayOfMonth,
-      monthKey,
-      recurringSkips,
-    ),
-    [recurring, thisMonth, dayOfMonth, monthKey, recurringSkips],
+    () => progress.isCurrent
+      ? pendingRecurrences(
+          recurring,
+          thisMonth.map(t => t.recurring_id),
+          dayOfMonth,
+          monthKey,
+          recurringSkips,
+        )
+      : [],
+    [progress.isCurrent, recurring, thisMonth, dayOfMonth, monthKey, recurringSkips],
   )
   const recurringOutTotal = recurringMonthlyTotal(recurring, 'saida')
   const recurringInTotal  = recurringMonthlyTotal(recurring, 'entrada')
@@ -610,6 +641,108 @@ export default function FinancasPage() {
     setMonthCloseSeen(prevMonthKey)
     if (userId) try { localStorage.setItem(`nexus_monthclose_seen_${userId}`, prevMonthKey) } catch {}
   }
+
+  // ── Repor finanças ──────────────────────────────────────────────────────
+
+  /**
+   * Apaga os dados das finanças. Dois alcances:
+   *
+   * - `movimentos`: transações e regras recorrentes. A configuração que o
+   *   utilizador montou (orçamentos, categorias, contas fixas, metas) fica —
+   *   quem só quer recomeçar a registar não quer remontar tudo outra vez.
+   * - `tudo`: o acima mais essa configuração e a base da reserva. A página
+   *   volta ao estado de primeiro acesso.
+   *
+   * Pára à primeira falha em vez de continuar: um reset meio feito é pior do
+   * que um reset que não aconteceu, porque o utilizador fica sem saber o que
+   * sobrou.
+   */
+  async function runReset(scope: 'movimentos' | 'tudo') {
+    if (!userId || resetBusy) return
+    setResetBusy(true)
+
+    const steps: Array<() => Promise<{ error: unknown }>> = [
+      () => deleteAllTransactions(userId),
+      () => deleteAllRecurringRules(userId),
+    ]
+    if (scope === 'tudo') steps.push(() => resetFinanceSettings(userId))
+
+    for (const step of steps) {
+      const { error } = await step()
+      if (error) {
+        setResetBusy(false)
+        showToast('Não foi possível repor tudo. Nada mais foi apagado.')
+        return
+      }
+    }
+
+    // Estado local que não vive na BD: orçamentos em cache, recorrências
+    // saltadas e o "fecho do mês já visto".
+    if (scope === 'tudo') {
+      try {
+        localStorage.removeItem(`nexus_budgets_${userId}`)
+        localStorage.removeItem(`nexus_recurring_skips_${userId}`)
+        localStorage.removeItem(`nexus_monthclose_seen_${userId}`)
+      } catch {}
+      setBudgets({}); setCustomCats([]); setFixedCats([])
+      setProfile(p => p ? {
+        ...p,
+        fin_budgets: null, fin_categories: null, fin_fixed_cats: null,
+        fin_monthly_save: null, fin_reserve_goal: null,
+        fin_savings_base: null, fin_current_savings: null,
+      } : p)
+    }
+    setRecurringSkips([])
+    setMonthCloseSeen(null)
+
+    setTxs([]); setHistory([]); setRecurring([]); setSavingsNet(0)
+    setMonthCache({}); setSearchResults(null)
+    setHistoryMonths(6)
+    setViewMonth(startOfMonth(new Date()))
+
+    setResetBusy(false)
+    setResetSheet(null)
+    showToast(scope === 'tudo' ? 'Finanças repostas de origem.' : 'Movimentos e recorrentes apagados.')
+  }
+
+  // ── Navegação por mês ───────────────────────────────────────────────────
+  function goToMonth(next: Date) {
+    const m = startOfMonth(next)
+    // Não há nada para ver num mês que ainda não começou.
+    if (isFutureMonth(m, new Date())) return
+    setViewMonth(m)
+  }
+
+  /**
+   * Anda `delta` meses a partir do mês em vista. Usa a forma funcional do
+   * setState: dois toques seguidos na seta andam dois meses, e não um — com o
+   * valor do closure, o segundo toque leria o mês anterior à primeira
+   * atualização e ficaria parado.
+   */
+  function shiftMonth(delta: number) {
+    setViewMonth(d => {
+      const m = startOfMonth(addMonths(d, delta))
+      return isFutureMonth(m, new Date()) ? d : m
+    })
+  }
+
+  /**
+   * Abre o formulário de registo. Num mês passado, a data vem preenchida com o
+   * último dia desse mês em vez de hoje: quem está a rever outubro e carrega em
+   * "Registar" quer lançar em outubro, e um movimento com data de hoje sairia
+   * da vista onde acabou de ser criado.
+   */
+  function openTxForm() {
+    setFDate(progress.isCurrent ? format(new Date(),'yyyy-MM-dd') : monthEnd)
+    setShowForm(true)
+  }
+
+  const monthNavBtn = {
+    width: 24, height: 24, borderRadius: 8, flexShrink: 0, padding: 0,
+    border: '1px solid rgba(var(--ink-rgb),0.10)', background: 'var(--surface-2)',
+    color: 'var(--text1)', cursor: 'pointer', fontSize: 13, fontWeight: 700,
+    fontFamily: 'Inter, sans-serif',
+  } as const
 
   function openTxSheet(t: Transaction) {
     setOpenTx(t)
@@ -1052,8 +1185,33 @@ export default function FinancasPage() {
       <div style={{padding:'28px 20px 0',display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
         <div>
           <h1 style={{fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:28,marginBottom:3,color: 'var(--ink)',letterSpacing:'-0.5px'}}>Finanças</h1>
-          <div style={{display:'flex',alignItems:'center',gap:8}}>
-            <p style={{fontSize:12,color:'var(--text2)'}}>{format(new Date(),'MMMM yyyy',{locale:pt})}</p>
+          <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+            {/* Navegação por mês: manda em todo o painel, não só na lista. */}
+            <div style={{display:'flex',alignItems:'center',gap:2}}>
+              <button
+                onClick={()=>shiftMonth(-1)}
+                aria-label="Mês anterior"
+                style={monthNavBtn}
+              >‹</button>
+              <p style={{fontSize:12,fontWeight:700,color:'var(--text2)',minWidth:104,textAlign:'center',textTransform:'capitalize'}}>
+                {format(viewMonth,'MMMM yyyy',{locale:pt})}
+              </p>
+              <button
+                onClick={()=>shiftMonth(1)}
+                disabled={progress.isCurrent}
+                aria-label="Mês seguinte"
+                style={{...monthNavBtn,cursor:progress.isCurrent?'not-allowed':'pointer',opacity:progress.isCurrent?0.3:1}}
+              >›</button>
+            </div>
+            {!progress.isCurrent&&(
+              <button
+                onClick={()=>goToMonth(new Date())}
+                style={{fontSize:11,fontWeight:800,padding:'3px 9px',borderRadius:20,cursor:'pointer',
+                  background:'rgba(245,200,66,0.12)',border:'1px solid rgba(245,200,66,0.35)',color:'var(--gold-ink)',fontFamily:'Inter, sans-serif'}}
+              >
+                ↩ mês atual
+              </button>
+            )}
             {logStreak.current>0&&(
               <span
                 title={logStreak.loggedToday?'Registaste hoje — sequência garantida':'Regista um movimento hoje para manter a sequência'}
@@ -1077,7 +1235,7 @@ export default function FinancasPage() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
           </button>
           <button
-            onClick={()=>setShowForm(true)}
+            onClick={openTxForm}
             aria-label="Registar movimento"
             style={{width:38,height:38,borderRadius:12,background:'rgba(245,200,66,0.14)',border:'1px solid rgba(245,200,66,0.35)',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',color:'var(--gold-ink)'}}
           >
@@ -1104,6 +1262,9 @@ export default function FinancasPage() {
               <button onClick={()=>{setMoreOpen(false);exportCSV()}} disabled={exporting} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--text1)',background:'transparent',border:'none',cursor:'pointer',textAlign:'left'}}>
                 ↓ {exporting ? 'A exportar…' : 'Exportar CSV'}
               </button>
+              <button onClick={()=>{setMoreOpen(false);setResetSheet('menu')}} style={{display:'flex',alignItems:'center',gap:11,width:'100%',padding:'13px 14px',fontSize:13.5,fontWeight:600,fontFamily:'Inter, sans-serif',color:'var(--red-ink)',background:'transparent',border:'none',borderTop:'1px solid rgba(var(--ink-rgb),0.06)',cursor:'pointer',textAlign:'left'}}>
+                ⟲ Repor finanças
+              </button>
             </div>
           )}
         </div>
@@ -1122,12 +1283,12 @@ export default function FinancasPage() {
           <span style={{fontSize:11,fontWeight:700,color:'var(--teal-ink)'}}>Movimentos ›</span>
         </div>
         <div style={{fontSize:32,fontWeight:900,letterSpacing:'-1px',color:balance>=0?'var(--teal-ink)':'#E24B4A'}}>{fmt(balance)}</div>
-        <div style={{fontSize:10,color:'rgba(var(--ink-rgb),0.55)',fontWeight:600,marginTop:2}}>o que sobrou na conta depois de gastar e poupar · {format(new Date(),'MMMM',{locale:pt})}</div>
+        <div style={{fontSize:10,color:'rgba(var(--ink-rgb),0.55)',fontWeight:600,marginTop:2}}>o que sobrou na conta depois de gastar e poupar · {format(viewMonth,'MMMM',{locale:pt})}</div>
         {hasCarry&&(
           <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,background:'rgba(0,212,200,0.07)',border:'1px solid rgba(0,212,200,0.2)',borderRadius:11,padding:'9px 12px'}}>
             <span style={{fontSize:14}} aria-hidden>🔁</span>
             <div style={{fontSize:11.5,fontWeight:600,color:'rgba(var(--ink-rgb),0.85)',lineHeight:1.4}}>
-              Começaste {format(new Date(),'MMMM',{locale:pt})} com <b style={{color:carryInVal>=0?'var(--teal-ink)':'#E24B4A'}}>{fmt(carryInVal)}</b> · disponível <b style={{color:available>=0?'var(--teal-ink)':'#E24B4A'}}>{fmt(available)}</b>
+              Começaste {format(viewMonth,'MMMM',{locale:pt})} com <b style={{color:carryInVal>=0?'var(--teal-ink)':'#E24B4A'}}>{fmt(carryInVal)}</b> · disponível <b style={{color:available>=0?'var(--teal-ink)':'#E24B4A'}}>{fmt(available)}</b>
             </div>
           </div>
         )}
@@ -1141,7 +1302,7 @@ export default function FinancasPage() {
             <div style={{fontSize:14,fontWeight:800,color:'#E24B4A',marginTop:2}}>−{fmt(totalOut)}</div>
             {spendDeltaPct!==null&&Math.abs(spendDeltaPct)>=5&&(
               <div style={{fontSize:9,fontWeight:700,marginTop:3,color:spendDeltaPct>0?'var(--red-ink)':'var(--green-ink)'}}>
-                {spendDeltaPct>0?'▲':'▼'} {Math.abs(spendDeltaPct)}% vs. {format(subMonths(new Date(),1),'MMM',{locale:pt})} (ao dia {dayOfMonth})
+                {spendDeltaPct>0?'▲':'▼'} {Math.abs(spendDeltaPct)}% vs. {format(subMonths(viewMonth,1),'MMM',{locale:pt})} (ao dia {dayOfMonth})
               </div>
             )}
           </div>
@@ -1221,7 +1382,7 @@ export default function FinancasPage() {
             <>
               <div style={{display:'flex',alignItems:'center',gap:9,marginBottom:9}}>
                 <span style={{fontSize:15}}>📋</span>
-                <span style={{fontSize:13,fontWeight:700,color: 'var(--ink)'}}>{format(new Date(),'MMMM',{locale:pt}).replace(/^./,c=>c.toUpperCase())}</span>
+                <span style={{fontSize:13,fontWeight:700,color: 'var(--ink)'}}>{format(viewMonth,'MMMM',{locale:pt}).replace(/^./,c=>c.toUpperCase())}</span>
                 <span style={{marginLeft:'auto',fontSize:13,fontWeight:800,color:budgetInk}}>{budgetPct}% usado</span>
               </div>
               <div style={{height:7,background:'var(--surface-3)',borderRadius:10,overflow:'hidden'}}>
@@ -1300,7 +1461,7 @@ export default function FinancasPage() {
             onClick={()=>{setGSave(savingsGoal?String(savingsGoal):'');setMetaSheet('poupanca')}}
             style={{flex:1,textAlign:'center',cursor:'pointer',fontFamily:'Inter, sans-serif',background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:13}}
           >
-            <div style={{fontSize:9.5,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'rgba(0,200,150,0.85)',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>💰 Poupança · {format(new Date(),'MMM',{locale:pt})}</div>
+            <div style={{fontSize:9.5,fontWeight:700,letterSpacing:'0.06em',textTransform:'uppercase',color:'rgba(0,200,150,0.85)',marginBottom:8,display:'flex',alignItems:'center',justifyContent:'center',gap:5}}>💰 Poupança · {format(viewMonth,'MMM',{locale:pt})}</div>
             {savingsGoal>0 ? (() => {
               const cur  = savedThisMonth
               const pct  = Math.min(100,Math.max(0,Math.round(cur/savingsGoal*100)))
@@ -1335,7 +1496,7 @@ export default function FinancasPage() {
             {catBreakdown.total>0&&(
               <div style={{background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:16,padding:'13px 15px',marginBottom:9}}>
                 <div style={{fontSize:12.5,fontWeight:700,color:'var(--ink)',marginBottom:11}}>
-                  Para onde foi o dinheiro · {format(new Date(),'MMMM',{locale:pt})}
+                  Para onde foi o dinheiro · {format(viewMonth,'MMMM',{locale:pt})}
                 </div>
                 {catBreakdown.rows.map(({cat,v})=>{
                   const pct = Math.round(v/catBreakdown.total*100)
@@ -1429,7 +1590,7 @@ export default function FinancasPage() {
       {showMovimentos&&(
         <Sheet tall icon="💸" title="Movimentos" onClose={()=>setShowMovimentos(false)}
           footer={
-            <button onClick={()=>setShowForm(true)} style={{width:'100%',border:'none',borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:15,cursor:'pointer',background:'linear-gradient(135deg, #F5C842, #E0A82A)',color:'#1A1200'}}>
+            <button onClick={openTxForm} style={{width:'100%',border:'none',borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:15,cursor:'pointer',background:'linear-gradient(135deg, #F5C842, #E0A82A)',color:'#1A1200'}}>
               ＋ Registar movimento
             </button>
           }>
@@ -1455,13 +1616,13 @@ export default function FinancasPage() {
           ) : (
             <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:8}}>
               <button
-                onClick={()=>setMonthCursor(d=>startOfMonth(subMonths(d,1)))}
-                aria-label="Mês anterior"
+                onClick={()=>shiftMonth(-1)}
+                aria-label="Mês anterior nos movimentos"
                 style={{width:34,height:34,borderRadius:11,flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.10)',background:'var(--surface-2)',color:'var(--text1)',cursor:'pointer',fontSize:15,fontWeight:700}}
               >‹</button>
               <div style={{flex:1,textAlign:'center'}}>
                 <div style={{fontSize:14,fontWeight:800,color:'var(--ink)',letterSpacing:'-0.2px'}}>
-                  {format(monthCursor,'MMMM yyyy',{locale:pt}).replace(/^./,c=>c.toUpperCase())}
+                  {format(viewMonth,'MMMM yyyy',{locale:pt}).replace(/^./,c=>c.toUpperCase())}
                 </div>
                 <div style={{fontSize:10.5,color:'var(--text2)',marginTop:1}}>
                   {sheetBusy ? 'a carregar…' : (() => {
@@ -1471,10 +1632,10 @@ export default function FinancasPage() {
                 </div>
               </div>
               <button
-                onClick={()=>setMonthCursor(d=>startOfMonth(addMonths(d,1)))}
-                disabled={isCurrentMonthCursor}
-                aria-label="Mês seguinte"
-                style={{width:34,height:34,borderRadius:11,flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.10)',background:'var(--surface-2)',color:'var(--text1)',cursor:isCurrentMonthCursor?'not-allowed':'pointer',opacity:isCurrentMonthCursor?0.35:1,fontSize:15,fontWeight:700}}
+                onClick={()=>shiftMonth(1)}
+                disabled={progress.isCurrent}
+                aria-label="Mês seguinte nos movimentos"
+                style={{width:34,height:34,borderRadius:11,flexShrink:0,border:'1px solid rgba(var(--ink-rgb),0.10)',background:'var(--surface-2)',color:'var(--text1)',cursor:progress.isCurrent?'not-allowed':'pointer',opacity:progress.isCurrent?0.35:1,fontSize:15,fontWeight:700}}
               >›</button>
             </div>
           )}
@@ -1523,9 +1684,9 @@ export default function FinancasPage() {
                   ? `Nada encontrado para “${txQuery.trim()}”.`
                   : (txFilter!=='all'||txCat)
                     ? 'Nada com este filtro neste mês.'
-                    : `Sem movimentos em ${format(monthCursor,'MMMM',{locale:pt})}.`}
+                    : `Sem movimentos em ${format(viewMonth,'MMMM',{locale:pt})}.`}
               </div>
-              {!filterActive&&isCurrentMonthCursor&&<div style={{fontSize:12}}>Clica em + Registar ou importa um CSV.</div>}
+              {!filterActive&&progress.isCurrent&&<div style={{fontSize:12}}>Clica em + Registar ou importa um CSV.</div>}
             </div>
           )}
 
@@ -1578,7 +1739,7 @@ export default function FinancasPage() {
 
       {/* ── Sheet: orçamento (experiência completa) ── */}
       {showOrcamento&&(
-        <Sheet tall icon="📋" title={`Orçamento de ${format(new Date(),'MMMM',{locale:pt})}`} onClose={()=>setShowOrcamento(false)}>
+        <Sheet tall icon="📋" title={`Orçamento de ${format(viewMonth,'MMMM',{locale:pt})}`} onClose={()=>setShowOrcamento(false)}>
         <div style={{paddingTop:10}}>
           {budgetedCats.length>0 ? (
             <>
@@ -1602,7 +1763,7 @@ export default function FinancasPage() {
                 </div>
                 <div style={{flex:1,minWidth:0}}>
                   <div style={{fontSize:10,fontWeight:700,letterSpacing:'0.08em',textTransform:'uppercase',color:'var(--teal-ink)',display:'flex',alignItems:'center',gap:6,marginBottom:6}}>
-                    📋 Orçamento de {format(new Date(),'MMMM',{locale:pt})}
+                    📋 Orçamento de {format(viewMonth,'MMMM',{locale:pt})}
                   </div>
                   <div style={{fontSize:21,fontWeight:900,letterSpacing:'-0.5px',color: 'var(--ink)'}}>
                     {fmt(totalSpentBudgeted)} <span style={{fontSize:13,fontWeight:600,color:'var(--text2)'}}>de {fmt(totalBudget)}</span>
@@ -2053,7 +2214,7 @@ export default function FinancasPage() {
                     </div>
                     <div style={{display:'flex',justifyContent:'space-between',fontSize:9.5,color:'var(--text3)',marginTop:4,padding:'0 2px'}}>
                       {[3,2,1,0].map(i=>{
-                        const lbl=format(subMonths(new Date(),i),'MMM',{locale:pt})
+                        const lbl=format(subMonths(viewMonth,i),'MMM',{locale:pt})
                         return <span key={i} style={i===0?{color:'var(--gold-ink)',fontWeight:700}:undefined}>{lbl}</span>
                       })}
                     </div>
@@ -2359,6 +2520,111 @@ export default function FinancasPage() {
           </div>
         </Sheet>
       )}
+
+      {/* ── Sheet: repor finanças ── */}
+      {resetSheet==='menu' && (
+        <Sheet icon="⟲" title="Repor finanças" onClose={()=>setResetSheet(null)}>
+          <div style={{fontSize:13,color:'var(--text2)',lineHeight:1.5,margin:'10px 0 16px'}}>
+            Apagar é definitivo — não há como voltar atrás. Se quiseres guardar o que registaste, exporta primeiro.
+          </div>
+          <button
+            onClick={exportCSV}
+            disabled={exporting}
+            style={{width:'100%',padding:'12px',borderRadius:13,marginBottom:18,cursor:'pointer',
+              background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.10)',
+              color:'var(--text1)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13.5}}
+          >
+            ↓ {exporting ? 'A exportar…' : 'Exportar CSV primeiro'}
+          </button>
+
+          {([
+            { key:'movimentos' as const, icon:'🧾', title:'Apagar movimentos e recorrentes',
+              body:'Recomeças a registar do zero. Orçamentos, categorias, contas fixas e metas ficam como estão.' },
+            { key:'tudo' as const, icon:'💣', title:'Apagar tudo',
+              body:'O acima, mais orçamentos, categorias personalizadas, contas fixas, metas e a base da reserva. A página fica como no primeiro acesso.' },
+          ]).map(opt => (
+            <button
+              key={opt.key}
+              onClick={()=>{setResetTyped('');setResetSheet(opt.key)}}
+              style={{display:'flex',gap:12,width:'100%',textAlign:'left',marginBottom:10,cursor:'pointer',
+                background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.10)',borderRadius:16,padding:'14px 15px'}}
+            >
+              <span style={{fontSize:20,lineHeight:'24px'}} aria-hidden>{opt.icon}</span>
+              <span>
+                <span style={{display:'block',fontSize:14,fontWeight:800,color:'var(--ink)',fontFamily:'Inter, sans-serif'}}>{opt.title}</span>
+                <span style={{display:'block',fontSize:12,color:'var(--text2)',lineHeight:1.45,marginTop:3}}>{opt.body}</span>
+              </span>
+            </button>
+          ))}
+        </Sheet>
+      )}
+
+      {resetSheet && resetSheet!=='menu' && (() => {
+        const todos = resetSheet==='tudo'
+        // "Apagar tudo" leva confirmação escrita: é irreversível e leva à frente
+        // a configuração que o utilizador montou ao longo de meses.
+        const armado = todos ? resetTyped.trim().toUpperCase()==='APAGAR' : true
+        return (
+          <Sheet
+            icon={todos?'💣':'🧾'}
+            title={todos?'Apagar tudo?':'Apagar movimentos?'}
+            onClose={()=>setResetSheet(null)}
+            footer={
+              <div style={{display:'flex',gap:10}}>
+                <button
+                  onClick={()=>setResetSheet('menu')}
+                  disabled={resetBusy}
+                  style={{flex:1,border:'1px solid rgba(var(--ink-rgb),0.12)',background:'var(--surface-2)',color:'var(--text1)',
+                    borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}
+                >
+                  Voltar
+                </button>
+                <button
+                  onClick={()=>runReset(todos?'tudo':'movimentos')}
+                  disabled={!armado||resetBusy}
+                  style={{flex:1,border:'none',borderRadius:15,padding:15,fontFamily:'Inter, sans-serif',fontWeight:800,fontSize:14,
+                    cursor:(!armado||resetBusy)?'not-allowed':'pointer',opacity:(!armado||resetBusy)?0.45:1,
+                    background:'#E24B4A',color:'#fff'}}
+                >
+                  {resetBusy ? 'A apagar…' : 'Apagar'}
+                </button>
+              </div>
+            }
+          >
+            <div style={{fontSize:13.5,color:'var(--text1)',lineHeight:1.55,margin:'12px 0 4px'}}>
+              Vai apagar:
+            </div>
+            <ul style={{fontSize:13,color:'var(--text2)',lineHeight:1.7,paddingLeft:20,margin:'6px 0 14px'}}>
+              <li>todos os movimentos, de todos os meses</li>
+              <li>todas as regras recorrentes</li>
+              {todos && <>
+                <li>orçamentos por categoria</li>
+                <li>categorias personalizadas e contas fixas</li>
+                <li>metas de poupança e a base da reserva</li>
+              </>}
+            </ul>
+            <div style={{fontSize:12.5,color:'var(--text2)',lineHeight:1.55,background:'rgba(226,75,74,0.07)',
+              border:'1px solid rgba(226,75,74,0.28)',borderRadius:13,padding:'11px 13px'}}>
+              {todos
+                ? 'Fica como no primeiro acesso. Não há como recuperar.'
+                : 'Orçamentos, categorias, contas fixas e metas ficam como estão. Não há como recuperar os movimentos.'}
+            </div>
+            {todos && (
+              <>
+                <label style={sheetLabel} htmlFor="reset-confirm">Escreve APAGAR para confirmar</label>
+                <input
+                  id="reset-confirm"
+                  value={resetTyped}
+                  onChange={e=>setResetTyped(e.target.value)}
+                  placeholder="APAGAR"
+                  autoComplete="off"
+                  style={sheetInp}
+                />
+              </>
+            )}
+          </Sheet>
+        )
+      })()}
 
       {/* ── Sheet: fecho do mês (resumo do mês anterior, 1×/mês) ── */}
       {monthCloseOpen && (() => {

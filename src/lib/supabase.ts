@@ -580,6 +580,46 @@ export async function deleteTransaction(id: string) {
   return { error }
 }
 
+// ── Repor finanças ──────────────────────────────────────────
+// Apaga por user_id, não por lista de ids: é uma operação só, e a RLS já
+// limita a linha ao dono. Cada função devolve { error } para a página poder
+// parar a meio e dizer o que falhou em vez de fingir que repôs tudo.
+
+export async function deleteAllTransactions(userId: string) {
+  const { error } = await supabase.from('transactions').delete().eq('user_id', userId)
+  if (error) reportError('deleteAllTransactions error', error.message)
+  return { error }
+}
+
+export async function deleteAllRecurringRules(userId: string) {
+  const { error } = await supabase.from('recurring_rules').delete().eq('user_id', userId)
+  if (error) reportError('deleteAllRecurringRules error', error.message)
+  return { error }
+}
+
+/**
+ * Repõe a configuração das finanças no perfil: orçamentos, categorias
+ * personalizadas, contas fixas, metas e base da reserva. Não toca em
+ * movimentos nem em recorrentes — quem quiser apagar tudo chama as três.
+ *
+ * `fin_current_savings` é legada mas continua a ser lida quando não há
+ * `fin_savings_base`, por isso tem de ser limpa também: deixá-la para trás
+ * faria a reserva ressuscitar sozinha depois de o utilizador repor.
+ */
+export async function resetFinanceSettings(userId: string) {
+  const { error } = await supabase.from('profiles').update({
+    fin_budgets: null,
+    fin_categories: null,
+    fin_fixed_cats: null,
+    fin_monthly_save: null,
+    fin_reserve_goal: null,
+    fin_savings_base: null,
+    fin_current_savings: null,
+  } as Record<string, unknown>).eq('id', userId)
+  if (error) reportError('resetFinanceSettings error', error.message)
+  return { error }
+}
+
 // ── Recorrentes (receitas/despesas mensais) ─────────────────
 // Requer a migração supabase/financas_recurring_v1.sql. Enquanto não estiver
 // aplicada, as leituras devolvem [] e as escritas devolvem erro (mostrado por
