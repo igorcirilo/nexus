@@ -4,7 +4,7 @@
 // testadas sem BD nem React. A página continua a orquestrar fetch + estado; aqui
 // vivem só os cálculos (somatórios, série mensal e resumo de orçamento).
 
-import { EMERGENCY_CAT, INVEST_CAT } from '@/lib/categories'
+import { EMERGENCY_CAT, INVEST_CAT, PROJECTED_CAT } from '@/lib/categories'
 
 export interface FinTx {
   date: string // 'yyyy-MM-dd'
@@ -32,10 +32,16 @@ export interface DateRange {
  * legada de "Poupança"): saída = aporte (o dinheiro sai da conta para o pote),
  * entrada = resgate (volta do pote à conta). "Emergências" mexe na reserva;
  * "Investimentos" só conta no "poupado" do mês.
+ *
+ * "Projetado" (empréstimos e outros valores a receber/pagar a pessoas) é
+ * transferência conta↔pessoa: saída = o dinheiro sai para alguém (emprestar,
+ * pagar uma dívida), entrada = volta de alguém (receber, pedir emprestado).
+ * Mexe só no balanço da conta — não é gasto, rendimento nem poupança.
  */
 export type TxKind =
   | 'receita' | 'despesa' | 'deposito' | 'levantamento' | 'gastoReserva'
   | 'aporteReserva' | 'resgateReserva' | 'aporteInvest' | 'resgateInvest'
+  | 'projetadoSai' | 'projetadoEntra'
 
 export function txKind(
   t: Pick<FinTx, 'type' | 'category' | 'from_reserve'>,
@@ -44,6 +50,7 @@ export function txKind(
   if (t.category === savingsCat) return t.type === 'entrada' ? 'deposito' : 'levantamento'
   if (t.category === EMERGENCY_CAT) return t.type === 'saida' ? 'aporteReserva' : 'resgateReserva'
   if (t.category === INVEST_CAT) return t.type === 'saida' ? 'aporteInvest' : 'resgateInvest'
+  if (t.category === PROJECTED_CAT) return t.type === 'saida' ? 'projetadoSai' : 'projetadoEntra'
   if (t.type === 'entrada') return 'receita'
   return t.from_reserve ? 'gastoReserva' : 'despesa'
 }
@@ -65,6 +72,8 @@ export function cashFlow(t: FinTx, savingsCat = 'Poupança'): number {
     case 'aporteInvest':   return -t.amount
     case 'resgateReserva': return t.amount
     case 'resgateInvest':  return t.amount
+    case 'projetadoSai':   return -t.amount
+    case 'projetadoEntra': return t.amount
   }
 }
 
@@ -443,7 +452,7 @@ export function detectAnomalies(
   opts: { savingsCat?: string; floor?: number; factor?: number; minSamples?: number } = {},
 ): Anomaly[] {
   const { savingsCat = 'Poupança', floor = 30, factor = 2.5, minSamples = 3 } = opts
-  const transferCats = new Set([savingsCat, EMERGENCY_CAT, INVEST_CAT])
+  const transferCats = new Set([savingsCat, EMERGENCY_CAT, INVEST_CAT, PROJECTED_CAT])
   const sums: Record<string, number> = {}
   const counts: Record<string, number> = {}
   for (const t of historyTxs) {
@@ -495,6 +504,9 @@ export interface InsightInput {
   subscriptionsMonthly?: number
   /** Maior despesa fixa recorrente ativa. */
   topRecurring?: { cat: string; amount: number } | null
+  /** Projeções em aberto com a data prevista já ultrapassada (de
+   *  `projectionStatuses`). Gera no máximo um aviso por direção. */
+  overdueProjections?: { person: string; direction: ProjectionDirection; outstanding: number; daysOverdue: number }[]
 }
 
 /**
@@ -507,7 +519,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
   const {
     spentByCat, catAvg3m, budgets, fixedCats = [],
     savingsPrevMonth, savingsThisMonth, daysSinceLastTx,
-    topAnomaly, subscriptionsMonthly = 0, topRecurring,
+    topAnomaly, subscriptionsMonthly = 0, topRecurring, overdueProjections = [],
   } = input
   const fixed = new Set(fixedCats)
 
@@ -561,6 +573,26 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
     })
   }
 
+  // Projetado com prazo ultrapassado: o mais atrasado de cada direção. Dever
+  // a alguém pesa mais do que ter a receber (é compromisso teu).
+  const plural = (n: number) => `${n} dia${n !== 1 ? 's' : ''}`
+  const mostOverdue = (d: ProjectionDirection) =>
+    overdueProjections.filter((p) => p.direction === d).sort((a, b) => b.daysOverdue - a.daysOverdue)[0]
+  const owe = mostOverdue('pagar')
+  if (owe) {
+    out.push({
+      id: `projected-pagar-${owe.person}`, icon: '⏰', tone: 'warning', score: 78,
+      text: `Tens ${fmt(owe.outstanding)} por pagar a ${owe.person} — o prazo passou há ${plural(owe.daysOverdue)}.`,
+    })
+  }
+  const owed = mostOverdue('receber')
+  if (owed) {
+    out.push({
+      id: `projected-receber-${owed.person}`, icon: '🔮', tone: 'info', score: 65,
+      text: `Faltam receber ${fmt(owed.outstanding)} de ${owed.person} — o prazo passou há ${plural(owed.daysOverdue)}.`,
+    })
+  }
+
   if (daysSinceLastTx !== null && daysSinceLastTx >= 5) {
     out.push({
       id: 'stale-log', icon: '✍️', tone: 'info', score: 60,
@@ -594,4 +626,114 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
   }
 
   return out.sort((a, b) => b.score - a.score)
+}
+
+// ── Projetado: valores a receber / a pagar a pessoas ──────────────────────
+
+/** `receber` = emprestei/tenho a receber; `pagar` = devo a alguém. */
+export type ProjectionDirection = 'receber' | 'pagar'
+
+export interface ProjectionLike {
+  id: string
+  direction: ProjectionDirection
+  person: string
+  amount: number
+  date: string // 'yyyy-MM-dd'
+  due_date: string | null
+}
+
+export interface ProjectionTxLike {
+  projection_id?: string | null
+  type: 'entrada' | 'saida'
+  amount: number
+}
+
+/** Tipo do movimento que ABRE a projeção quando mexe na conta: emprestar tira
+ *  dinheiro (saída); pedir emprestado mete dinheiro (entrada). */
+export const projectionOpeningType = (d: ProjectionDirection): 'entrada' | 'saida' =>
+  d === 'receber' ? 'saida' : 'entrada'
+
+/** Tipo do movimento que ABATE a projeção: receber de volta (entrada) ou
+ *  pagar o que devo (saída). */
+export const projectionSettleType = (d: ProjectionDirection): 'entrada' | 'saida' =>
+  d === 'receber' ? 'entrada' : 'saida'
+
+export interface ProjectionStatus<T extends ProjectionLike = ProjectionLike> {
+  projection: T
+  /** Já recebido/pago (Σ movimentos ligados do tipo que abate). */
+  paid: number
+  /** O que falta (nunca negativo). */
+  outstanding: number
+  settled: boolean
+  /** Dias desde a data prevista (0 se não há data ou ainda não passou). */
+  daysOverdue: number
+}
+
+const round2 = (v: number) => Math.round(v * 100) / 100
+const daysBetween = (from: string, to: string) =>
+  Math.round((new Date(to + 'T12:00:00').getTime() - new Date(from + 'T12:00:00').getTime()) / 86400000)
+
+/**
+ * Estado de cada projeção a partir dos movimentos ligados: só contam os do
+ * tipo que abate (o movimento de abertura tem o tipo oposto e é ignorado).
+ * Ordena: em aberto primeiro (mais atrasadas, depois data prevista mais
+ * próxima, depois as sem data), quitadas no fim. Pura → testável.
+ */
+export function projectionStatuses<T extends ProjectionLike>(
+  projections: T[],
+  txs: ProjectionTxLike[],
+  today: string,
+): ProjectionStatus<T>[] {
+  const paidBy = new Map<string, number>()
+  const byId = new Map(projections.map((p) => [p.id, p] as const))
+  for (const t of txs) {
+    const p = t.projection_id ? byId.get(t.projection_id) : undefined
+    if (!p || t.type !== projectionSettleType(p.direction)) continue
+    paidBy.set(p.id, (paidBy.get(p.id) ?? 0) + t.amount)
+  }
+  const rows = projections.map((p) => {
+    const paid = round2(paidBy.get(p.id) ?? 0)
+    const outstanding = Math.max(0, round2(p.amount - paid))
+    const settled = outstanding <= 0
+    const daysOverdue = !settled && p.due_date && p.due_date < today ? daysBetween(p.due_date, today) : 0
+    return { projection: p, paid, outstanding, settled, daysOverdue }
+  })
+  const dueKey = (r: ProjectionStatus<T>) => r.projection.due_date ?? '9999-12-31'
+  return rows.sort((a, b) =>
+    Number(a.settled) - Number(b.settled) ||
+    b.daysOverdue - a.daysOverdue ||
+    dueKey(a).localeCompare(dueKey(b)) ||
+    b.projection.date.localeCompare(a.projection.date),
+  )
+}
+
+export interface ProjectionTotals {
+  /** Total em aberto que tenho a receber. */
+  toReceive: number
+  /** Total em aberto que devo. */
+  toPay: number
+  /** Em aberto com data prevista até `until` (inclui atrasadas). */
+  dueReceive: number
+  duePay: number
+}
+
+/** Totais em aberto por direção e o que está previsto até `until`
+ *  ('yyyy-MM-dd', ex.: fim do mês) — é a linha informativa do resumo. */
+export function projectionTotals(statuses: ProjectionStatus[], until: string): ProjectionTotals {
+  const t: ProjectionTotals = { toReceive: 0, toPay: 0, dueReceive: 0, duePay: 0 }
+  for (const s of statuses) {
+    if (s.settled) continue
+    const due = !!s.projection.due_date && s.projection.due_date <= until
+    if (s.projection.direction === 'receber') {
+      t.toReceive += s.outstanding
+      if (due) t.dueReceive += s.outstanding
+    } else {
+      t.toPay += s.outstanding
+      if (due) t.duePay += s.outstanding
+    }
+  }
+  return {
+    toReceive: round2(t.toReceive), toPay: round2(t.toPay),
+    dueReceive: round2(t.dueReceive), duePay: round2(t.duePay),
+  }
 }

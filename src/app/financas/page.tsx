@@ -17,6 +17,7 @@ import {
   getRecurringRules, saveRecurringRule, updateRecurringRule, deleteRecurringRule,
   getReminders, saveReminder, deleteReminder,
   deleteAllTransactions, deleteAllRecurringRules, resetFinanceSettings,
+  getProjections, getProjectionTransactions, deleteAllProjections,
 } from '@/lib/supabase'
 import { useToast } from '@/components/Toast'
 import {
@@ -28,7 +29,7 @@ import {
   unbudgetedSpend, buildInsights,
   pendingRecurrences, recurringMonthlyTotal,
   buildMonthSummary, monthCloseHeadline, loggingStreak, detectAnomalies, carryIn,
-  cashFlow, savedFlow, txKind,
+  cashFlow, savedFlow, txKind, projectionStatuses, projectionTotals,
 } from '@/lib/finance'
 import { monthProgress, monthsBack, historyMonthsFor, isFutureMonth } from '@/lib/finance-month'
 import { suggestCategory } from '@/lib/categorize'
@@ -37,12 +38,13 @@ import { logError } from '@/lib/log'
 import { darkCardInk } from '@/lib/theme'
 import {
   CATEGORIES_IN, CATEGORIES_OUT, CAT_COLORS, SAVINGS_CAT, TRANSFER_CATS, isTransferCat,
-  CUSTOM_KEY, catEmoji,
+  CUSTOM_KEY, catEmoji, PROJECTED_CAT,
 } from '@/lib/categories'
 import { Sheet, StepChips, sheetLabel, sheetInp } from '@/components/financas/Sheet'
+import Projetado, { type ProjectionTx } from '@/components/financas/Projetado'
 import { format, startOfMonth, endOfMonth, subMonths, subDays, addMonths, getDaysInMonth } from 'date-fns'
 import { pt } from 'date-fns/locale'
-import type { Profile, Transaction, RecurringRule, FinancialImportPreview, FinancialImportCandidate, CustomCategory } from '@/types'
+import type { Profile, Transaction, RecurringRule, FinancialImportPreview, FinancialImportCandidate, CustomCategory, Projection } from '@/types'
 
 // Paleta de emojis para categorias personalizadas (inline — a CSP bloqueia libs).
 const CAT_EMOJI_CHOICES = [
@@ -81,6 +83,8 @@ const transferLabel = (t:TxLike) => {
     case 'resgateReserva': return 'resgate da reserva'
     case 'aporteInvest':   return 'aporte a investimentos'
     case 'resgateInvest':  return 'resgate de investimentos'
+    case 'projetadoSai':   return 'projetado · saiu da conta'
+    case 'projetadoEntra': return 'projetado · entrou na conta'
     default:               return null
   }
 }
@@ -199,6 +203,9 @@ export default function FinancasPage() {
   // Lembrete diário de registo (ids das linhas de reminders do tipo 'financas').
   const [logReminderIds, setLogReminderIds] = useState<string[]>([])
   const [reminderBusy, setReminderBusy] = useState(false)
+  // Projetado: valores a receber/a pagar e os movimentos ligados (todo o histórico)
+  const [projections, setProjections] = useState<Projection[]>([])
+  const [projTxs,     setProjTxs]     = useState<ProjectionTx[]>([])
 
   function showToast(m: string, type: 'success' | 'error' | 'info' = 'success') {
     if (type === 'error') toast.error(m)
@@ -209,13 +216,15 @@ export default function FinancasPage() {
     requireUser().then(async (user) => {
       if (!user) return
       setUserId(user.id)
-      const [prof, recent, hist, savNet, rules, reminders] = await Promise.all([
+      const [prof, recent, hist, savNet, rules, reminders, projs, pTxs] = await Promise.all([
         getProfile(user.id),
         getTransactions(user.id, 2),
         getTransactionsByMonth(user.id, 6),
         getSavingsNet(user.id),
         getRecurringRules(user.id),
         getReminders(user.id),
+        getProjections(user.id),
+        getProjectionTransactions(user.id),
       ])
       setProfile(prof)
       setTxs(recent as Transaction[])
@@ -228,6 +237,8 @@ export default function FinancasPage() {
       setFixedCats((prof?.fin_fixed_cats ?? []) as string[])
       setSavingsNet(savNet)
       setRecurring(rules as RecurringRule[])
+      setProjections(projs as Projection[])
+      setProjTxs(pTxs as ProjectionTx[])
       setLogReminderIds((reminders as { id:string; type:string }[]).filter(r => r.type===LOG_REMINDER_TYPE).map(r => r.id))
       // Recorrências saltadas neste mês vivem só no dispositivo (não é dado
       // crítico e evita mais uma tabela); chave `${ruleId}:${yyyy-MM}`.
@@ -265,17 +276,26 @@ export default function FinancasPage() {
   // filtrar local). A reserva NÃO é escrita aqui — deriva de savingsNet, por
   // isso adicionar/editar/apagar/importar refletem-se nela automaticamente.
   async function reloadTx(uid: string, months = historyMonths) {
-    const [r, h, s] = await Promise.all([
+    // Os movimentos do Projetado também: editar/apagar um abatimento nos
+    // Movimentos muda o que está em aberto.
+    const [r, h, s, p] = await Promise.all([
       getTransactions(uid, 2),
       getTransactionsByMonth(uid, months),
       getSavingsNet(uid),
+      getProjectionTransactions(uid),
     ])
     setTxs(r as Transaction[])
     setHistory(h as Transaction[])
     setSavingsNet(s)
+    setProjTxs(p as ProjectionTx[])
     // Invalida as caches do sheet de movimentos para refletir a mutação.
     setMonthCache({})
     setSearchResults(null)
+  }
+  async function reloadProjections() {
+    if (!userId) return
+    const [projs] = await Promise.all([getProjections(userId), reloadTx(userId)])
+    setProjections(projs as Projection[])
   }
   async function reloadRecurring(uid: string) {
     setRecurring(await getRecurringRules(uid) as RecurringRule[])
@@ -324,7 +344,7 @@ export default function FinancasPage() {
   // movimentos mas não esteja na lista base (ex.: criada via "Personalizar").
   // Assim entram no orçamento e nos filtros como cidadãs de primeira classe.
   const customOutCats = useMemo(() => {
-    const known = new Set([...CATEGORIES_OUT, ...CATEGORIES_IN])
+    const known = new Set([...CATEGORIES_OUT, ...CATEGORIES_IN, PROJECTED_CAT])
     const found = new Set<string>()
     ;[...txs, ...history].forEach(t => { if (t.type === 'saida' && !known.has(t.category)) found.add(t.category) })
     // Categorias criadas no orçamento aparecem mesmo sem movimentos ainda.
@@ -545,6 +565,20 @@ export default function FinancasPage() {
     const top = activeOut.slice().sort((a,b)=>b.amount-a.amount)[0]
     return { subscriptionsMonthly: subs, topRecurring: top ? { cat: top.category, amount: top.amount } : null }
   }, [recurring])
+  // ── Projetado: em aberto por pessoa + previsto até ao fim do mês em vista ──
+  const todayStr = format(new Date(),'yyyy-MM-dd')
+  const projStatuses = useMemo(
+    () => projectionStatuses(projections, projTxs, todayStr),
+    [projections, projTxs, todayStr],
+  )
+  const projTotals = useMemo(() => projectionTotals(projStatuses, monthEnd), [projStatuses, monthEnd])
+  const overdueProjections = useMemo(
+    () => projStatuses.filter(s => s.daysOverdue > 0).map(s => ({
+      person: s.projection.person, direction: s.projection.direction,
+      outstanding: s.outstanding, daysOverdue: s.daysOverdue,
+    })),
+    [projStatuses],
+  )
   const insights = useMemo(() => buildInsights({
     spentByCat: spendByCatOnly,
     catAvg3m,
@@ -556,7 +590,8 @@ export default function FinancasPage() {
     topAnomaly: anomalies[0] ?? null,
     subscriptionsMonthly,
     topRecurring,
-  }, fmt), [spendByCatOnly, catAvg3m, budgets, fixedCats, monthlyChart, savedThisMonth, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring])
+    overdueProjections,
+  }, fmt), [spendByCatOnly, catAvg3m, budgets, fixedCats, monthlyChart, savedThisMonth, daysSinceLastTx, anomalies, subscriptionsMonthly, topRecurring, overdueProjections])
   const topInsight = insights[0] ?? null
   // Gasto do mês que o gauge do orçamento não vê (categorias sem orçamento).
   // Usa o mapa do orçamento (sem gastos da reserva) para bater com o gauge;
@@ -661,9 +696,12 @@ export default function FinancasPage() {
     if (!userId || resetBusy) return
     setResetBusy(true)
 
+    // Projeções vão junto com os movimentos: sem os abatimentos, um
+    // empréstimo já pago voltaria a aparecer inteiro em aberto.
     const steps: Array<() => Promise<{ error: unknown }>> = [
       () => deleteAllTransactions(userId),
       () => deleteAllRecurringRules(userId),
+      () => deleteAllProjections(userId),
     ]
     if (scope === 'tudo') steps.push(() => resetFinanceSettings(userId))
 
@@ -696,13 +734,14 @@ export default function FinancasPage() {
     setMonthCloseSeen(null)
 
     setTxs([]); setHistory([]); setRecurring([]); setSavingsNet(0)
+    setProjections([]); setProjTxs([])
     setMonthCache({}); setSearchResults(null)
     setHistoryMonths(6)
     setViewMonth(startOfMonth(new Date()))
 
     setResetBusy(false)
     setResetSheet(null)
-    showToast(scope === 'tudo' ? 'Finanças repostas de origem.' : 'Movimentos e recorrentes apagados.')
+    showToast(scope === 'tudo' ? 'Finanças repostas de origem.' : 'Movimentos, recorrentes e projetado apagados.')
   }
 
   // ── Navegação por mês ───────────────────────────────────────────────────
@@ -1292,6 +1331,19 @@ export default function FinancasPage() {
             </div>
           </div>
         )}
+        {/* Previsto do Projetado até ao fim do mês (inclui atrasados) — só
+            informativo, não entra no balanço. */}
+        {progress.isCurrent&&(projTotals.dueReceive>0||projTotals.duePay>0)&&(
+          <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10,background:'rgba(245,200,66,0.06)',border:'1px solid rgba(245,200,66,0.22)',borderRadius:11,padding:'9px 12px'}}>
+            <span style={{fontSize:14}} aria-hidden>🔮</span>
+            <div style={{fontSize:11.5,fontWeight:600,color:'rgba(var(--ink-rgb),0.85)',lineHeight:1.4}}>
+              Previsto este mês:
+              {projTotals.dueReceive>0&&<> receber <b style={{color:'var(--teal-ink)'}}>+{fmt(projTotals.dueReceive)}</b></>}
+              {projTotals.dueReceive>0&&projTotals.duePay>0&&' ·'}
+              {projTotals.duePay>0&&<> pagar <b style={{color:'#E24B4A'}}>−{fmt(projTotals.duePay)}</b></>}
+            </div>
+          </div>
+        )}
         <div style={{display:'flex',gap:8,marginTop:12}}>
           <div style={{flex:1,background:'var(--surface-2)',border:'1px solid rgba(var(--ink-rgb),0.07)',borderRadius:12,padding:'9px 10px'}}>
             <div style={{fontSize:9.5,color:'var(--text2)',fontWeight:600}}>Entradas</div>
@@ -1371,6 +1423,17 @@ export default function FinancasPage() {
             </div>
           </>
         )}
+
+        {/* ── Projetado: a receber / a pagar ── */}
+        <Projetado
+          userId={userId}
+          statuses={projStatuses}
+          txs={projTxs}
+          totals={projTotals}
+          fmt={fmt}
+          onChanged={reloadProjections}
+          notify={showToast}
+        />
 
         {/* ── Orçamento (resumo) ── */}
         <div style={{display:'flex',alignItems:'baseline',justifyContent:'space-between',margin:'20px 0 10px'}}>
@@ -2065,6 +2128,16 @@ export default function FinancasPage() {
             <div style={{fontSize:11,color:'var(--text3)',fontWeight:600,marginTop:2}}>{dayLabel(openTx.date)}</div>
           </div>
 
+          {/* Movimento do Projetado: tipo e categoria definem o que é abertura
+              e o que é abatimento — mudá-los aqui partia a conta em aberto. */}
+          {openTx.projection_id ? (
+            <div style={{display:'flex',alignItems:'center',gap:10,marginTop:14,background:'rgba(245,200,66,0.06)',border:'1px solid rgba(245,200,66,0.22)',borderRadius:13,padding:'11px 13px'}}>
+              <span style={{fontSize:16}} aria-hidden>🔮</span>
+              <div style={{fontSize:12,color:'var(--text1)',lineHeight:1.45}}>
+                Ligado ao <b>Projetado</b>. Aqui podes corrigir valor, data e descrição; o resto gere-se na secção Projetado.
+              </div>
+            </div>
+          ) : (<>
           {/* Trocar o tipo mantém a categoria se existir na lista do novo tipo
               (ex.: Poupança), senão obriga a escolher de novo. */}
           <div style={{display:'flex',gap:8,marginTop:12}}>
@@ -2097,6 +2170,7 @@ export default function FinancasPage() {
               }}>{emojiFor(cat)} {cat}</button>
             ))}
           </div>
+          </>)}
 
           <label style={sheetLabel}>Descrição</label>
           <input value={etDesc} onChange={e=>setEtDesc(e.target.value)} placeholder="Opcional" style={sheetInp}/>
@@ -2538,7 +2612,7 @@ export default function FinancasPage() {
           </button>
 
           {([
-            { key:'movimentos' as const, icon:'🧾', title:'Apagar movimentos e recorrentes',
+            { key:'movimentos' as const, icon:'🧾', title:'Apagar movimentos, recorrentes e projetado',
               body:'Recomeças a registar do zero. Orçamentos, categorias, contas fixas e metas ficam como estão.' },
             { key:'tudo' as const, icon:'💣', title:'Apagar tudo',
               body:'O acima, mais orçamentos, categorias personalizadas, contas fixas, metas e a base da reserva. A página fica como no primeiro acesso.' },
@@ -2597,6 +2671,7 @@ export default function FinancasPage() {
             <ul style={{fontSize:13,color:'var(--text2)',lineHeight:1.7,paddingLeft:20,margin:'6px 0 14px'}}>
               <li>todos os movimentos, de todos os meses</li>
               <li>todas as regras recorrentes</li>
+              <li>todos os valores a receber e a pagar (Projetado)</li>
               {todos && <>
                 <li>orçamentos por categoria</li>
                 <li>categorias personalizadas e contas fixas</li>

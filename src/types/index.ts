@@ -168,6 +168,27 @@ export interface Transaction {
   from_reserve?: boolean
   /** Regra recorrente que originou este lançamento (null = avulso). */
   recurring_id?: string | null
+  /** Projeção (Projetado) a que este movimento pertence (null = nenhuma). */
+  projection_id?: string | null
+  created_at: string
+}
+
+/** Motivo de uma projeção (só muda o rótulo e o default de "mexer na conta"). */
+export type ProjectionReason = 'emprestimo' | 'divisao' | 'reembolso' | 'venda' | 'outro'
+
+/** Valor a receber de alguém ('receber') ou a pagar a alguém ('pagar'). O que
+ *  já foi recebido/pago deriva das transações com `projection_id`. */
+export interface Projection {
+  id: string
+  user_id: string
+  direction: 'receber' | 'pagar'
+  person: string
+  reason: ProjectionReason
+  description: string | null
+  amount: number
+  date: string
+  /** Data prevista para receber/pagar (opcional). */
+  due_date: string | null
   created_at: string
 }
 
