@@ -18,6 +18,11 @@ import {
   savedFlow,
   txKind,
   detectAnomalies,
+  projectionStatuses,
+  projectionTotals,
+  projectionOpeningType,
+  projectionSettleType,
+  type ProjectionLike,
   type AnomalyTx,
   type FinTx,
   type InsightInput,
@@ -112,6 +117,9 @@ describe('txKind / cashFlow / reserveFlow / savedFlow', () => {
     { t: { date: 'd', type: 'entrada', amount: 100, category: 'Emergências' }, kind: 'resgateReserva', cash: 100,  reserve: -100, saved: -100 },
     { t: { date: 'd', type: 'saida',   amount: 100, category: 'Investimentos' }, kind: 'aporteInvest',  cash: -100, reserve: 0, saved: 100 },
     { t: { date: 'd', type: 'entrada', amount: 100, category: 'Investimentos' }, kind: 'resgateInvest', cash: 100,  reserve: 0, saved: -100 },
+    // Projetado: só mexe na conta (emprestar tira, receber de volta devolve).
+    { t: { date: 'd', type: 'saida',   amount: 100, category: 'Projetado' }, kind: 'projetadoSai',   cash: -100, reserve: 0, saved: 0 },
+    { t: { date: 'd', type: 'entrada', amount: 100, category: 'Projetado' }, kind: 'projetadoEntra', cash: 100,  reserve: 0, saved: 0 },
   ]
   it('classifica e dá os sinais certos sobre conta, reserva e poupado', () => {
     for (const c of cases) {
@@ -501,5 +509,109 @@ describe('carryIn', () => {
     ]
     // 1200 − 550 − 200 + 100 = 550
     expect(carryIn(withWithdrawal, '2026-07-01')).toBe(550)
+  })
+})
+
+describe('Projetado · empréstimo não é gasto nem rendimento', () => {
+  const month: FinTx[] = [
+    { date: '2026-07-01', type: 'entrada', amount: 1000, category: 'Salário' },
+    { date: '2026-07-02', type: 'saida',   amount: 300,  category: 'Projetado' }, // emprestei
+    { date: '2026-07-20', type: 'entrada', amount: 100,  category: 'Projetado' }, // devolveram parte
+  ]
+  it('entra no balanço, mas fica fora de rendimento, gasto e categorias', () => {
+    const m = buildMonthSummary(month, '2026-07-01', '2026-07-31')
+    expect(m.income).toBe(1000)
+    expect(m.spending).toBe(0)
+    expect(m.saved).toBe(0)
+    expect(m.balance).toBe(800)
+    expect(categoryTotals(month, '2026-07-01', '2026-07-31')).toEqual({})
+  })
+  it('não gera anomalias', () => {
+    const hist = [1, 2, 3].map(() => ({ category: 'Projetado', amount: 10, type: 'saida' as const }))
+    expect(detectAnomalies([{ category: 'Projetado', amount: 500, type: 'saida' }], hist)).toEqual([])
+  })
+})
+
+describe('projectionStatuses / projectionTotals', () => {
+  const P = (over: Partial<ProjectionLike> & { id: string }): ProjectionLike => ({
+    direction: 'receber', person: 'Mãe', amount: 500, date: '2026-07-01', due_date: null, ...over,
+  })
+  const TODAY = '2026-07-15'
+
+  it('tipos de abertura e abatimento são opostos por direção', () => {
+    expect(projectionOpeningType('receber')).toBe('saida')
+    expect(projectionSettleType('receber')).toBe('entrada')
+    expect(projectionOpeningType('pagar')).toBe('entrada')
+    expect(projectionSettleType('pagar')).toBe('saida')
+  })
+
+  it('só conta os abatimentos (ignora a abertura) e calcula o que falta', () => {
+    const [s] = projectionStatuses([P({ id: 'a' })], [
+      { projection_id: 'a', type: 'saida', amount: 500 },   // abertura
+      { projection_id: 'a', type: 'entrada', amount: 120.1 },
+      { projection_id: 'a', type: 'entrada', amount: 79.9 },
+      { projection_id: 'x', type: 'entrada', amount: 999 }, // outra projeção
+      { projection_id: null, type: 'entrada', amount: 999 },
+    ], TODAY)
+    expect(s.paid).toBe(200)
+    expect(s.outstanding).toBe(300)
+    expect(s.settled).toBe(false)
+  })
+
+  it('numa dívida (pagar) abate com saídas', () => {
+    const [s] = projectionStatuses([P({ id: 'b', direction: 'pagar', amount: 80 })], [
+      { projection_id: 'b', type: 'entrada', amount: 80 }, // pedi emprestado
+      { projection_id: 'b', type: 'saida', amount: 80 },   // paguei
+    ], TODAY)
+    expect(s.settled).toBe(true)
+    expect(s.outstanding).toBe(0)
+  })
+
+  it('pagar a mais quita sem dar valor negativo', () => {
+    const [s] = projectionStatuses([P({ id: 'c', amount: 50 })], [{ projection_id: 'c', type: 'entrada', amount: 60 }], TODAY)
+    expect(s.outstanding).toBe(0)
+    expect(s.settled).toBe(true)
+  })
+
+  it('atraso só conta em aberto e com data passada; ordena atrasadas primeiro, quitadas no fim', () => {
+    const rows = projectionStatuses([
+      P({ id: 'semData' }),
+      P({ id: 'futura', due_date: '2026-07-20' }),
+      P({ id: 'quitada', due_date: '2026-07-01', amount: 10 }),
+      P({ id: 'atrasada', due_date: '2026-07-10' }),
+    ], [{ projection_id: 'quitada', type: 'entrada', amount: 10 }], TODAY)
+    expect(rows.map((r) => r.projection.id)).toEqual(['atrasada', 'futura', 'semData', 'quitada'])
+    expect(rows[0].daysOverdue).toBe(5)
+    expect(rows[3].daysOverdue).toBe(0)
+  })
+
+  it('totais em aberto e previsto até ao fim do mês (inclui atrasados)', () => {
+    const rows = projectionStatuses([
+      P({ id: 'r1', amount: 300, due_date: '2026-07-10' }),
+      P({ id: 'r2', amount: 200, due_date: '2026-08-05' }),
+      P({ id: 'r3', amount: 100 }),
+      P({ id: 'p1', direction: 'pagar', amount: 50, due_date: '2026-07-31' }),
+    ], [{ projection_id: 'r1', type: 'entrada', amount: 100 }], TODAY)
+    expect(projectionTotals(rows, '2026-07-31')).toEqual({ toReceive: 500, toPay: 50, dueReceive: 200, duePay: 50 })
+  })
+})
+
+describe('buildInsights · Projetado atrasado', () => {
+  const base: InsightInput = {
+    spentByCat: {}, catAvg3m: {}, budgets: {}, savingsPrevMonth: 0, savingsThisMonth: 0, daysSinceLastTx: 0,
+  }
+  const fmtE = (v: number) => `€${v}`
+  it('avisa o mais atrasado de cada direção', () => {
+    const out = buildInsights({
+      ...base,
+      overdueProjections: [
+        { person: 'Ana', direction: 'receber', outstanding: 50, daysOverdue: 2 },
+        { person: 'Mãe', direction: 'receber', outstanding: 300, daysOverdue: 10 },
+        { person: 'João', direction: 'pagar', outstanding: 80, daysOverdue: 1 },
+      ],
+    }, fmtE)
+    expect(out.map((i) => i.id)).toEqual(['projected-pagar-João', 'projected-receber-Mãe'])
+    expect(out[0].text).toBe('Tens €80 por pagar a João — o prazo passou há 1 dia.')
+    expect(out[1].text).toBe('Faltam receber €300 de Mãe — o prazo passou há 10 dias.')
   })
 })

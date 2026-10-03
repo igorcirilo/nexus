@@ -69,7 +69,24 @@ const SEARCH_TXS = [
   { id: 's1', user_id: 'u1', date: '2026-03-14', type: 'saida', category: 'Alimentação', description: 'Continente Braga', amount: 42, created_at: '' },
 ]
 
+// Projetado: emprestei 530 à Mãe a 01/07 (previsto 10/07) e já recebi 200 →
+// faltam 330, atrasado 5 dias. Movimentos só em getProjectionTransactions
+// para não mexer nos números do balanço dos outros testes.
+const PROJECTIONS = [
+  { id: 'p1', user_id: 'u1', direction: 'receber', person: 'Mãe', reason: 'emprestimo', description: null, amount: 530, date: '2026-07-01', due_date: '2026-07-10', created_at: '' },
+]
+const PROJ_TXS = [
+  { id: 'pt1', date: '2026-07-01', type: 'saida',   amount: 530, description: 'Mãe', projection_id: 'p1' },
+  { id: 'pt2', date: '2026-07-12', type: 'entrada', amount: 200, description: 'Mãe · recebido', projection_id: 'p1' },
+]
+
 vi.mock('@/lib/supabase', () => ({
+  getProjections: vi.fn(async () => PROJECTIONS),
+  getProjectionTransactions: vi.fn(async () => PROJ_TXS),
+  saveProjection: vi.fn(async (p: Record<string, unknown>) => ({ data: { id: 'pNew', ...p }, error: null })),
+  updateProjection: vi.fn(async () => ({ data: null, error: null })),
+  deleteProjection: vi.fn(async () => ({ error: null })),
+  deleteAllProjections: vi.fn(async () => ({ error: null })),
   requireUser: vi.fn(async () => ({ id: 'u1' })),
   getProfile: vi.fn(async () => profile),
   getTransactions: vi.fn(async () => txsRecentes),
@@ -226,14 +243,15 @@ describe('FinancasPage', () => {
   })
 
   it('repõe movimentos e recorrentes sem tocar na configuração', async () => {
-    const { deleteAllTransactions, deleteAllRecurringRules, resetFinanceSettings } = await import('@/lib/supabase')
+    const { deleteAllTransactions, deleteAllRecurringRules, deleteAllProjections, resetFinanceSettings } = await import('@/lib/supabase')
     await renderPage()
     fireEvent.click(screen.getByLabelText('Mais opções'))
     fireEvent.click(screen.getByText('⟲ Repor finanças'))
-    fireEvent.click(await screen.findByText('Apagar movimentos e recorrentes'))
+    fireEvent.click(await screen.findByText('Apagar movimentos, recorrentes e projetado'))
     fireEvent.click(await screen.findByText('Apagar'))
     await waitFor(() => expect(deleteAllTransactions).toHaveBeenCalledWith('u1'))
     expect(deleteAllRecurringRules).toHaveBeenCalledWith('u1')
+    expect(deleteAllProjections).toHaveBeenCalledWith('u1')
     // Orçamentos, categorias e metas ficam de pé neste alcance.
     expect(resetFinanceSettings).not.toHaveBeenCalled()
   })
@@ -263,10 +281,11 @@ describe('FinancasPage', () => {
     await renderPage()
     fireEvent.click(screen.getByLabelText('Mais opções'))
     fireEvent.click(screen.getByText('⟲ Repor finanças'))
-    fireEvent.click(await screen.findByText('Apagar movimentos e recorrentes'))
+    fireEvent.click(await screen.findByText('Apagar movimentos, recorrentes e projetado'))
     fireEvent.click(await screen.findByText('Apagar'))
     await waitFor(() => expect(mod.deleteAllTransactions).toHaveBeenCalled())
     expect(mod.deleteAllRecurringRules).not.toHaveBeenCalled()
+    expect(mod.deleteAllProjections).not.toHaveBeenCalled()
   })
 
   it('não deixa avançar para além do mês corrente', async () => {
@@ -571,5 +590,46 @@ describe('FinancasPage', () => {
     fireEvent.click(screen.getByText(/Começar julho ›/))
     await waitFor(() => expect(screen.queryByText(/Fecho de Junho 2026/)).toBeNull())
     expect(localStorage.getItem('nexus_monthclose_seen_u1')).toBe('2026-06')
+  })
+
+  it('Projetado: mostra o que tenho a receber, o previsto no hero e regista um abatimento', async () => {
+    const { saveTransaction } = await import('@/lib/supabase')
+    await renderPage()
+    expect(screen.getByText('Tenho a receber')).toBeDefined()
+    expect(screen.getByText(/Previsto este mês:/)).toBeDefined()
+    expect(screen.getByText('atrasado 5 dias', { exact: false })).toBeDefined()
+    fireEvent.click(screen.getByText('Mãe'))
+    expect(screen.getByText('Falta receber')).toBeDefined()
+    fireEvent.click(screen.getByText(/Registar recebimento · quitar/))
+    await waitFor(() => expect(saveTransaction).toHaveBeenCalled())
+    const call = (saveTransaction as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0]
+    expect(call).toMatchObject({ type: 'entrada', category: 'Projetado', amount: 330, projection_id: 'p1' })
+  })
+
+  it('Projetado: um empréstimo novo tira da conta por defeito', async () => {
+    const { saveProjection, saveTransaction } = await import('@/lib/supabase')
+    await renderPage()
+    fireEvent.click(screen.getByText('Tenho a receber'))
+    fireEvent.click(screen.getByText(/\+ Novo valor a receber/))
+    fireEvent.change(screen.getByPlaceholderText('Ex: Mãe, Ana, João…'), { target: { value: 'Ana' } })
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '40' } })
+    expect(screen.getByRole('switch', { name: 'Tirar da conta agora' }).getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(screen.getByText('Guardar'))
+    await waitFor(() => expect(saveTransaction).toHaveBeenCalled())
+    expect((saveProjection as ReturnType<typeof vi.fn>).mock.calls[0][0]).toMatchObject({ direction: 'receber', person: 'Ana', amount: 40, reason: 'emprestimo' })
+    expect((saveTransaction as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0]).toMatchObject({ type: 'saida', category: 'Projetado', amount: 40, projection_id: 'pNew' })
+  })
+
+  it('Projetado: numa conta dividida não mexe na conta por defeito', async () => {
+    const { saveProjection, saveTransaction } = await import('@/lib/supabase')
+    await renderPage()
+    fireEvent.click(screen.getByText('Tenho a receber'))
+    fireEvent.click(screen.getByText(/\+ Novo valor a receber/))
+    fireEvent.change(screen.getByPlaceholderText('Ex: Mãe, Ana, João…'), { target: { value: 'Rui' } })
+    fireEvent.click(screen.getByText(/Conta dividida/))
+    fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '25' } })
+    fireEvent.click(screen.getByText('Guardar'))
+    await waitFor(() => expect(saveProjection).toHaveBeenCalled())
+    expect(saveTransaction).not.toHaveBeenCalled()
   })
 })

@@ -25,9 +25,16 @@ export const SAVINGS_CAT = 'Poupança'
 export const EMERGENCY_CAT = 'Emergências'
 export const INVEST_CAT = 'Investimentos'
 
+// Categoria reservada da secção "Projetado" (valores a receber/a pagar a
+// pessoas: empréstimos, contas divididas, reembolsos…). Também é
+// transferência: emprestar tira dinheiro da conta sem ser gasto, e receber de
+// volta devolve-o sem ser rendimento. Não aparece nos seletores de categoria —
+// só se cria a partir da secção, ligada a uma projeção (`projection_id`).
+export const PROJECTED_CAT = 'Projetado'
+
 // Todas as categorias de transferência interna: ficam fora de consumo,
 // rendimento, anomalias e do toggle "pagar com a reserva".
-export const TRANSFER_CATS = [SAVINGS_CAT, EMERGENCY_CAT, INVEST_CAT]
+export const TRANSFER_CATS = [SAVINGS_CAT, EMERGENCY_CAT, INVEST_CAT, PROJECTED_CAT]
 export const isTransferCat = (cat: string) => TRANSFER_CATS.includes(cat)
 
 // Sentinela do chip "Personalizar" nos formulários de transação.
@@ -35,7 +42,7 @@ export const CUSTOM_KEY = '__custom__'
 
 export const CAT_EMOJI: Record<string, string> = {
   Alimentação: '🍔', Transporte: '🚗', Habitação: '🏠', Contas: '🧾', Saúde: '💊', Lazer: '🎮',
-  Roupa: '👕', Educação: '🎓', Assinaturas: '📺', Emergências: '🛡️', Investimentos: '💹', Poupança: '🏦', Outro: '📦',
+  Roupa: '👕', Educação: '🎓', Assinaturas: '📺', Emergências: '🛡️', Investimentos: '💹', Poupança: '🏦', Projetado: '🔮', Outro: '📦',
   Salário: '💼', Freelance: '💻', Investimento: '📈', Rendas: '🏘️', Presente: '🎁',
 }
 

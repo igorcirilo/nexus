@@ -665,6 +665,80 @@ export async function deleteRecurringRule(id: string) {
   return { error }
 }
 
+// ── Projetado (valores a receber / a pagar) ─────────────────
+// Requer a migração 20260928000000_financas_projetado_v1.sql. Sem ela, as
+// leituras devolvem [] em silêncio (a secção só fica vazia) e as escritas
+// devolvem erro por toast — o resto das finanças continua a funcionar.
+export async function getProjections(userId: string) {
+  const { data, error } = await supabase
+    .from('projections')
+    .select('*')
+    .eq('user_id', userId)
+    .order('date', { ascending: false })
+
+  if (error) {
+    console.error('[getProjections]', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+// Movimentos ligados a projeções, de todo o histórico (o saldo em aberto de
+// um empréstimo antigo depende de abatimentos de qualquer mês).
+export async function getProjectionTransactions(userId: string) {
+  const { data, error } = await supabase
+    .from('transactions')
+    .select('id, date, type, amount, description, projection_id')
+    .eq('user_id', userId)
+    .not('projection_id', 'is', null)
+    .order('date', { ascending: false })
+
+  if (error) {
+    console.error('[getProjectionTransactions]', error.message)
+    return []
+  }
+  return data ?? []
+}
+
+export async function saveProjection(payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('projections')
+    .insert(payload)
+    .select()
+    .single()
+  if (error) reportError('saveProjection error', error.message)
+  return { data, error }
+}
+
+export async function updateProjection(id: string, payload: Record<string, unknown>) {
+  const { data, error } = await supabase
+    .from('projections')
+    .update(payload)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) reportError('updateProjection error', error.message)
+  return { data, error }
+}
+
+/** Apaga a projeção E os movimentos ligados (abertura e abatimentos). */
+export async function deleteProjection(id: string) {
+  const { error: txErr } = await supabase.from('transactions').delete().eq('projection_id', id)
+  if (txErr) {
+    reportError('deleteProjection error', txErr.message)
+    return { error: txErr }
+  }
+  const { error } = await supabase.from('projections').delete().eq('id', id)
+  if (error) reportError('deleteProjection error', error.message)
+  return { error }
+}
+
+export async function deleteAllProjections(userId: string) {
+  const { error } = await supabase.from('projections').delete().eq('user_id', userId)
+  if (error) reportError('deleteAllProjections error', error.message)
+  return { error }
+}
+
 export async function updateFinancialGoals(
   userId: string,
   goals: {
