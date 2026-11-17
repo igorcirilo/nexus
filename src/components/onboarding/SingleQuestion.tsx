@@ -1,4 +1,5 @@
 import type { Question } from '@/types'
+import Icon from '@/components/ui/Icon'
 
 type Props = {
   question: Question
@@ -74,11 +75,11 @@ export function SingleQuestion({ question, value, onChange }: Props) {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: 22,
+                    color: selected ? 'var(--accent-ink)' : 'var(--text2)',
                     background: selected ? 'rgba(127,119,221,.18)' : 'rgba(var(--ink-rgb),.05)',
                   }}
                 >
-                  {opt.icon}
+                  <Icon name={opt.icon} size={22} />
                 </span>
               )}
               <span style={{ flex: 1, minWidth: 0 }}>

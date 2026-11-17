@@ -2,7 +2,8 @@
 
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
-import { darkCardInk } from '@/lib/theme'
+import { darkCardInk, inkFor } from '@/lib/theme'
+import Icon, { IconLabel } from '@/components/ui/Icon'
 import { AREA_META } from '@/types'
 import type { Goal90, HabitArea } from '@/types'
 import { GOAL_SUGGESTIONS, GOAL_SIZE_META, GOAL_SIZE_ORDER, type GoalSize } from '@/lib/goal-suggestions'
@@ -208,7 +209,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                 whiteSpace: 'nowrap',
               }}
             >
-              <span style={{ fontSize: 14 }}>{a.icon}</span>{a.label}
+              <Icon name={a.icon} size={14} />{a.label}
             </button>
           )
         })}
@@ -232,9 +233,9 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
               <div style={{
                 width: 38, height: 38, borderRadius: 11, flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                background: hexAlpha(color, 0.12), fontSize: 17,
+                background: hexAlpha(color, 0.12), color: inkFor(color),
               }}>
-                {sugArea.icon}
+                <Icon name={sugArea.icon} size={18} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.25 }}>
@@ -251,7 +252,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                   background: 'rgba(0,200,150,0.10)', border: '1px solid rgba(0,200,150,0.25)',
                   borderRadius: 999, padding: '7px 11px',
                 }}>
-                  ✓ Adicionado
+                  <IconLabel icon="check" size={13} gap={4}>Adicionado</IconLabel>
                 </span>
               ) : (
                 <button
@@ -313,9 +314,9 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                       width: 40, height: 40, borderRadius: 12, flexShrink: 0,
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                       background: hexAlpha(color, 0.12),
-                      fontSize: 18,
+                      color: inkFor(color),
                     }}>
-                      {area?.icon ?? '🎯'}
+                      <Icon name={area?.icon ?? 'target'} size={19} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0, paddingRight: isPriority ? 52 : 0 }}>
                       <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 3, lineHeight: 1.2 }}>
@@ -354,7 +355,7 @@ export default function ObjetivosHub({ goals, milestones, onOpenGoal, onAdd, onA
                               : { background: 'transparent', border: '1.5px solid rgba(var(--ink-rgb),0.2)', color: 'var(--text3)' }
                             ),
                           }}>
-                            {m.done ? '✓' : String(mi + 1)}
+                            {m.done ? <Icon name="check" size={12} style={{ strokeWidth: 2.6 }} /> : String(mi + 1)}
                           </div>
                           <div style={{
                             flex: 1, minWidth: 0, fontSize: 12, fontWeight: 500,

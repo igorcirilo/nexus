@@ -6,7 +6,7 @@ import PlanReviewModal from '@/components/PlanReviewModal'
 import PlanSelector from '@/components/corpo/PlanSelector'
 import EmptyState from '@/components/EmptyState'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
-import Icon from '@/components/ui/Icon'
+import Icon, { IconLabel } from '@/components/ui/Icon'
 import { useToast } from '@/components/Toast'
 import { getTrainingPlans, saveTrainingPlan, updateTrainingPlanRawContent } from '@/lib/supabase'
 import {
@@ -804,7 +804,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                       )}
                       {day.done && (
                         <span aria-hidden style={{ position: 'absolute', top: -5, right: -3, width: 14, height: 14, borderRadius: '50%', background: 'var(--teal)', color: 'var(--on-bright)', fontSize: 8.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg1)' }}>
-                          ✓
+                          <Icon name="check" size={9} style={{ strokeWidth: 3 }} />
                         </span>
                       )}
                       <div style={{ fontSize: 8.5, color: 'var(--text3)', letterSpacing: '0.03em', fontFamily: 'DM Sans, sans-serif' }}>
@@ -832,12 +832,12 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                 </span>
                 {weekDone > 0 && (
                   <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--teal-ink)', background: 'rgba(30,203,180,.13)', borderRadius: 100, padding: '4px 10px' }}>
-                    🔥 {weekDone}/{weekTarget || focusSections.length} esta semana
+                    <IconLabel icon="flame" size={11} gap={4}>{weekDone}/{weekTarget || focusSections.length} esta semana</IconLabel>
                   </span>
                 )}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 19 }}>💪</div>
+                <div style={{ width: 42, height: 42, borderRadius: 12, background: 'rgba(232,168,56,.13)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--gold-ink)' }}><Icon name="dumbbell" size={20} /></div>
                 <div style={{ minWidth: 0 }}>
                   <p style={{ fontFamily: 'Inter, sans-serif', fontSize: 16, fontWeight: 800, color: 'var(--text1)', margin: 0, lineHeight: 1.25 }}>
                     {cleanSectionTitle(focusSections[suggestIdx].title)}
@@ -850,7 +850,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
               </div>
               {entryHint && (
                 <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: 'var(--bg2)', borderRadius: 10, padding: '9px 11px', marginBottom: 12 }}>
-                  <span style={{ fontSize: 14, flexShrink: 0 }}>🧭</span>
+                  <Icon name="compass" size={15} color="var(--accent-ink)" style={{ marginTop: 1 }} />
                   <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text1)', lineHeight: 1.45 }}>
                     {entryHint.isRestDay
                       ? 'Marcaste hoje como descanso — mas se mudares de ideia, aqui vai uma sugestão.'
@@ -936,8 +936,8 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                         </span>
                       )}
                     </div>
-                    <button onClick={() => setPickerDow(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--bg3)', border: 'none', cursor: 'pointer', color: 'var(--text2)', flexShrink: 0 }}>
-                      ✕
+                    <button onClick={() => setPickerDow(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--bg3)', border: 'none', cursor: 'pointer', color: 'var(--text2)', flexShrink: 0, display: 'grid', placeItems: 'center' }}>
+                      <Icon name="x" size={15} />
                     </button>
                   </div>
 
@@ -957,7 +957,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                             {estimateMinutes(currentSectionForDay.exercises) ? ` · ~${estimateMinutes(currentSectionForDay.exercises)} min` : ''}
                           </span>
                         </span>
-                        <span style={{ color: 'var(--gold-ink)', fontWeight: 800, flexShrink: 0 }}>✓</span>
+                        <Icon name="check" size={16} color="var(--gold-ink)" style={{ strokeWidth: 2.4 }} />
                       </div>
                       <button
                         onClick={() => { setPickerDow(null); selectSection(focusPlan.id, currentIdx, currentSectionForDay.title) }}
@@ -969,9 +969,9 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                   )}
                   {currentAssignment.kind === 'rest' && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(127,119,221,.10)', border: '1px solid rgba(127,119,221,.5)', borderRadius: 12, padding: '11px 13px', marginBottom: 14 }}>
-                      <span style={{ fontSize: 15, width: 28, textAlign: 'center', flexShrink: 0 }}>💤</span>
+                      <span style={{ width: 28, display: 'grid', placeItems: 'center', flexShrink: 0, color: 'var(--accent-ink)' }}><Icon name="bed" size={17} /></span>
                       <span style={{ flex: 1, fontFamily: 'DM Sans, sans-serif', fontSize: 13.5, fontWeight: 600, color: 'var(--text2)' }}>Descanso</span>
-                      <span style={{ color: 'var(--accent)', fontWeight: 800, flexShrink: 0 }}>✓</span>
+                      <Icon name="check" size={16} color="var(--accent)" style={{ strokeWidth: 2.4 }} />
                     </div>
                   )}
                   {currentAssignment.kind === 'unset' && (
@@ -1022,7 +1022,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                         onClick={() => assignDay(focusPlan, pickerDow, null)}
                         style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: 12, padding: '11px 13px', cursor: 'pointer' }}
                       >
-                        <span style={{ fontSize: 15, width: 28, textAlign: 'center', flexShrink: 0 }}>💤</span>
+                        <span style={{ width: 28, display: 'grid', placeItems: 'center', flexShrink: 0, color: 'var(--accent-ink)' }}><Icon name="bed" size={17} /></span>
                         <span style={{ flex: 1, fontFamily: 'DM Sans, sans-serif', fontSize: 13, fontWeight: 600, color: 'var(--text2)' }}>Descanso</span>
                       </button>
                     )}
@@ -1033,7 +1033,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                       onClick={() => clearDayOverride(focusPlan, pickerDow)}
                       style={{ marginTop: 11, background: 'none', border: 'none', fontFamily: 'DM Sans, sans-serif', fontSize: 12, color: 'var(--text3)', cursor: 'pointer', textDecoration: 'underline', textDecorationStyle: 'dotted', textAlign: 'left', padding: '2px' }}
                     >
-                      ↩︎ Voltar à sugestão do plano ({autoName})
+                      <IconLabel icon="undo" size={13} gap={5}>Voltar à sugestão do plano ({autoName})</IconLabel>
                     </button>
                   )}
                 </div>
@@ -1080,7 +1080,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                   padding: 0,
                 }}
               >
-                ‹
+                <Icon name="chevron-left" size={18} />
               </button>
               <div style={{ minWidth: 0 }}>
                 <p
@@ -1191,7 +1191,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                   </p>
                   {hint && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: 'rgba(127,119,221,.14)', borderRadius: 100, padding: '4px 10px', flexShrink: 0 }}>
-                      <span style={{ fontSize: 11 }}>🧭</span>
+                      <Icon name="compass" size={12} color="var(--accent)" />
                       <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: 11, fontWeight: 700, color: 'var(--accent)' }}>{hint}</span>
                     </span>
                   )}
@@ -1237,7 +1237,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                         aria-label={`${s.done ? 'Desmarcar' : 'Concluir'} série ${si + 1}`}
                         style={{ width: 28, height: 28, borderRadius: '50%', border: s.done ? 'none' : '2px solid var(--text3)', background: s.done ? 'var(--teal)' : 'transparent', color: 'var(--on-accent)', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, padding: 0 }}
                       >
-                        {s.done ? '✓' : ''}
+                        {s.done && <Icon name="check" size={15} style={{ strokeWidth: 2.6 }} />}
                       </button>
                     </div>
                   ))}
@@ -1279,7 +1279,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
           {restEndsAt !== null && restRemaining > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'rgba(30,203,180,.10)', border: '1px solid rgba(30,203,180,.3)', borderRadius: 100, padding: '9px 12px' }}>
               <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 800, fontSize: 15, color: 'var(--teal-ink)' }}>
-                ⏱ Descanso · {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}
+                <IconLabel icon="clock" size={15}>Descanso · {Math.floor(restRemaining / 60)}:{String(restRemaining % 60).padStart(2, '0')}</IconLabel>
               </span>
               <button
                 onClick={() => setRestEndsAt(prev => (prev ?? Date.now()) + 30000)}
@@ -1290,9 +1290,9 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
               <button
                 onClick={() => setRestEndsAt(null)}
                 aria-label="Encerrar descanso"
-                style={{ background: 'none', border: 'none', color: 'var(--text3)', fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: '2px 4px' }}
+                style={{ background: 'none', border: 'none', color: 'var(--text3)', cursor: 'pointer', lineHeight: 1, padding: '2px 4px', display: 'grid', placeItems: 'center' }}
               >
-                ✕
+                <Icon name="x" size={16} />
               </button>
             </div>
           )}
@@ -1301,17 +1301,17 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
           {allExercises.length > 0 && (
             doneCount >= totalCount ? (
               <button
-                onClick={() => { toast.success('Treino concluído! 💪'); deselectSession() }}
+                onClick={() => { toast.success('Treino concluído!'); deselectSession() }}
                 style={{ width: '100%', background: 'var(--teal)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
               >
-                Concluir treino ✓
+                <IconLabel icon="check" size={16} after>Concluir treino</IconLabel>
               </button>
             ) : (
               <button
                 onClick={() => { if (nextIncompleteIdx >= 0) setExIdx(nextIncompleteIdx) }}
                 style={{ width: '100%', background: 'var(--gold)', color: 'var(--on-bright)', border: 'none', borderRadius: 13, padding: 13, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer', letterSpacing: '0.02em' }}
               >
-                Próximo exercício →
+                <IconLabel icon="arrow-right" size={16} after>Próximo exercício</IconLabel>
               </button>
             )
           )}
@@ -1333,7 +1333,7 @@ export default function WorkoutTracker({ userId, today, initialPlans }: Props) {
                     aria-label={save.done ? `Desmarcar ${ex.name}` : `Concluir ${ex.name}`}
                     style={{ width: 22, height: 22, borderRadius: '50%', border: save.done ? 'none' : '2px solid var(--text3)', background: save.done ? 'var(--teal)' : 'transparent', cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--on-accent)', fontSize: 12, fontWeight: 800, padding: 0 }}
                   >
-                    {save.done ? '✓' : ''}
+                    {save.done && <Icon name="check" size={13} color="var(--on-accent)" style={{ strokeWidth: 2.6 }} />}
                   </button>
                   <button
                     onClick={() => setExIdx(i)}

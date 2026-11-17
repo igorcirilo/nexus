@@ -4,6 +4,8 @@
 // global (QuickAction). Antes estavam duplicadas nos dois ficheiros e corriam o
 // risco de divergir; aqui há uma única fonte de verdade.
 
+import type { IconName } from '@/lib/icons'
+
 export const CATEGORIES_IN = ['Salário', 'Freelance', 'Investimento', 'Rendas', 'Presente', 'Poupança', 'Outro']
 export const CATEGORIES_OUT = ['Alimentação', 'Transporte', 'Habitação', 'Contas', 'Saúde', 'Lazer', 'Roupa', 'Educação', 'Assinaturas', 'Emergências', 'Investimentos', 'Poupança', 'Outro']
 
@@ -40,10 +42,10 @@ export const isTransferCat = (cat: string) => TRANSFER_CATS.includes(cat)
 // Sentinela do chip "Personalizar" nos formulários de transação.
 export const CUSTOM_KEY = '__custom__'
 
-export const CAT_EMOJI: Record<string, string> = {
-  Alimentação: '🍔', Transporte: '🚗', Habitação: '🏠', Contas: '🧾', Saúde: '💊', Lazer: '🎮',
-  Roupa: '👕', Educação: '🎓', Assinaturas: '📺', Emergências: '🛡️', Investimentos: '💹', Poupança: '🏦', Projetado: '🔮', Outro: '📦',
-  Salário: '💼', Freelance: '💻', Investimento: '📈', Rendas: '🏘️', Presente: '🎁',
+export const CAT_ICON: Record<string, IconName> = {
+  Alimentação: 'utensils', Transporte: 'car', Habitação: 'home', Contas: 'receipt', Saúde: 'pill', Lazer: 'gamepad',
+  Roupa: 'shirt', Educação: 'graduation-cap', Assinaturas: 'tv', Emergências: 'shield', Investimentos: 'trend-up', Poupança: 'landmark', Projetado: 'hourglass', Outro: 'package',
+  Salário: 'briefcase', Freelance: 'laptop', Investimento: 'trend-up', Rendas: 'building', Presente: 'gift',
 }
 
-export const catEmoji = (cat: string) => CAT_EMOJI[cat] ?? '📦'
+export const catIcon = (cat: string): IconName => CAT_ICON[cat] ?? 'package'

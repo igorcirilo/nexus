@@ -23,6 +23,7 @@ import {
 } from '@/lib/finance'
 import { PROJECTED_CAT } from '@/lib/categories'
 import { Sheet, sheetLabel, sheetInp } from '@/components/financas/Sheet'
+import Icon, { IconLabel, type IconName } from '@/components/ui/Icon'
 import type { Projection, ProjectionReason } from '@/types'
 
 type Direction = Projection['direction']
@@ -36,12 +37,12 @@ export interface ProjectionTx {
   projection_id: string | null
 }
 
-export const REASONS: { key: ProjectionReason; emoji: string; label: string }[] = [
-  { key: 'emprestimo', emoji: '🤝', label: 'Empréstimo' },
-  { key: 'divisao',    emoji: '🍽️', label: 'Conta dividida' },
-  { key: 'reembolso',  emoji: '🧾', label: 'Reembolso' },
-  { key: 'venda',      emoji: '🏷️', label: 'Venda' },
-  { key: 'outro',      emoji: '📦', label: 'Outro' },
+export const REASONS: { key: ProjectionReason; icon: IconName; label: string }[] = [
+  { key: 'emprestimo', icon: 'users',    label: 'Empréstimo' },
+  { key: 'divisao',    icon: 'utensils', label: 'Conta dividida' },
+  { key: 'reembolso',  icon: 'receipt',  label: 'Reembolso' },
+  { key: 'venda',      icon: 'tag',      label: 'Venda' },
+  { key: 'outro',      icon: 'package',  label: 'Outro' },
 ]
 const reasonOf = (k: ProjectionReason) => REASONS.find(r => r.key === k) ?? REASONS[REASONS.length - 1]
 
@@ -212,7 +213,7 @@ export default function Projetado({
     setBusy(false)
     const left = Math.max(0, detail.outstanding - amount)
     setSettleAmount(left > 0 ? String(Math.round(left * 100) / 100) : '')
-    notify(left <= 0 ? `${p.person}: quitado! 🎉` : `${fmt(amount)} ${DIR[p.direction].settled}.`)
+    notify(left <= 0 ? `${p.person}: quitado.` : `${fmt(amount)} ${DIR[p.direction].settled}.`)
   }
 
   async function removeTx(id: string) {
@@ -250,8 +251,8 @@ export default function Projetado({
           background: 'var(--surface-2)', border: `1px solid ${due?.late ? 'rgba(245,200,66,0.35)' : 'rgba(var(--ink-rgb),0.07)'}`,
           borderRadius: 14, padding: '11px 13px', marginBottom: 8, opacity: s.settled ? 0.55 : 1 }}
       >
-        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, background: d.bg }}>
-          {reasonOf(p.reason).emoji}
+        <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: d.bg, color: d.color }}>
+          <Icon name={reasonOf(p.reason).icon} size={17} />
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
@@ -259,7 +260,7 @@ export default function Projetado({
               {compact ? p.person : (p.description || reasonOf(p.reason).label)}
             </span>
             <span style={{ marginLeft: 'auto', flexShrink: 0, fontSize: 13, fontWeight: 800, color: s.settled ? 'var(--text2)' : d.color }}>
-              {s.settled ? '✓' : `${d.sign}${fmt(s.outstanding)}`}
+              {s.settled ? <Icon name="check" size={15} /> : `${d.sign}${fmt(s.outstanding)}`}
             </span>
           </div>
           <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -294,7 +295,7 @@ export default function Projetado({
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '20px 0 10px' }}>
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text3)' }}>Projetado</span>
         {statuses.length > 0 && (
-          <button onClick={() => setShowList(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, color: 'var(--gold-ink)', fontFamily: 'Inter, sans-serif', padding: 0 }}>Gerir ›</button>
+          <button onClick={() => setShowList(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, color: 'var(--gold-ink)', fontFamily: 'Inter, sans-serif', padding: 0 }}><IconLabel icon="chevron-right" size={13} gap={2} after>Gerir</IconLabel></button>
         )}
       </div>
       {open.length > 0 ? (
@@ -311,25 +312,25 @@ export default function Projetado({
           {open.slice(0, 3).map(s => renderRow(s, true))}
           {open.length > 3 && (
             <button onClick={() => setShowList(true)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, color: 'var(--gold-ink)', fontFamily: 'Inter, sans-serif', padding: '2px 0 10px' }}>
-              Ver todos ({open.length}) ›
+              <IconLabel icon="chevron-right" size={13} gap={2} after>Ver todos ({open.length})</IconLabel>
             </button>
           )}
         </div>
       ) : (
         <button type="button" onClick={() => openForm('receber')}
           style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', cursor: 'pointer', fontFamily: 'Inter, sans-serif', background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 16, padding: '13px 15px' }}>
-          <span style={{ fontSize: 18 }}>🔮</span>
+          <Icon name="hourglass" size={18} color="var(--gold-ink)" />
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold-ink)' }}>Registar um valor a receber ou a pagar</div>
             <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 2 }}>Empréstimos, contas divididas, reembolsos — sabe quem te deve e a quem deves.</div>
           </div>
-          <span style={{ color: 'var(--text3)', fontSize: 14 }}>›</span>
+          <Icon name="chevron-right" size={16} color="var(--text3)" />
         </button>
       )}
 
       {/* ── Sheet: lista ── */}
       {showList && !form && !detail && (
-        <Sheet tall icon="🔮" title="Projetado" onClose={() => setShowList(false)}
+        <Sheet tall icon="hourglass" title="Projetado" onClose={() => setShowList(false)}
           footer={<button onClick={() => openForm(tab)} style={primaryBtn(true)}>+ Novo {tab === 'receber' ? 'valor a receber' : 'valor a pagar'}</button>}>
           <div style={{ display: 'flex', gap: 8, marginTop: 12, marginBottom: 14 }}>
             {(['receber', 'pagar'] as const).map(dir => (
@@ -356,7 +357,7 @@ export default function Projetado({
 
           {tabOpen.length === 0 && (
             <div style={{ textAlign: 'center', padding: '30px 10px', color: 'var(--text2)', fontSize: 12.5, lineHeight: 1.6 }}>
-              <div style={{ fontSize: 32, marginBottom: 8 }}>{tab === 'receber' ? '🤝' : '✅'}</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: 'var(--text3)' }}><Icon name={tab === 'receber' ? 'users' : 'check-circle'} size={30} /></div>
               {tab === 'receber' ? 'Ninguém te deve nada neste momento.' : 'Não deves nada a ninguém.'}
             </div>
           )}
@@ -364,7 +365,7 @@ export default function Projetado({
           {tabSettled.length > 0 && (
             <>
               <button onClick={() => setShowSettled(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, color: 'var(--text2)', fontFamily: 'Inter, sans-serif', padding: '8px 2px' }}>
-                {showSettled ? '▾' : '▸'} Quitados ({tabSettled.length})
+                <IconLabel icon={showSettled ? 'chevron-down' : 'chevron-right'} size={13} gap={4}>Quitados ({tabSettled.length})</IconLabel>
               </button>
               {showSettled && tabSettled.map(s => renderRow(s, true))}
             </>
@@ -379,7 +380,7 @@ export default function Projetado({
         const set = (patch: Partial<FormState>) => setForm(f => f ? { ...f, ...patch } : f)
         const d = DIR[form.direction]
         return (
-          <Sheet icon="🔮" title={form.editing ? 'Editar' : form.direction === 'receber' ? 'Valor a receber' : 'Valor a pagar'} onClose={() => setForm(null)}
+          <Sheet icon="hourglass" title={form.editing ? 'Editar' : form.direction === 'receber' ? 'Valor a receber' : 'Valor a pagar'} onClose={() => setForm(null)}
             footer={<button onClick={saveForm} disabled={busy || !canSave} style={primaryBtn(canSave && !busy)}>{busy ? 'A guardar…' : 'Guardar'}</button>}>
             {!form.editing && (
               <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -389,7 +390,7 @@ export default function Projetado({
                     background: form.direction === dir ? DIR[dir].bg : 'rgba(var(--ink-rgb),0.03)',
                     border: `1px solid ${form.direction === dir ? DIR[dir].border : 'rgba(var(--ink-rgb),0.10)'}`,
                     color: form.direction === dir ? DIR[dir].color : 'rgba(var(--ink-rgb),0.55)',
-                  }}>{dir === 'receber' ? '↓ Tenho a receber' : '↑ Devo'}</button>
+                  }}><IconLabel icon={dir === 'receber' ? 'arrow-down' : 'arrow-up'}>{dir === 'receber' ? 'Tenho a receber' : 'Devo'}</IconLabel></button>
                 ))}
               </div>
             )}
@@ -409,7 +410,7 @@ export default function Projetado({
                 // Só o empréstimo mexe na conta por defeito: numa conta
                 // dividida ou reembolso a despesa já foi lançada à parte.
                 <button key={r.key} onClick={() => set({ reason: r.key, ...(form.editing ? {} : { touchAccount: r.key === 'emprestimo' }) })} style={chip(form.reason === r.key)}>
-                  {r.emoji} {r.label}
+                  <IconLabel icon={r.icon}>{r.label}</IconLabel>
                 </button>
               ))}
             </div>
@@ -436,7 +437,7 @@ export default function Projetado({
                 style={{ display: 'flex', alignItems: 'center', gap: 11, width: '100%', marginTop: 16, padding: '12px 14px', borderRadius: 13, cursor: 'pointer', fontFamily: 'Inter, sans-serif', textAlign: 'left',
                   background: form.touchAccount ? 'rgba(245,200,66,0.08)' : 'var(--surface-2)',
                   border: `1px solid ${form.touchAccount ? 'rgba(245,200,66,0.4)' : 'rgba(var(--ink-rgb),0.10)'}` }}>
-                <span style={{ fontSize: 17 }}>💳</span>
+                <Icon name="credit-card" size={18} color="var(--text2)" />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{d.accountTitle}</div>
                   <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 1 }}>
@@ -459,7 +460,7 @@ export default function Projetado({
         const amt = parseAmount(settleAmount)
         const canSettle = Number.isFinite(amt) && amt > 0 && !!settleDate && !busy
         return (
-          <Sheet icon={reasonOf(p.reason).emoji} title={p.person} onClose={() => setDetailId(null)}>
+          <Sheet icon={reasonOf(p.reason).icon} title={p.person} onClose={() => setDetailId(null)}>
             <div style={{ textAlign: 'center', margin: '12px 0 4px' }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                 {detail.settled ? 'Quitado' : p.direction === 'receber' ? 'Falta receber' : 'Falta pagar'}
@@ -509,14 +510,14 @@ export default function Projetado({
                   </span>
                   {!isOpening && (
                     <button onClick={() => removeTx(t.id)} disabled={busy} aria-label="Apagar abatimento"
-                      style={{ flexShrink: 0, border: '1px solid rgba(226,75,74,0.25)', background: 'transparent', color: '#E24B4A', borderRadius: 9, padding: '5px 8px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>✕</button>
+                      style={{ flexShrink: 0, border: '1px solid rgba(226,75,74,0.25)', background: 'transparent', color: '#E24B4A', borderRadius: 9, padding: '5px 8px', cursor: 'pointer', display: 'grid', placeItems: 'center' }}><Icon name="x" size={13} /></button>
                   )}
                 </div>
               )
             })}
 
             <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
-              <button onClick={() => openForm(p.direction, p)} style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: '1px solid rgba(var(--ink-rgb),0.12)', background: 'var(--surface-2)', color: 'var(--text1)', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>✏️ Editar</button>
+              <button onClick={() => openForm(p.direction, p)} style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: '1px solid rgba(var(--ink-rgb),0.12)', background: 'var(--surface-2)', color: 'var(--text1)', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}><IconLabel icon="pencil" size={14}>Editar</IconLabel></button>
               <button onClick={() => setConfirmDelete(true)} style={{ flex: 1, padding: '12px 0', borderRadius: 13, border: '1px solid rgba(226,75,74,0.25)', background: 'transparent', color: '#E24B4A', fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Apagar</button>
             </div>
             {confirmDelete && (

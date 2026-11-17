@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { CSSProperties } from 'react'
+import Icon, { type IconName } from '@/components/ui/Icon'
 
 const FONT = 'Inter, sans-serif'
 
@@ -18,7 +19,7 @@ export interface HubHabit {
 export interface HubArea {
   key: string
   label: string
-  icon: string
+  icon: IconName
   color: string
   done: number
   total: number
@@ -91,7 +92,7 @@ export default function HabitosHub({ habits, areas, doneToday, totalToday, onTog
       <div style={{ display: 'flex', gap: 8, marginBottom: 16, overflowX: 'auto', paddingBottom: 2 }}>
         <Chip label="Todos" active={filter === 'all'} onClick={() => setFilter('all')} />
         {areas.map((a) => (
-          <Chip key={a.key} label={`${a.icon} ${a.label}`} active={filter === a.key} onClick={() => setFilter(a.key)} />
+          <Chip key={a.key} icon={a.icon} label={a.label} active={filter === a.key} onClick={() => setFilter(a.key)} />
         ))}
       </div>
 
@@ -200,7 +201,7 @@ function HabitItem({ habit, areaLabel, menuOpen, onToggle, onMenu, onEdit, onDel
           padding: 0,
         }}
       >
-        ✓
+        <Icon name="check" size={15} style={{ strokeWidth: 2.6 }} />
       </button>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div
@@ -303,12 +304,15 @@ function Ring({ pct, color }: { pct: number; color: string }) {
   )
 }
 
-function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function Chip({ label, icon, active, onClick }: { label: string; icon?: IconName; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       style={{
         flexShrink: 0,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
         fontSize: 12,
         fontWeight: 600,
         padding: '7px 14px',
@@ -320,6 +324,7 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
         cursor: 'pointer',
       }}
     >
+      {icon && <Icon name={icon} size={14} />}
       {label}
     </button>
   )

@@ -94,7 +94,7 @@ describe('buildDayPlan', () => {
     const plan = buildDayPlan(input())
     expect(plan.items).toEqual([])
     expect(plan.focusSuggestion).toBeNull()
-    expect(plan.capacityHint).toBe('Dia limpo — está tudo feito. 🎯')
+    expect(plan.capacityHint).toBe('Dia limpo: está tudo feito.')
   })
 
   it('ordena pendentes por prioridade desc e empurra concluídos para o fim', () => {

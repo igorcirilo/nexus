@@ -197,7 +197,7 @@ export function useCalendarioController(initialUserId?: string) {
     await toggleHabitLog(userId, habitId, dateStr, !currentDone)
     setSelHabits(await getHabitsWithLogs(userId, dateStr) as HabitRow[])
     loadMonth(userId, current)
-    showToast(currentDone ? 'Desmarcado' : 'Marcado ✓')
+    showToast(currentDone ? 'Desmarcado' : 'Marcado')
   }
 
   async function doQuickCheckin() {

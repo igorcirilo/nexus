@@ -1,5 +1,7 @@
 // src/types/index.ts
 
+import type { IconName } from '@/lib/icons'
+
 export interface Profile {
   id: string
   username: string | null
@@ -478,14 +480,14 @@ export function nextStreakThreshold(streakBest: number): number | null {
   return STREAK_THRESHOLDS[level]
 }
 
-export const AREA_META: Record<HabitArea, { label: string; icon: string; color: string }> = {
-  corpo: { label: 'Corpo & Saúde', icon: '💪', color: '#1ECBB4' },
-  produtividade: { label: 'Produtividade', icon: '🎯', color: '#7F77DD' },
-  idiomas: { label: 'Idiomas', icon: '🗣️', color: '#E24B4A' },
-  carreira: { label: 'Carreira', icon: '📚', color: '#E8A838' },
-  financas: { label: 'Finanças', icon: '💰', color: '#1D9E75' },
-  emocoes: { label: 'Emoções', icon: '🧘', color: '#D4537E' },
-  relacionamentos: { label: 'Relacionamentos', icon: '🤝', color: '#85B7EB' },
+export const AREA_META: Record<HabitArea, { label: string; icon: IconName; color: string }> = {
+  corpo: { label: 'Corpo & Saúde', icon: 'dumbbell', color: '#1ECBB4' },
+  produtividade: { label: 'Produtividade', icon: 'target', color: '#7F77DD' },
+  idiomas: { label: 'Idiomas', icon: 'message', color: '#E24B4A' },
+  carreira: { label: 'Carreira', icon: 'briefcase', color: '#E8A838' },
+  financas: { label: 'Finanças', icon: 'wallet', color: '#1D9E75' },
+  emocoes: { label: 'Emoções', icon: 'leaf', color: '#D4537E' },
+  relacionamentos: { label: 'Relacionamentos', icon: 'users', color: '#85B7EB' },
 }
 
 /** Cor de área como TEXTO, legível nos dois temas (variantes -ink).
@@ -598,7 +600,7 @@ export type QuestionOption = {
   id: string
   label: string
   score_value: number   // 0.0–1.0
-  icon?: string         // emoji opcional (UI de cartões maiores)
+  icon?: IconName       // ícone opcional (UI de cartões maiores)
   hint?: string         // subtítulo opcional do cartão
 }
 

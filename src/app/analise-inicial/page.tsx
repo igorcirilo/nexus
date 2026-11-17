@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { IconLabel } from '@/components/ui/Icon'
 import { supabase } from '@/lib/supabase'
 import { calculateScores } from '@/lib/profile-assessment'
 import {
@@ -252,7 +253,7 @@ export default function AnaliseInicialPage() {
         disabled={generating}
         style={{ opacity: generating ? 0.5 : 1, cursor: generating ? 'not-allowed' : 'pointer' }}
       >
-        {generating ? 'Criando seus hábitos...' : 'Criar meus hábitos →'}
+        {generating ? 'Criando seus hábitos...' : <IconLabel icon="arrow-right" size={16} after>Criar meus hábitos</IconLabel>}
       </button>
       <p style={{ marginTop: 12, fontSize: 12, color: 'var(--text3)', textAlign: 'center' }}>
         Vamos montar seus hábitos diários com base no seu diagnóstico

@@ -1,4 +1,5 @@
 import type { HabitArea } from '@/types'
+import type { IconName } from '@/lib/icons'
 
 export type GoalSize = 'pequeno' | 'medio' | 'grande'
 
@@ -16,7 +17,7 @@ export type GoalSuggestionArea = {
   /** Rótulo apresentado ao utilizador. */
   label: string
   /** Emoji/ícone curto. */
-  icon: string
+  icon: IconName
   /** Área de hábito real onde o objetivo é guardado. */
   area: HabitArea
   /** Sugestões prontas, organizadas por tamanho do objetivo. */
@@ -29,7 +30,7 @@ export const GOAL_SUGGESTIONS: GoalSuggestionArea[] = [
   {
     key: 'dieta',
     label: 'Dieta',
-    icon: '🥗',
+    icon: 'salad',
     area: 'corpo',
     suggestions: {
       pequeno: [
@@ -52,7 +53,7 @@ export const GOAL_SUGGESTIONS: GoalSuggestionArea[] = [
   {
     key: 'treino',
     label: 'Treino',
-    icon: '🏋️',
+    icon: 'dumbbell',
     area: 'corpo',
     suggestions: {
       pequeno: [
@@ -75,7 +76,7 @@ export const GOAL_SUGGESTIONS: GoalSuggestionArea[] = [
   {
     key: 'sono',
     label: 'Sono',
-    icon: '😴',
+    icon: 'bed',
     area: 'corpo',
     suggestions: {
       pequeno: [
@@ -98,7 +99,7 @@ export const GOAL_SUGGESTIONS: GoalSuggestionArea[] = [
   {
     key: 'hidratacao',
     label: 'Hidratação',
-    icon: '💧',
+    icon: 'droplet',
     area: 'corpo',
     suggestions: {
       pequeno: [
@@ -121,7 +122,7 @@ export const GOAL_SUGGESTIONS: GoalSuggestionArea[] = [
   {
     key: 'saude',
     label: 'Saúde',
-    icon: '❤️',
+    icon: 'heart',
     area: 'corpo',
     suggestions: {
       pequeno: [
@@ -144,7 +145,7 @@ export const GOAL_SUGGESTIONS: GoalSuggestionArea[] = [
   {
     key: 'produtividade',
     label: 'Produtividade',
-    icon: '🎯',
+    icon: 'target',
     area: 'produtividade',
     suggestions: {
       pequeno: [
@@ -167,7 +168,7 @@ export const GOAL_SUGGESTIONS: GoalSuggestionArea[] = [
   {
     key: 'habitos',
     label: 'Hábitos',
-    icon: '🔁',
+    icon: 'repeat',
     area: 'produtividade',
     suggestions: {
       pequeno: [
@@ -190,7 +191,7 @@ export const GOAL_SUGGESTIONS: GoalSuggestionArea[] = [
   {
     key: 'bem-estar',
     label: 'Bem-estar',
-    icon: '🧘',
+    icon: 'leaf',
     area: 'emocoes',
     suggestions: {
       pequeno: [

@@ -658,7 +658,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                 </span>
                 {adherence.streak > 0 && (
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--gold-ink)', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    🔥 {adherence.streak} {adherence.streak === 1 ? 'dia' : 'dias'}
+                    <Icon name="flame" size={12} />{adherence.streak} {adherence.streak === 1 ? 'dia' : 'dias'}
                   </span>
                 )}
               </div>
@@ -725,7 +725,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                       padding: 0,
                     }}
                   >
-                    {done ? '✓' : ''}
+                    {done && <Icon name="check" size={14} style={{ strokeWidth: 2.6 }} />}
                   </button>
 
                   <span
@@ -817,7 +817,7 @@ export default function DietTracker({ userId, today, initialPlans }: Props) {
                             fontWeight: 700,
                           }}
                         >
-                          {checked ? '✓' : ''}
+                          {checked && <Icon name="check" size={12} style={{ strokeWidth: 2.6 }} />}
                         </span>
                         <span
                           style={{

@@ -3,6 +3,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import UiIcon from '@/components/ui/Icon'
 
 // Destinos primários: 3 à esquerda + 3 à direita, com a ação rápida ao centro.
 // Hábitos, Progresso e Objetivos vivem agora no hub do Perfil.
@@ -75,7 +76,7 @@ export default function Nav() {
             touchAction: 'manipulation',
           }}
         >
-          ＋
+          <UiIcon name="plus" size={26} style={{ strokeWidth: 2.2 }} />
         </button>
 
         {RIGHT_ITEMS.map(({ href, label, icon: Icon }) => {

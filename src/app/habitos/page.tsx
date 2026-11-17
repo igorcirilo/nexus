@@ -6,6 +6,8 @@ import Link from 'next/link'
 import Nav from '@/components/Nav'
 import HabitosHub from '@/components/habitos/HabitosHub'
 import HabitLibrarySheet from '@/components/habitos/HabitLibrarySheet'
+import Icon, { IconLabel, type IconName } from '@/components/ui/Icon'
+import { inkFor } from '@/lib/theme'
 import { supabase, requireUser, getHabitsWithLogs, toggleHabitLog } from '@/lib/supabase'
 import { todayISO } from '@/lib/date'
 import {
@@ -21,7 +23,7 @@ type HabitWithLog = Habit & { habit_logs?: { completed: boolean; date: string }[
 
 const FONT = 'Inter, sans-serif'
 
-const AREAS = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
+const AREAS = Object.entries(AREA_META) as [HabitArea, { label: string; icon: IconName; color: string }][]
 
 // Apenas os campos definidos no insert; source/difficulty/catalog_key usam os defaults da BD.
 const DEFAULT_HABITS: Pick<Habit, 'name' | 'area' | 'xp_reward' | 'time_window' | 'active'>[] = [
@@ -77,10 +79,10 @@ const SUGGESTIONS: Record<HabitArea, Array<{ name: string; difficulty: keyof typ
   ],
 }
 
-const TIME_PRESETS = [
-  { key: 'Manhã', icon: '🌅' },
-  { key: 'Tarde', icon: '☀️' },
-  { key: 'Noite', icon: '🌙' },
+const TIME_PRESETS: { key: string; icon: IconName }[] = [
+  { key: 'Manhã', icon: 'sunrise' },
+  { key: 'Tarde', icon: 'sun' },
+  { key: 'Noite', icon: 'moon' },
 ]
 
 type Difficulty = keyof typeof DIFFICULTY_XP
@@ -325,7 +327,7 @@ export default function HabitosPage() {
             whiteSpace: 'nowrap',
           }}
         >
-          ✓ {toast}
+          <IconLabel icon="check">{toast}</IconLabel>
         </div>
       )}
 
@@ -356,12 +358,12 @@ export default function HabitosPage() {
             textDecoration: 'none',
           }}
         >
-          <span style={{ fontSize: 20, flexShrink: 0 }}>🚭</span>
+          <Icon name="ban" size={20} color="var(--red-ink)" />
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text1)' }}>Largar um mau hábito</span>
             <span style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Conta os dias sem recair</span>
           </span>
-          <span style={{ fontSize: 18, color: 'var(--text3)', flexShrink: 0 }}>›</span>
+          <Icon name="chevron-right" size={18} color="var(--text3)" />
         </Link>
       </div>
 
@@ -389,7 +391,7 @@ export default function HabitosPage() {
                   opacity: 0.6,
                 }}
               >
-                <span style={{ fontSize: 15 }}>{AREA_META[h.area]?.icon}</span>
+                <Icon name={AREA_META[h.area]?.icon ?? 'target'} size={16} color={inkFor(AREA_META[h.area]?.color)} />
                 <span style={{ flex: 1, minWidth: 0, textAlign: 'left', fontSize: 13.5, fontWeight: 600, color: 'var(--text1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                   {h.name}
                 </span>
@@ -466,9 +468,9 @@ export default function HabitosPage() {
               <button
                 onClick={() => setShowForm(false)}
                 aria-label="Fechar"
-                style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', fontSize: 14 }}
+                style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', display: 'grid', placeItems: 'center' }}
               >
-                ✕
+                <Icon name="x" size={15} />
               </button>
             </div>
 
@@ -499,7 +501,7 @@ export default function HabitosPage() {
                       border: form.area === key ? `1px solid ${meta.color}77` : '1px solid rgba(var(--ink-rgb),0.10)',
                     }}
                   >
-                    <span>{meta.icon}</span>
+                    <Icon name={meta.icon} size={15} />
                     {meta.label}
                   </button>
                 ))}
@@ -530,7 +532,7 @@ export default function HabitosPage() {
                         border: active ? '1px solid rgba(245,200,66,0.45)' : '1px solid rgba(var(--ink-rgb),0.10)',
                       }}
                     >
-                      <span style={{ fontSize: 18, lineHeight: 1 }}>{t.icon}</span>
+                      <Icon name={t.icon} size={18} />
                       {t.key}
                     </button>
                   )

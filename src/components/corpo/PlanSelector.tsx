@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { TrainingPlan } from '@/types'
+import Icon from '@/components/ui/Icon'
 import type { ParsedTrainingPlan } from '@/lib/body-plan'
 
 interface Props {
@@ -252,7 +253,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                             flexShrink: 0,
                           }}
                         >
-                          ▾
+                          <Icon name="chevron-down" size={14} />
                         </span>
                       </button>
 
@@ -330,7 +331,7 @@ export default function PlanSelector({ plans, onSelect, onClose, onImport }: Pro
                                     flexShrink: 0,
                                   }}
                                 >
-                                  →
+                                  <Icon name="arrow-right" size={17} />
                                 </span>
                               </button>
                             ))

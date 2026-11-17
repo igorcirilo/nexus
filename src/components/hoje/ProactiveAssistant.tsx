@@ -2,6 +2,7 @@
 
 import type { CSSProperties } from 'react'
 import type { Pendencia, PendenciaSeverity } from '@/lib/pendencias'
+import Icon, { IconLabel, type IconName } from '@/components/ui/Icon'
 
 /**
  * Card do assistente proativo no topo do Hoje (v2): mensagem do mentor,
@@ -23,7 +24,7 @@ const SEV_TEXT: Record<PendenciaSeverity, string> = {
   warn: 'var(--gold-ink)',
   info: 'var(--blue-ink)',
 }
-const SEV_ICON: Record<PendenciaSeverity, string> = { risk: '🔴', warn: '⚠️', info: 'ℹ️' }
+const SEV_ICON: Record<PendenciaSeverity, IconName> = { risk: 'alert-circle', warn: 'alert-triangle', info: 'info' }
 
 interface Props {
   message: string
@@ -48,7 +49,7 @@ export default function ProactiveAssistant({ message, focusPhrase, planCount, pe
         <div style={glow} />
 
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 11 }}>
-          <span style={orb}>✦</span>
+          <span style={orb}><Icon name="compass" size={19} /></span>
           <b style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--accent-ink)', letterSpacing: '0.04em' }}>O TEU ASSISTENTE</b>
           {planCount > 0 && (
             <span style={tag}>Plano de hoje · {planCount} {planCount === 1 ? 'item' : 'itens'}</span>
@@ -75,19 +76,19 @@ export default function ProactiveAssistant({ message, focusPhrase, planCount, pe
             </>
           ) : (
             <a href="/checkin" style={{ display: 'inline-block', marginTop: 6, fontSize: 13, color: 'var(--gold-ink)', fontWeight: 700, textDecoration: 'none' }}>
-              Definir missão no check-in ›
+              <IconLabel icon="chevron-right" size={14} gap={2} after>Definir missão no check-in</IconLabel>
             </a>
           )}
         </div>
 
         {focusPhrase && (
           <button onClick={onFocusClick} style={focusBox}>
-            <span style={play}>▶</span>
+            <span style={play}><Icon name="target" size={15} /></span>
             <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>
               <span style={{ display: 'block', fontSize: 10, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text2)', fontWeight: 800 }}>Foco agora</span>
               <span style={{ display: 'block', fontSize: 13.5, color: 'var(--ink)', fontWeight: 700, marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{focusPhrase}</span>
             </span>
-            <span style={{ fontSize: 18, color: 'var(--text2)', flexShrink: 0 }}>›</span>
+            <Icon name="chevron-right" size={18} color="var(--text2)" />
           </button>
         )}
 
@@ -97,9 +98,9 @@ export default function ProactiveAssistant({ message, focusPhrase, planCount, pe
               const color = SEV_COLOR[p.severity]
               const inner = (
                 <>
-                  <span style={{ fontSize: 13, flexShrink: 0 }}>{SEV_ICON[p.severity]}</span>
+                  <Icon name={SEV_ICON[p.severity]} size={15} color={SEV_TEXT[p.severity]} />
                   <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: 600, color: 'var(--text1)', lineHeight: 1.35 }}>{p.message}</span>
-                  {p.ctaHref && <span style={{ fontSize: 11, fontWeight: 800, color: SEV_TEXT[p.severity], flexShrink: 0 }}>{p.ctaLabel ?? 'Abrir'} ›</span>}
+                  {p.ctaHref && <span style={{ fontSize: 11, fontWeight: 800, color: SEV_TEXT[p.severity], flexShrink: 0 }}><IconLabel icon="chevron-right" size={12} gap={2} after>{p.ctaLabel ?? 'Abrir'}</IconLabel></span>}
                 </>
               )
               const style: CSSProperties = {
@@ -135,7 +136,7 @@ const glow: CSSProperties = {
 const orb: CSSProperties = {
   width: 38, height: 38, borderRadius: 12, flexShrink: 0,
   background: 'linear-gradient(135deg, #9C94EC, #1ECBB4)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
   boxShadow: '0 0 18px rgba(127,119,221,0.6)', color: '#fff',
 }
 const tag: CSSProperties = {
@@ -157,5 +158,5 @@ const focusBox: CSSProperties = {
 const play: CSSProperties = {
   width: 30, height: 30, borderRadius: 9, flexShrink: 0,
   background: 'rgba(30,203,180,0.18)', color: 'var(--teal-ink)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
 }

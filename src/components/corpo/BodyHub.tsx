@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { CSSProperties, ReactNode } from 'react'
 import { darkCardInk } from '@/lib/theme'
+import Icon, { IconLabel } from '@/components/ui/Icon'
 import { format, getISOWeek, subDays } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import { parseLocalDate } from '@/lib/date'
@@ -397,7 +398,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
                     <span style={tagStyle('var(--purple-ink)', 'rgba(157,92,245,0.12)')}>{truncate(workout.planTitle, 22)}</span>
                   )}
                   {workout.total > 0 && workout.done === workout.total && (
-                    <span style={tagStyle('var(--green-ink)', 'rgba(0,200,150,0.12)')}>✓ Concluído</span>
+                    <span style={tagStyle('var(--green-ink)', 'rgba(0,200,150,0.12)')}><IconLabel icon="check" size={11} gap={3}>Concluído</IconLabel></span>
                   )}
                 </div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)' }}>{workout.sectionTitle}</div>
@@ -421,7 +422,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
                   flexShrink: 0,
                 }}
               >
-                {workout.total > 0 && workout.done === workout.total ? '✓' : `${workout.done}/${workout.total}`}
+                {workout.total > 0 && workout.done === workout.total ? <Icon name="check" size={16} style={{ strokeWidth: 2.4 }} /> : `${workout.done}/${workout.total}`}
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -443,7 +444,7 @@ export default function BodyHub({ userId, today, trainingPlans, dietPlans, onNav
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
                     {ex.detail && <div style={{ fontSize: 12, color: 'var(--text3)' }}>{ex.detail}</div>}
-                    {ex.done && <div style={{ color: 'var(--green-ink)', fontSize: 14, fontWeight: 700 }}>✓</div>}
+                    {ex.done && <Icon name="check" size={15} color="var(--green-ink)" style={{ strokeWidth: 2.4 }} />}
                   </div>
                 </div>
               ))}

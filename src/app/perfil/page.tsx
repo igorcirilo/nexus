@@ -2,6 +2,8 @@
 // src/app/perfil/page.tsx
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
+import Icon, { type IconName } from '@/components/ui/Icon'
+import { badgeIcon } from '@/lib/badges'
 import { supabase, requireUser, getProfile, updateFullProfile, getUserBadges, getTrainingCount30d, getReadingPages30d, getRitmo, getGoals90 } from '@/lib/supabase'
 import { emitToast } from '@/lib/toast-events'
 import { normalizeProfileForm } from '@/lib/profile-form'
@@ -48,12 +50,12 @@ const rowStyle: React.CSSProperties = {
 // Mesmas 6 conquistas do catálogo da BD (checkAndAwardBadges); as badges de XP
 // foram removidas do produto e nunca seriam desbloqueadas aqui.
 const LOCKED_BADGES = [
-  { key: 'primeiro_checkin', name: 'Primeira Vez', icon: '🌅' },
-  { key: 'streak_7', name: 'Uma Semana', icon: '🔥' },
-  { key: 'streak_21', name: 'Três Semanas', icon: '⚡' },
-  { key: 'streak_100', name: 'Centenário', icon: '💎' },
-  { key: 'ritmo_80', name: 'Em Chamas', icon: '🚀' },
-  { key: 'consistencia_30', name: 'Inabalável', icon: '🏔️' },
+  { key: 'primeiro_checkin', name: 'Primeira Vez' },
+  { key: 'streak_7', name: 'Uma Semana' },
+  { key: 'streak_21', name: 'Três Semanas' },
+  { key: 'streak_100', name: 'Centenário' },
+  { key: 'ritmo_80', name: 'Em Chamas' },
+  { key: 'consistencia_30', name: 'Inabalável' },
 ]
 
 export default function PerfilPage() {
@@ -177,8 +179,8 @@ export default function PerfilPage() {
   }
 
   // Identidade do modal de edição.
-  const sectionMeta: Record<Section, { icon: string; title: string; sub: string }> = {
-    corpo: { icon: '💪', title: 'Corpo & Físico', sub: 'Medidas, água e treinos' },
+  const sectionMeta: Record<Section, { icon: IconName; title: string; sub: string }> = {
+    corpo: { icon: 'dumbbell', title: 'Corpo & Físico', sub: 'Medidas, água e treinos' },
   }
 
   // Campos de Corpo & Físico, partilhados entre a página de edição e o modal.
@@ -284,12 +286,12 @@ export default function PerfilPage() {
               style={{ width: '100%', maxWidth: 480, background: 'var(--bg1)', borderTopLeftRadius: 24, borderTopRightRadius: 24, border: '0.5px solid var(--border)', maxHeight: '90dvh', display: 'flex', flexDirection: 'column' }}
             >
               <div style={{ padding: '18px 24px 14px', borderBottom: '0.5px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontSize: 20 }}>{sectionMeta[editSection].icon}</span>
+                <Icon name={sectionMeta[editSection].icon} size={20} color="var(--text2)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 18 }}>{sectionMeta[editSection].title}</div>
                   <div style={{ fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>{sectionMeta[editSection].sub}</div>
                 </div>
-                <button onClick={() => setEditSection(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--bg3)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text2)' }}>✕</button>
+                <button onClick={() => setEditSection(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--bg3)', border: 'none', cursor: 'pointer', color: 'var(--text2)', display: 'grid', placeItems: 'center' }}><Icon name="x" size={15} /></button>
               </div>
               <div style={{ padding: '18px 24px', overflowY: 'auto', flex: 1 }}>
                 {renderSectionFields()}
@@ -426,7 +428,7 @@ export default function PerfilPage() {
                       textAlign: 'center',
                     }}
                   >
-                    <div style={{ fontSize: 22, marginBottom: 8 }}>{unlocked ? badge.icon : '🔒'}</div>
+                    <div style={{ marginBottom: 8, color: unlocked ? 'var(--gold-ink)' : 'var(--text3)' }}><Icon name={unlocked ? badgeIcon(badge.key) : 'lock'} size={22} /></div>
                     <div style={{ fontSize: 12, color: 'var(--text1)', fontWeight: 600, marginBottom: 4 }}>{badge.name}</div>
                     <div style={{ fontSize: 10, color: 'var(--text3)' }}>
                       {unlocked && earned?.earned_at ? new Date(earned.earned_at).toLocaleDateString('pt-PT') : 'Bloqueado'}

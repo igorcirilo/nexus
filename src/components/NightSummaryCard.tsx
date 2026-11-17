@@ -1,5 +1,6 @@
 'use client'
 // src/components/NightSummaryCard.tsx
+import { IconLabel } from '@/components/ui/Icon'
 
 interface NightSummaryCardProps {
   ritmo: number
@@ -99,7 +100,7 @@ export default function NightSummaryCard({
           cursor: 'pointer',
         }}
       >
-        Ver Progresso →
+        <IconLabel icon="arrow-right" size={15} after>Ver Progresso</IconLabel>
       </button>
     </section>
   )

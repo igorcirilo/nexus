@@ -5,6 +5,21 @@ import type { CSSProperties } from 'react'
 
 export type Theme = 'dark' | 'light'
 
+// Cor de marca (hex fixo) → variante "-ink" que acompanha o tema. Usada em
+// ícones de traço fino: o hex bruto (teal, dourado) fica lavado sobre fundos
+// claros; a variante -ink escurece no tema claro e mantém-se viva no escuro.
+const INK_BY_HEX: Record<string, string> = {
+  '#1ECBB4': 'var(--teal-ink)', '#00D4C8': 'var(--teal-ink)',
+  '#00C896': 'var(--green-ink)', '#1D9E75': 'var(--green-ink)',
+  '#E8A838': 'var(--gold-ink)', '#F5C842': 'var(--gold-ink)', '#F2C45A': 'var(--gold-ink)', '#E2884B': 'var(--gold-ink)',
+  '#7F77DD': 'var(--accent-ink)', '#9C94EC': 'var(--purple-ink)', '#9D5CF5': 'var(--purple-ink)',
+  '#85B7EB': 'var(--blue-ink)', '#E24B4A': 'var(--red-ink)',
+}
+export function inkFor(color: string | undefined): string | undefined {
+  if (!color) return color
+  return INK_BY_HEX[color.toUpperCase()] ?? color
+}
+
 // Fixa o primeiro-plano a branco dentro de cards escuros "hero" (gradientes
 // vibrantes que se mantêm escuros nos dois temas). Espalhar no style do card
 // faz todo o texto/overlays interno (var(--ink) / rgba(var(--ink-rgb),…))

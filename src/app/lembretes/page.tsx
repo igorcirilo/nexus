@@ -2,15 +2,16 @@
 // src/app/lembretes/page.tsx
 import { useEffect, useState } from 'react'
 import Nav from '@/components/Nav'
+import Icon, { type IconName } from '@/components/ui/Icon'
 import { requireUser, getReminders, saveReminder, deleteReminder, toggleReminder } from '@/lib/supabase'
 
 const DAYS = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb']
-const TYPES = [
-  { value: 'checkin_manha', label: '🌅 Check-in Manhã' },
-  { value: 'checkin_tarde', label: '☀️ Check-in Tarde' },
-  { value: 'checkin_noite', label: '🌙 Check-in Noite' },
-  { value: 'habito',        label: '✅ Hábito' },
-  { value: 'custom',        label: '🔔 Personalizado' },
+const TYPES: { value: string; label: string; icon: IconName }[] = [
+  { value: 'checkin_manha', label: 'Check-in Manhã', icon: 'sunrise' },
+  { value: 'checkin_tarde', label: 'Check-in Tarde', icon: 'sun' },
+  { value: 'checkin_noite', label: 'Check-in Noite', icon: 'moon' },
+  { value: 'habito',        label: 'Hábito',         icon: 'check-circle' },
+  { value: 'custom',        label: 'Personalizado',  icon: 'bell' },
 ]
 
 type Reminder = {
@@ -126,7 +127,7 @@ export default function LembretesPage() {
           background: 'var(--bg2)', border: '0.5px solid rgba(30,203,180,.38)',
           borderRadius: 12, padding: '10px 16px', fontSize: 13, color: 'var(--teal-ink)',
           display: 'flex', alignItems: 'center', gap: 8, zIndex: 200, whiteSpace: 'nowrap',
-        }}>✓ {toast}</div>
+        }}><Icon name="check" size={14} />{toast}</div>
       )}
 
       {/* Header */}
@@ -144,7 +145,7 @@ export default function LembretesPage() {
       {/* Estado vazio */}
       {reminders.length === 0 && (
         <div style={{ margin: '0 20px', padding: 24, borderRadius: 16, background: 'var(--bg2)', border: '0.5px solid var(--border)', textAlign: 'center' }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🔔</div>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: 'var(--text3)' }}><Icon name="bell" size={36} /></div>
           <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 16, marginBottom: 8 }}>Sem lembretes</div>
           <p style={{ fontSize: 13, color: 'var(--text2)', marginBottom: 20, lineHeight: 1.6 }}>Adiciona lembretes para os check-ins ou cria os teus.</p>
           <button onClick={addDefault} style={{
@@ -170,9 +171,10 @@ export default function LembretesPage() {
             <div style={{
               width: 40, height: 40, borderRadius: 12, flexShrink: 0,
               background: r.active ? 'rgba(232,168,56,.12)' : 'var(--bg3)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: r.active ? 'var(--gold-ink)' : 'var(--text3)',
             }}>
-              {TYPES.find(t => t.value === r.type)?.label.split(' ')[0] ?? '🔔'}
+              <Icon name={TYPES.find(t => t.value === r.type)?.icon ?? 'bell'} size={19} />
             </div>
 
             {/* Info */}

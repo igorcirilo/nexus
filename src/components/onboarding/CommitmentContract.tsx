@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Icon, { IconLabel } from '@/components/ui/Icon'
 
 /**
  * Ecrã de contrato de compromisso no fim do onboarding (adaptado das ideias de
@@ -49,7 +50,7 @@ export default function CommitmentContract({ name, loading, onAccept }: Props) {
   return (
     <div style={{ minHeight: '100dvh', display: 'flex', flexDirection: 'column', background: 'var(--bg0)', fontFamily: FONT, padding: '0 22px' }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', maxWidth: 480, width: '100%', margin: '0 auto' }}>
-        <div style={{ width: 66, height: 66, borderRadius: 20, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, background: 'linear-gradient(135deg, rgba(232,168,56,.2), rgba(127,119,221,.16))', border: '1px solid rgba(232,168,56,.4)' }}>🤝</div>
+        <div style={{ width: 66, height: 66, borderRadius: 20, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--gold-ink)', background: 'linear-gradient(135deg, rgba(232,168,56,.2), rgba(127,119,221,.16))', border: '1px solid rgba(232,168,56,.4)' }}><Icon name="users" size={30} /></div>
         <h1 style={{ textAlign: 'center', marginTop: 18, fontSize: 24, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.3px' }}>O teu compromisso</h1>
         <p style={{ textAlign: 'center', marginTop: 10, fontSize: 13, lineHeight: 1.55, color: 'var(--text2)', padding: '0 6px' }}>
           Assinar um compromisso aumenta a probabilidade de o cumprires. Este é o teu.
@@ -58,7 +59,7 @@ export default function CommitmentContract({ name, loading, onAccept }: Props) {
         <div style={{ marginTop: 22, display: 'flex', flexDirection: 'column', gap: 11 }}>
           {VOWS.map((v) => (
             <div key={v} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '14px 15px', borderRadius: 15, background: 'rgba(var(--ink-rgb),.035)', border: '1px solid var(--border)' }}>
-              <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(30,203,180,.16)', color: '#1ECBB4', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 900, flexShrink: 0, marginTop: 1 }}>✓</span>
+              <span style={{ width: 22, height: 22, borderRadius: '50%', background: 'rgba(30,203,180,.16)', color: '#1ECBB4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}><Icon name="check" size={13} style={{ strokeWidth: 2.6 }} /></span>
               <p style={{ fontSize: 13, lineHeight: 1.45, color: 'var(--text1)', fontWeight: 500 }}>{v}</p>
             </div>
           ))}
@@ -96,7 +97,7 @@ export default function CommitmentContract({ name, loading, onAccept }: Props) {
           />
           <span style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 3 }}>
             <b style={{ fontSize: 15, fontWeight: 800, color: '#F2C45A' }}>
-              {loading ? 'A preparar…' : done ? 'Compromisso assinado ✓' : 'Mantém premido para aceitar'}
+              {loading ? 'A preparar…' : done ? <IconLabel icon="check" size={15} after>Compromisso assinado</IconLabel> : 'Mantém premido para aceitar'}
             </b>
             <span style={{ fontSize: 11, color: 'var(--text2)' }}>{name} · {today}</span>
           </span>

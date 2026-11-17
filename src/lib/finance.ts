@@ -4,6 +4,7 @@
 // testadas sem BD nem React. A página continua a orquestrar fetch + estado; aqui
 // vivem só os cálculos (somatórios, série mensal e resumo de orçamento).
 
+import type { IconName } from '@/lib/icons'
 import { EMERGENCY_CAT, INVEST_CAT, PROJECTED_CAT } from '@/lib/categories'
 
 export interface FinTx {
@@ -348,7 +349,7 @@ export function buildMonthSummary(
 }
 
 export interface MonthCloseHeadline {
-  icon: string
+  icon: IconName
   text: string
   tone: 'positive' | 'info'
 }
@@ -363,18 +364,18 @@ export function monthCloseHeadline(
   fmt: (v: number) => string,
 ): MonthCloseHeadline {
   if (cur.saved > 0 && cur.saved >= prev.saved) {
-    return { icon: '🎉', tone: 'positive', text: `Poupaste ${fmt(cur.saved)} este mês.` }
+    return { icon: 'piggy-bank', tone: 'positive', text: `Poupaste ${fmt(cur.saved)} este mês.` }
   }
   if (cur.balance > prev.balance && cur.balance > 0) {
-    return { icon: '📈', tone: 'positive', text: `Sobrou-te ${fmt(cur.balance - prev.balance)} a mais do que no mês anterior.` }
+    return { icon: 'trend-up', tone: 'positive', text: `Sobrou-te ${fmt(cur.balance - prev.balance)} a mais do que no mês anterior.` }
   }
   if (cur.spending < prev.spending && prev.spending > 0) {
-    return { icon: '💪', tone: 'positive', text: `Gastaste ${fmt(prev.spending - cur.spending)} a menos do que no mês anterior.` }
+    return { icon: 'trend-down', tone: 'positive', text: `Gastaste ${fmt(prev.spending - cur.spending)} a menos do que no mês anterior.` }
   }
   if (cur.balance >= 0) {
-    return { icon: '✅', tone: 'info', text: `Fechaste o mês no positivo, com ${fmt(cur.balance)}.` }
+    return { icon: 'check-circle', tone: 'info', text: `Fechaste o mês no positivo, com ${fmt(cur.balance)}.` }
   }
-  return { icon: '📊', tone: 'info', text: `Fechaste o mês em ${fmt(cur.balance)} — o próximo é uma nova página.` }
+  return { icon: 'bar-chart', tone: 'info', text: `Fechaste o mês em ${fmt(cur.balance)} — o próximo é uma nova página.` }
 }
 
 export interface RecurringLike {
@@ -477,7 +478,7 @@ export function detectAnomalies(
 
 export interface Insight {
   id: string
-  icon: string
+  icon: IconName
   text: string
   tone: 'positive' | 'warning' | 'danger' | 'info'
   /** Relevância (maior = mais importante); a UI mostra o(s) do topo. */
@@ -531,7 +532,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
     .sort((a, b) => b.over - a.over)[0]
   if (overCat) {
     out.push({
-      id: `budget-over-${overCat.cat}`, icon: '🚨', tone: 'danger', score: 90,
+      id: `budget-over-${overCat.cat}`, icon: 'alert-circle', tone: 'danger', score: 90,
       text: `Ultrapassaste o orçamento de ${overCat.cat} em ${fmt(overCat.over)}.`,
     })
   }
@@ -543,7 +544,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
     .sort((a, b) => b.pct - a.pct)[0]
   if (nearCat) {
     out.push({
-      id: `budget-near-${nearCat.cat}`, icon: '⏳', tone: 'warning', score: 80,
+      id: `budget-near-${nearCat.cat}`, icon: 'hourglass', tone: 'warning', score: 80,
       text: `Estás a ${fmt(nearCat.left)} de ultrapassar o orçamento de ${nearCat.cat}.`,
     })
   }
@@ -554,7 +555,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
     const desc = topAnomaly.description ? ` (${topAnomaly.description})` : ''
     out.push({
       id: `anomaly-${topAnomaly.category}-${Math.round(topAnomaly.amount)}`,
-      icon: '🔎', tone: veryHigh ? 'danger' : 'warning', score: 85,
+      icon: 'search', tone: veryHigh ? 'danger' : 'warning', score: 85,
       text: `Cobrança incomum: ${fmt(topAnomaly.amount)} em ${topAnomaly.category}${desc} — ${topAnomaly.ratio.toFixed(1)}× o teu gasto habitual (${fmt(topAnomaly.mean)}).`,
     })
   }
@@ -568,7 +569,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
     .sort((a, b) => b.spent - b.avg - (a.spent - a.avg))[0]
   if (spike) {
     out.push({
-      id: `spike-${spike.cat}`, icon: '📈', tone: 'warning', score: 70,
+      id: `spike-${spike.cat}`, icon: 'trend-up', tone: 'warning', score: 70,
       text: `Gastaste +${spike.pct}% em ${spike.cat} este mês face à tua média (${fmt(spike.avg)}/mês).`,
     })
   }
@@ -581,21 +582,21 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
   const owe = mostOverdue('pagar')
   if (owe) {
     out.push({
-      id: `projected-pagar-${owe.person}`, icon: '⏰', tone: 'warning', score: 78,
+      id: `projected-pagar-${owe.person}`, icon: 'clock', tone: 'warning', score: 78,
       text: `Tens ${fmt(owe.outstanding)} por pagar a ${owe.person} — o prazo passou há ${plural(owe.daysOverdue)}.`,
     })
   }
   const owed = mostOverdue('receber')
   if (owed) {
     out.push({
-      id: `projected-receber-${owed.person}`, icon: '🔮', tone: 'info', score: 65,
+      id: `projected-receber-${owed.person}`, icon: 'hourglass', tone: 'info', score: 65,
       text: `Faltam receber ${fmt(owed.outstanding)} de ${owed.person} — o prazo passou há ${plural(owed.daysOverdue)}.`,
     })
   }
 
   if (daysSinceLastTx !== null && daysSinceLastTx >= 5) {
     out.push({
-      id: 'stale-log', icon: '✍️', tone: 'info', score: 60,
+      id: 'stale-log', icon: 'pencil', tone: 'info', score: 60,
       text: `Há ${daysSinceLastTx} dias sem registos — 30 segundos põem tudo em dia.`,
     })
   }
@@ -604,7 +605,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
   // comparar mês parcial com mês cheio de outra forma seria enganador.
   if (savingsThisMonth > 0 && savingsThisMonth > savingsPrevMonth) {
     out.push({
-      id: 'savings-beat', icon: '🎉', tone: 'positive', score: 50,
+      id: 'savings-beat', icon: 'piggy-bank', tone: 'positive', score: 50,
       text: `Já poupaste ${fmt(savingsThisMonth)} este mês — mais do que em todo o mês passado (${fmt(Math.max(0, savingsPrevMonth))}).`,
     })
   }
@@ -612,7 +613,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
   // Assinaturas recorrentes: custo mensal e anualizado (perceção de valor alta).
   if (subscriptionsMonthly > 0) {
     out.push({
-      id: 'subscriptions', icon: '📺', tone: 'info', score: 32,
+      id: 'subscriptions', icon: 'tv', tone: 'info', score: 32,
       text: `As tuas assinaturas somam ${fmt(subscriptionsMonthly)}/mês — ${fmt(subscriptionsMonthly * 12)}/ano.`,
     })
   }
@@ -620,7 +621,7 @@ export function buildInsights(input: InsightInput, fmt: (v: number) => string): 
   // Maior despesa fixa recorrente.
   if (topRecurring && topRecurring.amount > 0) {
     out.push({
-      id: `top-recurring-${topRecurring.cat}`, icon: '📌', tone: 'info', score: 24,
+      id: `top-recurring-${topRecurring.cat}`, icon: 'pin', tone: 'info', score: 24,
       text: `A tua maior despesa fixa é ${topRecurring.cat}: ${fmt(topRecurring.amount)}/mês.`,
     })
   }

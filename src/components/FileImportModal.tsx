@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react'
 import type { ChangeEvent, CSSProperties } from 'react'
 import ImportPreview from '@/components/ImportPreview'
+import Icon from '@/components/ui/Icon'
 import { extractPdfText } from '@/lib/pdf'
 import { parseSpreadsheetFile, downloadXlsx } from '@/lib/spreadsheet'
 import type { FileImportResult, FileImportStatus, ImportSourceKind } from '@/types'
@@ -391,7 +392,7 @@ export default function FileImportModal({
                       cursor: 'pointer',
                     }}
                   >
-                    <span style={{ fontSize: 16, lineHeight: 1, color: 'var(--teal-ink)' }}>↓</span>
+                    <Icon name="download" size={17} color="var(--teal-ink)" />
                     <span style={{ display: 'grid', gap: 2 }}>
                       <span style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 12 }}>
                         Baixar {template.name} (XLSX)

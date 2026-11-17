@@ -2,6 +2,7 @@
 // src/components/LegalPage.tsx — invólucro de leitura para páginas legais
 // (Privacidade, Termos). Público, legível, com botão de voltar.
 import Link from 'next/link'
+import Icon, { IconLabel } from '@/components/ui/Icon'
 import type { ReactNode } from 'react'
 
 export default function LegalPage({
@@ -10,11 +11,11 @@ export default function LegalPage({
   return (
     <main style={{ minHeight: '100dvh', background: 'var(--surface-page, #0D0F14)', fontFamily: 'Inter, sans-serif', color: 'var(--text1, #E8EAED)' }}>
       <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px 80px' }}>
-        <Link href="/perfil" style={{ fontSize: 13, color: 'var(--text3, #8A8F99)', textDecoration: 'none' }}>‹ Voltar</Link>
+        <Link href="/perfil" style={{ fontSize: 13, color: 'var(--text3, #8A8F99)', textDecoration: 'none' }}><IconLabel icon="chevron-left" size={14} gap={2}>Voltar</IconLabel></Link>
 
         {/* Aviso: modelo a validar por advogado antes do lançamento público. */}
         <div style={{ margin: '16px 0 24px', padding: '12px 14px', borderRadius: 12, background: 'rgba(232,168,56,.08)', border: '1px solid rgba(232,168,56,.25)', fontSize: 12.5, lineHeight: 1.6, color: 'var(--text2, #B6BAC2)' }}>
-          ⚠️ <b>Modelo preliminar (beta).</b> Este texto é um ponto de partida e
+          <Icon name="alert-triangle" size={14} color="var(--gold-ink)" style={{ display: 'inline-block', verticalAlign: '-2px', marginRight: 6 }} /><b>Modelo preliminar (beta).</b> Este texto é um ponto de partida e
           deve ser revisto por um profissional jurídico antes do lançamento
           público. Campos entre [colchetes] precisam de ser preenchidos.
         </div>

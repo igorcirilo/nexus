@@ -4,6 +4,7 @@
 // a concha de bottom sheet e os chips de ± para ajustar valores. Também os
 // estilos de label/input dos sheets.
 import type React from 'react'
+import Icon, { type IconName } from '@/components/ui/Icon'
 
 export const sheetLabel: React.CSSProperties = {
   fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
@@ -17,7 +18,7 @@ export const sheetInp: React.CSSProperties = {
 
 // Concha de bottom sheet partilhada (design do hub).
 export function Sheet({ icon, title, onClose, children, footer, tall }: {
-  icon?: string; title: string; onClose: () => void
+  icon?: IconName; title: string; onClose: () => void
   children: React.ReactNode; footer?: React.ReactNode; tall?: boolean
 }) {
   return (
@@ -33,9 +34,9 @@ export function Sheet({ icon, title, onClose, children, footer, tall }: {
       }}>
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '10px auto 0', flexShrink: 0 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
-          {icon && <span style={{ fontSize: 20 }}>{icon}</span>}
+          {icon && <Icon name={icon} size={20} color="var(--text2)" />}
           <div style={{ flex: 1, fontWeight: 800, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.3px' }}>{title}</div>
-          <button onClick={onClose} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text1)' }}>✕</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', display: 'grid', placeItems: 'center' }}><Icon name="x" size={15} /></button>
         </div>
         <div style={{ overflowY: 'auto', flex: 1, padding: '4px 20px 16px' }}>{children}</div>
         {footer && (

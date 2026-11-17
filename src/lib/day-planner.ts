@@ -287,7 +287,7 @@ function buildFocusSuggestion(items: PlanItem[], input: PlannerInput): string | 
 /** Aviso de capacidade — template, sem LLM. */
 function buildCapacityHint(items: PlanItem[], input: PlannerInput): string | null {
   const pending = items.filter((it) => !it.done)
-  if (pending.length === 0) return 'Dia limpo — está tudo feito. 🎯'
+  if (pending.length === 0) return 'Dia limpo: está tudo feito.'
   if (isLowEnergy(input.energy)) {
     return 'Energia baixa hoje — foca-te só nos 2 essenciais e descansa o resto.'
   }

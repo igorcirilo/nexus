@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Nav from '@/components/Nav'
+import Icon, { IconLabel, type IconName } from '@/components/ui/Icon'
+import { inkFor } from '@/lib/theme'
 import { requireUser } from '@/lib/supabase'
 import {
   getQuitHabits,
@@ -17,7 +19,7 @@ import { AREA_META } from '@/types'
 import type { QuitHabit, HabitArea } from '@/types'
 
 const FONT = 'Inter, sans-serif'
-const AREAS = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
+const AREAS = Object.entries(AREA_META) as [HabitArea, { label: string; icon: IconName; color: string }][]
 
 const SUGGESTIONS = ['Redes sociais em excesso', 'Procrastinar', 'Açúcar', 'Fumar', 'Roer as unhas', 'Fast food', 'Álcool', 'Compras por impulso']
 
@@ -70,7 +72,7 @@ export default function LargarPage() {
       showToast('Erro ao guardar. A tabela já foi criada na BD?')
     } else {
       await reload(userId)
-      showToast('A contar a partir de hoje. Força! 💪')
+      showToast('A contar a partir de hoje. Força!')
       setShowForm(false)
     }
     setSaving(false)
@@ -82,7 +84,7 @@ export default function LargarPage() {
     setRelapseFor(null)
     setRelapseNote('')
     await reload(userId)
-    showToast('Registado. Amanhã é um novo dia. 🌅')
+    showToast('Registado. Amanhã é um novo dia.')
   }
 
   async function doDelete() {
@@ -104,7 +106,7 @@ export default function LargarPage() {
       <div style={{ fontFamily: FONT, padding: '0 22px' }}>
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '20px 0 6px' }}>
-          <Link href="/habitos" aria-label="Voltar" style={backBtn}>‹</Link>
+          <Link href="/habitos" aria-label="Voltar" style={backBtn}><Icon name="chevron-left" size={18} /></Link>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Largar</div>
             <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, marginTop: 2 }}>
@@ -122,7 +124,7 @@ export default function LargarPage() {
           <div style={{ color: 'var(--text3)', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>A carregar…</div>
         ) : active.length === 0 ? (
           <div style={{ background: 'var(--surface-2)', border: '1px dashed rgba(var(--ink-rgb),0.15)', borderRadius: 18, padding: '28px 20px', textAlign: 'center', marginTop: 14 }}>
-            <div style={{ fontSize: 34, marginBottom: 8 }}>🚭</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: 'var(--text3)' }}><Icon name="ban" size={32} /></div>
             <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text1)' }}>Sem hábitos a largar</div>
             <div style={{ fontSize: 13, color: 'var(--text3)', margin: '6px 0 16px', lineHeight: 1.5 }}>
               Escolhe um mau hábito para deixar. Vamos contar cada dia sem recair.
@@ -150,7 +152,7 @@ export default function LargarPage() {
             <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '10px auto 0' }} />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)' }}>
               <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 17, color: 'var(--ink)' }}>Largar um hábito</h2>
-              <button onClick={() => setShowForm(false)} aria-label="Fechar" style={closeBtn}>✕</button>
+              <button onClick={() => setShowForm(false)} aria-label="Fechar" style={closeBtn}><Icon name="x" size={15} /></button>
             </div>
             <div style={{ overflowY: 'auto', padding: '4px 20px 16px' }}>
               <label style={fieldLabel}>Qual hábito queres largar?</label>
@@ -178,7 +180,7 @@ export default function LargarPage() {
                         border: on ? `1px solid ${meta.color}77` : '1px solid rgba(var(--ink-rgb),0.10)',
                       }}
                     >
-                      <span>{meta.icon}</span>{meta.label}
+                      <Icon name={meta.icon} size={15} />{meta.label}
                     </button>
                   )
                 })}
@@ -258,7 +260,7 @@ function QuitCard({ habit, onRelapse, onDelete }: { habit: QuitHabit; onRelapse:
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text1)', display: 'flex', alignItems: 'center', gap: 7 }}>
-            {meta && <span style={{ fontSize: 14 }}>{meta.icon}</span>}
+            {meta && <Icon name={meta.icon} size={14} color={inkFor(meta.color)} />}
             <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{habit.name}</span>
           </div>
           {habit.motivation && (
@@ -279,8 +281,8 @@ function QuitCard({ habit, onRelapse, onDelete }: { habit: QuitHabit; onRelapse:
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 11.5, color: 'var(--text3)', marginBottom: 14 }}>
-        <span>🏆 Recorde: <strong style={{ color: 'var(--text2)' }}>{Math.max(habit.best_streak, days)} d</strong></span>
-        {next != null && <span>🎯 Próximo marco: <strong style={{ color: 'var(--text2)' }}>{next} d</strong></span>}
+        <IconLabel icon="trophy" size={13} gap={4}>Recorde: <strong style={{ color: 'var(--text2)' }}>{Math.max(habit.best_streak, days)} d</strong></IconLabel>
+        {next != null && <IconLabel icon="target" size={13} gap={4}>Próximo marco: <strong style={{ color: 'var(--text2)' }}>{next} d</strong></IconLabel>}
       </div>
 
       {/* Barra até ao próximo marco */}
@@ -304,7 +306,7 @@ const relapseBtn: CSSProperties = { width: '100%', padding: '11px 0', borderRadi
 const input: CSSProperties = { width: '100%', background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.10)', borderRadius: 13, padding: '13px 14px', color: 'var(--text1)', fontFamily: FONT, fontSize: 14, fontWeight: 600, outline: 'none' }
 const suggChip: CSSProperties = { fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 20, border: '1px solid rgba(var(--ink-rgb),0.1)', background: 'transparent', color: 'var(--text2)', cursor: 'pointer', fontFamily: FONT }
 const fieldLabel: CSSProperties = { fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--text3)', display: 'block', margin: '16px 0 8px' }
-const closeBtn: CSSProperties = { width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', fontSize: 14 }
+const closeBtn: CSSProperties = { width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', display: 'grid', placeItems: 'center' }
 const overlay: CSSProperties = { position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', alignItems: 'flex-end', background: 'rgba(0,0,0,.6)' }
 const centerOverlay: CSSProperties = { position: 'fixed', inset: 0, zIndex: 10001, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.7)', padding: 24 }
 const sheet: CSSProperties = { width: '100%', maxWidth: 448, margin: '0 auto', background: 'var(--surface-card)', borderRadius: '24px 24px 0 0', borderTop: '1px solid rgba(var(--ink-rgb),0.12)', display: 'flex', flexDirection: 'column', maxHeight: 'min(88dvh, 760px)', fontFamily: FONT, boxShadow: '0 -20px 60px rgba(0,0,0,0.6)' }

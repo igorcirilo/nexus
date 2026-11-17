@@ -8,6 +8,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { withDeadline } from '@/lib/supabase-fetch'
+import Icon, { IconLabel, type IconName } from '@/components/ui/Icon'
 
 const TERMS_VERSION = 'beta-2026-06-28'
 
@@ -23,6 +24,9 @@ const SOCIAL_LOGIN_ENABLED = false
 // timeout) e a espera pelo lock interno do auth-js. Sem isto o botão ficava
 // preso em "A processar…" para sempre.
 const AUTH_TIMEOUT_MS = 15_000
+const PILLS: [IconName, string][] = [['target', 'Hábitos'], ['brain', 'Foco'], ['clock', 'Rotina'], ['bar-chart', 'Insights']]
+// Única mensagem de sucesso que partilha a caixa de erro (tom verde).
+const RESET_SENT = 'Email de recuperação enviado.'
 const NET_ERROR = 'Não foi possível contactar o servidor. Verifica a ligação e tenta de novo.'
 
 const inp: React.CSSProperties = {
@@ -115,7 +119,7 @@ export default function AuthPage() {
       redirectTo: `${window.location.origin}/auth`,
     })
     if (e) setError(e.message)
-    else setError('✓ Email de recuperação enviado.')
+    else setError(RESET_SENT)
   }
 
   // Login social. A implementação é real (Supabase OAuth); só falta ativar os
@@ -167,7 +171,7 @@ export default function AuthPage() {
           line-height: 1.6; padding: 18px 26px 30px; }
         .orbit-eye { position: absolute; right: 14px; top: 50%;
           transform: translateY(-50%); background: none; border: none;
-          cursor: pointer; color: var(--text3); font-size: 15px; padding: 0; }
+          cursor: pointer; color: var(--text3); padding: 0; display: grid; place-items: center; }
         .orbit-dvd { display: flex; align-items: center; gap: 14px;
           margin: 18px 0; font-size: 12px; color: var(--text3); }
         .orbit-dvd::before, .orbit-dvd::after { content: ""; flex: 1; height: 1px;
@@ -216,8 +220,8 @@ export default function AuthPage() {
             {isNew ? 'Hábitos, rotina e foco — começa em segundos.' : 'Hábitos, rotina e foco — organizados todos os dias por ti e pela NEXUS.'}
           </p>
           <div className="orbit-pills">
-            {['🎯 Hábitos','🧠 Foco','⏰ Rotina','📊 Insights'].map(t => (
-              <span key={t} className="orbit-pill">{t}</span>
+            {PILLS.map(([icon, t]) => (
+              <span key={t} className="orbit-pill"><Icon name={icon} size={14} />{t}</span>
             ))}
           </div>
         </div>
@@ -254,7 +258,7 @@ export default function AuthPage() {
                 onFocus={e => e.target.style.borderColor='rgba(232,168,56,.6)'}
                 onBlur={e  => e.target.style.borderColor='rgba(var(--ink-rgb),.12)'}
                 onKeyDown={e => e.key === 'Enter' && submit()} />
-              <button type="button" className="orbit-eye" onClick={() => setShowPw(v => !v)}>{showPw ? '🙈' : '👁'}</button>
+              <button type="button" className="orbit-eye" onClick={() => setShowPw(v => !v)} aria-label={showPw ? 'Esconder palavra-passe' : 'Mostrar palavra-passe'}><Icon name={showPw ? 'eye-off' : 'eye'} size={18} /></button>
             </div>
           </div>
 
@@ -291,10 +295,10 @@ export default function AuthPage() {
           {error && (
             <div style={{
               padding:'10px 14px', borderRadius:10, marginBottom:16, fontSize:13,
-              background: error.startsWith('✓') ? 'rgba(30,203,180,.1)' : 'rgba(226,75,74,.1)',
-              border: `0.5px solid ${error.startsWith('✓') ? 'rgba(30,203,180,.3)' : 'rgba(226,75,74,.3)'}`,
-              color: error.startsWith('✓') ? 'var(--teal)' : '#E24B4A',
-            }}>{error}</div>
+              background: error === RESET_SENT ? 'rgba(30,203,180,.1)' : 'rgba(226,75,74,.1)',
+              border: `0.5px solid ${error === RESET_SENT ? 'rgba(30,203,180,.3)' : 'rgba(226,75,74,.3)'}`,
+              color: error === RESET_SENT ? 'var(--teal)' : '#E24B4A',
+            }}>{error === RESET_SENT ? <IconLabel icon="check">{error}</IconLabel> : error}</div>
           )}
 
           {/* Botão principal */}
@@ -306,7 +310,7 @@ export default function AuthPage() {
             color:      canSubmit ? 'var(--on-bright)' : 'var(--text3)',
             opacity: loading ? 0.7 : 1,
           }}>
-            {loading ? 'A processar…' : isNew ? 'Criar conta →' : 'Entrar →'}
+            {loading ? 'A processar…' : <IconLabel icon="arrow-right" size={16} after>{isNew ? 'Criar conta' : 'Entrar'}</IconLabel>}
           </button>
 
           {/* Login social */}
@@ -355,19 +359,19 @@ export default function AuthPage() {
             <div style={{ position:'absolute', top:0, left:'50%', transform:'translateX(-50%)', width:96, height:22, background:'#000', borderRadius:'0 0 14px 14px' }} />
             <div style={{ marginTop:14 }}>
               <div style={{ fontSize:11, color:'#9BA0B0' }}>Quinta · 18 jun</div>
-              <div style={{ fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:20, marginTop:2, color:'#F0EDE8' }}>Olá, Igor 👋</div>
+              <div style={{ fontFamily:'Inter, sans-serif', fontWeight:700, fontSize:20, marginTop:2, color:'#F0EDE8' }}>Olá, Igor</div>
             </div>
             {/* Próxima ação */}
             <div style={{ marginTop:14, background:'linear-gradient(135deg,rgba(232,168,56,.18),rgba(232,168,56,.05))', border:'1px solid rgba(232,168,56,.3)', borderRadius:16, padding:14 }}>
               <div style={{ fontSize:10, textTransform:'uppercase', letterSpacing:'.1em', color:'#E8A838' }}>Próxima ação</div>
               <div style={{ fontWeight:700, fontSize:14, marginTop:4, color:'#F0EDE8' }}>Treino de força · 18:00</div>
-              <div style={{ marginTop:10, height:34, borderRadius:9, background:'#E8A838', color:'#0D0F14', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:12.5, fontFamily:'Inter, sans-serif' }}>Começar agora →</div>
+              <div style={{ marginTop:10, height:34, borderRadius:9, background:'#E8A838', color:'#0D0F14', display:'flex', alignItems:'center', justifyContent:'center', fontWeight:700, fontSize:12.5, fontFamily:'Inter, sans-serif', gap:5 }}>Começar agora <Icon name="arrow-right" size={14} /></div>
             </div>
             {/* Métricas */}
             <div style={{ display:'flex', gap:9, marginTop:12 }}>
               <div style={{ flex:1, background:'#161824', border:'1px solid rgba(255,255,255,.07)', borderRadius:13, padding:11 }}>
                 <div style={{ fontSize:9, color:'#9BA0B0' }}>Ofensiva</div>
-                <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:19, color:'#E24B4A' }}>47🔥</div>
+                <div style={{ fontFamily:'Inter, sans-serif', fontWeight:800, fontSize:19, color:'#E24B4A', display:'flex', alignItems:'center', gap:4 }}>47<Icon name="flame" size={17} /></div>
               </div>
               <div style={{ flex:1, background:'#161824', border:'1px solid rgba(255,255,255,.07)', borderRadius:13, padding:11 }}>
                 <div style={{ fontSize:9, color:'#9BA0B0' }}>Nível</div>
@@ -381,8 +385,8 @@ export default function AuthPage() {
                 {([['Beber 2L água', true], ['Leitura 20 min', true], ['Meditação', false]] as const).map(([txt, done]) => (
                   <div key={txt} style={{ display:'flex', alignItems:'center', gap:9, fontSize:12.5, color: done ? '#F0EDE8' : '#9BA0B0' }}>
                     <span style={done
-                      ? { width:16, height:16, borderRadius:5, background:'#1ECBB4', color:'#0D0F14', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:800 }
-                      : { width:16, height:16, borderRadius:5, border:'1.5px solid rgba(255,255,255,.2)' }}>{done ? '✓' : ''}</span>
+                      ? { width:16, height:16, borderRadius:5, background:'#1ECBB4', color:'#0D0F14', display:'flex', alignItems:'center', justifyContent:'center' }
+                      : { width:16, height:16, borderRadius:5, border:'1.5px solid rgba(255,255,255,.2)' }}>{done && <Icon name="check" size={11} style={{ strokeWidth: 2.8 }} />}</span>
                     {txt}
                   </div>
                 ))}
@@ -392,14 +396,14 @@ export default function AuthPage() {
         </div>
 
         {/* Pills flutuantes */}
-        <div style={{ top:60, left:34 }} className="orbit-fpill">🎯 Hábitos</div>
-        <div style={{ top:130, right:30 }} className="orbit-fpill">🧠 Foco</div>
-        <div style={{ bottom:150, left:26 }} className="orbit-fpill">⏰ Rotina</div>
-        <div style={{ bottom:70, right:36 }} className="orbit-fpill">📊 Insights</div>
+        <div style={{ top:60, left:34 }} className="orbit-fpill"><Icon name="target" size={15} />Hábitos</div>
+        <div style={{ top:130, right:30 }} className="orbit-fpill"><Icon name="brain" size={15} />Foco</div>
+        <div style={{ bottom:150, left:26 }} className="orbit-fpill"><Icon name="clock" size={15} />Rotina</div>
+        <div style={{ bottom:70, right:36 }} className="orbit-fpill"><Icon name="bar-chart" size={15} />Insights</div>
 
         {/* Bolha do assistente */}
         <div style={{ position:'absolute', top:36, right:40, maxWidth:210, background:'#171a24', border:'1px solid rgba(232,168,56,.3)', borderRadius:'14px 14px 4px 14px', padding:'12px 14px', fontSize:12.5, lineHeight:1.5, color:'#F0EDE8', fontFamily:'DM Sans, sans-serif', boxShadow:'0 16px 30px -12px rgba(0,0,0,.6)' }}>
-          <b style={{ color:'#E8A838' }}>✦ Assistente:</b> sugiro 20 min de leitura antes de dormir 🌙
+          <b style={{ color:'#E8A838' }}>Assistente:</b> sugiro 20 min de leitura antes de dormir.
         </div>
       </div>
     </div>

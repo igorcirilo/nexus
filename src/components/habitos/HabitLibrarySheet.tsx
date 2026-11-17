@@ -6,6 +6,8 @@ import { AREA_META } from '@/types'
 import type { HabitArea } from '@/types'
 import { LIBRARY_BY_AREA, LIBRARY_ALL, searchLibrary } from '@/lib/habit-library'
 import type { LibraryHabit } from '@/lib/habit-library'
+import Icon, { type IconName } from '@/components/ui/Icon'
+import { inkFor } from '@/lib/theme'
 
 const FONT = 'Inter, sans-serif'
 
@@ -68,9 +70,9 @@ export default function HabitLibrarySheet({ existingKeys, existingNames, busyKey
           <button
             onClick={onClose}
             aria-label="Fechar"
-            style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', fontSize: 14, flexShrink: 0 }}
+            style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', flexShrink: 0, display: 'grid', placeItems: 'center' }}
           >
-            ✕
+            <Icon name="x" size={15} />
           </button>
         </div>
 
@@ -79,7 +81,7 @@ export default function HabitLibrarySheet({ existingKeys, existingNames, busyKey
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="🔍  Procurar hábito…"
+            placeholder="Procurar hábito…"
             style={{
               width: '100%',
               background: 'var(--surface-2)',
@@ -100,7 +102,7 @@ export default function HabitLibrarySheet({ existingKeys, existingNames, busyKey
           <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '0 20px 12px', flexShrink: 0 }}>
             <Chip label="Todos" active={tab === 'all'} onClick={() => setTab('all')} />
             {AREAS.map((a) => (
-              <Chip key={a} label={`${AREA_META[a].icon} ${AREA_META[a].label}`} active={tab === a} onClick={() => setTab(a)} />
+              <Chip key={a} icon={AREA_META[a].icon} label={AREA_META[a].label} active={tab === a} onClick={() => setTab(a)} />
             ))}
           </div>
         )}
@@ -130,7 +132,9 @@ export default function HabitLibrarySheet({ existingKeys, existingNames, busyKey
                       padding: '11px 12px',
                     }}
                   >
-                    <span style={{ fontSize: 20, flexShrink: 0, width: 26, textAlign: 'center' }}>{h.icon}</span>
+                    <span style={{ width: 32, height: 32, borderRadius: 10, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(var(--ink-rgb),0.05)', color: inkFor(meta.color) }}>
+                      <Icon name={meta.icon} size={17} />
+                    </span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.name}</div>
                       <div style={{ fontSize: 11, color: 'var(--text3)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -157,7 +161,12 @@ export default function HabitLibrarySheet({ existingKeys, existingNames, busyKey
                         opacity: busy ? 0.6 : 1,
                       }}
                     >
-                      {busy ? '…' : added ? '✓ Adicionado' : '+ Adicionar'}
+                      {busy ? '…' : (
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          <Icon name={added ? 'check' : 'plus'} size={13} />
+                          {added ? 'Adicionado' : 'Adicionar'}
+                        </span>
+                      )}
                     </button>
                   </div>
                 )
@@ -174,9 +183,12 @@ function normalize(text: string): string {
   return text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
 }
 
-function Chip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function Chip({ label, icon, active, onClick }: { label: string; icon?: IconName; active: boolean; onClick: () => void }) {
   const style: CSSProperties = {
     flexShrink: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
     fontSize: 12,
     fontWeight: 600,
     padding: '7px 14px',
@@ -187,5 +199,10 @@ function Chip({ label, active, onClick }: { label: string; active: boolean; onCl
     whiteSpace: 'nowrap',
     cursor: 'pointer',
   }
-  return <button onClick={onClick} style={style}>{label}</button>
+  return (
+    <button onClick={onClick} style={style}>
+      {icon && <Icon name={icon} size={14} />}
+      {label}
+    </button>
+  )
 }

@@ -1,5 +1,6 @@
 'use client'
 // src/components/StreakRecovery.tsx
+import Icon, { IconLabel } from '@/components/ui/Icon'
 
 interface Props {
   prevBest: number
@@ -26,12 +27,12 @@ export default function StreakRecovery({ prevBest, canRecover, onRecover, onDism
           width: 26, height: 26, borderRadius: 8,
           background: 'var(--bg3)', border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: 'var(--text3)', fontSize: 14, lineHeight: 1,
-        }}>
-        ×
+          color: 'var(--text3)', lineHeight: 1,
+        }} aria-label="Fechar">
+        <Icon name="x" size={14} />
       </button>
 
-      <div style={{ fontSize: 32, marginBottom: 12 }}>🌱</div>
+      <div style={{ marginBottom: 12, color: 'var(--green-ink)' }}><Icon name="sprout" size={30} /></div>
 
       <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 17, color: 'var(--text1)', marginBottom: 8, lineHeight: 1.3 }}>
         Ontem não aconteceu.<br />Hoje é o Dia 1.
@@ -58,7 +59,7 @@ export default function StreakRecovery({ prevBest, canRecover, onRecover, onDism
               fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 13,
               cursor: 'pointer', marginBottom: 8,
             }}>
-            🧊 Usar freeze — recuperar streak
+            <IconLabel icon="snowflake" size={15}>Usar freeze — recuperar streak</IconLabel>
           </button>
           <div style={{ height: 1, background: 'var(--border)', marginBottom: 14 }} />
         </>
@@ -75,7 +76,7 @@ export default function StreakRecovery({ prevBest, canRecover, onRecover, onDism
           fontFamily: 'Inter, sans-serif', fontWeight: 600, fontSize: 13,
           cursor: 'pointer',
         }}>
-        Fazer o check-in da manhã →
+        <IconLabel icon="arrow-right" size={15} after>Fazer o check-in da manhã</IconLabel>
       </button>
     </div>
   )

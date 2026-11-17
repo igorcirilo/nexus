@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import Nav from '@/components/Nav'
+import { IconLabel } from '@/components/ui/Icon'
 import LeituraHub from '@/components/leitura/LeituraHub'
 import FileImportModal from '@/components/FileImportModal'
 import ErrorState from '@/components/ui/ErrorState'
@@ -342,7 +343,7 @@ export default function LeituraPage() {
           borderRadius: 12, padding: '10px 16px', fontSize: 13, color: 'var(--green-ink)',
           fontFamily: 'Inter, sans-serif', whiteSpace: 'nowrap',
         }}>
-          ✓ {toast}
+          <IconLabel icon="check">{toast}</IconLabel>
         </div>
       )}
 
@@ -456,7 +457,7 @@ export default function LeituraPage() {
                               }} />
                             </div>
                             <div style={{ display:'flex', justifyContent:'space-between', fontSize:11, color:'var(--text3)' }}>
-                              <span>{pct >= 100 ? '✓ Concluído' : `${pct}% lido`}</span>
+                              <span>{pct >= 100 ? <IconLabel icon="check" size={11} gap={3}>Concluído</IconLabel> : `${pct}% lido`}</span>
                               <span>Página {curPage}</span>
                             </div>
                           </div>

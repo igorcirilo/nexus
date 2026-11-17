@@ -4,6 +4,7 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { format } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import ConfirmDialog from '@/components/ui/ConfirmDialog'
+import Icon from '@/components/ui/Icon'
 import { useToast } from '@/components/Toast'
 import { getWeightLogs, upsertWeightLog, deleteWeightLog, type WeightLog } from '@/lib/body'
 import { updateProfile } from '@/lib/supabase'
@@ -106,8 +107,8 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
     : null
   const deltaAbs = deltaNum !== null ? Math.abs(deltaNum).toFixed(1) : null
   // Tom neutro: direção sem juízo de valor (subir não é "mau", descer não é "bom").
-  const deltaArrow = deltaNum === null ? '' : Math.abs(deltaNum) < 0.1 ? '→' : deltaNum > 0 ? '↑' : '↓'
-  const deltaLabel = deltaNum === null ? '' : Math.abs(deltaNum) < 0.1 ? 'estável' : `${deltaArrow} ${deltaAbs} kg`
+  const deltaIcon = deltaNum === null || Math.abs(deltaNum) < 0.1 ? null : deltaNum > 0 ? 'arrow-up' as const : 'arrow-down' as const
+  const deltaLabel = deltaNum === null ? '' : Math.abs(deltaNum) < 0.1 ? 'estável' : `${deltaNum > 0 ? '+' : '−'}${deltaAbs} kg`
 
   // Distância até a meta — responde "quanto falta?" sem juízo de valor.
   const goalDelta = goalWeight !== null && latest ? Number(latest.weight_kg) - Number(goalWeight) : null
@@ -302,7 +303,9 @@ export default function WeightLogComponent({ userId, heightCm, goalWeight, onHei
                 fontWeight: 700,
                 fontFamily: 'Inter, sans-serif',
                 color: 'var(--text1)',
+                display: 'flex', alignItems: 'center', gap: 4,
               }}>
+                {deltaIcon && <Icon name={deltaIcon} size={12} style={{ strokeWidth: 2.4 }} />}
                 {deltaLabel}
               </div>
             </div>

@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 import type { Profile, UserBadge } from '@/types'
+import Icon, { IconLabel, type IconName } from '@/components/ui/Icon'
+import { badgeIcon } from '@/lib/badges'
+import { inkFor } from '@/lib/theme'
 import { getTheme, toggleTheme, darkCardInk } from '@/lib/theme'
 import { enablePush, disablePush, isPushEnabled, syncTimezone } from '@/lib/push'
 import { emitToast } from '@/lib/toast-events'
@@ -12,16 +15,16 @@ const FONT = 'Inter, sans-serif'
 type Section = 'corpo'
 
 const ALL_BADGES = [
-  { key: 'primeiro_checkin', name: 'Primeira Vez', icon: '🌅', color: '#F5C842' },
-  { key: 'streak_7',         name: 'Uma Semana',   icon: '🔥', color: '#F5C842' },
-  { key: 'streak_21',        name: 'Três Semanas', icon: '⚡', color: '#9D5CF5' },
-  { key: 'streak_100',       name: 'Centenário',   icon: '💎', color: '#00D4C8' },
-  { key: 'ritmo_80',         name: 'Em Chamas',    icon: '🚀', color: '#F5C842' },
-  { key: 'consistencia_30',  name: 'Inabalável',   icon: '🏔️', color: '#9D5CF5' },
+  { key: 'primeiro_checkin', name: 'Primeira Vez', icon: badgeIcon('primeiro_checkin'), color: '#F5C842' },
+  { key: 'streak_7',         name: 'Uma Semana',   icon: badgeIcon('streak_7'), color: '#F5C842' },
+  { key: 'streak_21',        name: 'Três Semanas', icon: badgeIcon('streak_21'), color: '#9D5CF5' },
+  { key: 'streak_100',       name: 'Centenário',   icon: badgeIcon('streak_100'), color: '#00D4C8' },
+  { key: 'ritmo_80',         name: 'Em Chamas',    icon: badgeIcon('ritmo_80'), color: '#F5C842' },
+  { key: 'consistencia_30',  name: 'Inabalável',   icon: badgeIcon('consistencia_30'), color: '#9D5CF5' },
 ]
 
-const NAV_SECTIONS: { section: Section; label: string; sub: string; icon: string; color: string }[] = [
-  { section: 'corpo', label: 'Corpo & Físico', sub: 'Medidas, água e treinos', icon: '💪', color: '#00C896' },
+const NAV_SECTIONS: { section: Section; label: string; sub: string; icon: IconName; color: string }[] = [
+  { section: 'corpo', label: 'Corpo & Físico', sub: 'Medidas, água e treinos', icon: 'dumbbell', color: '#00C896' },
 ]
 
 interface Props {
@@ -196,10 +199,10 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                 width: 30, height: 30, borderRadius: '50%',
                 background: '#F5C842', border: '3px solid var(--surface-page)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: photoUploading ? 'wait' : 'pointer', fontSize: 13, padding: 0,
+                cursor: photoUploading ? 'wait' : 'pointer', padding: 0,
               }}
             >
-              📷
+              <Icon name="camera" size={14} />
             </button>
           )}
         </div>
@@ -244,17 +247,17 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 8, width: '100%', maxWidth: 360 }}>
           {[
-            { label: 'Ritmo',     value: ritmo,                    icon: '⚡', color: 'var(--gold-ink)' },
-            { label: 'Sequência', value: profile.streak_current,   icon: '🔥', color: 'var(--red-ink)' },
-            { label: 'Recorde',   value: profile.streak_best,      icon: '🏆', color: 'var(--teal-ink)' },
-            { label: 'Badges',    value: earnedBadges.length,      icon: '🎖️', color: 'var(--purple-ink)' },
+            { label: 'Ritmo',     value: ritmo,                    icon: 'zap' as IconName, color: 'var(--gold-ink)' },
+            { label: 'Sequência', value: profile.streak_current,   icon: 'flame' as IconName, color: 'var(--red-ink)' },
+            { label: 'Recorde',   value: profile.streak_best,      icon: 'trophy' as IconName, color: 'var(--teal-ink)' },
+            { label: 'Badges',    value: earnedBadges.length,      icon: 'medal' as IconName, color: 'var(--purple-ink)' },
           ].map(s => (
             <div key={s.label} style={{
               flex: 1, background: 'var(--surface-2)',
               border: '1px solid rgba(var(--ink-rgb),0.07)',
               borderRadius: 14, padding: '11px 6px', textAlign: 'center',
             }}>
-              <div style={{ fontSize: 16, lineHeight: 1, marginBottom: 4 }}>{s.icon}</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4, color: 'var(--text2)' }}><Icon name={s.icon} size={16} /></div>
               <div style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
               <div style={{ fontSize: 10, color: 'var(--text2)', fontWeight: 500, marginTop: 3 }}>{s.label}</div>
             </div>
@@ -339,7 +342,7 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
           <SectionLabel>Conquistas</SectionLabel>
           {onOpenAchievements && (
             <button onClick={onOpenAchievements} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: 'var(--gold-ink)', fontFamily: 'inherit', marginTop: 10 }}>
-              Conquistas &amp; Metas ›
+              <IconLabel icon="chevron-right" size={13} gap={2} after>Conquistas &amp; Metas</IconLabel>
             </button>
           )}
         </div>
@@ -353,9 +356,9 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                   width: 52, height: 52, borderRadius: 16,
                   background: hexAlpha(b.color, 0.12), border: `1px solid ${hexAlpha(b.color, 0.3)}`,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 24,
+                  color: inkFor(b.color),
                 }}>
-                  {b.icon}
+                  <Icon name={b.icon} size={24} />
                 </div>
                 <div style={{
                   fontSize: 10, fontWeight: 600, color: 'var(--text1)',
@@ -400,9 +403,9 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
         <SectionLabel>Áreas</SectionLabel>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {[
-            { href: '/habitos',   label: 'Hábitos',   sub: 'Os teus hábitos diários',      icon: '✅', color: '#00C896' },
-            { href: '/estatisticas', label: 'Estatísticas', sub: 'Consistência, heatmap e áreas', icon: '📈', color: '#00D4C8' },
-            { href: '/objetivos', label: 'Objetivos', sub: 'Metas e desafios de longo prazo', icon: '🎯', color: '#F5C842' },
+            { href: '/habitos',   label: 'Hábitos',   sub: 'Os teus hábitos diários',      icon: 'check-circle' as IconName, color: '#00C896' },
+            { href: '/estatisticas', label: 'Estatísticas', sub: 'Consistência, heatmap e áreas', icon: 'trend-up' as IconName, color: '#00D4C8' },
+            { href: '/objetivos', label: 'Objetivos', sub: 'Metas e desafios de longo prazo', icon: 'target' as IconName, color: '#F5C842' },
           ].map((item, idx, arr) => (
             <a
               key={item.href}
@@ -418,9 +421,9 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
               <div style={{
                 width: 34, height: 34, borderRadius: 10, flexShrink: 0,
                 background: hexAlpha(item.color, 0.12),
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', color: inkFor(item.color),
               }}>
-                {item.icon}
+                <Icon name={item.icon} size={17} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text1)', marginBottom: 2 }}>{item.label}</div>
@@ -454,9 +457,9 @@ export default function PerfilHub({ profile, ritmo, badges, email, onEdit, onEdi
                 width: 34, height: 34, borderRadius: 10, flexShrink: 0,
                 background: hexAlpha(item.color, 0.12),
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 17,
+                color: inkFor(item.color),
               }}>
-                {item.icon}
+                <Icon name={item.icon} size={17} />
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text1)', marginBottom: 2 }}>

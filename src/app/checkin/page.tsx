@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
 import Nav from '@/components/Nav'
+import Icon, { IconLabel, type IconName } from '@/components/ui/Icon'
 import FeedbackToast, { triggerToast } from '@/components/FeedbackToast'
 import { requireUser, getProfile, saveCheckin, updateStreak, getCheckinsForDate } from '@/lib/supabase'
 import type { Profile, CheckinPhase, ProgramTask } from '@/types'
@@ -10,7 +11,7 @@ import { getTasksForDate } from '@/lib/program'
 
 type Phase = 'manha' | 'tarde' | 'noite'
 const LABELS: Record<Phase, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' }
-const PHASE_EMOJI: Record<Phase, string> = { manha: '🌅', tarde: '☀️', noite: '🌙' }
+const PHASE_ICON: Record<Phase, IconName> = { manha: 'sunrise', tarde: 'sun', noite: 'moon' }
 
 function Pill({ label, selected, onSelect }: { label: string; selected: boolean; onSelect: () => void }) {
   return (
@@ -25,17 +26,24 @@ function Pill({ label, selected, onSelect }: { label: string; selected: boolean;
 }
 
 function MoodPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  const moods = ['😔', '😐', '🙂', '😄', '🔥']
+  const moods: { icon: IconName; label: string }[] = [
+    { icon: 'mood-1', label: 'Em baixo' },
+    { icon: 'mood-2', label: 'Assim-assim' },
+    { icon: 'mood-3', label: 'Bem' },
+    { icon: 'mood-4', label: 'Muito bem' },
+    { icon: 'flame', label: 'Em grande' },
+  ]
   return (
     <div style={{ display: 'flex', gap: 10, justifyContent: 'center', margin: '4px 0 20px' }}>
-      {moods.map((e, i) => (
-        <button key={e} onClick={() => onChange(i + 1)} style={{
+      {moods.map((m, i) => (
+        <button key={m.icon} onClick={() => onChange(i + 1)} aria-label={m.label} aria-pressed={value === i + 1} style={{
           width: 52, height: 52, borderRadius: 16, border: 'none', cursor: 'pointer',
-          fontSize: 22, transition: 'all .15s',
+          display: 'grid', placeItems: 'center', transition: 'all .15s',
+          color: value === i + 1 ? 'var(--gold-ink)' : 'var(--text2)',
           background: value === i + 1 ? 'rgba(232,168,56,.12)' : 'var(--bg2)',
           outline: value === i + 1 ? '2px solid var(--gold)' : '0.5px solid var(--border)',
           transform: value === i + 1 ? 'scale(1.12)' : 'scale(1)',
-        }}>{e}</button>
+        }}><Icon name={m.icon} size={24} /></button>
       ))}
     </div>
   )
@@ -225,12 +233,13 @@ export default function CheckinPage() {
                   transition: 'all .15s',
                 }}
               >
-                <span style={{ fontSize: 18 }}>{PHASE_EMOJI[p]}</span>
+                <Icon name={PHASE_ICON[p]} size={18} />
                 <span style={{
                   fontSize: 11, fontFamily: 'Inter, sans-serif', fontWeight: 600,
                   color: active ? 'var(--gold)' : done ? 'var(--teal)' : 'var(--text3)',
+                  display: 'inline-flex', alignItems: 'center', gap: 3,
                 }}>
-                  {LABELS[p]}{done ? ' ✓' : ''}
+                  {LABELS[p]}{done && <Icon name="check" size={11} />}
                 </span>
               </button>
             )
@@ -243,7 +252,7 @@ export default function CheckinPage() {
         {/* ── Fase concluída ── */}
         {isDone && (
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
-            <div style={{ fontSize: 52, marginBottom: 12 }}>{PHASE_EMOJI[activePhase]}</div>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: 'var(--gold-ink)' }}><Icon name={PHASE_ICON[activePhase]} size={48} style={{ strokeWidth: 1.5 }} /></div>
             <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 20, marginBottom: 6 }}>
               {LABELS[activePhase]} concluída!
             </div>
@@ -259,7 +268,7 @@ export default function CheckinPage() {
                 marginBottom: 12, width: '100%',
               }}
             >
-              ↩ Corrigir respostas desta fase
+              <IconLabel icon="undo">Corrigir respostas desta fase</IconLabel>
             </button>
             {activePhase !== 'noite' && (
               <button
@@ -270,12 +279,12 @@ export default function CheckinPage() {
                   fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                 }}
               >
-                {activePhase === 'manha' ? 'Ir para Tarde →' : 'Ir para Noite →'}
+                <IconLabel icon="arrow-right" after>{activePhase === 'manha' ? 'Ir para Tarde' : 'Ir para Noite'}</IconLabel>
               </button>
             )}
             {activePhase === 'noite' && donePhases.size === 3 && (
               <div style={{ background: 'rgba(232,168,56,.08)', border: '0.5px solid rgba(232,168,56,.22)', borderRadius: 14, padding: 16, marginTop: 8 }}>
-                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--gold-ink)', marginBottom: 4 }}>🔥 Dia completo!</div>
+                <div style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, color: 'var(--gold-ink)', marginBottom: 4 }}><IconLabel icon="flame" size={17}>Dia completo!</IconLabel></div>
                 <div style={{ fontSize: 13, color: 'var(--text2)' }}>Todos os check-ins feitos. Streak actualizado.</div>
               </div>
             )}
@@ -303,7 +312,7 @@ export default function CheckinPage() {
                     cursor: sleep ? 'pointer' : 'not-allowed', transition: 'all .2s',
                   }}
                 >
-                  Próxima →
+                  <IconLabel icon="arrow-right" after>Próxima</IconLabel>
                 </button>
               </Question>
             )}
@@ -317,7 +326,7 @@ export default function CheckinPage() {
                     borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
-                  Próxima →
+                  <IconLabel icon="arrow-right" after>Próxima</IconLabel>
                 </button>
               </Question>
             )}
@@ -336,7 +345,7 @@ export default function CheckinPage() {
                         color: willTrain === v ? 'var(--bg0)' : 'var(--text2)',
                       }}
                     >
-                      {v ? 'Sim 💪' : 'Não'}
+                      {v ? 'Sim' : 'Não'}
                     </button>
                   ))}
                 </div>
@@ -350,7 +359,7 @@ export default function CheckinPage() {
                     cursor: mission.trim() ? 'pointer' : 'not-allowed', transition: 'all .2s',
                   }}
                 >
-                  Próxima →
+                  <IconLabel icon="arrow-right" after>Próxima</IconLabel>
                 </button>
               </Question>
             )}
@@ -365,7 +374,7 @@ export default function CheckinPage() {
                     borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
-                  {submitting ? 'A guardar…' : 'Concluir Manhã ✓'}
+                  {submitting ? 'A guardar…' : <IconLabel icon="check" after>Concluir Manhã</IconLabel>}
                 </button>
               </Question>
             )}
@@ -399,7 +408,7 @@ export default function CheckinPage() {
                     cursor: progressOpt ? 'pointer' : 'not-allowed',
                   }}
                 >
-                  Próxima →
+                  <IconLabel icon="arrow-right" after>Próxima</IconLabel>
                 </button>
               </Question>
             )}
@@ -420,7 +429,7 @@ export default function CheckinPage() {
                     cursor: focusOpt ? 'pointer' : 'not-allowed',
                   }}
                 >
-                  Próxima →
+                  <IconLabel icon="arrow-right" after>Próxima</IconLabel>
                 </button>
               </Question>
             )}
@@ -435,7 +444,7 @@ export default function CheckinPage() {
                     borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
-                  {submitting ? 'A guardar…' : 'Concluir Tarde ✓'}
+                  {submitting ? 'A guardar…' : <IconLabel icon="check" after>Concluir Tarde</IconLabel>}
                 </button>
               </Question>
             )}
@@ -455,6 +464,8 @@ export default function CheckinPage() {
             {step === 0 && (
               <Question label="Como foi a execução da tua missão?">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {/* O valor guardado em mission_done mantém o texto antigo (com ✓)
+                      para não partir o histórico; o rótulo mostrado não tem símbolo. */}
                   {['Sim, completamente ✓', 'Em grande parte', 'Parcialmente', 'Não consegui hoje'].map(o => (
                     <button
                       key={o}
@@ -467,7 +478,7 @@ export default function CheckinPage() {
                         outline: missionDone === o ? '0.5px solid var(--gold)' : '0.5px solid var(--border)',
                       }}
                     >
-                      {o}
+                      {o.replace(' ✓', '')}
                     </button>
                   ))}
                 </div>
@@ -481,7 +492,7 @@ export default function CheckinPage() {
                     cursor: missionDone ? 'pointer' : 'not-allowed',
                   }}
                 >
-                  Próxima →
+                  <IconLabel icon="arrow-right" after>Próxima</IconLabel>
                 </button>
               </Question>
             )}
@@ -495,7 +506,7 @@ export default function CheckinPage() {
                     borderRadius: 14, padding: 14, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 14, cursor: 'pointer',
                   }}
                 >
-                  Próxima →
+                  <IconLabel icon="arrow-right" after>Próxima</IconLabel>
                 </button>
               </Question>
             )}
@@ -514,7 +525,7 @@ export default function CheckinPage() {
                     fontSize: 14, cursor: 'pointer',
                   }}
                 >
-                  {submitting ? 'A guardar…' : nightTasks.length > 0 ? 'Próxima →' : 'Fechar o Dia ✓'}
+                  {submitting ? 'A guardar…' : nightTasks.length > 0 ? <IconLabel icon="arrow-right" after>Próxima</IconLabel> : <IconLabel icon="check" after>Fechar o Dia</IconLabel>}
                 </button>
               </Question>
             )}
@@ -563,9 +574,9 @@ export default function CheckinPage() {
                           opacity: task.status === 'pending' ? 0.35 : task.status === 'skipped' ? 0.5 : 1,
                         }}
                       >
-                        {task.status === 'completed' && <span style={{ color: 'var(--teal-ink)', fontSize: 16, flexShrink: 0, width: 22, textAlign: 'center' }}>✓</span>}
+                        {task.status === 'completed' && <span style={{ color: 'var(--teal-ink)', flexShrink: 0, width: 22, display: 'grid', placeItems: 'center' }}><Icon name="check" size={16} /></span>}
                         {task.status === 'skipped' && <span style={{ fontSize: 10, fontWeight: 600, color: '#666', background: 'var(--bg3)', padding: '3px 7px', borderRadius: 5, whiteSpace: 'nowrap', flexShrink: 0 }}>pulado</span>}
-                        {task.status === 'pending' && <span style={{ color: 'var(--text3)', fontSize: 16, flexShrink: 0, width: 22, textAlign: 'center' }}>○</span>}
+                        {task.status === 'pending' && <span style={{ flexShrink: 0, width: 22, display: 'grid', placeItems: 'center' }}><span style={{ width: 12, height: 12, borderRadius: '50%', border: '1.5px solid var(--text3)' }} /></span>}
                         <span style={{
                           flex: 1, fontSize: 14, fontWeight: 500,
                           color: task.status === 'completed' ? 'var(--text3)' : 'var(--text2)',
@@ -581,7 +592,7 @@ export default function CheckinPage() {
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                       padding: 14, background: 'rgba(30,203,180,.06)',
                       border: '0.5px solid rgba(30,203,180,.18)', borderRadius: 14, marginBottom: 12 }}>
-                      <span style={{ fontSize: 18 }}>✓</span>
+                      <Icon name="check-circle" size={18} color="var(--teal-ink)" />
                       <span style={{ fontFamily: 'Inter, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--teal-ink)' }}>
                         {doneTasks.length} {doneTasks.length === 1 ? 'task concluída' : 'tasks concluídas'} hoje
                       </span>
@@ -596,7 +607,7 @@ export default function CheckinPage() {
                       borderRadius: 16, fontFamily: 'Inter, sans-serif', fontWeight: 700, fontSize: 16, cursor: 'pointer',
                     }}
                   >
-                    {submitting ? 'A guardar…' : 'Fechar o Dia 🌙'}
+                    {submitting ? 'A guardar…' : <IconLabel icon="moon" after>Fechar o Dia</IconLabel>}
                   </button>
                 </div>
               )

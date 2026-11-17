@@ -153,7 +153,7 @@ describe('FinancasPage', () => {
     // a projeção "ao ritmo atual" foi removida do hero
     expect(screen.queryByText(/Ao ritmo atual/)).toBeNull()
     // gastos até dia 15: julho 390 vs. junho 200 → ▲ 95%
-    expect(screen.getByText(/▲ 95% vs\./)).toBeDefined()
+    expect(screen.getByText(/95% vs\./)).toBeDefined()
   })
 
   it('arrasta o saldo do mês anterior: começaste com X, disponível Y', async () => {
@@ -192,7 +192,7 @@ describe('FinancasPage', () => {
     await renderPage()
     fireEvent.click(screen.getByLabelText('Registar movimento'))
     fireEvent.change(screen.getByPlaceholderText('Opcional'), { target: { value: 'compras continente' } })
-    expect(screen.getByText(/Sugestão: 🍔 Alimentação/)).toBeDefined()
+    expect(screen.getByText(/Sugestão: Alimentação/)).toBeDefined()
   })
 
   it('mostra recorrências por pagar (regra vencida e não lançada)', async () => {
@@ -239,14 +239,14 @@ describe('FinancasPage', () => {
     expect(await screen.findByText(/maio 2026/i)).toBeDefined()
     await waitFor(() => expect(getTransactionsForMonth).toHaveBeenCalled())
     fireEvent.click(screen.getByLabelText('Ver movimentos'))
-    expect(await screen.findByText('Roupa')).toBeDefined()
+    expect((await screen.findAllByText('Roupa')).length).toBeGreaterThan(0)
   })
 
   it('repõe movimentos e recorrentes sem tocar na configuração', async () => {
     const { deleteAllTransactions, deleteAllRecurringRules, deleteAllProjections, resetFinanceSettings } = await import('@/lib/supabase')
     await renderPage()
     fireEvent.click(screen.getByLabelText('Mais opções'))
-    fireEvent.click(screen.getByText('⟲ Repor finanças'))
+    fireEvent.click(screen.getByText('Repor finanças'))
     fireEvent.click(await screen.findByText('Apagar movimentos, recorrentes e projetado'))
     fireEvent.click(await screen.findByText('Apagar'))
     await waitFor(() => expect(deleteAllTransactions).toHaveBeenCalledWith('u1'))
@@ -260,7 +260,7 @@ describe('FinancasPage', () => {
     const { deleteAllTransactions, resetFinanceSettings } = await import('@/lib/supabase')
     await renderPage()
     fireEvent.click(screen.getByLabelText('Mais opções'))
-    fireEvent.click(screen.getByText('⟲ Repor finanças'))
+    fireEvent.click(screen.getByText('Repor finanças'))
     fireEvent.click(await screen.findByText('Apagar tudo'))
 
     const confirmar = await screen.findByText('Apagar') as HTMLButtonElement
@@ -280,7 +280,7 @@ describe('FinancasPage', () => {
     ;(mod.deleteAllTransactions as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ error: { message: 'boom' } })
     await renderPage()
     fireEvent.click(screen.getByLabelText('Mais opções'))
-    fireEvent.click(screen.getByText('⟲ Repor finanças'))
+    fireEvent.click(screen.getByText('Repor finanças'))
     fireEvent.click(await screen.findByText('Apagar movimentos, recorrentes e projetado'))
     fireEvent.click(await screen.findByText('Apagar'))
     await waitFor(() => expect(mod.deleteAllTransactions).toHaveBeenCalled())
@@ -310,7 +310,7 @@ describe('FinancasPage', () => {
     await renderPage()
     fireEvent.click(screen.getByLabelText('Mês anterior'))
     expect(await screen.findByText(/gastar e poupar · junho/)).toBeDefined()
-    fireEvent.click(screen.getByText('↩ mês atual'))
+    fireEvent.click(screen.getByText('mês atual'))
     expect(await screen.findByText(/gastar e poupar · julho/)).toBeDefined()
   })
 
@@ -328,7 +328,7 @@ describe('FinancasPage', () => {
     await renderPage()
     // Depósito de 150 (entrada Poupança) fica fora das entradas (1000) e é
     // mostrado à parte como poupado
-    expect(screen.getByText(/🏦 Poupado/)).toBeDefined()
+    expect(screen.getByText('Poupado')).toBeDefined()
     expect(screen.getByText('150,00 €')).toBeDefined()
     // se contasse o depósito como entrada seriam 1150 — não deve aparecer
     expect(screen.queryByText(/1\s?150,00/)).toBeNull()
@@ -400,7 +400,7 @@ describe('FinancasPage', () => {
     await renderPage()
     fireEvent.click(screen.getByLabelText('Registar movimento'))
     fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '80' } })
-    fireEvent.click(screen.getByRole('button', { name: '💊 Saúde' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Saúde' }))
     fireEvent.click(screen.getByLabelText('Pagar com a reserva'))
     fireEvent.click(screen.getByText('Guardar movimento'))
     await waitFor(() => expect(saveTransaction).toHaveBeenCalled())
@@ -410,7 +410,7 @@ describe('FinancasPage', () => {
 
   it('o insight de poupança compara o poupado (transferências), não o balanço', async () => {
     await renderPage()
-    fireEvent.click(await screen.findByText(/Ver todos \d+ ›/))
+    fireEvent.click(await screen.findByText(/Ver todos \d+/))
     // poupado em julho = 150 (depósito t5); junho não tem depósitos (0).
     // Se usasse o balanço seria "poupaste 610" vs. 800 de junho → sem insight.
     expect(await screen.findByText(/Já poupaste 150,00 € este mês/)).toBeDefined()
@@ -420,7 +420,7 @@ describe('FinancasPage', () => {
     const { getProfile } = await import('@/lib/supabase')
     ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_monthly_save: 100 })
     await renderPage()
-    fireEvent.click(screen.getByText(/💰 Poupança ·/))
+    fireEvent.click(screen.getByText(/^Poupança ·/))
     expect(await screen.findByText('Poupança mensal')).toBeDefined()
     // Só julho tem depósitos (150 ≥ meta 100). Com o "que sobrou" contaria
     // também junho (800) e julho (610) → 2 meses.
@@ -444,19 +444,19 @@ describe('FinancasPage', () => {
     ;(getTransactionsByMonth as ReturnType<typeof vi.fn>).mockResolvedValue(history)
   })
 
-  it('cria uma categoria personalizada com emoji (persistida via updateCustomCategories)', async () => {
+  it('cria uma categoria personalizada com ícone (persistida via updateCustomCategories)', async () => {
     const { updateCustomCategories } = await import('@/lib/supabase')
     await renderPage()
     // abre o sheet de orçamento pelo cartão-resumo (…% usado)
     fireEvent.click(screen.getByText(/% usado/).closest('button')!)
     fireEvent.click(await screen.findByText('Nova categoria'))
     fireEvent.change(screen.getByPlaceholderText(/Ginásio, Veterinário/), { target: { value: 'Ginásio' } })
-    fireEvent.click(screen.getByLabelText('Emoji 🏋️'))
+    fireEvent.click(screen.getByLabelText('Ícone dumbbell'))
     fireEvent.click(screen.getByText('Criar categoria'))
-    await waitFor(() => expect(updateCustomCategories).toHaveBeenCalledWith('u1', [{ name: 'Ginásio', emoji: '🏋️' }]))
+    await waitFor(() => expect(updateCustomCategories).toHaveBeenCalledWith('u1', [{ name: 'Ginásio', emoji: 'dumbbell' }]))
     // fica disponível como chip no formulário de nova transação
     fireEvent.click(screen.getByLabelText('Registar movimento'))
-    expect(screen.getByRole('button', { name: /🏋️ Ginásio/ })).toBeDefined()
+    expect(screen.getByRole('button', { name: 'Ginásio' })).toBeDefined()
   })
 
   it('renomear uma categoria personalizada atualiza os movimentos e o orçamento', async () => {
@@ -467,7 +467,7 @@ describe('FinancasPage', () => {
     await renderPage()
     fireEvent.click(screen.getByText(/% usado/).closest('button')!)
     fireEvent.click((await screen.findByText('Ginásio')).closest('button')!)
-    fireEvent.click(await screen.findByText('✏️ Editar categoria'))
+    fireEvent.click(await screen.findByText('Editar categoria'))
     fireEvent.change(await screen.findByDisplayValue('Ginásio'), { target: { value: 'Academia' } })
     fireEvent.click(screen.getByText('Guardar alterações'))
     await waitFor(() => expect(renameTransactionCategory).toHaveBeenCalledWith('u1', 'Ginásio', 'Academia'))
@@ -482,8 +482,10 @@ describe('FinancasPage', () => {
     await renderPage()
     fireEvent.click(screen.getByText(/% usado/).closest('button')!)
     fireEvent.click((await screen.findByText('Ginásio')).closest('button')!)
-    fireEvent.click(await screen.findByText('🗑 Apagar'))
-    fireEvent.click(await screen.findByText('Apagar'))
+    fireEvent.click(await screen.findByRole('button', { name: 'Apagar' }))
+    // o diálogo de confirmação abre por cima do sheet: o último "Apagar" é o dele
+    const confirmBtns = await screen.findAllByRole('button', { name: 'Apagar' })
+    fireEvent.click(confirmBtns[confirmBtns.length - 1])
     await waitFor(() => expect(renameTransactionCategory).toHaveBeenCalledWith('u1', 'Ginásio', 'Outro'))
     ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue(profile)
   })
@@ -507,7 +509,7 @@ describe('FinancasPage', () => {
     expect(screen.getByText('500,00 €')).toBeDefined()
     fireEvent.click(screen.getByLabelText('Registar movimento'))
     fireEvent.change(screen.getByPlaceholderText('0.00'), { target: { value: '200' } })
-    fireEvent.click(screen.getByRole('button', { name: '🏦 Poupança' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Poupança' }))
     fireEvent.click(screen.getByText('Guardar movimento'))
     // a reserva reflete o novo líquido sem escrever nada no perfil
     expect(await screen.findByText('300,00 €')).toBeDefined()
@@ -520,7 +522,7 @@ describe('FinancasPage', () => {
     await renderPage()
     // abre o depósito recente de Poupança (t5: entrada, 150) e troca para saída
     fireEvent.click(screen.getByText('Poupança'))
-    fireEvent.click(screen.getByText('↑ Saída'))
+    fireEvent.click(screen.getByText('Saída'))
     fireEvent.click(screen.getByText('Guardar alterações'))
     await waitFor(() => expect(updateTransaction).toHaveBeenCalled())
     expect((updateTransaction as ReturnType<typeof vi.fn>).mock.calls.at(-1)![1]).toMatchObject({ type: 'saida', category: 'Poupança', amount: 150 })
@@ -533,7 +535,7 @@ describe('FinancasPage', () => {
     const { getProfile, updateFinancialGoals } = await import('@/lib/supabase')
     ;(getProfile as ReturnType<typeof vi.fn>).mockResolvedValue({ ...profile, fin_reserve_goal: 1000, fin_savings_base: 350 })
     await renderPage()
-    fireEvent.click(screen.getByText(/🛡️ Reserva/))
+    fireEvent.click(screen.getByText('Reserva'))
     expect(await screen.findByText('Reserva de emergência')).toBeDefined()
     fireEvent.change(screen.getByPlaceholderText('Ex: 1200'), { target: { value: '300' } })
     fireEvent.click(screen.getByText('Guardar meta'))
@@ -556,7 +558,7 @@ describe('FinancasPage', () => {
     await renderPage()
     fireEvent.click(screen.getByLabelText('Mais opções'))
     expect(screen.getByText('desligado')).toBeDefined()
-    fireEvent.click(screen.getByText('🔔 Lembrete diário'))
+    fireEvent.click(screen.getByText('Lembrete diário'))
     await waitFor(() => expect(saveReminder).toHaveBeenCalled())
     const payload = (saveReminder as ReturnType<typeof vi.fn>).mock.calls.at(-1)![0]
     expect(payload).toMatchObject({ user_id: 'u1', type: 'financas', time: '21:00' })
@@ -574,7 +576,7 @@ describe('FinancasPage', () => {
   it('abre o feed completo de insights e inclui a maior despesa fixa', async () => {
     await renderPage()
     // há >1 insight (orçamento de Lazer + maior despesa fixa recorrente…)
-    const verTodos = await screen.findByText(/Ver todos \d+ ›/)
+    const verTodos = await screen.findByText(/Ver todos \d+/)
     fireEvent.click(verTodos)
     // o sheet lista todos, incluindo o insight das recorrentes (Habitação 650)
     expect(await screen.findByText(/maior despesa fixa é Habitação/)).toBeDefined()
@@ -585,9 +587,9 @@ describe('FinancasPage', () => {
     await renderPage()
     // junho: entradas 1000, gastos 200 → balanço +800
     expect(await screen.findByText(/Fecho de Junho 2026/)).toBeDefined()
-    expect(screen.getByText(/Começar julho ›/)).toBeDefined()
+    expect(screen.getByText(/Começar julho/)).toBeDefined()
     // dispensar guarda o mês como visto
-    fireEvent.click(screen.getByText(/Começar julho ›/))
+    fireEvent.click(screen.getByText(/Começar julho/))
     await waitFor(() => expect(screen.queryByText(/Fecho de Junho 2026/)).toBeNull())
     expect(localStorage.getItem('nexus_monthclose_seen_u1')).toBe('2026-06')
   })

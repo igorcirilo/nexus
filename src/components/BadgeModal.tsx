@@ -1,14 +1,8 @@
 // src/components/BadgeModal.tsx
 'use client'
 
-const BADGE_ICONS: Record<string, string> = {
-  primeiro_checkin: '🌅',
-  streak_7:         '🔥',
-  streak_21:        '⚡',
-  streak_100:       '💎',
-  ritmo_80:         '🚀',
-  consistencia_30:  '🏔️',
-}
+import Icon from '@/components/ui/Icon'
+import { badgeIcon } from '@/lib/badges'
 
 const BADGE_DESC: Record<string, string> = {
   primeiro_checkin: 'Fizeste o teu primeiro check-in. O começo é o mais difícil.',
@@ -49,8 +43,8 @@ export default function BadgeModal({ badges, onClose }: Props) {
           textAlign: 'center',
         }}
       >
-        <div style={{ fontSize: 60, marginBottom: 16, lineHeight: 1 }}>
-          {BADGE_ICONS[badge.key] ?? '🎖️'}
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16, color: 'var(--gold-ink)' }}>
+          <Icon name={badgeIcon(badge.key)} size={56} style={{ strokeWidth: 1.4 }} />
         </div>
         <div style={{
           fontFamily: 'Inter, sans-serif', fontWeight: 800,

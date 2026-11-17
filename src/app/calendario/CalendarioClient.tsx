@@ -5,6 +5,8 @@ import type { CSSProperties } from 'react'
 import { addDays, eachDayOfInterval, endOfMonth, endOfWeek, format, getDay, isSameMonth, isToday, startOfMonth, startOfWeek } from 'date-fns'
 import { pt } from 'date-fns/locale'
 import Nav from '@/components/Nav'
+import Icon, { IconLabel, type IconName } from '@/components/ui/Icon'
+import { inkFor } from '@/lib/theme'
 import CalendarioLoading from '@/components/calendario/CalendarioLoading'
 import ErrorState from '@/components/ui/ErrorState'
 import { useCalendarioController } from '@/components/calendario/useCalendarioController'
@@ -14,7 +16,7 @@ import { AREA_META } from '@/types'
 import type { HabitArea } from '@/types'
 
 const FONT = 'Inter, sans-serif'
-const PHASE_EMOJI: Record<string, string> = { manha: '🌅', tarde: '☀️', noite: '🌙' }
+const PHASE_ICON: Record<string, IconName> = { manha: 'sunrise', tarde: 'sun', noite: 'moon' }
 
 const sheetLabel: CSSProperties = {
   fontSize: 11, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase',
@@ -37,7 +39,7 @@ function hubHeat(status: DayStatus | undefined): string {
 }
 
 function Sheet({ icon, title, sub, onClose, children, footer, tall }: {
-  icon?: string; title: string; sub?: string; onClose: () => void
+  icon?: IconName; title: string; sub?: string; onClose: () => void
   children: React.ReactNode; footer?: React.ReactNode; tall?: boolean
 }) {
   // Fechar com Esc — acessibilidade de teclado em diálogos modais.
@@ -59,12 +61,12 @@ function Sheet({ icon, title, sub, onClose, children, footer, tall }: {
       }}>
         <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--surface-3)', margin: '10px auto 0', flexShrink: 0 }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 20px 12px', borderBottom: '1px solid rgba(var(--ink-rgb),0.06)', flexShrink: 0 }}>
-          {icon && <span style={{ fontSize: 20 }}>{icon}</span>}
+          {icon && <Icon name={icon} size={20} color="var(--text2)" />}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.3px' }}>{title}</div>
             {sub && <div style={{ fontSize: 11, color: 'var(--text2)', marginTop: 1 }}>{sub}</div>}
           </div>
-          <button onClick={onClose} aria-label="Fechar" style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', fontSize: 15, color: 'var(--text1)', flexShrink: 0, touchAction: 'manipulation' }}>✕</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ width: 44, height: 44, borderRadius: 12, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', flexShrink: 0, touchAction: 'manipulation', display: 'grid', placeItems: 'center' }}><Icon name="x" size={16} /></button>
         </div>
         <div style={{ overflowY: 'auto', flex: 1, padding: '4px 20px 16px' }}>{children}</div>
         {footer && (
@@ -138,7 +140,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
     <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: 'var(--surface-page)', fontFamily: FONT }}>
       {c.toast && (
         <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-pop)', border: '1px solid rgba(0,200,150,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: 'var(--green-ink)', zIndex: 10000, whiteSpace: 'nowrap' }}>
-          ✓ {c.toast}
+          <IconLabel icon="check">{c.toast}</IconLabel>
         </div>
       )}
 
@@ -147,7 +149,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
         <div>
           <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.5px' }}>Calendário</div>
           <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, marginTop: 2 }}>
-            {c.currentStreak > 0 ? `🔥 ${c.currentStreak} dias de sequência` : 'Marca hábitos para criar sequência'}
+            {c.currentStreak > 0 ? <IconLabel icon="flame" size={13} gap={5} color="var(--gold-ink)">{c.currentStreak} dias de sequência</IconLabel> : 'Marca hábitos para criar sequência'}
           </div>
         </div>
         <button
@@ -161,9 +163,9 @@ export default function CalendarioClient({ userId }: { userId: string }) {
 
       {/* ── Navegação de mês/semana + toggle ── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 20px 0' }}>
-        <button onClick={() => (c.viewMode === 'month' ? c.changeMonth(-1) : c.changeWeek(-1))} aria-label="Anterior" style={navArrow}>‹</button>
+        <button onClick={() => (c.viewMode === 'month' ? c.changeMonth(-1) : c.changeWeek(-1))} aria-label="Anterior" style={navArrow}><Icon name="chevron-left" size={18} /></button>
         <div style={{ flex: 1, textAlign: 'center', fontSize: 14.5, fontWeight: 800, color: 'var(--ink)' }}>{monthLabel}</div>
-        <button onClick={() => (c.viewMode === 'month' ? c.changeMonth(1) : c.changeWeek(1))} aria-label="Seguinte" style={navArrow}>›</button>
+        <button onClick={() => (c.viewMode === 'month' ? c.changeMonth(1) : c.changeWeek(1))} aria-label="Seguinte" style={navArrow}><Icon name="chevron-right" size={18} /></button>
         <div style={{ display: 'flex', background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 11, padding: 3, gap: 3 }}>
           {(['month', 'week'] as const).map(m => (
             <button key={m} onClick={() => c.setViewMode(m)} style={{
@@ -250,7 +252,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                   color: done ? 'var(--green-ink)' : 'rgba(var(--ink-rgb),0.4)',
                 }}
               >
-                <span style={{ fontSize: 15 }}>{PHASE_EMOJI[phase]}</span>
+                <Icon name={PHASE_ICON[phase]} size={15} />
                 {PHASE_LABELS[phase]}
               </button>
             )
@@ -263,7 +265,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
             Hoje · {format(new Date(), 'EEE, d MMM', { locale: pt })}
           </span>
           <button onClick={() => setAlertsOpen(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700, color: 'var(--gold-ink)', fontFamily: FONT, padding: 0 }}>
-            Gerir alertas ›
+            <IconLabel icon="chevron-right" size={13} gap={2} after>Gerir alertas</IconLabel>
           </button>
         </div>
         {todayEvents.length === 0 && todayReminders.length === 0 ? (
@@ -274,7 +276,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           <>
             {todayEvents.map(e => (
               <div key={e.id} style={{ ...timelineRow, borderLeft: `3px solid ${e.color}` }}>
-                <span style={{ fontSize: 16 }}>📅</span>
+                <Icon name="calendar" size={16} color="var(--text2)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{e.title}</div>
                   <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 1 }}>
@@ -286,7 +288,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
             ))}
             {todayReminders.map(r => (
               <div key={r.id} style={{ ...timelineRow, borderLeft: '3px solid #F5C842' }}>
-                <span style={{ fontSize: 16 }}>🔔</span>
+                <Icon name="bell" size={16} color="var(--gold-ink)" />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{r.title}</div>
                   <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 1 }}>
@@ -319,9 +321,9 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           <span style={{
             width: 36, height: 36, borderRadius: 11, flexShrink: 0,
             background: 'rgba(245,200,66,0.12)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', fontSize: 17,
+            alignItems: 'center', justifyContent: 'center', color: 'var(--gold-ink)',
           }}>
-            🔔
+            <Icon name="bell" size={17} />
           </span>
           <span style={{ flex: 1, minWidth: 0 }}>
             <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text1)', marginBottom: 2 }}>Lembretes</span>
@@ -337,7 +339,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
       {c.selected && (
         <Sheet
           tall
-          icon="📆"
+          icon="calendar"
           title={(() => { const s = format(parseLocalDate(c.selected), "EEE, d 'de' MMMM", { locale: pt }); return s.charAt(0).toUpperCase() + s.slice(1) })()}
           sub={selStatus?.complete ? 'dia completo' : selCheckinCount > 0 ? `${selCheckinCount} check-in${selCheckinCount === 1 ? '' : 's'}` : undefined}
           onClose={c.closeDay}
@@ -346,7 +348,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
               onClick={() => { c.setEvDate(c.selected!); setCreateOpen('evento') }}
               style={{ width: '100%', border: 'none', borderRadius: 15, padding: 15, fontFamily: FONT, fontWeight: 800, fontSize: 15, cursor: 'pointer', background: 'linear-gradient(135deg, #F5C842, #E0A82A)', color: '#1A1200' }}
             >
-              ＋ Adicionar a este dia
+              <IconLabel icon="plus" size={17}>Adicionar a este dia</IconLabel>
             </button>
           }
         >
@@ -384,9 +386,9 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                             border: `2px solid ${done ? '#00C896' : 'rgba(var(--ink-rgb),0.2)'}`,
                             background: done ? '#00C896' : 'transparent',
                             color: done ? '#001A10' : 'transparent',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800,
-                          }}>✓</span>
-                          <span style={{ fontSize: 14 }}>{meta?.icon}</span>
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          }}><Icon name="check" size={12} style={{ strokeWidth: 2.6 }} /></span>
+                          {meta && <Icon name={meta.icon} size={14} color={inkFor(meta.color)} />}
                           <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: done ? 'rgba(var(--ink-rgb),0.5)' : 'rgba(var(--ink-rgb),0.85)', textDecoration: done ? 'line-through' : 'none', textDecorationColor: 'rgba(var(--ink-rgb),0.2)' }}>{h.name}</span>
                         </button>
                       )
@@ -415,9 +417,9 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                         opacity: canEditSel || ci ? 1 : 0.5,
                       }}
                     >
-                      <span style={{ fontSize: 14 }}>{PHASE_EMOJI[phase]}</span>
+                      <Icon name={PHASE_ICON[phase]} size={14} />
                       {PHASE_LABELS[phase]}
-                      {ci && <span style={{ marginLeft: 'auto', fontSize: 9.5, color: 'var(--green-ink)' }}>✓</span>}
+                      {ci && <Icon name="check" size={12} color="var(--green-ink)" style={{ marginLeft: 'auto' }} />}
                     </button>
                   )
                 })}
@@ -451,7 +453,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
               ) : (
                 c.selEvents.map(e => (
                   <div key={e.id} style={{ ...timelineRow, borderLeft: `3px solid ${e.color}` }}>
-                    <span style={{ fontSize: 16 }}>📅</span>
+                    <Icon name="calendar" size={16} color="var(--text2)" />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{e.title}</div>
                       <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 1 }}>
@@ -459,7 +461,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                         {e.description ? ` · ${e.description}` : ''}
                       </div>
                     </div>
-                    <button onClick={() => c.removeEvent(e.id)} aria-label={`Remover ${e.title}`} style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(226,75,74,0.08)', border: '1px solid rgba(226,75,74,0.2)', color: '#E24B4A', cursor: 'pointer', fontSize: 12, flexShrink: 0 }}>✕</button>
+                    <button onClick={() => c.removeEvent(e.id)} aria-label={`Remover ${e.title}`} style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(226,75,74,0.08)', border: '1px solid rgba(226,75,74,0.2)', color: '#E24B4A', cursor: 'pointer', flexShrink: 0, display: 'grid', placeItems: 'center' }}><Icon name="x" size={13} /></button>
                   </div>
                 ))
               )}
@@ -471,7 +473,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
       {/* ── Sheet: gerir alertas ── */}
       {alertsOpen && (
         <Sheet
-          icon="🔔"
+          icon="bell"
           title="Alertas"
           sub={`${c.reminders.filter(r => r.active).length} ativos`}
           onClose={() => setAlertsOpen(false)}
@@ -480,7 +482,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
               onClick={() => { setAlertsOpen(false); setCreateOpen('alerta') }}
               style={{ width: '100%', border: 'none', borderRadius: 15, padding: 15, fontFamily: FONT, fontWeight: 800, fontSize: 15, cursor: 'pointer', background: 'linear-gradient(135deg, #F5C842, #E0A82A)', color: '#1A1200' }}
             >
-              ＋ Novo alerta
+              <IconLabel icon="plus" size={17}>Novo alerta</IconLabel>
             </button>
           }
         >
@@ -492,7 +494,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, paddingTop: 12 }}>
               {c.reminders.map(r => (
                 <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 11, background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.08)', borderRadius: 14, padding: '11px 13px', opacity: r.active ? 1 : 0.5 }}>
-                  <span style={{ fontSize: 16 }}>🔔</span>
+                  <Icon name="bell" size={16} color="var(--gold-ink)" />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflowWrap: 'anywhere' }}>{r.title}</div>
                     <div style={{ fontSize: 10.5, color: 'var(--text2)', marginTop: 1 }}>
@@ -506,7 +508,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
                   >
                     <span style={{ position: 'absolute', top: 3, left: r.active ? 'auto' : 3, right: r.active ? 3 : 'auto', width: 18, height: 18, borderRadius: '50%', background: r.active ? 'var(--surface-page)' : 'rgba(var(--ink-rgb),0.4)' }} />
                   </button>
-                  <button onClick={() => c.removeRm(r.id)} aria-label={`Remover ${r.title}`} style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(226,75,74,0.08)', border: '1px solid rgba(226,75,74,0.2)', color: '#E24B4A', cursor: 'pointer', fontSize: 12, flexShrink: 0 }}>✕</button>
+                  <button onClick={() => c.removeRm(r.id)} aria-label={`Remover ${r.title}`} style={{ width: 28, height: 28, borderRadius: 9, background: 'rgba(226,75,74,0.08)', border: '1px solid rgba(226,75,74,0.2)', color: '#E24B4A', cursor: 'pointer', flexShrink: 0, display: 'grid', placeItems: 'center' }}><Icon name="x" size={13} /></button>
                 </div>
               ))}
             </div>
@@ -535,14 +537,14 @@ export default function CalendarioClient({ userId }: { userId: string }) {
           }
         >
           <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-            {([['evento', '📅 Evento', '#9D5CF5', 'var(--purple-ink)'], ['alerta', '🔔 Alerta', '#F5C842', 'var(--gold-ink)']] as const).map(([k, l, col, ink]) => (
+            {([['evento', 'Evento', 'calendar', '#9D5CF5', 'var(--purple-ink)'], ['alerta', 'Alerta', 'bell', '#F5C842', 'var(--gold-ink)']] as const).map(([k, l, ic, col, ink]) => (
               <button key={k} onClick={() => setCreateOpen(k)} style={{
                 flex: 1, padding: '11px 0', borderRadius: 13, cursor: 'pointer', textAlign: 'center',
                 fontFamily: FONT, fontWeight: 700, fontSize: 13,
                 background: createOpen === k ? `${col}1A` : 'rgba(var(--ink-rgb),0.03)',
                 border: `1px solid ${createOpen === k ? `${col}80` : 'rgba(var(--ink-rgb),0.10)'}`,
                 color: createOpen === k ? ink : 'rgba(var(--ink-rgb),0.5)',
-              }}>{l}</button>
+              }}><IconLabel icon={ic}>{l}</IconLabel></button>
             ))}
           </div>
 
@@ -641,7 +643,7 @@ export default function CalendarioClient({ userId }: { userId: string }) {
               </div>
 
               <div style={{ marginTop: 14, background: 'rgba(245,200,66,0.05)', border: '1px solid rgba(245,200,66,0.18)', borderRadius: 13, padding: '11px 13px', fontSize: 11.5, lineHeight: 1.5, color: 'var(--text2)' }}>
-                💡 Recebes uma notificação à hora marcada, nos dias escolhidos.
+                Recebes uma notificação à hora marcada, nos dias escolhidos.
               </div>
             </>
           )}

@@ -3,6 +3,8 @@
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import type { HojeMetrics } from '@/lib/hoje-metrics'
+import Icon, { type IconName } from '@/components/ui/Icon'
+import { inkFor } from '@/lib/theme'
 
 /**
  * Grelha 2x3 de métricas-resumo das páginas principais (Hoje v2).
@@ -32,8 +34,9 @@ export default function MetricsGrid({ metrics }: Props) {
         <MetricCard
           href="/corpo"
           color="#1ECBB4"
-          icon="💪"
-          trend={corpo?.deltaKg != null ? `${corpo.deltaKg <= 0 ? '▼' : '▲'} ${Math.abs(corpo.deltaKg)}kg` : undefined}
+          icon="dumbbell"
+          trend={corpo?.deltaKg != null ? `${Math.abs(corpo.deltaKg)}kg` : undefined}
+          trendIcon={corpo?.deltaKg != null ? (corpo.deltaKg <= 0 ? 'arrow-down' : 'arrow-up') : undefined}
           value={corpo ? fmtNum(corpo.weightKg) : '—'}
           unit={corpo ? 'kg' : undefined}
           label="Corpo · peso"
@@ -43,7 +46,7 @@ export default function MetricsGrid({ metrics }: Props) {
         <MetricCard
           href="/financas"
           color="#1D9E75"
-          icon="💰"
+          icon="wallet"
           value={financas ? `${financas.netMonth >= 0 ? '+' : ''}${fmtNum(financas.netMonth)}` : '—'}
           unit={financas ? '€' : undefined}
           label="Finanças · balanço"
@@ -53,7 +56,7 @@ export default function MetricsGrid({ metrics }: Props) {
         <MetricCard
           href="/leitura"
           color="#E8A838"
-          icon="📖"
+          icon="book-open"
           trend={leitura ? `${leitura.pct}%` : undefined}
           value={leitura ? fmtNum(leitura.currentPage) : '—'}
           label="Leitura · página"
@@ -63,7 +66,7 @@ export default function MetricsGrid({ metrics }: Props) {
         <MetricCard
           href="/calendario"
           color="#85B7EB"
-          icon="📅"
+          icon="calendar"
           value={agenda ? agenda.time : '—'}
           label="Agenda · próximo"
           sub={agenda ? agenda.title : 'Nada agendado hoje'}
@@ -72,7 +75,7 @@ export default function MetricsGrid({ metrics }: Props) {
         <MetricCard
           href="/estatisticas"
           color="#E8A838"
-          icon="🔥"
+          icon="flame"
           trend={ritmo.best > 0 ? `recorde ${ritmo.best}` : undefined}
           value={fmtNum(ritmo.streak)}
           unit="dias"
@@ -83,7 +86,7 @@ export default function MetricsGrid({ metrics }: Props) {
         <MetricCard
           href="/objetivos"
           color="#7F77DD"
-          icon="🎯"
+          icon="target"
           trend={objetivo ? `${objetivo.progress}%` : undefined}
           value={objetivo ? `${objetivo.progress}%` : '—'}
           label="Objetivo em foco"
@@ -95,12 +98,13 @@ export default function MetricsGrid({ metrics }: Props) {
 }
 
 function MetricCard({
-  href, color, icon, trend, value, unit, label, sub,
+  href, color, icon, trend, trendIcon, value, unit, label, sub,
 }: {
   href: string
   color: string
-  icon: string
+  icon: IconName
   trend?: string
+  trendIcon?: IconName
   value: string
   unit?: string
   label: string
@@ -109,9 +113,12 @@ function MetricCard({
   return (
     <Link href={href} style={{ ...cardStyle, background: `linear-gradient(135deg, ${color}22, ${color}08)`, borderColor: `${color}26` }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <span style={{ width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, background: `${color}26` }}>{icon}</span>
+        <span style={{ width: 38, height: 38, borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: inkFor(color), background: `${color}26` }}><Icon name={icon} size={19} /></span>
         {trend && (
-          <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 20, background: `${color}26`, color }}>{trend}</span>
+          <span style={{ fontSize: 11, fontWeight: 800, padding: '3px 8px', borderRadius: 20, background: `${color}26`, color: inkFor(color), display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            {trendIcon && <Icon name={trendIcon} size={11} style={{ strokeWidth: 2.4 }} />}
+            {trend}
+          </span>
         )}
       </div>
       <div style={{ marginTop: 'auto', fontSize: 28, fontWeight: 800, letterSpacing: '-1px', lineHeight: 1, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>

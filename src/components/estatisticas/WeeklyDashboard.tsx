@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
+import Icon, { IconLabel } from '@/components/ui/Icon'
 import {
   BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -123,15 +124,15 @@ export default function WeeklyDashboard({ userId, streakCurrent }: Props) {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
         {[
-          { l: 'Conclusão · 7d', v: `${stats.consistency}%`, c: 'var(--green-ink)', trend: `${stats.consistency >= stats.prevConsistency ? '↑' : '↓'} vs semana passada`, up: stats.consistency >= stats.prevConsistency },
-          { l: 'Ritmo atual', v: `${ritmo}`, c: 'var(--gold-ink)', trend: `${stats.activityTrend >= 0 ? '↑ +' : '↓ '}${Math.abs(stats.activityTrend)} conclusões`, up: stats.activityTrend >= 0 },
-          { l: 'Energia média', v: stats.energy > 0 ? `${stats.energy}/10` : '—', c: 'var(--purple-ink)', sub: stats.energy >= 7 ? 'Boa semana ⚡' : stats.energy > 0 ? 'Recupera o sono' : 'Sem dados' },
+          { l: 'Conclusão · 7d', v: `${stats.consistency}%`, c: 'var(--green-ink)', trend: 'vs semana passada', up: stats.consistency >= stats.prevConsistency },
+          { l: 'Ritmo atual', v: `${ritmo}`, c: 'var(--gold-ink)', trend: `${stats.activityTrend >= 0 ? '+' : '−'}${Math.abs(stats.activityTrend)} conclusões`, up: stats.activityTrend >= 0 },
+          { l: 'Energia média', v: stats.energy > 0 ? `${stats.energy}/10` : '—', c: 'var(--purple-ink)', sub: stats.energy >= 7 ? 'Boa semana' : stats.energy > 0 ? 'Recupera o sono' : 'Sem dados' },
           { l: 'Sono médio', v: stats.sleep > 0 ? `${stats.sleep}h` : '—', c: 'var(--ink)', sub: stats.sleep >= 7 ? 'Dentro do ideal' : stats.sleep > 0 ? 'Abaixo do ideal' : 'Sem dados' },
         ].map(({ l, v, c, trend, sub, up }) => (
           <div key={l} style={{ background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 14, padding: 14 }}>
             <div style={{ fontSize: 11, color: 'var(--text2)', marginBottom: 4 }}>{l}</div>
             <div style={{ fontFamily: FONT, fontWeight: 700, fontSize: 22, color: c, marginBottom: 3, lineHeight: 1 }}>{v}</div>
-            {trend && <div style={{ fontSize: 11, color: up ? 'var(--green-ink)' : 'var(--red-ink)' }}>{trend}</div>}
+            {trend && <div style={{ fontSize: 11, color: up ? 'var(--green-ink)' : 'var(--red-ink)' }}><IconLabel icon={up ? 'arrow-up' : 'arrow-down'} size={11} gap={3}>{trend}</IconLabel></div>}
             {sub && <div style={{ fontSize: 11, color: 'var(--text2)' }}>{sub}</div>}
           </div>
         ))}
@@ -214,11 +215,11 @@ export default function WeeklyDashboard({ userId, streakCurrent }: Props) {
           { l: 'Hábitos concluídos', v: `${stats.thisDone} de ${stats.thisTotal}`, c: stats.consistency >= 70 ? 'var(--green-ink)' : 'var(--gold-ink)' },
           { l: 'Check-ins da semana', v: `${xpData.reduce((a, d) => a + d.ci, 0)}`, c: 'var(--purple-ink)' },
           { l: 'Ritmo atual', v: `${ritmo}`, c: 'var(--gold-ink)' },
-          { l: 'Streak atual', v: `${streakCurrent} dias 🔥`, c: 'var(--gold-ink)' },
-        ].map(({ l, v, c }) => (
+          { l: 'Streak atual', v: `${streakCurrent} dias`, c: 'var(--gold-ink)', icon: 'flame' as const },
+        ].map(({ l, v, c, icon }: { l: string; v: string; c: string; icon?: 'flame' }) => (
           <div key={l} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 6 }}>
             <span style={{ color: 'var(--text1)' }}>{l}</span>
-            <span style={{ color: c, fontFamily: FONT, fontWeight: 600, lineHeight: 1 }}>{v}</span>
+            <span style={{ color: c, fontFamily: FONT, fontWeight: 600, lineHeight: 1, display: 'inline-flex', alignItems: 'center', gap: 4 }}>{v}{icon && <Icon name={icon} size={13} />}</span>
           </div>
         ))}
       </div>

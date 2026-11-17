@@ -2,6 +2,8 @@
 import { useEffect, useState } from 'react'
 import { format, addDays } from 'date-fns'
 import Nav from '@/components/Nav'
+import Icon, { IconLabel, type IconName } from '@/components/ui/Icon'
+import { inkFor } from '@/lib/theme'
 import ObjetivosHub from '@/components/objetivos/ObjetivosHub'
 import { supabase, requireUser, getGoals90, saveGoal90, deleteGoal90, getMilestonesForGoals, toggleMilestone, addGoalMilestones } from '@/lib/supabase'
 import { suggestMilestones } from '@/lib/goal-milestones'
@@ -12,7 +14,7 @@ type Milestone = { id: string; goal_id: string; user_id: string; title: string; 
 
 const FONT = 'Inter, sans-serif'
 
-const CATEGORIES = Object.entries(AREA_META) as [HabitArea, { label: string; icon: string; color: string }][]
+const CATEGORIES = Object.entries(AREA_META) as [HabitArea, { label: string; icon: IconName; color: string }][]
 
 const inp: React.CSSProperties = {
   width: '100%', background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.10)',
@@ -173,7 +175,7 @@ export default function ObjetivosPage() {
 
   const toastEl = toast && (
     <div style={{ position: 'fixed', bottom: 88, left: '50%', transform: 'translateX(-50%)', background: 'var(--surface-pop)', border: '1px solid rgba(0,200,150,.38)', borderRadius: 12, padding: '10px 18px', fontSize: 13, fontFamily: FONT, color: 'var(--green-ink)', display: 'flex', alignItems: 'center', gap: 8, zIndex: 10000, whiteSpace: 'nowrap' }}>
-      ✓ {toast}
+      <IconLabel icon="check">{toast}</IconLabel>
     </div>
   )
 
@@ -193,7 +195,7 @@ export default function ObjetivosPage() {
           <h2 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 17, color: 'var(--ink)', letterSpacing: '-0.3px' }}>
             {editGoal ? 'Editar objectivo' : 'Novo objectivo'}
           </h2>
-          <button onClick={() => setShowForm(false)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text1)' }}>✕</button>
+          <button onClick={() => setShowForm(false)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', display: 'grid', placeItems: 'center' }}><Icon name="x" size={15} /></button>
         </div>
 
         <div style={{ overflowY: 'auto', flex: 1, padding: '16px 20px' }}>
@@ -212,7 +214,7 @@ export default function ObjetivosPage() {
                 color: fArea === key ? meta.color : 'var(--text2)',
                 fontSize: 13, fontWeight: 600, fontFamily: FONT,
               }}>
-                <span style={{ fontSize: 15 }}>{meta.icon}</span>{meta.label}
+                <Icon name={meta.icon} size={15} />{meta.label}
               </button>
             ))}
           </div>
@@ -276,9 +278,9 @@ export default function ObjetivosPage() {
                 <div style={{
                   width: 40, height: 40, borderRadius: 12, flexShrink: 0,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  background: `${color}1F`, fontSize: 18,
+                  background: `${color}1F`, color: inkFor(color),
                 }}>
-                  {area?.icon ?? '🎯'}
+                  <Icon name={area?.icon ?? 'target'} size={19} />
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--ink)', letterSpacing: '-0.3px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>
@@ -288,7 +290,7 @@ export default function ObjetivosPage() {
                     {area?.label ?? openGoal.area} · {dl > 0 ? `${dl} dias restantes` : 'Terminou'}
                   </div>
                 </div>
-                <button onClick={() => setOpenGoalId(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', fontSize: 14, color: 'var(--text1)', flexShrink: 0 }}>✕</button>
+                <button onClick={() => setOpenGoalId(null)} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: 10, background: 'var(--surface-3)', border: 'none', cursor: 'pointer', color: 'var(--text1)', flexShrink: 0, display: 'grid', placeItems: 'center' }}><Icon name="x" size={15} /></button>
               </div>
 
               {/* Corpo scrollável */}
@@ -321,8 +323,7 @@ export default function ObjetivosPage() {
                         background: m.done ? '#00C896' : 'transparent',
                         color: m.done ? '#001A10' : 'transparent',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 11, fontWeight: 800,
-                      }}>✓</span>
+                      }}><Icon name="check" size={12} style={{ strokeWidth: 2.6 }} /></span>
                       <span style={{
                         flex: 1, fontSize: 13.5, fontWeight: 600,
                         color: m.done ? 'rgba(var(--ink-rgb),0.45)' : 'rgba(var(--ink-rgb),0.85)',

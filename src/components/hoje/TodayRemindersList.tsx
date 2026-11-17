@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import Icon from '@/components/ui/Icon'
+import Icon, { IconLabel } from '@/components/ui/Icon'
 import SwipeRow from '@/components/ui/SwipeRow'
 import { isOverdue, type TodayReminderItem } from '@/lib/today-reminders'
 
@@ -196,7 +196,7 @@ export default function TodayRemindersList({ items, onToggle, onCreate, onDelete
             Lembretes de hoje
           </h2>
           <span style={{ fontSize: 12.5, color: 'var(--text3)', fontFamily: 'var(--font-dm), "DM Sans", sans-serif' }}>
-            {remaining > 0 ? `${remaining} por fazer` : items.length > 0 ? 'tudo feito ✓' : ''}
+            {remaining > 0 ? `${remaining} por fazer` : items.length > 0 ? <IconLabel icon="check" size={13} gap={4} after>tudo feito</IconLabel> : ''}
           </span>
         </div>
 

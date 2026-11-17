@@ -5,17 +5,18 @@ import { usePathname, useRouter } from 'next/navigation'
 import { format } from 'date-fns'
 import { createHabitQuick, saveReminder, saveFocusSession, saveTransaction, supabase } from '@/lib/supabase'
 import { AREA_INK } from '@/types'
+import Icon, { IconLabel, type IconName } from '@/components/ui/Icon'
 import type { HabitArea } from '@/types'
 import { CATEGORIES_IN, CATEGORIES_OUT, CUSTOM_KEY, isTransferCat } from '@/lib/categories'
 
-const HABIT_AREAS: Array<{ key: HabitArea; label: string; icon: string; color: string }> = [
-  { key: 'corpo',           label: 'Corpo',         icon: '💪', color: '#1ECBB4' },
-  { key: 'produtividade',   label: 'Produtiv.',     icon: '🎯', color: '#7F77DD' },
-  { key: 'idiomas',         label: 'Idiomas',       icon: '🗣️', color: '#E24B4A' },
-  { key: 'carreira',        label: 'Carreira',      icon: '📚', color: '#E8A838' },
-  { key: 'financas',        label: 'Finanças',      icon: '💰', color: '#1D9E75' },
-  { key: 'emocoes',         label: 'Emoções',       icon: '🧘', color: '#D4537E' },
-  { key: 'relacionamentos', label: 'Relações',      icon: '🤝', color: '#85B7EB' },
+const HABIT_AREAS: Array<{ key: HabitArea; label: string; icon: IconName; color: string }> = [
+  { key: 'corpo',           label: 'Corpo',         icon: 'dumbbell', color: '#1ECBB4' },
+  { key: 'produtividade',   label: 'Produtiv.',     icon: 'target', color: '#7F77DD' },
+  { key: 'idiomas',         label: 'Idiomas',       icon: 'message', color: '#E24B4A' },
+  { key: 'carreira',        label: 'Carreira',      icon: 'briefcase', color: '#E8A838' },
+  { key: 'financas',        label: 'Finanças',      icon: 'wallet', color: '#1D9E75' },
+  { key: 'emocoes',         label: 'Emoções',       icon: 'leaf', color: '#D4537E' },
+  { key: 'relacionamentos', label: 'Relações',      icon: 'users', color: '#85B7EB' },
 ]
 
 const inputStyle: React.CSSProperties = {
@@ -188,10 +189,10 @@ export default function QuickAction() {
   // color = tinta do texto (variantes -ink, legíveis nos dois temas);
   // borderCol = raw p/ a borda tingida (var() não pode ser concatenado com alpha).
   const actions = [
-    { label:'Lembrete',  icon:'🔔', color:'var(--gold-ink)', borderCol:'rgba(245,200,66,.27)', bg:'rgba(245,200,66,.12)', onClick:()=>{ setShowReminder(true);     setOpen(false) } },
-    { label:'Hábito',    icon:'✅', color:'var(--teal-ink)', borderCol:'rgba(30,203,180,.27)', bg:'rgba(30,203,180,.12)',  onClick:()=>{ setShowHabit(true);        setOpen(false) } },
-    { label:'Transação', icon:'💰', color:'var(--gold-ink)', borderCol:'rgba(232,168,56,.27)', bg:'rgba(232,168,56,.12)', onClick:()=>{ setShowTransaction(true);  setOpen(false) } },
-    { label:'Pomodoro',  icon:'⏱',  color:'var(--accent)',   borderCol:'rgba(127,119,221,.27)',bg:'rgba(127,119,221,.12)',onClick:()=>{ setShowPomodoro(true);    setOpen(false) } },
+    { label:'Lembrete',  icon:'bell' as IconName, color:'var(--gold-ink)', borderCol:'rgba(245,200,66,.27)', bg:'rgba(245,200,66,.12)', onClick:()=>{ setShowReminder(true);     setOpen(false) } },
+    { label:'Hábito',    icon:'check-circle' as IconName, color:'var(--teal-ink)', borderCol:'rgba(30,203,180,.27)', bg:'rgba(30,203,180,.12)',  onClick:()=>{ setShowHabit(true);        setOpen(false) } },
+    { label:'Transação', icon:'wallet' as IconName, color:'var(--gold-ink)', borderCol:'rgba(232,168,56,.27)', bg:'rgba(232,168,56,.12)', onClick:()=>{ setShowTransaction(true);  setOpen(false) } },
+    { label:'Pomodoro',  icon:'clock' as IconName,  color:'var(--accent)',   borderCol:'rgba(127,119,221,.27)',bg:'rgba(127,119,221,.12)',onClick:()=>{ setShowPomodoro(true);    setOpen(false) } },
   ]
 
   const currentCats = txType === 'entrada' ? CATEGORIES_IN : CATEGORIES_OUT
@@ -201,7 +202,7 @@ export default function QuickAction() {
     <>
       {toast && (
         <div style={{position:'fixed',bottom:88,left:'50%',transform:'translateX(-50%)',zIndex:9999,background:'var(--bg2)',border:'0.5px solid rgba(30,203,180,.38)',borderRadius:12,padding:'10px 18px',fontSize:13,color:'var(--teal-ink)',whiteSpace:'nowrap',boxShadow:'0 8px 30px rgba(0,0,0,.35)'}}>
-          ✓ {toast}
+          <IconLabel icon="check">{toast}</IconLabel>
         </div>
       )}
 
@@ -235,7 +236,7 @@ export default function QuickAction() {
                         outline: active ? `1.5px solid ${a.color}` : '0.5px solid var(--border)',
                         transition:'all .15s',
                       }}>
-                        <span style={{fontSize:14}}>{a.icon}</span>
+                        <Icon name={a.icon} size={15} />
                         <span style={{fontSize:12,fontFamily:'DM Sans, sans-serif',color:active?(AREA_INK[a.key]??a.color):'var(--text2)',fontWeight:active?600:400}}>{a.label}</span>
                       </button>
                     )
@@ -311,7 +312,7 @@ export default function QuickAction() {
               <div style={{display:'flex',gap:8}}>
                 {(['saida','entrada'] as const).map(t=>(
                   <button key={t} onClick={()=>setTxType(t)} style={{flex:1,padding:'11px 0',borderRadius:12,border:'none',cursor:'pointer',background:txType===t?(t==='saida'?'#E24B4A':'var(--teal)'):'var(--bg3)',color:txType===t?'#fff':'var(--text2)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,transition:'all .15s'}}>
-                    {t==='saida'?'↑ Saída':'↓ Entrada'}
+                    <IconLabel icon={t==='saida'?'arrow-up':'arrow-down'}>{t==='saida'?'Saída':'Entrada'}</IconLabel>
                   </button>
                 ))}
               </div>
@@ -338,7 +339,7 @@ export default function QuickAction() {
                     color: txCategory===CUSTOM_KEY ? 'var(--accent)' : 'var(--text3)',
                     outline: txCategory===CUSTOM_KEY ? '1.5px solid var(--accent)' : '0.5px solid var(--border)',
                     transition:'all .15s',
-                  }}>✏️ Personalizar</button>
+                  }}><IconLabel icon="pencil" size={13}>Personalizar</IconLabel></button>
                 </div>
 
                 {/* Input categoria personalizada */}
@@ -382,7 +383,7 @@ export default function QuickAction() {
                     background:txFromReserve?'rgba(245,200,66,0.10)':'var(--bg2)',
                     border:`0.5px solid ${txFromReserve?'rgba(245,200,66,0.5)':'var(--border)'}`}}
                 >
-                  <span style={{fontSize:16}}>🏦</span>
+                  <Icon name="landmark" size={17} color="var(--text2)" />
                   <div style={{flex:1}}>
                     <div style={{fontSize:13,fontWeight:700,color:'var(--text1)'}}>Pagar com a reserva</div>
                     <div style={{fontSize:11,color:'var(--text3)',marginTop:1}}>Sai da reserva, aparece nos gastos, não mexe no balanço do mês.</div>
@@ -430,7 +431,7 @@ export default function QuickAction() {
               <button onClick={()=>{ if(secondsLeft===0){setSecondsLeft(25*60);setPomodoroSaved(false)} setRunning(v=>!v) }} style={{flex:1,padding:'13px 0',borderRadius:14,border:'none',background:running?'var(--bg3)':'var(--accent)',color:running?'var(--text2)':'white',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:14,cursor:'pointer'}}>
                 {running?'Pausar':secondsLeft===0?'Nova sessão':'Iniciar'}
               </button>
-              <button onClick={()=>{ setRunning(false); setSecondsLeft(25*60); setPomodoroSaved(false) }} style={{width:48,borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text3)',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:18,cursor:'pointer'}}>↺</button>
+              <button onClick={()=>{ setRunning(false); setSecondsLeft(25*60); setPomodoroSaved(false) }} style={{width:48,borderRadius:14,border:'0.5px solid var(--border)',background:'var(--bg3)',color:'var(--text3)',fontFamily:'Inter, sans-serif',cursor:'pointer',display:'grid',placeItems:'center'}} aria-label="Reiniciar"><Icon name="undo" size={18} /></button>
             </div>
             {secondsLeft===0&&(
               <button onClick={savePomodoroIfNeeded} disabled={pomodoroSaved} style={{marginTop:12,width:'100%',padding:'12px 0',borderRadius:12,border:'none',background:pomodoroSaved?'var(--bg3)':'var(--teal)',color:pomodoroSaved?'var(--text2)':'#0D0F14',fontFamily:'Inter, sans-serif',fontWeight:700,fontSize:13,cursor:'pointer'}}>
@@ -451,8 +452,8 @@ export default function QuickAction() {
           <div data-quickaction style={{position:'fixed',bottom:84,left:'50%',transform:'translateX(-50%)',zIndex:96,display:'flex',flexDirection:'column',alignItems:'center',gap:8,animation:'qaMenuIn .18s ease'}}>
             {actions.map(a=>(
               <button key={a.label} onClick={a.onClick} style={{display:'flex',alignItems:'center',gap:10,background:'var(--bg1)',border:`0.5px solid ${a.borderCol}`,borderRadius:14,padding:'10px 14px',cursor:'pointer',boxShadow:'0 4px 20px rgba(0,0,0,.35)',whiteSpace:'nowrap',minWidth:160}}>
-                <div style={{width:32,height:32,borderRadius:9,background:a.bg,display:'flex',alignItems:'center',justifyContent:'center',fontSize:15,flexShrink:0}}>{a.icon}</div>
-                <span style={{fontFamily:'Inter, sans-serif',fontWeight:600,fontSize:13,color:a.color}}>＋ {a.label}</span>
+                <div style={{width:32,height:32,borderRadius:9,background:a.bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,color:a.color}}><Icon name={a.icon} size={17} /></div>
+                <span style={{fontFamily:'Inter, sans-serif',fontWeight:600,fontSize:13,color:a.color}}>{a.label}</span>
               </button>
             ))}
           </div>

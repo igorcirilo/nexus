@@ -2,6 +2,7 @@
 // src/components/LevelUpModal.tsx
 
 import { useEffect, useState } from 'react'
+import { IconLabel } from '@/components/ui/Icon'
 
 interface LevelUpModalProps {
   level: number
@@ -143,7 +144,7 @@ export default function LevelUpModal({ level, title, onClose }: LevelUpModalProp
             boxShadow: '0 4px 20px rgba(232,168,56,.3)',
           }}
         >
-          Continuar →
+          <IconLabel icon="arrow-right" size={16} after>Continuar</IconLabel>
         </button>
       </div>
 

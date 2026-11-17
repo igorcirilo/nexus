@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useParams } from 'next/navigation'
 import Nav from '@/components/Nav'
+import Icon, { IconLabel } from '@/components/ui/Icon'
 import ErrorState from '@/components/ui/ErrorState'
 import { todayISO } from '@/lib/date'
 import {
@@ -549,7 +550,7 @@ export default function LeituraReaderPage() {
       <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', flexDirection: 'column', gap: 14, color: 'var(--text3)', fontFamily: 'Inter, sans-serif', padding: '0 28px', textAlign: 'center' }}>
         <div>Livro não encontrado.</div>
         <Link href="/leitura" style={{ textDecoration: 'none', color: 'var(--gold, #E8A838)', fontWeight: 700, fontSize: 14 }}>
-          ← Voltar à Leitura
+          <IconLabel icon="arrow-left">Voltar à Leitura</IconLabel>
         </Link>
       </div>
     )
@@ -756,11 +757,11 @@ export default function LeituraReaderPage() {
           border: `1px solid ${palette.border}`,
           boxShadow: isDark ? '0 6px 24px rgba(0,0,0,0.5)' : '0 4px 18px rgba(0,0,0,0.14)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          cursor: 'pointer', fontSize: 19,
+          cursor: 'pointer',
           transition: 'background 0.2s, color 0.2s',
         }}
       >
-        ✏️
+        <Icon name="pencil" size={20} />
       </button>
 
       {/* ── Toast ─────────────────────────────────────────────────────────── */}
@@ -773,7 +774,7 @@ export default function LeituraReaderPage() {
           whiteSpace: 'nowrap', boxShadow: '0 4px 20px rgba(0,0,0,0.22)',
           fontFamily: 'Inter, sans-serif',
         }}>
-          ✓&nbsp;{toast}
+          <IconLabel icon="check">{toast}</IconLabel>
         </div>
       )}
 
@@ -1140,7 +1141,7 @@ export default function LeituraReaderPage() {
                       fontWeight: 700, fontSize: 14, cursor: 'pointer', fontFamily: 'Inter, sans-serif',
                     }}
                   >
-                    {currentBookmark ? '✕ Remover marcador desta página' : `🔖 Marcar página ${currentPage}`}
+                    {currentBookmark ? <IconLabel icon="x">Remover marcador desta página</IconLabel> : <IconLabel icon="bookmark">Marcar página {currentPage}</IconLabel>}
                   </button>
                   <div style={{ fontSize: 10, color: `${palette.text}50`, fontFamily: 'Inter, sans-serif', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
                     Todos os marcadores {bookmarks.length > 0 && `· ${bookmarks.length}`}

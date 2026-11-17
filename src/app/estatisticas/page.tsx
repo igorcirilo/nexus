@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import type { CSSProperties } from 'react'
 import Link from 'next/link'
 import Nav from '@/components/Nav'
+import Icon, { type IconName } from '@/components/ui/Icon'
+import { inkFor } from '@/lib/theme'
 import { supabase, requireUser, getProfile } from '@/lib/supabase'
 import {
   getActivityStats,
@@ -22,7 +24,7 @@ import type { Profile, HabitArea } from '@/types'
 const FONT = 'Inter, sans-serif'
 const HEAT = ['rgba(var(--ink-rgb),0.05)', 'rgba(232,168,56,0.28)', 'rgba(232,168,56,0.5)', 'rgba(232,168,56,0.72)', '#E8A838']
 
-type AreaRow = { key: string; label: string; icon: string; color: string; pct: number }
+type AreaRow = { key: string; label: string; icon: IconName; color: string; pct: number }
 
 export default function EstatisticasPage() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -61,7 +63,7 @@ export default function EstatisticasPage() {
     <main style={{ paddingBottom: 'calc(150px + env(safe-area-inset-bottom))', minHeight: '100dvh', background: 'var(--surface-page)', fontFamily: FONT }}>
       <div style={{ padding: '0 20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '22px 0 4px' }}>
-          <Link href="/hoje" aria-label="Voltar" style={backBtn}>‹</Link>
+          <Link href="/hoje" aria-label="Voltar" style={backBtn}><Icon name="chevron-left" size={18} /></Link>
           <div>
             <h1 style={{ fontSize: 25, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.4px' }}>Estatísticas</h1>
             <div style={{ fontSize: 13, color: 'var(--text2)', fontWeight: 500, marginTop: 2 }}>A tua consistência ao longo do tempo</div>
@@ -74,9 +76,9 @@ export default function EstatisticasPage() {
           <>
             {/* Registos */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginTop: 16 }}>
-              <RegCard emoji="🔥" value={profile?.streak_current ?? 0} label="SEQUÊNCIA ATUAL" color="#E8A838" />
-              <RegCard emoji="🏆" value={profile?.streak_best ?? 0} label="MELHOR SEQUÊNCIA" color="#1ECBB4" />
-              <RegCard emoji="📊" value={`${success}%`} label="SUCESSO · 30 DIAS" color="#9C94EC" />
+              <RegCard icon="flame" value={profile?.streak_current ?? 0} label="SEQUÊNCIA ATUAL" color="#E8A838" />
+              <RegCard icon="trophy" value={profile?.streak_best ?? 0} label="MELHOR SEQUÊNCIA" color="#1ECBB4" />
+              <RegCard icon="bar-chart" value={`${success}%`} label="SUCESSO · 30 DIAS" color="#9C94EC" />
             </div>
 
             {/* Heatmap */}
@@ -121,7 +123,7 @@ export default function EstatisticasPage() {
                 <div style={{ ...panel, display: 'flex', flexDirection: 'column', gap: 12 }}>
                   {areas.map((a) => (
                     <div key={a.key} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ fontSize: 15, width: 22, textAlign: 'center', flexShrink: 0 }}>{a.icon}</span>
+                      <span style={{ width: 22, display: 'grid', placeItems: 'center', flexShrink: 0, color: inkFor(a.color) }}><Icon name={a.icon} size={16} /></span>
                       <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text1)', minWidth: 96, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.label}</span>
                       <div style={{ flex: 1, height: 6, background: 'var(--surface-3)', borderRadius: 10, overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: `${a.pct}%`, borderRadius: 10, background: a.color }} />
@@ -146,12 +148,12 @@ export default function EstatisticasPage() {
                   display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left',
                 }}
               >
-                <span style={{ fontSize: 22 }}>📊</span>
+                <Icon name="bar-chart" size={22} color="var(--text2)" />
                 <span style={{ flex: 1, minWidth: 0 }}>
                   <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--text1)' }}>Ver dashboard detalhado</span>
                   <span style={{ display: 'block', fontSize: 12, color: 'var(--text3)', marginTop: 2 }}>Atividade, energia, sono e resumo da semana</span>
                 </span>
-                <span style={{ fontSize: 18, color: 'var(--text3)' }}>›</span>
+                <Icon name="chevron-right" size={18} color="var(--text3)" />
               </button>
             )}
           </>
@@ -162,10 +164,10 @@ export default function EstatisticasPage() {
   )
 }
 
-function RegCard({ emoji, value, label, color }: { emoji: string; value: number | string; label: string; color: string }) {
+function RegCard({ icon, value, label, color }: { icon: IconName; value: number | string; label: string; color: string }) {
   return (
     <div style={{ background: 'var(--surface-2)', border: '1px solid rgba(var(--ink-rgb),0.07)', borderRadius: 18, padding: '15px 10px', textAlign: 'center' }}>
-      <div style={{ fontSize: 19 }}>{emoji}</div>
+      <div style={{ display: 'flex', justifyContent: 'center', color: inkFor(color) }}><Icon name={icon} size={19} /></div>
       <div style={{ fontSize: 25, fontWeight: 800, letterSpacing: '-0.5px', marginTop: 6, color }}>{value}</div>
       <div style={{ fontSize: 10, color: 'var(--text3)', fontWeight: 700, marginTop: 3 }}>{label}</div>
     </div>
